@@ -16,14 +16,10 @@
     var ARROW_SVG = '<svg class="arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
 
     /*
-     * Shown for a category that has no drawing of its own yet.
-     *
-     * A neutral ring, written inline as a data URI: nothing is loaded from a
-     * static file, and it is deliberately not one of the subject drawings, so
-     * an empty tile can never be mistaken for a real icon.
+     * There is no placeholder drawing any more. A category without a drawing of
+     * its own shows the first letter of the name it is displayed under - in the
+     * tile and in the preview of the upload field alike (see fillIconCircle).
      */
-    var FALLBACK_ICON = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.2%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%227.5%22/%3E%3C/svg%3E';
-
     /*
      * There is deliberately NO table of categories in this file.
      *
@@ -64,12 +60,6 @@
      */
     var currentEntry = null;
     var currentEntryCards = [];
-    var editingEntry = null;
-    var editingCard = null;
-    var pendingDelete = null;
-    var stagedIconSvg = null;
-    var stagedIconName = '';
-    var iconRemoved = false;
     var openMenu = null;
     var feedbackTimer = null;
 
@@ -78,11 +68,11 @@
     var entryEmptyHandler = null;
 
     /*
-     * pendingColor stays undefined until somebody touches the colour field.
-     * Undefined means "leave the stored colour alone", which matters because the
-     * API answers with a fallback colour that is NOT stored in the database.
+     * True while the home page is in edit mode: every tile then carries a menu
+     * in its corner. The mode is not stored anywhere - leaving the page or
+     * opening a detail view simply ends it.
      */
-    var pendingColor;
+    var editMode = false;
 
     var elements = {
         page: document.querySelector('.page'),
@@ -130,45 +120,20 @@
         deleteEntry: document.getElementById('delete-entry'),
         statLabel: document.getElementById('detail-stat-label'),
 
-        categoryDialog: document.getElementById('category-dialog'),
-        categoryForm: document.getElementById('category-form'),
-        categoryTitle: document.getElementById('category-dialog-title'),
-        categoryName: document.getElementById('category-name'),
-        categoryNameEn: document.getElementById('category-name-en'),
-        categoryNameDe: document.getElementById('category-name-de'),
-        categoryDescriptionEn: document.getElementById('category-description-en'),
-        categoryDescriptionDe: document.getElementById('category-description-de'),
-        categoryColor: document.getElementById('category-color'),
-        categoryColorClear: document.getElementById('category-color-clear'),
-        categoryIcon: document.getElementById('category-icon'),
-        categoryIconState: document.getElementById('category-icon-state'),
-        categoryIconBadge: document.getElementById('category-icon-badge'),
-        categoryIconRemove: document.getElementById('category-icon-remove'),
-        categoryIconScale: document.getElementById('category-icon-scale'),
-        categoryError: document.getElementById('category-error'),
-        categoryCancel: document.getElementById('category-cancel'),
-        categorySave: document.getElementById('category-save'),
-        categoryDelete: document.getElementById('category-delete'),
+        /* The one dialog. Its fields are built while it opens. */
+        dialog: document.getElementById('app-dialog'),
+        dialogForm: document.getElementById('app-dialog-form'),
+        dialogTitle: document.getElementById('app-dialog-title'),
+        dialogMessage: document.getElementById('app-dialog-message'),
+        dialogFields: document.getElementById('app-dialog-fields'),
+        dialogError: document.getElementById('app-dialog-error'),
+        dialogDanger: document.getElementById('app-dialog-danger'),
+        dialogCancel: document.getElementById('app-dialog-cancel'),
+        dialogSubmit: document.getElementById('app-dialog-submit'),
 
-        cardDialog: document.getElementById('card-dialog'),
-        cardForm: document.getElementById('card-form'),
-        cardTitle: document.getElementById('card-dialog-title'),
-        cardFront: document.getElementById('card-front'),
-        cardBack: document.getElementById('card-back'),
-        cardBidirectional: document.getElementById('card-bidirectional'),
-        cardError: document.getElementById('card-error'),
-        cardCancel: document.getElementById('card-cancel'),
-        cardSave: document.getElementById('card-save'),
-
-        deleteDialog: document.getElementById('delete-dialog'),
-        deleteForm: document.getElementById('delete-form'),
-        deleteTitle: document.getElementById('delete-dialog-title'),
-        deleteMessage: document.getElementById('delete-message'),
-        deleteConfirmField: document.getElementById('delete-confirm-field'),
-        deleteConfirm: document.getElementById('delete-confirm'),
-        deleteError: document.getElementById('delete-error'),
-        deleteCancel: document.getElementById('delete-cancel'),
-        deleteSubmit: document.getElementById('delete-submit'),
+        /* The hint line that belongs to the edit mode. */
+        editHint: document.getElementById('edit-hint'),
+        tilesView: document.getElementById('view-home'),
 
         feedback: document.getElementById('feedback')
     };
@@ -253,50 +218,26 @@
             scale = 1;
         }
 
+        /*
+         * null means "this category has no drawing of its own". The circle then
+         * shows the first letter of the name instead of staying empty.
+         */
         return {
             title: displayName(row),
-            icon: row.icon_url ? row.icon_url : FALLBACK_ICON,
+            icon: typeof row.icon_url === 'string' && row.icon_url !== '' ? row.icon_url : null,
             iconScale: scale
         };
     }
 
     /*
-     * The colour of one category, taken from `categories.color`.
+     * There is deliberately no colour helper any more.
      *
-     * The stored value is written onto the element as --cat-base and the class
-     * "has-cat" switches it on; the stylesheet turns that into --cat and derives
-     * the dark variant from the very same value. A category without a colour
-     * keeps the neutral --cat-default, so one unusable value can never break the
-     * page.
+     * The `color` column is still in the database, but nothing in this
+     * application reads, writes or shows it: a category is neutral by design,
+     * and the tiles of the light theme take their colour from their position in
+     * the row (see the stylesheet). The dot, the row track and every marker
+     * therefore stay neutral through --cat-default.
      */
-    function applyCategoryColor(element, row) {
-        var color = typeof row.color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(row.color)
-            ? row.color
-            : null;
-
-        if (color === null) {
-            element.classList.remove('has-cat');
-            element.style.removeProperty('--cat-base');
-            return;
-        }
-
-        element.classList.add('has-cat');
-        element.style.setProperty('--cat-base', color);
-    }
-
-
-    /*
-     * The neutral colour of the stylesheet (--cat-default). It is read from the
-     * CSS instead of being written down in JavaScript as well, and it is only
-     * the value the colour field shows while a category has no colour of its own.
-     */
-    function defaultCategoryColor() {
-        var value = window.getComputedStyle(document.documentElement)
-            .getPropertyValue('--cat-default')
-            .trim();
-
-        return /^#[0-9A-Fa-f]{6}$/.test(value) ? value : '#C3C8DB';
-    }
 
     /*
      * "08 SUBCATEGORIES" / "01 SUBCATEGORY" - a padded counter, used by the rows
@@ -751,47 +692,79 @@
        Building the start page
        ---------------------------------------------------------------------- */
 
+    /*
+     * The first character of a displayed name, for the circle of a category that
+     * has no drawing of its own. It is upper case, so "mathematics" and
+     * "Mathematics" both show an "M", and it follows the language switch because
+     * the caller passes the name it already displays.
+     */
+    function initialLetter(name) {
+        var text = String(name === undefined || name === null ? '' : name).trim();
+
+        if (text === '') {
+            return '?';
+        }
+
+        return text.charAt(0).toLocaleUpperCase();
+    }
+
+    /*
+     * Fills the icon circle of a tile or of a preview: the drawing when there is
+     * one, otherwise the first letter of the name. An empty circle is never
+     * shown, because a circle without any content reads like a loading state.
+     */
+    function fillIconCircle(circle, meta) {
+        circle.textContent = '';
+
+        if (meta.icon === null) {
+            var initial = document.createElement('span');
+            initial.className = 'blob__initial';
+            initial.textContent = initialLetter(meta.title);
+            circle.appendChild(initial);
+            return;
+        }
+
+        var icon = document.createElement('img');
+        icon.className = 'blob__icon';
+        icon.src = meta.icon;
+        /* The whole tile is one link with an accessible name, so describing the
+           drawing again would only repeat it. */
+        icon.alt = '';
+        /* No loading="lazy": the drawing comes from the database through
+           api/category_icon.php, and a lazy image stayed empty in testing even
+           while the tile was on screen. */
+        icon.setAttribute('decoding', 'async');
+        icon.style.setProperty('--icon-scale', String(meta.iconScale));
+        circle.appendChild(icon);
+    }
+
     function buildAreaTile(area, index) {
         var meta = categoryMeta(area);
 
+        /*
+         * One tile needs two elements, because the menu in the corner is a real
+         * <button> and a button inside a link is neither valid markup nor
+         * clickable in a dependable way. The slot carries the width of a tile and
+         * the position that gives the tile its colour, the link inside it stays
+         * exactly what it was.
+         */
+        var slot = document.createElement('div');
+        slot.className = 'area-card-slot';
+        slot.style.setProperty('--reveal-index', String(2 + index));
+
         var link = document.createElement('a');
-        link.className = 'area-card reveal';
+        link.className = 'area-card';
         link.href = 'index.php?category=' + encodeURIComponent(area.id);
         link.setAttribute('data-area-id', String(area.id));
         link.setAttribute('aria-label', t('area.open', { name: meta.title }));
-        /*
-         * One tile is one link. The colour the database holds for this category is
-         * handed to the stylesheet; the tile itself stays neutral, and the colour
-         * is used by the rows and by the statistic dot.
-         */
-        applyCategoryColor(link, area);
-        link.style.setProperty('--reveal-index', String(2 + index));
 
-        /* Blob on the left, [01] on the right. */
+        /* Blob on the left, the menu on the right. */
         var head = document.createElement('span');
         head.className = 'area-card__head';
 
         var blob = document.createElement('span');
         blob.className = 'blob';
-
-        /*
-         * The subject drawings are used unchanged. The alt text is empty on
-         * purpose: the whole tile is one link with an accessible name, so
-         * describing the drawing again would only repeat it.
-         */
-        var icon = document.createElement('img');
-        icon.className = 'blob__icon';
-        icon.src = meta.icon;
-        icon.alt = '';
-        /*
-         * No loading="lazy" here. The drawing comes from the database through
-         * api/category_icon.php, and a lazy image stayed empty in testing even
-         * while the tile was on screen. The answer carries a fingerprint and is
-         * cached for a week, so it is only fetched once anyway.
-         */
-        icon.setAttribute('decoding', 'async');
-        icon.style.setProperty('--icon-scale', String(meta.iconScale));
-        blob.appendChild(icon);
+        fillIconCircle(blob, meta);
 
         head.appendChild(blob);
 
@@ -832,7 +805,33 @@
         link.appendChild(bottom);
         link.appendChild(tooltip);
 
-        return link;
+        slot.appendChild(link);
+
+        /*
+         * The menu of this tile. It is always in the markup and only becomes
+         * visible while the edit mode is on (see the stylesheet), so switching
+         * the mode never has to rebuild the row.
+         */
+        var menu = buildMenu([
+            {
+                label: t('action.edit'),
+                run: function () {
+                    openCategoryForm('edit', area, area.parent_id);
+                }
+            },
+            {
+                label: t('action.delete'),
+                danger: true,
+                run: function () {
+                    openDeleteDialog('category', area);
+                }
+            }
+        ], meta.title, 'tile-menu');
+
+        menu.classList.add('tile-menu');
+        slot.appendChild(menu);
+
+        return slot;
     }
 
     function hideStates() {
@@ -928,8 +927,6 @@
         var link = document.createElement('a');
         link.className = 'sidebar__link';
         link.href = 'index.php?category=' + encodeURIComponent(area.id);
-        /* Lets the row pick up its category colour where it is needed. */
-        applyCategoryColor(link, area);
 
         if (isActive) {
             link.setAttribute('aria-current', 'page');
@@ -952,9 +949,9 @@
      * be changed or removed, and it really is a button, so it works with a
      * keyboard: Enter opens the menu, Escape closes it again.
      */
-    function buildMenu(actions, label) {
+    function buildMenu(actions, label, wrapperClass) {
         var wrap = document.createElement('span');
-        wrap.className = 'row__menu';
+        wrap.className = wrapperClass ? wrapperClass : 'row__menu';
 
         var button = document.createElement('button');
         button.type = 'button';
@@ -1023,12 +1020,10 @@
      * One subcategory row: a link to its flashcards, the number of cards that
      * sit in it and a menu with "edit" and "delete".
      */
-    function buildEntryRow(entry, index, colorContext) {
+    function buildEntryRow(entry, index) {
         var item = document.createElement('li');
         item.className = 'row reveal';
         item.style.setProperty('--reveal-index', String(index));
-        /* The rows belong to the open area, so they share its colour. */
-        applyCategoryColor(item, colorContext);
 
         var title = displayName(entry);
 
@@ -1081,7 +1076,7 @@
             {
                 label: t('action.edit'),
                 run: function () {
-                    openCategoryDialog('edit', entry, entry.parent_id);
+                    openCategoryForm('edit', entry, entry.parent_id);
                 }
             },
             {
@@ -1142,7 +1137,7 @@
             {
                 label: t('action.edit'),
                 run: function () {
-                    openCardDialog(card, card.category_id);
+                    openCardForm(card, card.category_id);
                 }
             },
             {
@@ -1249,6 +1244,7 @@
             }
 
             var current = single.data;
+            editMode = false;
             var isSubcategory = current.parent_id !== null;
             var parent = null;
 
@@ -1263,11 +1259,6 @@
             currentEntry = current;
             currentEntryCards = cardsResult.ok && Array.isArray(cardsResult.data) ? cardsResult.data : [];
 
-            /*
-             * The rows of a subcategory share the colour of their learning area,
-             * so a whole branch reads as one category.
-             */
-            var colourSource = parent === null ? current : parent;
             var pageTitle = displayName(current);
 
             var crumbParts = [];
@@ -1286,8 +1277,6 @@
             setHeading(elements.detailHeading, pageTitle);
             document.title = pageTitle + ' — ' + t('app.title');
 
-            /* The dot beside the statistic carries the colour of the area. */
-            applyCategoryColor(elements.detailDot, colourSource);
 
             elements.detailActions.hidden = false;
             elements.detailStats.hidden = false;
@@ -1300,7 +1289,7 @@
 
                 if (currentEntryCards.length === 0) {
                     showEntryEmpty('cards.empty.title', 'cards.empty.hint', 'cards.addCard', function () {
-                        openCardDialog(null, current.id);
+                        openCardForm(null, current.id);
                     });
                 } else {
                     currentEntryCards.forEach(function (card, index) {
@@ -1322,11 +1311,11 @@
 
             if (children.length === 0) {
                 showEntryEmpty('detail.empty.title', 'detail.empty.hint', 'detail.addSubcategory', function () {
-                    openCategoryDialog('create', null, current.id);
+                    openCategoryForm('create', null, current.id);
                 });
             } else {
                 children.forEach(function (child, index) {
-                    elements.entryList.appendChild(buildEntryRow(child, index, colourSource));
+                    elements.entryList.appendChild(buildEntryRow(child, index));
                 });
 
                 elements.entryList.hidden = false;
@@ -1360,8 +1349,13 @@
         elements.addButton.setAttribute('aria-label', t(addKey));
         elements.addButton.setAttribute('data-i18n-label', addKey);
 
-        /* Nothing is open on the home page, so there is nothing to edit. */
-        elements.editButton.hidden = level === 'home';
+        /*
+         * The button switches the edit mode of the tile row, so it belongs to
+         * the start page. On a detail view the entry is edited with the two
+         * actions next to the heading instead, which is why the button is hidden
+         * there.
+         */
+        elements.editButton.hidden = level !== 'home';
         elements.editButton.setAttribute('aria-label', t('footer.editAria'));
         elements.editButton.setAttribute('data-i18n-label', 'footer.editAria');
 
@@ -1376,16 +1370,16 @@
     /* The plus button acts on whatever the detail view is showing. */
     function openAddForCurrentEntry() {
         if (currentEntry === null) {
-            openCategoryDialog('create', null, null);
+            openCategoryForm('create', null, null);
             return;
         }
 
         if (currentEntry.parent_id === null) {
-            openCategoryDialog('create', null, currentEntry.id);
+            openCategoryForm('create', null, currentEntry.id);
             return;
         }
 
-        openCardDialog(null, currentEntry.id);
+        openCardForm(null, currentEntry.id);
     }
 
     function openEditForCurrentEntry() {
@@ -1393,7 +1387,7 @@
             return;
         }
 
-        openCategoryDialog('edit', currentEntry, currentEntry.parent_id);
+        openCategoryForm('edit', currentEntry, currentEntry.parent_id);
     }
 
     function setCrumb(parts) {
@@ -1696,356 +1690,816 @@
     }
 
     /* ----------------------------------------------------------------------
-       Dialogs
+       ONE dialog for every form and every confirmation
        ---------------------------------------------------------------------- */
 
-    /* Opens a native dialog and lets it animate in. */
-    function openDialog(dialog) {
-        if (typeof dialog.showModal === 'function') {
-            dialog.showModal();
+    /*
+     * Everything the open dialog needs to know about itself lives in these
+     * variables. They are filled while it opens and read by the one submit
+     * handler, so opening, validating, saving and closing happen in exactly one
+     * place - whatever form is on screen.
+     */
+    var dialogKind = null;      // 'category' | 'card' | 'delete'
+    var dialogEntry = null;     // the row that is being edited or deleted
+    var dialogParentId = null;  // where a new entry belongs
+    var dialogOpener = null;    // the element that opened it (the focus goes back)
+    var dialogUsed = false;     // true as soon as a field was touched
+    var dialogIcon = null;      // { svg, name, removed, storedUrl, preview }
+    var dialogFields = {};      // name -> { control, error, wrap }
+
+    /* A tiny element factory: shorter than createElement + className + text. */
+    function el(tag, className, text) {
+        var node = document.createElement(tag);
+
+        if (className) {
+            node.className = className;
+        }
+
+        if (typeof text === 'string') {
+            node.textContent = text;
+        }
+
+        return node;
+    }
+
+    /* Opens the shared dialog and lets it animate in. */
+    function openDialog() {
+        if (typeof elements.dialog.showModal === 'function') {
+            elements.dialog.showModal();
         } else {
-            dialog.setAttribute('open', '');
+            elements.dialog.setAttribute('open', '');
         }
 
         window.requestAnimationFrame(function () {
-            dialog.classList.add('is-open');
+            elements.dialog.classList.add('is-open');
         });
-    }
-
-    /* Closes a dialog, waits for the short exit, and hands the focus back. */
-    function closeDialog(dialog, focusTarget) {
-        dialog.classList.remove('is-open');
-
-        window.setTimeout(function () {
-            if (typeof dialog.close === 'function' && dialog.open) {
-                dialog.close();
-            } else {
-                dialog.removeAttribute('open');
-            }
-
-            if (focusTarget && typeof focusTarget.focus === 'function') {
-                focusTarget.focus();
-            }
-        }, prefersReducedMotion() ? 0 : 200);
-    }
-
-    /* The three ways out of a dialog: cancel, the backdrop and the form. */
-    function wireDialog(dialog, cancelButton, form, submitHandler) {
-        cancelButton.addEventListener('click', function () {
-            closeDialog(dialog, elements.addButton);
-        });
-
-        form.addEventListener('submit', submitHandler);
-
-        dialog.addEventListener('click', function (event) {
-            /* A click that lands on the dialog itself - not on the form inside
-               it - is a click on the backdrop. */
-            if (event.target === dialog) {
-                closeDialog(dialog, elements.addButton);
-            }
-        });
-
-        dialog.addEventListener('close', function () {
-            dialog.classList.remove('is-open');
-        });
-    }
-
-    function setDialogError(element, message) {
-        element.textContent = message === null ? '' : message;
-        element.hidden = message === null;
-    }
-
-    function setButtonBusy(button, busy, idleKey, busyKey) {
-        button.disabled = busy;
-        button.textContent = t(busy ? busyKey : idleKey);
-    }
-
-    /* ----------------------------------------------------------------------
-       The form for a learning area or a subcategory
-       ---------------------------------------------------------------------- */
-
-    function updateIconState() {
-        var stored = !iconRemoved && editingEntry !== null && typeof editingEntry.icon_url === 'string' && editingEntry.icon_url !== '';
-        var staged = !iconRemoved && stagedIconSvg !== null;
-
-        elements.categoryIconState.hidden = !stored && !staged;
-
-        if (staged) {
-            elements.categoryIconBadge.textContent = stagedIconName;
-            return;
-        }
-
-        elements.categoryIconBadge.textContent = t('action.iconStored');
     }
 
     /*
-     * Opens the category form.
+     * Closes the dialog and hands the focus back to whatever opened it.
      *
-     * mode     "create" or "edit"
-     * entry    the category that is being edited (null while creating)
-     * parentId the category a new entry belongs in (null -> a learning area)
+     * The wait is the closing animation (200ms, 0 with reduced motion); without
+     * it the panel would disappear in one frame.
      */
-    function openCategoryDialog(mode, entry, parentId) {
-        editingEntry = mode === 'edit' ? entry : null;
-        editingParentId = parentId;
-        stagedIconSvg = null;
-        stagedIconName = '';
-        iconRemoved = false;
-        pendingColor = undefined;
+    function closeDialog() {
+        elements.dialog.classList.remove('is-open');
 
-        elements.categoryForm.reset();
-        setDialogError(elements.categoryError, null);
-        setButtonBusy(elements.categorySave, false, 'dialog.save', 'dialog.saving');
-        elements.categoryIcon.value = '';
-        elements.categoryColor.disabled = false;
+        window.setTimeout(function () {
+            if (typeof elements.dialog.close === 'function' && elements.dialog.open) {
+                elements.dialog.close();
+            } else {
+                elements.dialog.removeAttribute('open');
+            }
 
-        if (editingEntry !== null) {
-            var isSubcategory = editingEntry.parent_id !== null;
+            var target = dialogOpener;
 
-            elements.categoryTitle.textContent = t(
-                isSubcategory ? 'dialog.category.editSubcategory' : 'dialog.category.editArea'
-            );
-            elements.categoryName.value = editingEntry.name;
-            elements.categoryNameEn.value = editingEntry.name_en || '';
-            elements.categoryNameDe.value = editingEntry.name_de || '';
-            elements.categoryDescriptionEn.value = editingEntry.description_en || '';
-            elements.categoryDescriptionDe.value = editingEntry.description_de || '';
-            elements.categoryColor.value = typeof editingEntry.color === 'string'
-                && /^#[0-9A-Fa-f]{6}$/.test(editingEntry.color)
-                ? editingEntry.color
-                : defaultCategoryColor();
-            elements.categoryIconScale.value = String(editingEntry.icon_scale);
-            elements.categoryDelete.hidden = false;
+            if (target === null || !document.contains(target) || typeof target.focus !== 'function') {
+                target = elements.addButton;
+            }
+
+            if (target && typeof target.focus === 'function') {
+                target.focus();
+            }
+
+            dialogKind = null;
+            dialogEntry = null;
+            dialogParentId = null;
+            dialogIcon = null;
+            dialogOpener = null;
+            dialogUsed = false;
+            dialogFields = {};
+        }, prefersReducedMotion() ? 0 : 200);
+    }
+
+    function setDialogError(message) {
+        elements.dialogError.textContent = message === null ? '' : message;
+        elements.dialogError.hidden = message === null;
+    }
+
+    /*
+     * A field level error. The message appears directly under the field that
+     * caused it and the field itself is marked, so nobody has to guess which
+     * input is meant.
+     */
+    function setFieldError(name, message) {
+        var field = dialogFields[name];
+
+        if (!field) {
+            setDialogError(message);
+            return;
+        }
+
+        field.error.textContent = message === null ? '' : message;
+        field.error.hidden = message === null;
+        field.wrap.classList.toggle('is-invalid', message !== null);
+    }
+
+    function clearFieldError(name) {
+        setFieldError(name, null);
+
+        if (!elements.dialogError.hidden) {
+            setDialogError(null);
+        }
+    }
+
+    function clearDialogErrors() {
+        setDialogError(null);
+
+        Object.keys(dialogFields).forEach(function (name) {
+            setFieldError(name, null);
+        });
+    }
+
+    /* Adds one labelled field to the open dialog and remembers it by name. */
+    function addField(name, kind, options) {
+        var settings = options || {};
+        var control;
+        var id = 'dialog-field-' + name;
+
+        if (kind === 'textarea') {
+            control = el('textarea', 'dialog__input dialog__input--area');
+            control.rows = settings.rows || 2;
+        } else if (kind === 'checkbox') {
+            control = el('input', 'dialog__check');
+            control.type = 'checkbox';
         } else {
-            elements.categoryTitle.textContent = t(
-                parentId === null ? 'dialog.category.createArea' : 'dialog.category.createSubcategory'
-            );
-            elements.categoryNameEn.value = '';
-            elements.categoryNameDe.value = '';
-            elements.categoryDescriptionEn.value = '';
-            elements.categoryDescriptionDe.value = '';
-            /* The neutral colour of the stylesheet, not a colour written here. */
-            elements.categoryColor.value = defaultCategoryColor();
-            elements.categoryIconScale.value = '1';
-            elements.categoryDelete.hidden = true;
+            control = el('input', 'dialog__input');
+            control.type = 'text';
         }
 
-        updateIconState();
-        openDialog(elements.categoryDialog);
-        elements.categoryName.focus();
-    }
+        control.id = id;
+        control.name = name;
 
-    /* A colour is "empty" when the field is switched off; that means automatic. */
-    function clearCategoryColor() {
-        pendingColor = null;
-        elements.categoryColor.disabled = true;
-    }
+        if (settings.maxLength) {
+            control.maxLength = settings.maxLength;
+        }
 
-    function removeIcon() {
-        iconRemoved = true;
-        stagedIconSvg = null;
-        stagedIconName = '';
-        elements.categoryIcon.value = '';
-        updateIconState();
-    }
+        if (settings.placeholderKey) {
+            control.setAttribute('placeholder', t(settings.placeholderKey));
+            control.setAttribute('data-i18n-placeholder', settings.placeholderKey);
+        }
 
-    function readIconFile(file) {
-        var reader = new window.FileReader();
+        if (typeof settings.value === 'string') {
+            control.value = settings.value;
+        }
 
-        reader.addEventListener('load', function () {
-            stagedIconSvg = String(reader.result);
-            updateIconState();
+        if (settings.checked === true) {
+            control.checked = true;
+        }
+
+        control.addEventListener('input', function () {
+            dialogUsed = true;
+            clearFieldError(name);
+
+            if (typeof settings.onInput === 'function') {
+                settings.onInput(control);
+            }
         });
 
-        reader.addEventListener('error', function () {
-            stagedIconSvg = null;
-            stagedIconName = '';
-            setDialogError(elements.categoryError, t('dialog.errorIcon'));
-            updateIconState();
+        control.addEventListener('change', function () {
+            dialogUsed = true;
         });
 
-        reader.readAsText(file);
+        var wrap = el('div', 'dialog__field');
+        var label = el('label', 'dialog__label', t(settings.labelKey));
+        label.setAttribute('for', id);
+        label.setAttribute('data-i18n', settings.labelKey);
+
+        var error = el('p', 'dialog__field-error');
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+
+        if (kind === 'checkbox') {
+            /* The design puts the box before its label. */
+            wrap.classList.add('dialog__field--check');
+            wrap.appendChild(control);
+            wrap.appendChild(label);
+        } else {
+            wrap.appendChild(label);
+            wrap.appendChild(control);
+        }
+
+        /* The message of this field comes first: it belongs to the input right
+           above it, and the quiet hint follows below. */
+        wrap.appendChild(error);
+
+        if (settings.hintKey) {
+            var hint = el('p', 'dialog__hint', t(settings.hintKey));
+            hint.setAttribute('data-i18n', settings.hintKey);
+            wrap.appendChild(hint);
+        }
+
+        dialogFields[name] = { control: control, error: error, wrap: wrap };
+
+        /* The translations are appended into their own group instead, so the
+           fields really sit inside the collapsed part. */
+        var container = settings.container || elements.dialogFields;
+
+        container.appendChild(wrap);
+
+        return control;
     }
 
-    function handleIconChoice() {
-        var files = elements.categoryIcon.files;
-        var file = files && files.length > 0 ? files[0] : null;
+    /* The collapsible "Translations (optional)" group. */
+    function addTranslationGroup(entry) {
+        var details = el('details', 'dialog__group');
+        var summary = el('summary', 'dialog__summary', t('dialog.translations'));
+        summary.setAttribute('data-i18n', 'dialog.translations');
 
-        setDialogError(elements.categoryError, null);
+        details.appendChild(summary);
 
-        if (file === null) {
+        var hint = el('p', 'dialog__hint', t('dialog.translationsHint'));
+        hint.setAttribute('data-i18n', 'dialog.translationsHint');
+        details.appendChild(hint);
+
+        var grid = el('div', 'dialog__grid');
+
+        [
+            { name: 'name_en', labelKey: 'dialog.category.nameEn', maxLength: config.limits.name },
+            { name: 'name_de', labelKey: 'dialog.category.nameDe', maxLength: config.limits.name },
+            { name: 'description_en', labelKey: 'dialog.category.descriptionEn', maxLength: config.limits.description, textarea: true },
+            { name: 'description_de', labelKey: 'dialog.category.descriptionDe', maxLength: config.limits.description, textarea: true }
+        ].forEach(function (def) {
+            var control = addField(def.name, def.textarea ? 'textarea' : 'text', {
+                labelKey: def.labelKey,
+                maxLength: def.maxLength,
+                value: entry === null || typeof entry[def.name] !== 'string' ? '' : entry[def.name],
+                container: grid
+            });
+
+            /* The main description field and the description of the language
+               that is switched on are the same column, so they stay in sync. */
+            var mainName = def.name === 'description_' + locale ? 'description' : null;
+
+            if (mainName !== null && dialogFields[mainName]) {
+                var main = dialogFields[mainName].control;
+                main.addEventListener('input', function () {
+                    control.value = main.value;
+                });
+                control.addEventListener('input', function () {
+                    main.value = control.value;
+                });
+            }
+        });
+
+        details.appendChild(grid);
+        elements.dialogFields.appendChild(details);
+
+        return details;
+    }
+
+    /* ----------------------------------------------------------------------
+       The icon field: click, drag and drop, preview, remove
+       ---------------------------------------------------------------------- */
+
+    /*
+     * Rewrites an SVG so that every drawing fills the same circle.
+     *
+     * The browser measures the real bounding box of the drawing (getBBox), and
+     * the viewBox is replaced by a SQUARE around that box with a small margin.
+     * Different viewBox sizes, drawing dimensions, aspect ratios and empty
+     * whitespace around the drawing therefore end up looking identical inside
+     * the circle - without a single number having to be typed in by hand.
+     *
+     * Nothing is inserted with innerHTML: the text is parsed by DOMParser, which
+     * produces an inert document, and only attributes are changed.
+     */
+    function normaliseIconSvg(text) {
+        return new Promise(function (resolve) {
+            var parsed = new window.DOMParser().parseFromString(text, 'image/svg+xml');
+            var root = parsed && parsed.documentElement;
+
+            if (!root || root.nodeName.toLowerCase() !== 'svg' || parsed.querySelector('parsererror')) {
+                resolve({ ok: false });
+                return;
+            }
+
+            /* Belt and braces: the server sanitises again before it stores the
+               drawing, but nothing risky is ever put into the page here either. */
+            Array.prototype.forEach.call(parsed.querySelectorAll('script, foreignObject, iframe, image, use'), function (node) {
+                node.remove();
+            });
+
+            Array.prototype.forEach.call(parsed.querySelectorAll('*'), function (node) {
+                Array.prototype.slice.call(node.attributes).forEach(function (attribute) {
+                    var name = attribute.name.toLowerCase();
+
+                    if (name.indexOf('on') === 0 || name.indexOf('href') >= 0) {
+                        node.removeAttribute(attribute.name);
+                    }
+                });
+            });
+
+            var viewBox = (root.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+
+            if (viewBox.length !== 4 || viewBox.some(function (value) { return !isFinite(value); })) {
+                var width = parseFloat(root.getAttribute('width')) || 0;
+                var height = parseFloat(root.getAttribute('height')) || 0;
+
+                if (width <= 0 || height <= 0) {
+                    /* Without a viewBox and without a size there is nothing to
+                       measure, so the drawing is refused instead of being stored
+                       in a shape nobody can predict. */
+                    resolve({ ok: false });
+                    return;
+                }
+
+                viewBox = [0, 0, width, height];
+            }
+
+            root.setAttribute('viewBox', viewBox.join(' '));
+            root.removeAttribute('width');
+            root.removeAttribute('height');
+
+            /* Measured in a hidden box that is in the document, because getBBox
+               only answers for a drawing that is really laid out. */
+            var box = el('div', 'icon-measure');
+            var clone = root.cloneNode(true);
+            box.appendChild(clone);
+            document.body.appendChild(box);
+
+            var rectangle = null;
+
+            try {
+                rectangle = clone.getBBox();
+            } catch (error) {
+                rectangle = null;
+            }
+
+            box.remove();
+
+            var useBox = viewBox;
+            var padding = 0.04;
+
+            if (rectangle && rectangle.width > 0 && rectangle.height > 0) {
+                var size = Math.max(rectangle.width, rectangle.height) * (1 + padding * 2);
+                useBox = [
+                    rectangle.x + rectangle.width / 2 - size / 2,
+                    rectangle.y + rectangle.height / 2 - size / 2,
+                    size,
+                    size
+                ];
+            } else {
+                /* No usable measurement: at least make the box square, which is
+                   what keeps the aspect ratio from being distorted. */
+                var side = Math.max(viewBox[2], viewBox[3]);
+                useBox = [
+                    viewBox[0] + viewBox[2] / 2 - side / 2,
+                    viewBox[1] + viewBox[3] / 2 - side / 2,
+                    side,
+                    side
+                ];
+            }
+
+            var round = function (value) { return Math.round(value * 1000) / 1000; };
+
+            root.setAttribute('viewBox', useBox.map(round).join(' '));
+
+            var serialised = new window.XMLSerializer().serializeToString(root);
+
+            resolve({ ok: true, svg: serialised });
+        });
+    }
+
+    /* The preview inside the icon circle, exactly like a tile shows it. */
+    function renderIconPreview() {
+        var circle = dialogIcon.preview;
+        circle.textContent = '';
+
+        var source = null;
+
+        if (!dialogIcon.removed) {
+            if (dialogIcon.svg !== null) {
+                source = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(dialogIcon.svg);
+            } else if (dialogIcon.storedUrl !== null) {
+                source = dialogIcon.storedUrl;
+            }
+        }
+
+        if (source === null) {
+            var initial = el('span', 'blob__initial');
+            initial.textContent = initialLetter(dialogFields.name ? dialogFields.name.control.value : '');
+            circle.appendChild(initial);
             return;
         }
 
-        if (file.size > config.limits.iconBytes) {
-            setDialogError(elements.categoryError, t('dialog.errorIcon'));
-            elements.categoryIcon.value = '';
-            return;
-        }
-
-        stagedIconName = file.name;
-        iconRemoved = false;
-        readIconFile(file);
+        var icon = el('img', 'blob__icon');
+        icon.src = source;
+        icon.alt = '';
+        circle.appendChild(icon);
     }
 
-    function handleCategorySubmit(event) {
-        event.preventDefault();
-        setDialogError(elements.categoryError, null);
+    function buildIconField(entry) {
+        var wrap = el('div', 'dialog__field');
+        var label = el('label', 'dialog__label', t('dialog.category.iconLabel'));
+        label.setAttribute('data-i18n', 'dialog.category.iconLabel');
+        wrap.appendChild(label);
 
-        var name = elements.categoryName.value.trim();
+        var zone = el('div', 'upload');
+        zone.tabIndex = 0;
+        zone.setAttribute('role', 'button');
+
+        var circle = el('span', 'blob');
+        dialogIcon.preview = circle;
+
+        var textBlock = el('span', 'upload__text');
+        var title = el('span', 'upload__title', t('dialog.icon.uploadTitle'));
+        title.setAttribute('data-i18n', 'dialog.icon.uploadTitle');
+        var hint = el('span', 'upload__hint', t('dialog.icon.uploadHint'));
+        hint.setAttribute('data-i18n', 'dialog.icon.uploadHint');
+        textBlock.appendChild(title);
+        textBlock.appendChild(hint);
+
+        zone.appendChild(circle);
+        zone.appendChild(textBlock);
+        wrap.appendChild(zone);
+
+        var actions = el('div', 'upload__actions');
+        var removeButton = el('button', 'dialog__button--text', t('dialog.icon.remove'));
+        removeButton.type = 'button';
+        removeButton.setAttribute('data-i18n', 'dialog.icon.remove');
+        removeButton.hidden = true;
+        actions.appendChild(removeButton);
+        wrap.appendChild(actions);
+
+        var note = el('p', 'dialog__hint');
+        note.hidden = true;
+        wrap.appendChild(note);
+
+        var error = el('p', 'dialog__field-error');
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+        wrap.appendChild(error);
+
+        var file = document.createElement('input');
+        file.type = 'file';
+        file.accept = 'image/svg+xml,.svg';
+        file.className = 'upload__file';
+        file.hidden = true;
+        wrap.appendChild(file);
+
+        function showNote(message) {
+            note.textContent = message === null ? '' : message;
+            note.hidden = message === null;
+        }
+
+        function showError(message) {
+            error.textContent = message === null ? '' : message;
+            error.hidden = message === null;
+        }
+
+        /* The hint says what happens next: while a file hovers over the area it
+           invites a drop, at rest it explains the click. */
+        function setHint(text) {
+            hint.textContent = text;
+        }
+
+        function resetHint() {
+            setHint(t('dialog.icon.uploadHint'));
+        }
+
+        function updateRemoveButton() {
+            var hasSomething = (!dialogIcon.removed && dialogIcon.svg !== null)
+                || (!dialogIcon.removed && dialogIcon.storedUrl !== null);
+
+            removeButton.hidden = !hasSomething;
+            removeButton.textContent = t('dialog.icon.remove');
+        }
+
+        function acceptFile(selected) {
+            showError(null);
+
+            if (!selected) {
+                return;
+            }
+
+            if (!/\.svg$/i.test(selected.name) && selected.type !== 'image/svg+xml') {
+                showError(t('dialog.icon.onlySvg'));
+                return;
+            }
+
+            if (selected.size > config.limits.iconBytes) {
+                showError(t('dialog.icon.tooLarge', { max: Math.round(config.limits.iconBytes / 1024) }));
+                return;
+            }
+
+            var reader = new window.FileReader();
+
+            reader.addEventListener('load', function () {
+                normaliseIconSvg(String(reader.result)).then(function (result) {
+                    if (!result.ok) {
+                        showError(t('dialog.icon.notSvg'));
+                        return;
+                    }
+
+                    dialogIcon.svg = result.svg;
+                    dialogIcon.name = selected.name;
+                    dialogIcon.removed = false;
+                    dialogUsed = true;
+                    renderIconPreview();
+                    updateRemoveButton();
+                    showNote(t('dialog.icon.normalised'));
+                });
+            });
+
+            reader.addEventListener('error', function () {
+                showError(t('dialog.icon.notSvg'));
+            });
+
+            reader.readAsText(selected);
+        }
+
+        zone.addEventListener('click', function () {
+            file.click();
+        });
+
+        zone.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                file.click();
+            }
+        });
+
+        file.addEventListener('change', function () {
+            acceptFile(file.files && file.files.length > 0 ? file.files[0] : null);
+            /* Lets the same file be chosen again after it was refused. */
+            file.value = '';
+        });
+
+        ['dragenter', 'dragover'].forEach(function (type) {
+            zone.addEventListener(type, function (event) {
+                event.preventDefault();
+                zone.classList.add('is-dragover');
+                textBlock.querySelector('.upload__hint').textContent = t('dialog.icon.drop');
+            });
+        });
+
+        ['dragleave', 'dragend'].forEach(function (type) {
+            zone.addEventListener(type, function () {
+                zone.classList.remove('is-dragover');
+                resetHint();
+            });
+        });
+
+        zone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            zone.classList.remove('is-dragover');
+            resetHint();
+            acceptFile(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0
+                ? event.dataTransfer.files[0]
+                : null);
+        });
+
+        removeButton.addEventListener('click', function () {
+            dialogIcon.svg = null;
+            dialogIcon.name = '';
+            dialogIcon.removed = true;
+            dialogUsed = true;
+            showError(null);
+            showNote(t('dialog.icon.fallbackHint'));
+            renderIconPreview();
+            updateRemoveButton();
+        });
+
+        wrap.iconNote = showNote;
+        wrap.iconError = showError;
+
+        renderIconPreview();
+        updateRemoveButton();
+        showNote(dialogIcon.storedUrl === null && dialogIcon.svg === null ? t('dialog.icon.fallbackHint') : null);
+
+        elements.dialogFields.appendChild(wrap);
+
+        return wrap;
+    }
+
+    /* ----------------------------------------------------------------------
+       The three forms that use the shared dialog
+       ---------------------------------------------------------------------- */
+
+    /*
+     * Which description column the single "Description" field writes to.
+     *
+     * The table has one description per language and no neutral one, so the
+     * field in the main part of the form always writes to the description of the
+     * language the interface is in. The same column is shown again, in sync,
+     * inside the collapsed translations group.
+     */
+    function descriptionColumn() {
+        return locale === 'de' ? 'description_de' : 'description_en';
+    }
+
+    /* mode "create"/"edit", entry the row, parentId where a new row belongs. */
+    function openCategoryForm(mode, entry, parentId) {
+        var isEdit = mode === 'edit' && entry !== null;
+        var isSubcategory = isEdit ? entry.parent_id !== null : parentId !== null;
+        var title;
+
+        if (isEdit) {
+            title = t(isSubcategory ? 'dialog.category.editSubcategory' : 'dialog.category.editArea');
+        } else {
+            title = t(isSubcategory ? 'dialog.category.createSubcategory' : 'dialog.category.createArea');
+        }
+
+        dialogKind = 'category';
+        dialogEntry = isEdit ? entry : null;
+        dialogParentId = isEdit ? entry.parent_id : parentId;
+        dialogIcon = {
+            svg: null,
+            name: '',
+            removed: false,
+            storedUrl: isEdit && typeof entry.icon_url === 'string' ? entry.icon_url : null,
+            preview: null
+        };
+        dialogUsed = false;
+        dialogOpener = document.activeElement;
+        dialogFields = {};
+
+        elements.dialogTitle.textContent = title;
+        elements.dialogMessage.hidden = true;
+        elements.dialogFields.textContent = '';
+        clearDialogErrors();
+        elements.dialogDanger.textContent = t('action.delete');
+        elements.dialogDanger.hidden = !isEdit;
+        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogSubmit.textContent = t('dialog.save');
+        elements.dialogSubmit.disabled = false;
+        elements.dialogSubmit.dataset.busy = t('dialog.saving');
+
+        var descriptionValue = isEdit && typeof entry[descriptionColumn()] === 'string'
+            ? entry[descriptionColumn()]
+            : '';
+
+        addField('name', 'text', {
+            labelKey: 'dialog.nameLabel',
+            placeholderKey: 'dialog.namePlaceholder',
+            maxLength: config.limits.name,
+            value: isEdit ? entry.name : '',
+            /* Without a drawing the circle shows the first letter of the name,
+               so it has to follow what is being typed. */
+            onInput: function () {
+                renderIconPreview();
+            }
+        });
+
+        var description = addField('description', 'textarea', {
+            labelKey: 'dialog.descriptionLabel',
+            placeholderKey: 'dialog.descriptionPlaceholder',
+            hintKey: 'dialog.descriptionHint',
+            maxLength: config.limits.description,
+            rows: 3,
+            value: descriptionValue,
+            onInput: function (control) {
+                renderIconPreview();
+            }
+        });
+
+        addTranslationGroup(isEdit ? entry : null);
+        buildIconField(isEdit ? entry : null);
+
+        openDialog();
+
+        /*
+         * The first field takes the focus (see the spec of the dialog system):
+         * the name, which is the one field nobody can skip.
+         */
+        dialogFields.name.control.focus();
+
+        return description;
+    }
+
+    /* The icon payload of the open category form, or null when nothing changed. */
+    function iconPayload() {
+        if (dialogIcon.removed) {
+            return null;
+        }
+
+        if (dialogIcon.svg !== null) {
+            return dialogIcon.svg;
+        }
+
+        return undefined;
+    }
+
+    function validateCategoryForm() {
+        var name = dialogFields.name.control.value.trim();
+        var description = dialogFields.description.control.value.trim();
+        var firstBad = null;
 
         if (name === '') {
-            setDialogError(elements.categoryError, t('dialog.errorEmpty'));
-            elements.categoryName.focus();
-            return;
+            setFieldError('name', t('dialog.errorNameRequired'));
+            firstBad = firstBad || dialogFields.name.control;
+        } else if (name.length > config.limits.name) {
+            setFieldError('name', t('dialog.errorNameTooLong', { max: config.limits.name }));
+            firstBad = firstBad || dialogFields.name.control;
         }
 
-        if (name.length > config.limits.name) {
-            setDialogError(elements.categoryError, t('dialog.errorTooLong'));
-            elements.categoryName.focus();
-            return;
+        if (description.length > config.limits.description) {
+            setFieldError('description', t('dialog.errorDescriptionTooLong', { max: config.limits.description }));
+            firstBad = firstBad || dialogFields.description.control;
         }
 
-        var scale = parseFloat(elements.categoryIconScale.value);
-        var isEdit = editingEntry !== null;
+        ['name_en', 'name_de', 'description_en', 'description_de'].forEach(function (field) {
+            var limit = field.indexOf('description') === 0 ? config.limits.description : config.limits.name;
+            var value = dialogFields[field].control.value.trim();
 
-        if (isNaN(scale) || scale < 0.2 || scale > 3) {
-            setDialogError(elements.categoryError, t('dialog.errorScale'));
-            elements.categoryIconScale.focus();
-            return;
+            if (value.length > limit) {
+                setFieldError(field, t('dialog.errorDescriptionTooLong', { max: limit }));
+                firstBad = firstBad || dialogFields[field].control;
+            }
+        });
+
+        if (firstBad !== null) {
+            firstBad.focus();
+            return null;
         }
 
         var payload = {
             name: name,
-            name_en: elements.categoryNameEn.value.trim(),
-            name_de: elements.categoryNameDe.value.trim(),
-            description_en: elements.categoryDescriptionEn.value.trim(),
-            description_de: elements.categoryDescriptionDe.value.trim(),
-            icon_scale: scale
+            description_en: dialogFields.description_en.control.value.trim(),
+            description_de: dialogFields.description_de.control.value.trim(),
+            name_en: dialogFields.name_en.control.value.trim(),
+            name_de: dialogFields.name_de.control.value.trim()
         };
 
-        if (pendingColor !== undefined) {
-            payload.color = pendingColor;
+        var icon = iconPayload();
+
+        if (icon !== undefined) {
+            payload.icon_svg = icon;
         }
 
-        if (iconRemoved) {
-            payload.icon_svg = null;
-        } else if (stagedIconSvg !== null) {
-            payload.icon_svg = stagedIconSvg;
-        }
+        return payload;
+    }
 
-        if (!isEdit) {
-            payload.parent_id = editingParentId;
-        }
+    function openCardForm(card, categoryId) {
+        dialogKind = 'card';
+        dialogEntry = card;
+        dialogParentId = categoryId;
+        dialogIcon = null;
+        dialogUsed = false;
+        dialogOpener = document.activeElement;
+        dialogFields = {};
 
-        var url = isEdit
-            ? config.endpoints.category + '?id=' + encodeURIComponent(editingEntry.id)
-            : config.endpoints.categories;
+        elements.dialogTitle.textContent = t(card === null ? 'dialog.card.create' : 'dialog.card.edit');
+        elements.dialogMessage.hidden = true;
+        elements.dialogFields.textContent = '';
+        clearDialogErrors();
+        elements.dialogDanger.hidden = true;
+        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogSubmit.textContent = t('dialog.save');
+        elements.dialogSubmit.disabled = false;
 
-        setButtonBusy(elements.categorySave, true, 'dialog.save', 'dialog.saving');
-
-        apiRequest(url, isEdit ? 'PATCH' : 'POST', payload).then(function (result) {
-            setButtonBusy(elements.categorySave, false, 'dialog.save', 'dialog.saving');
-
-            if (!result.ok) {
-                setDialogError(elements.categoryError, errorMessage(result.code));
-                return;
-            }
-
-            /* The lists are loaded again, so a new row is really there and an
-               edited one shows its new text. */
-            responseCache = {};
-            newAreaId = !isEdit && result.data && typeof result.data.id === 'number' ? result.data.id : null;
-
-            closeDialog(elements.categoryDialog, elements.addButton);
-            showFeedback(t('feedback.saved'));
-            render();
+        addField('front', 'textarea', {
+            labelKey: 'dialog.card.frontLabel',
+            placeholderKey: 'dialog.card.frontPlaceholder',
+            maxLength: config.limits.cardText,
+            rows: 2,
+            value: card === null ? '' : card.front
         });
+
+        addField('back', 'textarea', {
+            labelKey: 'dialog.card.backLabel',
+            placeholderKey: 'dialog.card.backPlaceholder',
+            maxLength: config.limits.cardText,
+            rows: 2,
+            value: card === null ? '' : card.back
+        });
+
+        addField('is_bidirectional', 'checkbox', {
+            labelKey: 'dialog.card.bidirectionalLabel',
+            checked: card !== null && card.is_bidirectional === true
+        });
+
+        openDialog();
+        dialogFields.front.control.focus();
     }
 
-    /* ----------------------------------------------------------------------
-       The form for one flashcard
-       ---------------------------------------------------------------------- */
-
-    function openCardDialog(card, categoryId) {
-        editingCard = card;
-        editingParentId = categoryId;
-
-        elements.cardForm.reset();
-        setDialogError(elements.cardError, null);
-        setButtonBusy(elements.cardSave, false, 'dialog.save', 'dialog.saving');
-
-        elements.cardTitle.textContent = t(card === null ? 'dialog.card.create' : 'dialog.card.edit');
-
-        if (card !== null) {
-            elements.cardFront.value = card.front;
-            elements.cardBack.value = card.back;
-            elements.cardBidirectional.checked = card.is_bidirectional === true;
-        }
-
-        openDialog(elements.cardDialog);
-        elements.cardFront.focus();
-    }
-
-    function handleCardSubmit(event) {
-        event.preventDefault();
-        setDialogError(elements.cardError, null);
-
-        var front = elements.cardFront.value.trim();
-        var back = elements.cardBack.value.trim();
-        var isEdit = editingCard !== null;
+    function validateCardForm() {
+        var front = dialogFields.front.control.value.trim();
+        var back = dialogFields.back.control.value.trim();
+        var firstBad = null;
 
         if (front === '') {
-            setDialogError(elements.cardError, t('dialog.errorFront'));
-            elements.cardFront.focus();
-            return;
+            setFieldError('front', t('dialog.errorFrontRequired'));
+            firstBad = dialogFields.front.control;
         }
 
         if (back === '') {
-            setDialogError(elements.cardError, t('dialog.errorBack'));
-            elements.cardBack.focus();
-            return;
+            setFieldError('back', t('dialog.errorBackRequired'));
+            firstBad = firstBad || dialogFields.back.control;
         }
 
-        if (front.length > config.limits.cardText || back.length > config.limits.cardText) {
-            setDialogError(elements.cardError, t('dialog.errorFront'));
-            return;
+        if (firstBad !== null) {
+            firstBad.focus();
+            return null;
         }
 
-        var payload = {
+        return {
             front: front,
             back: back,
-            is_bidirectional: elements.cardBidirectional.checked
+            is_bidirectional: dialogFields.is_bidirectional.control.checked
         };
-
-        var url = isEdit
-            ? config.endpoints.card + '?id=' + encodeURIComponent(editingCard.id)
-            : config.endpoints.cards;
-
-        if (!isEdit) {
-            payload.category_id = editingParentId;
-        }
-
-        setButtonBusy(elements.cardSave, true, 'dialog.save', 'dialog.saving');
-
-        apiRequest(url, isEdit ? 'PATCH' : 'POST', payload).then(function (result) {
-            setButtonBusy(elements.cardSave, false, 'dialog.save', 'dialog.saving');
-
-            if (!result.ok) {
-                setDialogError(elements.cardError, errorMessage(result.code));
-                return;
-            }
-
-            responseCache = {};
-            closeDialog(elements.cardDialog, elements.addButton);
-            showFeedback(t('feedback.saved'));
-            render();
-        });
     }
-
-    /* ----------------------------------------------------------------------
-       Deleting an entry (and the confirmation that goes with it)
-       ---------------------------------------------------------------------- */
 
     /* "2 subcategories, 1 flashcard" in the language that is switched on. */
     function deletePreviewParts(preview) {
@@ -2069,94 +2523,292 @@
     }
 
     function openDeleteDialog(kind, target) {
-        pendingDelete = { kind: kind, target: target };
+        dialogKind = 'delete';
+        dialogEntry = { kind: kind, target: target };
+        dialogParentId = null;
+        dialogIcon = null;
+        dialogUsed = false;
+        dialogOpener = document.activeElement;
+        dialogFields = {};
 
-        elements.deleteForm.reset();
-        setDialogError(elements.deleteError, null);
-        elements.deleteConfirm.value = '';
-        elements.deleteConfirmField.hidden = kind !== 'category';
+        elements.dialogFields.textContent = '';
+        clearDialogErrors();
+        elements.dialogDanger.hidden = true;
+        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogSubmit.disabled = false;
 
         if (kind === 'category') {
-            var preview = target.delete_preview || { categories: 0, cards: 0 };
+            /*
+             * Two sources, one shape.
+             *
+             * A category that was read on its own (api/categories.php?id=N)
+             * carries a delete_preview with the whole subtree. A tile comes from
+             * the list, which counts the direct subcategories and the cards of
+             * the branch - enough to decide whether anything depends on it, and
+             * the server counts again inside its own transaction before it
+             * deletes anything.
+             */
+            var preview = target.delete_preview || {
+                categories: typeof target.subcategory_count === 'number' ? target.subcategory_count : 0,
+                cards: typeof target.card_count === 'number' ? target.card_count : 0
+            };
             var parts = deletePreviewParts(preview);
+            var dependent = preview.categories > 0 || preview.cards > 0;
 
-            elements.deleteTitle.textContent = t('dialog.delete.title', {
-                name: displayName(target)
-            });
-            elements.deleteMessage.textContent = parts === ''
+            elements.dialogTitle.textContent = t('dialog.delete.title', { name: displayName(target) });
+            elements.dialogMessage.textContent = parts === ''
                 ? t('dialog.delete.nothingBelow')
                 : t('dialog.delete.consequence', { parts: parts });
-        } else {
-            elements.deleteTitle.textContent = t('dialog.deleteCard.title');
-            elements.deleteMessage.textContent = t('dialog.deleteCard.hint');
+            elements.dialogMessage.hidden = false;
+            elements.dialogSubmit.textContent = t('dialog.delete.submit');
+
+            /*
+             * Only a category that really has something below it asks for the
+             * name to be typed again - an empty one is deleted with a single
+             * click, because there is nothing to be careful about.
+             */
+            if (dependent) {
+                var confirm = addField('confirm_name', 'text', {
+                    labelKey: 'dialog.delete.confirmLabel',
+                    maxLength: config.limits.name,
+                    onInput: function (control) {
+                        var matches = control.value.trim().toLowerCase() === displayName(target).toLowerCase();
+                        elements.dialogSubmit.disabled = !matches;
+                    }
+                });
+
+                elements.dialogSubmit.disabled = true;
+                openDialog();
+                confirm.focus();
+                return;
+            }
+
+            openDialog();
+            elements.dialogCancel.focus();
+            return;
         }
 
-        openDialog(elements.deleteDialog);
-        (kind === 'category' ? elements.deleteConfirm : elements.deleteSubmit).focus();
+        elements.dialogTitle.textContent = t('dialog.deleteCard.title');
+        elements.dialogMessage.textContent = t('dialog.deleteCard.hint');
+        elements.dialogMessage.hidden = false;
+        elements.dialogSubmit.textContent = t('dialog.delete.submit');
+
+        openDialog();
+        elements.dialogCancel.focus();
     }
 
-    /* "Delete" inside the edit form: close the form, then ask for the name. */
+    /* "Delete" inside the edit form: close it, then ask for the name. */
     function askDeleteAfterEdit(entry) {
-        closeDialog(elements.categoryDialog, elements.addButton);
+        closeDialog();
 
         window.setTimeout(function () {
             openDeleteDialog('category', entry);
         }, prefersReducedMotion() ? 0 : 220);
     }
 
-    function handleDeleteSubmit(event) {
-        event.preventDefault();
-        setDialogError(elements.deleteError, null);
+    /* ----------------------------------------------------------------------
+       Saving and deleting through the one submit handler
+       ---------------------------------------------------------------------- */
 
-        if (pendingDelete === null) {
-            closeDialog(elements.deleteDialog, elements.addButton);
+    function setBusy(busy) {
+        elements.dialogSubmit.disabled = busy;
+        elements.dialogCancel.disabled = busy;
+        elements.dialogSubmit.textContent = busy
+            ? t('dialog.saving')
+            : (elements.dialogSubmit.dataset.idleLabel || t('dialog.save'));
+    }
+
+    /*
+     * The one place that talks to the API for a dialog.
+     *
+     * Some errors belong to a field, so the answer is mapped to the field that
+     * caused it wherever that is possible; everything else lands in the error
+     * line of the dialog. The button is disabled while the request runs, so a
+     * double click cannot create the same row twice.
+     */
+    function fieldForErrorCode(code) {
+        var map = {
+            invalid_name: 'name',
+            category_exists: 'name',
+            invalid_name_en: 'name_en',
+            invalid_name_de: 'name_de',
+            invalid_description_en: 'description_en',
+            invalid_description_de: 'description_de',
+            invalid_icon: 'icon'
+        };
+
+        return map[code] || null;
+    }
+
+    function handleSubmitFailure(result) {
+        var field = fieldForErrorCode(result.code);
+
+        if (field === null || field === 'icon') {
+            if (field === 'icon' && dialogFields.icon) {
+                setFieldError('icon', errorMessage(result.code));
+                return;
+            }
+
+            setDialogError(errorMessage(result.code));
             return;
         }
 
-        var isCategory = pendingDelete.kind === 'category';
-        var target = pendingDelete.target;
-        var body = {};
+        setFieldError(field, errorMessage(result.code));
+        dialogFields[field].control.focus();
+    }
 
-        if (isCategory) {
-            body.confirm_name = elements.deleteConfirm.value.trim();
+    function submitDialog() {
+        clearDialogErrors();
 
-            if (body.confirm_name === '') {
-                setDialogError(elements.deleteError, t('dialog.errorConfirmName'));
-                elements.deleteConfirm.focus();
+        var isDelete = dialogKind === 'delete';
+        var isCard = dialogKind === 'card';
+        var payload = null;
+        var url = '';
+        var method = 'POST';
+        var successMessage = '';
+
+        if (isDelete) {
+            var target = dialogEntry.target;
+            var isCategory = dialogEntry.kind === 'category';
+
+            if (dialogFields.confirm_name) {
+                var typed = dialogFields.confirm_name.control.value.trim();
+
+                if (typed.toLowerCase() !== displayName(target).toLowerCase()) {
+                    setFieldError('confirm_name', t('dialog.errorConfirmName'));
+                    dialogFields.confirm_name.control.focus();
+                    return;
+                }
+
+                payload = { confirm_name: typed };
+            } else {
+                payload = {};
+            }
+
+            url = (isCategory ? config.endpoints.category : config.endpoints.card)
+                + '?id=' + encodeURIComponent(target.id);
+            method = 'DELETE';
+        } else if (isCard) {
+            payload = validateCardForm();
+
+            if (payload === null) {
                 return;
             }
+
+            var isCardEdit = dialogEntry !== null;
+
+            if (!isCardEdit) {
+                payload.category_id = dialogParentId;
+            }
+
+            url = isCardEdit
+                ? config.endpoints.card + '?id=' + encodeURIComponent(dialogEntry.id)
+                : config.endpoints.cards;
+            method = isCardEdit ? 'PATCH' : 'POST';
+        } else {
+            payload = validateCategoryForm();
+
+            if (payload === null) {
+                return;
+            }
+
+            var isEdit = dialogEntry !== null;
+
+            if (!isEdit) {
+                payload.parent_id = dialogParentId;
+            }
+
+            url = isEdit
+                ? config.endpoints.category + '?id=' + encodeURIComponent(dialogEntry.id)
+                : config.endpoints.categories;
+            method = isEdit ? 'PATCH' : 'POST';
         }
 
-        var url = (isCategory ? config.endpoints.category : config.endpoints.card)
-            + '?id=' + encodeURIComponent(target.id);
+        var removedName = null;
 
-        setButtonBusy(elements.deleteSubmit, true, 'dialog.delete.submit', 'dialog.delete.deleting');
+        elements.dialogSubmit.dataset.idleLabel = elements.dialogSubmit.textContent;
+        setBusy(true);
 
-        apiRequest(url, 'DELETE', body).then(function (result) {
-            setButtonBusy(elements.deleteSubmit, false, 'dialog.delete.submit', 'dialog.delete.deleting');
+        apiRequest(url, method, payload).then(function (result) {
+            setBusy(false);
 
             if (!result.ok) {
-                setDialogError(elements.deleteError, errorMessage(result.code));
+                handleSubmitFailure(result);
                 return;
             }
 
-            var removedName = isCategory ? displayName(target) : target.front;
-            var removedOpenEntry = isCategory && currentEntry !== null && currentEntry.id === target.id;
-
+            /*
+             * Everything the page shows comes from the API again, so a saved row
+             * is really there and an edited one really shows its new text.
+             */
             responseCache = {};
-            closeDialog(elements.deleteDialog, elements.addButton);
-            showFeedback(t('feedback.deleted', { name: removedName }));
 
-            if (removedOpenEntry) {
-                /* The page itself is gone, so the browser goes up one level. */
-                window.location.href = target.parent_id === null
-                    ? 'index.php'
-                    : 'index.php?category=' + encodeURIComponent(target.parent_id);
+            if (isDelete) {
+                var removedTarget = dialogEntry.target;
+                var removedLabel = dialogEntry.kind === 'category'
+                    ? displayName(removedTarget)
+                    : removedTarget.front;
+                var removedOpenEntry = dialogEntry.kind === 'category'
+                    && currentEntry !== null
+                    && currentEntry.id === removedTarget.id;
+
+                closeDialog();
+                showFeedback(t('feedback.deleted', { name: removedLabel }));
+
+                if (removedOpenEntry) {
+                    /* The page itself is gone, so the browser goes up one level. */
+                    window.location.href = removedTarget.parent_id === null
+                        ? 'index.php'
+                        : 'index.php?category=' + encodeURIComponent(removedTarget.parent_id);
+                    return;
+                }
+
+                render();
                 return;
+            }
+
+            var createdName = dialogEntry === null && result.data && typeof result.data.name === 'string'
+                ? (locale === 'de' && typeof result.data.name_de === 'string' && result.data.name_de !== ''
+                    ? result.data.name_de
+                    : result.data.name)
+                : null;
+
+            newAreaId = dialogEntry === null && !isCard && result.data && typeof result.data.id === 'number'
+                ? result.data.id
+                : null;
+
+            closeDialog();
+
+            if (createdName !== null && !isCard) {
+                showFeedback(t('feedback.created', { name: createdName }));
+            } else {
+                showFeedback(t('feedback.updated', { name: isCard ? payload.front : displayName(dialogEntry) }));
             }
 
             render();
         });
+    }
+
+    /* ----------------------------------------------------------------------
+       Edit mode on the home page
+       ---------------------------------------------------------------------- */
+
+    function setEditMode(next) {
+        editMode = next;
+
+        elements.tilesView.classList.toggle('is-editing', editMode);
+        elements.editHint.hidden = !editMode;
+        elements.editButton.setAttribute('aria-pressed', editMode ? 'true' : 'false');
+        /*
+         * The key travels with the button, so the language switch translates the
+         * label that is really on screen - "Done" while the mode is on.
+         */
+        elements.editButton.setAttribute('data-i18n', editMode ? 'footer.done' : 'footer.edit');
+        elements.editButton.textContent = t(editMode ? 'footer.done' : 'footer.edit');
+
+        if (!editMode) {
+            closeMenu();
+        }
     }
 
     /* ----------------------------------------------------------------------
@@ -2174,9 +2826,16 @@
             });
         });
 
-        /* Add and edit follow the level that is open. */
+        /* Add follows the level that is open. */
         elements.addButton.addEventListener('click', openAddForCurrentEntry);
-        elements.editButton.addEventListener('click', openEditForCurrentEntry);
+
+        /* The footer button on the right switches the edit mode of the tiles. */
+        elements.editButton.setAttribute('aria-pressed', 'false');
+        elements.editButton.addEventListener('click', function () {
+            setEditMode(!editMode);
+        });
+
+        /* The detail view has its own two actions next to the heading. */
         elements.editEntry.addEventListener('click', openEditForCurrentEntry);
         elements.deleteEntry.addEventListener('click', function () {
             if (currentEntry !== null) {
@@ -2185,7 +2844,7 @@
         });
 
         elements.emptyAction.addEventListener('click', function () {
-            openCategoryDialog('create', null, null);
+            openCategoryForm('create', null, null);
         });
 
         elements.entryEmptyAction.addEventListener('click', function () {
@@ -2194,44 +2853,61 @@
             }
         });
 
-        wireDialog(elements.categoryDialog, elements.categoryCancel, elements.categoryForm, handleCategorySubmit);
-        wireDialog(elements.cardDialog, elements.cardCancel, elements.cardForm, handleCardSubmit);
-        wireDialog(elements.deleteDialog, elements.deleteCancel, elements.deleteForm, handleDeleteSubmit);
+        /* One form, one submit handler, three ways out. */
+        elements.dialogForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            submitDialog();
+        });
 
-        elements.categoryDelete.addEventListener('click', function () {
-            if (editingEntry !== null) {
-                askDeleteAfterEdit(editingEntry);
+        elements.dialogCancel.addEventListener('click', function () {
+            closeDialog();
+        });
+
+        elements.dialogDanger.addEventListener('click', function () {
+            if (dialogKind === 'category' && dialogEntry !== null) {
+                askDeleteAfterEdit(dialogEntry);
             }
         });
 
-        elements.categoryColorClear.addEventListener('click', clearCategoryColor);
+        /*
+         * A click that lands on the dialog element itself - not on the form
+         * inside it - is a click on the backdrop. It closes the dialog, but only
+         * while nothing has been typed: with input in the form the click does
+         * nothing, so no work is ever lost by a stray click.
+         */
+        elements.dialog.addEventListener('click', function (event) {
+            if (event.target !== elements.dialog || dialogUsed) {
+                return;
+            }
 
-        elements.categoryColor.addEventListener('input', function () {
-            pendingColor = elements.categoryColor.value;
-            elements.categoryColor.disabled = false;
+            closeDialog();
         });
 
-        elements.categoryIcon.addEventListener('change', handleIconChoice);
-        elements.categoryIconRemove.addEventListener('click', removeIcon);
-
-        /* Every field clears the error message as soon as it is used again. */
-        elements.categoryName.addEventListener('input', function () {
-            setDialogError(elements.categoryError, null);
+        /*
+         * Escape takes the same path as the cancel button, so the focus always
+         * goes back to the element that opened the dialog.
+         *
+         * It is handled twice on purpose: "cancel" is the native event of a
+         * modal dialog, and the key handler covers every situation in which that
+         * event does not arrive (an embedded browser, a dialog that is not modal).
+         */
+        elements.dialog.addEventListener('cancel', function (event) {
+            event.preventDefault();
+            closeDialog();
         });
 
-        elements.cardFront.addEventListener('input', function () {
-            setDialogError(elements.cardError, null);
+        elements.dialog.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeDialog();
+            }
         });
 
-        elements.cardBack.addEventListener('input', function () {
-            setDialogError(elements.cardError, null);
+        elements.dialog.addEventListener('close', function () {
+            elements.dialog.classList.remove('is-open');
         });
 
-        elements.deleteConfirm.addEventListener('input', function () {
-            setDialogError(elements.deleteError, null);
-        });
-
-        /* A click anywhere else, or Escape, closes an open row menu. */
+        /* A click anywhere else, or Escape, closes an open menu. */
         document.addEventListener('click', closeMenu);
 
         document.addEventListener('keydown', function (event) {
@@ -2257,6 +2933,10 @@
         applyRevealOrder(document.querySelectorAll('.view--start .reveal'), 0);
 
         wireEvents();
+        /* No translation table is on the page before this line, so the label of
+           the edit button is set here for the first time. */
+        elements.editButton.textContent = t('footer.edit');
+
         applyLocale(locale, false);
     }
 

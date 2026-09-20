@@ -16,7 +16,6 @@ declare(strict_types=1);
  *     "name_de": "Geschichte",         // wording shown in German
  *     "description_en": "...",
  *     "description_de": "...",
- *     "color": "#8E9AB0",
  *     "icon_svg": "<svg ...>",
  *     "icon_scale": 1.15
  *   }
@@ -51,7 +50,6 @@ if ($method === 'POST') {
     $nameDe = optional_input_text($body, 'name_de', CATEGORY_MAX_NAME_LENGTH, 'invalid_name_de');
     $descriptionEn = optional_input_text($body, 'description_en', CATEGORY_MAX_DESCRIPTION_LENGTH, 'invalid_description_en');
     $descriptionDe = optional_input_text($body, 'description_de', CATEGORY_MAX_DESCRIPTION_LENGTH, 'invalid_description_de');
-    $color = optional_hex_color($body, 'color', 'invalid_color');
     $iconSvg = optional_svg_icon($body, 'icon_svg', 'invalid_icon');
     $iconScale = optional_icon_scale($body, 'icon_scale', 'invalid_icon_scale');
 
@@ -72,18 +70,27 @@ if ($method === 'POST') {
 
         $fields = ['parent_id' => $parentId, 'name' => $name];
 
+        /*
+         * The icon scale is automatic: a drawing is normalised before it is
+         * stored, so it always fills its circle at scale 1. The value is only
+         * written when an icon really is part of this request, and an explicit
+         * value from an older client is still accepted.
+         */
         foreach ([
             'name_en' => $nameEn,
             'name_de' => $nameDe,
             'description_en' => $descriptionEn,
             'description_de' => $descriptionDe,
-            'color' => $color,
             'icon_svg' => $iconSvg,
             'icon_scale' => $iconScale,
         ] as $column => $value) {
             if ($value !== null) {
                 $fields[$column] = $value;
             }
+        }
+
+        if (isset($fields['icon_svg']) && !array_key_exists('icon_scale', $fields)) {
+            $fields['icon_scale'] = 1.0;
         }
 
         $created = create_category($pdo, $fields);

@@ -9,7 +9,7 @@ declare(strict_types=1);
  *   id             int unsigned, NOT NULL, primary key, auto_increment
  *   parent_id      int unsigned, NULL, foreign key to categories.id
  *   name           varchar(100), NOT NULL
- *   color          varchar(7), NULL      -- "#RRGGBB"
+ *   color          varchar(7), NULL      -- still in the table, not read or written here
  *   icon_svg       text, NULL            -- the drawn icon, sanitised
  *   icon_scale     decimal(3,2), NOT NULL, default 1.00
  *   name_en        varchar(100), NULL
@@ -89,7 +89,6 @@ function category_column_available(array $columns, string $column): bool
  */
 function category_select_sql(array $columns, bool $withIconSvg = false): string
 {
-    $color = category_column_available($columns, 'color') ? 'c.color' : 'NULL';
     /*
      * The drawing itself is only part of the answer for a SINGLE category: a
      * list must not carry one drawing of up to 60 KB per row. For a list the
@@ -111,7 +110,6 @@ function category_select_sql(array $columns, bool $withIconSvg = false): string
                 c.id,
                 c.parent_id,
                 c.name,
-                ' . $iconSvg . '                ' . $color . ' AS color,
                 ' . $scale . ' AS icon_scale,
                 ' . $iconFingerprint . ' AS icon_fingerprint,
                 ' . $nameEn . ' AS name_en,
@@ -310,7 +308,6 @@ function create_category(PDO $pdo, array $fields): array
         'name_de' => PDO::PARAM_STR,
         'description_en' => PDO::PARAM_STR,
         'description_de' => PDO::PARAM_STR,
-        'color' => PDO::PARAM_STR,
         'icon_svg' => PDO::PARAM_STR,
         'icon_scale' => PDO::PARAM_STR,
     ];
@@ -365,7 +362,6 @@ function update_category(PDO $pdo, int $categoryId, array $changes): ?array
         'name_de' => PDO::PARAM_STR,
         'description_en' => PDO::PARAM_STR,
         'description_de' => PDO::PARAM_STR,
-        'color' => PDO::PARAM_STR,
         'icon_svg' => PDO::PARAM_STR,
         'icon_scale' => PDO::PARAM_STR,
     ];
@@ -575,16 +571,12 @@ function normalize_category_rows(array $rows): array
 function normalize_category_row(array $row): array
 {
     $id = (int) $row['id'];
-    $color = $row['color'] ?? null;
 
-    // The colour of a category is DATA, so it is passed on exactly as it is
-    // stored. A value that is not a "#RRGGBB" colour becomes null instead of an
-    // invented colour: the page then uses its neutral --cat-default, and one
-    // unusable value can never break the styling of the whole page.
-    if (!is_string($color) || preg_match('/^#[0-9A-Fa-f]{6}$/', $color) !== 1) {
-        $color = null;
-    }
-
+    /*
+     * The `color` column is still in the table but nothing in this
+     * application reads, writes or displays it any more, so it is not part
+     * of the answer. A category is neutral by design.
+     */
     $fingerprint = $row['icon_fingerprint'] ?? null;
     $hasIcon = is_string($fingerprint) && $fingerprint !== '';
 
@@ -598,7 +590,6 @@ function normalize_category_row(array $row): array
         'id' => $id,
         'parent_id' => $row['parent_id'] === null ? null : (int) $row['parent_id'],
         'name' => (string) $row['name'],
-        'color' => $color === null ? null : strtoupper($color),
         /*
          * The address of the stored icon. It carries a short fingerprint of the
          * drawing, so a browser that cached the old icon asks for the new one

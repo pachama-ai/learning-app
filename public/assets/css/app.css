@@ -272,24 +272,17 @@
 }
 
 /*
- * The category colour of a row, a dot or a bar segment.
+ * A category has no colour of its own any more.
  *
- * app.js adds the class "has-cat" and writes the colour of the row - the value
- * of `categories.color` - onto the element as --cat-base. This is the only place
- * that turns it into --cat, so no category name appears in this stylesheet.
+ * The `color` column is still in the table, but nothing in this application
+ * reads, writes or shows it: app.js no longer writes a --cat-base and no longer
+ * adds a "has-cat" class. Everything that used to take a category colour - the
+ * dot beside a statistic, the track of a row - therefore falls back to the
+ * neutral --cat-default of the current theme and stays neutral by design.
  *
- * The dark theme mixes the very same stored colour towards the dark sky, so one
- * single value in the database serves both themes:
- *
- *   #C3C8DB stored  ->  #A7ACBD in the dark theme (the value the design used)
+ * In the light theme a TILE is not neutral: it takes one of the eight palette
+ * colours by its position in the row (see "the light palette" in section 6).
  */
-.has-cat {
-    --cat: var(--cat-base, var(--cat-default));
-}
-
-[data-theme="dark"] .has-cat {
-    --cat: color-mix(in srgb, var(--cat-base, var(--cat-default)) 85%, #0B0D16);
-}
 
 /* ==========================================================================
    2. Base and page frame
@@ -977,10 +970,25 @@ img {
     display: none;
 }
 
-.area-card {
-    /* One view shows --tiles-per-view whole tiles, gaps included. */
+/*
+ * One tile is two elements now.
+ *
+ * The slot carries the width of a tile, the scroll snapping and the position
+ * that hands out the colour in the light theme. The link inside it is the tile
+ * itself. The reason is the menu in the corner: it has to be a real <button>,
+ * and a button inside a link is neither valid markup nor reliably clickable.
+ * Nothing about the size or the spacing of a tile changes because of it.
+ */
+.area-card-slot {
+    position: relative;
+    display: flex;
     flex: 0 0 calc((100% - (var(--tiles-per-view) - 1) * var(--tile-gap)) / var(--tiles-per-view));
     scroll-snap-align: start;
+}
+
+.area-card {
+    flex: 1 1 auto;
+    min-width: 0;
     /*
      * "user-drag: none" is what lets the row be dragged with a mouse: without it
      * Chrome starts its own link drag and stops sending the pointer events the
@@ -1166,39 +1174,39 @@ img {
  * The dark theme is not involved at all: there a tile stays the translucent
  * white wash of --tile-bg and the palette is never read.
  */
-[data-theme="light"] .area-grid > .area-card {
+[data-theme="light"] .area-card {
     background-color: var(--tile-palette, var(--tile-bg));
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+1) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+1) {
     --tile-palette: var(--palette-1);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+2) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+2) {
     --tile-palette: var(--palette-2);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+3) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+3) {
     --tile-palette: var(--palette-3);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+4) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+4) {
     --tile-palette: var(--palette-4);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+5) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+5) {
     --tile-palette: var(--palette-5);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+6) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+6) {
     --tile-palette: var(--palette-6);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+7) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+7) {
     --tile-palette: var(--palette-7);
 }
 
-[data-theme="light"] .area-grid > .area-card:nth-child(8n+8) {
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+8) {
     --tile-palette: var(--palette-8);
 }
 
@@ -1206,8 +1214,8 @@ img {
  * Hover and focus darken the very same colour by a few percent - no colour
  * change and no second palette.
  */
-[data-theme="light"] .area-grid > .area-card:hover,
-[data-theme="light"] .area-grid > .area-card:focus-visible {
+[data-theme="light"] .area-card:hover,
+[data-theme="light"] .area-card:focus-visible {
     background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 92%, #2B2622);
 }
 
@@ -1217,11 +1225,11 @@ img {
 }
 
 /* The information line is the darkened text colour, the arrow the text colour. */
-[data-theme="light"] .area-grid > .area-card .area-card__stat {
+[data-theme="light"] .area-card .area-card__stat {
     color: var(--tile-ink-muted);
 }
 
-[data-theme="light"] .area-grid > .area-card .arrow {
+[data-theme="light"] .area-card .arrow {
     color: var(--text);
 }
 
@@ -1810,19 +1818,6 @@ img {
     color: var(--text);
 }
 
-/*
- * The primary action is a solid surface in the light theme: the text colour as
- * the button and the page beige as its writing. The dark theme keeps the
- * outlined version. The arrow below follows currentColor in both themes.
- */
-[data-theme="light"] .dialog__button--primary {
-    background-color: var(--text);
-    color: var(--bg);
-}
-
-[data-theme="light"] .dialog__button--primary:hover:not([disabled]) {
-    background-color: color-mix(in srgb, var(--text) 88%, var(--bg));
-}
 
 /*
  * Arrow submit button. The arrow is drawn in CSS rather than added as an
@@ -2472,9 +2467,401 @@ html.is-theme-switching::view-transition-new(root) {
         transform: none !important;
     }
 
+    /*
+     * The dialog does not slide: only its short fade stays. The duration is
+     * capped by the rule at the top of this block, so the panel never travels
+     * upwards for someone who asked for less movement.
+     */
+    .dialog,
+    .dialog[open].is-open {
+        transform: none !important;
+    }
+
+    .tile-menu .menu {
+        animation: none !important;
+    }
+
     /* The theme reveal is dropped entirely. */
     html.is-theme-switching::view-transition-old(root),
     html.is-theme-switching::view-transition-new(root) {
         animation: none !important;
+    }
+}
+
+/* ==========================================================================
+   16. The shared dialog system, the upload field, the tile menu and the
+       first letter fallback
+   ========================================================================== */
+
+/*
+ * All of this is one system: one dialog element, one set of classes and one
+ * behaviour in app.js. A tile menu, an upload field and a confirmation are all
+ * the same dialog with different fields inside.
+ */
+
+/*
+ * --- the first letter, when a category has no drawing ---------------------
+ *
+ * The same heading face the page uses, so a circle with a letter reads like a
+ * piece of the design and never like a broken image.
+ */
+.blob__initial {
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    /* A drawing is scaled with --icon-scale; a letter is centred instead. */
+    transform: translateY(-1px);
+}
+
+/*
+ * --- the tile menu ------------------------------------------------------
+ *
+ * Hidden while the edit mode is off. It is a sibling of the tile link, so a
+ * click on it can never open the category - nothing has to stop an event from
+ * travelling anywhere.
+ */
+.tile-menu {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 3;
+    display: none;
+}
+
+.is-editing .tile-menu {
+    display: block;
+}
+
+.tile-menu .menu-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    /* It sits on a coloured tile in the light theme, so it carries its own
+       surface instead of relying on the tile behind it. */
+    background-color: color-mix(in srgb, var(--panel) 78%, transparent);
+    color: var(--text);
+    border-color: transparent;
+    backdrop-filter: blur(6px);
+}
+
+.tile-menu .menu-button:hover,
+.tile-menu .menu-button[aria-expanded="true"] {
+    background-color: var(--panel);
+    border-color: var(--line-strong);
+}
+
+/*
+ * The menu itself opens downwards from the button. The surface, the radius and
+ * the shadow are the ones the row menus already use, so both read as the same
+ * control.
+ */
+.tile-menu .menu {
+    top: calc(100% + 6px);
+    right: 0;
+    left: auto;
+    animation: menu-in 160ms var(--ease) both;
+}
+
+@keyframes menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/*
+ * --- the hint that belongs to the edit mode -----------------------------
+ */
+.edit-hint {
+    margin-top: 6px;
+    color: var(--muted);
+}
+
+/*
+ * --- the dialog ---------------------------------------------------------
+ *
+ * A soft, milky panel: the ink of the panel colour at a high opacity over a
+ * blurred backdrop. The text colour keeps a contrast of at least 4.5:1 on it in
+ * both themes, because the panel never becomes transparent enough for the page
+ * behind it to show through at full strength.
+ */
+.dialog {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100dvh - 48px);
+    padding: 0;
+    overflow-y: auto;
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    background-color: color-mix(in srgb, var(--panel) 94%, transparent);
+    backdrop-filter: blur(22px) saturate(1.05);
+    box-shadow: var(--panel-shadow);
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+
+.dialog[open].is-open {
+    opacity: 1;
+    transform: translateY(0);
+    transition-duration: 320ms;
+}
+
+.dialog::backdrop {
+    background-color: var(--backdrop);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 200ms var(--ease);
+}
+
+.dialog[open].is-open::backdrop {
+    opacity: 1;
+    transition-duration: 320ms;
+}
+
+.dialog__form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 32px;
+}
+
+.dialog__title {
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.dialog__message {
+    margin-top: -8px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.dialog__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.dialog__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dialog__field.is-invalid .dialog__input {
+    border-bottom-color: var(--cat-reserve-rose);
+}
+
+/* The field error sits directly under the field that caused it. */
+.dialog__field-error {
+    color: var(--cat-reserve-rose);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.dialog__hint {
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+/*
+ * --- the collapsed translations ----------------------------------------
+ */
+.dialog__group {
+    border-top: 1px solid var(--hairline);
+    padding-top: 14px;
+}
+
+.dialog__summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.dialog__summary:hover {
+    color: var(--text);
+}
+
+.dialog__group[open] .dialog__summary {
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+/*
+ * --- the buttons --------------------------------------------------------
+ *
+ * The primary action is a pill in the accent of the theme: the aqua in the dark
+ * theme, the ink in the light one. The cancel button carries no border and no
+ * surface - it is text, which keeps the one obvious action obvious.
+ */
+.dialog__button--primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 22px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-color: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 200ms var(--ease), opacity 200ms var(--ease);
+}
+
+.dialog__button--primary:hover:not([disabled]) {
+    background-color: color-mix(in srgb, var(--accent) 86%, var(--text));
+}
+
+.dialog__button--primary[disabled] {
+    opacity: .55;
+    cursor: default;
+}
+
+.dialog__button--text {
+    padding: 8px 4px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.dialog__button--text:hover {
+    color: var(--text);
+}
+
+.dialog__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+}
+
+/* The delete button of the form sits on the left, away from cancel and save. */
+.dialog__actions .dialog__button--danger {
+    margin-right: auto;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--cat-reserve-rose);
+}
+
+.dialog__actions .dialog__button--danger:hover {
+    border-color: var(--cat-reserve-rose);
+}
+
+/*
+ * --- the upload field ---------------------------------------------------
+ *
+ * A dashed area that takes a click and a dragged file. The circle is the very
+ * same .blob a tile uses, so the preview really shows what the tile will show.
+ */
+.upload {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px;
+    background-color: color-mix(in srgb, var(--panel) 70%, transparent);
+    cursor: pointer;
+    transition: border-color 200ms var(--ease), background-color 200ms var(--ease);
+}
+
+.upload:hover,
+.upload:focus-visible {
+    border-color: var(--text);
+}
+
+.upload.is-dragover {
+    border-color: var(--text);
+    background-color: var(--tile-bg-hover);
+}
+
+.upload__text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.upload__title {
+    font-size: 0.95rem;
+}
+
+.upload__hint {
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.upload__actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+/*
+ * The box the drawing is measured in. It has to be in the document for getBBox
+ * to answer, but it must not be visible or take up any space.
+ */
+.icon-measure {
+    position: fixed;
+    top: -10000px;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+}
+
+/*
+ * --- under 640px: a bottom sheet ----------------------------------------
+ *
+ * Full width, rounded at the top, with the same comfortable padding, sliding up
+ * from the lower edge instead of appearing in the middle.
+ */
+@media (max-width: 639px) {
+    .dialog {
+        position: fixed;
+        inset: auto 0 0 0;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        max-height: calc(100dvh - 32px);
+        border-radius: 18px 18px 0 0;
+        border-bottom: 0;
+        transform: translateY(100%);
+    }
+
+    .dialog[open].is-open {
+        transform: translateY(0);
+    }
+
+    .dialog__form {
+        padding: 24px 20px 28px;
     }
 }

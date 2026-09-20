@@ -117,25 +117,6 @@ function optional_input_text(array $body, string $key, int $maxLength, string $c
 }
 
 /**
- * An optional colour in the form #RRGGBB. Anything else is refused, so one bad
- * value cannot reach the stylesheet.
- *
- * @param array<string, mixed> $body
- */
-function optional_hex_color(array $body, string $key, string $code): ?string
-{
-    if (!array_key_exists($key, $body) || $body[$key] === null || $body[$key] === '') {
-        return null;
-    }
-
-    if (!is_string($body[$key]) || preg_match('/^#[0-9A-Fa-f]{6}$/', $body[$key]) !== 1) {
-        send_json_error($code, 'The colour must look like #RRGGBB.', 400);
-    }
-
-    return strtoupper($body[$key]);
-}
-
-/**
  * An optional positive integer, used for ids such as parent_id or category_id.
  *
  * @param array<string, mixed> $body

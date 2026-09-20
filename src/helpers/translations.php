@@ -66,7 +66,7 @@ function learning_app_translations(): array
             'footer.addSubcategoryAria' => 'Add subcategory',
             'footer.addCardAria' => 'Add flashcard',
             'footer.editAria' => 'Edit this entry',
-            'footer.edit' => 'EDIT',
+            'footer.edit' => 'Edit',
 
             'dialog.addTitle' => 'Add learning area',
             'dialog.nameLabel' => 'Name',
@@ -105,11 +105,8 @@ function learning_app_translations(): array
             'dialog.category.createSubcategory' => 'Add subcategory',
             'dialog.category.editArea' => 'Edit learning area',
             'dialog.category.editSubcategory' => 'Edit subcategory',
-            'dialog.category.colorLabel' => 'Colour',
-            'dialog.category.colorHint' => 'Leave empty for the automatic colour.',
             'dialog.category.iconLabel' => 'Icon (SVG)',
             'dialog.category.iconHint' => 'Optional. One .svg file, at most 300 KB.',
-            'dialog.category.iconScale' => 'Icon size',
             'dialog.category.nameEn' => 'Name (English)',
             'dialog.category.nameDe' => 'Name (German)',
             'dialog.category.nameHint' => 'Used when no translation is filled in.',
@@ -162,6 +159,55 @@ function learning_app_translations(): array
             'theme.switch.toDark' => 'Switch to dark mode',
             'theme.switch.toLight' => 'Switch to light mode',
             'language.label' => 'Language',
+
+            // --- Shared dialog system ---
+            'dialog.close' => 'Close',
+            'dialog.optional' => 'Optional',
+            'dialog.translations' => 'Translations (optional)',
+            'dialog.translationsHint' => 'Shown when the interface is in that language.',
+            'dialog.descriptionLabel' => 'Description',
+            'dialog.descriptionPlaceholder' => 'Optional, one or a few lines',
+            'dialog.descriptionHint' => 'Written to the description of the language that is switched on.',
+            'dialog.required' => 'Required',
+            'dialog.hintEscape' => 'Escape closes this dialog.',
+            'dialog.hintEnter' => 'Enter saves.',
+
+            // --- Field level validation ---
+            'dialog.errorNameRequired' => 'Please enter a name.',
+            'dialog.errorNameTooLong' => 'The name may be at most {max} characters long.',
+            'dialog.errorNameDuplicate' => 'A category with this name already exists here.',
+            'dialog.errorDescriptionTooLong' => 'The description may be at most {max} characters long.',
+            'dialog.errorFrontRequired' => 'Please enter the front of the card.',
+            'dialog.errorFrontTooLong' => 'The front may be at most {max} characters long.',
+            'dialog.errorBackRequired' => 'Please enter the back of the card.',
+            'dialog.errorBackTooLong' => 'The back may be at most {max} characters long.',
+            'dialog.errorConfirmRequired' => 'Type the name to confirm.',
+
+            // --- Icon upload ---
+            'dialog.icon.uploadTitle' => 'Upload icon',
+            'dialog.icon.uploadHint' => 'Click to choose an SVG, or drag and drop one here.',
+            'dialog.icon.drop' => 'Drop the SVG here',
+            'dialog.icon.replace' => 'Replace icon',
+            'dialog.icon.remove' => 'Remove icon',
+            'dialog.icon.preview' => 'Preview',
+            'dialog.icon.onlySvg' => 'Only .svg files are accepted.',
+            'dialog.icon.tooLarge' => 'The file is larger than {max} KB.',
+            'dialog.icon.notSvg' => 'This file is not a readable SVG.',
+            'dialog.icon.normalised' => 'The drawing was fitted to the icon circle automatically.',
+            'dialog.icon.fallbackHint' => 'Without an icon the first letter of the name is shown.',
+            'dialog.icon.fileChosen' => 'File chosen: {name}',
+
+            // --- Edit mode and the tile menu ---
+            'footer.done' => 'Done',
+            'editMode.badge' => 'Edit mode',
+            'editMode.hint' => 'Use the menu in the corner of a tile to edit or delete it.',
+            'action.moreTile' => 'Actions for {name}',
+
+            // --- Toasts after a successful save ---
+            'feedback.created' => '{name} was created.',
+            'feedback.updated' => '{name} was saved.',
+            'feedback.iconRemoved' => 'The icon was removed.',
+
             'language.en' => 'EN',
             'language.de' => 'DE',
         ],
@@ -202,7 +248,7 @@ function learning_app_translations(): array
             'footer.addSubcategoryAria' => 'Unterkategorie hinzufügen',
             'footer.addCardAria' => 'Karteikarte hinzufügen',
             'footer.editAria' => 'Diesen Eintrag bearbeiten',
-            'footer.edit' => 'BEARBEITEN',
+            'footer.edit' => 'Bearbeiten',
 
             'dialog.addTitle' => 'Themengebiet hinzufügen',
             'dialog.nameLabel' => 'Name',
@@ -241,11 +287,8 @@ function learning_app_translations(): array
             'dialog.category.createSubcategory' => 'Unterkategorie hinzufügen',
             'dialog.category.editArea' => 'Themengebiet bearbeiten',
             'dialog.category.editSubcategory' => 'Unterkategorie bearbeiten',
-            'dialog.category.colorLabel' => 'Farbe',
-            'dialog.category.colorHint' => 'Leer lassen für die automatische Farbe.',
             'dialog.category.iconLabel' => 'Symbol (SVG)',
             'dialog.category.iconHint' => 'Optional. Eine .svg-Datei, höchstens 300 KB.',
-            'dialog.category.iconScale' => 'Symbolgröße',
             'dialog.category.nameEn' => 'Name (Englisch)',
             'dialog.category.nameDe' => 'Name (Deutsch)',
             'dialog.category.nameHint' => 'Wird verwendet, wenn keine Übersetzung eingetragen ist.',
@@ -298,6 +341,55 @@ function learning_app_translations(): array
             'theme.switch.toDark' => 'Zum dunklen Modus wechseln',
             'theme.switch.toLight' => 'Zum hellen Modus wechseln',
             'language.label' => 'Sprache',
+
+            // --- Gemeinsames Dialog-System ---
+            'dialog.close' => 'Schließen',
+            'dialog.optional' => 'Optional',
+            'dialog.translations' => 'Übersetzungen (optional)',
+            'dialog.translationsHint' => 'Wird angezeigt, wenn die Oberfläche in dieser Sprache läuft.',
+            'dialog.descriptionLabel' => 'Beschreibung',
+            'dialog.descriptionPlaceholder' => 'Optional, eine oder ein paar Zeilen',
+            'dialog.descriptionHint' => 'Wird in die Beschreibung der eingeschalteten Sprache geschrieben.',
+            'dialog.required' => 'Pflichtfeld',
+            'dialog.hintEscape' => 'Escape schließt diesen Dialog.',
+            'dialog.hintEnter' => 'Enter speichert.',
+
+            // --- Feldweise Prüfung ---
+            'dialog.errorNameRequired' => 'Bitte einen Namen eingeben.',
+            'dialog.errorNameTooLong' => 'Der Name darf höchstens {max} Zeichen lang sein.',
+            'dialog.errorNameDuplicate' => 'Hier gibt es bereits eine Kategorie mit diesem Namen.',
+            'dialog.errorDescriptionTooLong' => 'Die Beschreibung darf höchstens {max} Zeichen lang sein.',
+            'dialog.errorFrontRequired' => 'Bitte die Vorderseite eingeben.',
+            'dialog.errorFrontTooLong' => 'Die Vorderseite darf höchstens {max} Zeichen lang sein.',
+            'dialog.errorBackRequired' => 'Bitte die Rückseite eingeben.',
+            'dialog.errorBackTooLong' => 'Die Rückseite darf höchstens {max} Zeichen lang sein.',
+            'dialog.errorConfirmRequired' => 'Bitte den Namen zur Bestätigung eingeben.',
+
+            // --- Symbol hochladen ---
+            'dialog.icon.uploadTitle' => 'Symbol hochladen',
+            'dialog.icon.uploadHint' => 'Klicken, um ein SVG auszuwählen, oder hierher ziehen.',
+            'dialog.icon.drop' => 'SVG hier ablegen',
+            'dialog.icon.replace' => 'Symbol ersetzen',
+            'dialog.icon.remove' => 'Symbol entfernen',
+            'dialog.icon.preview' => 'Vorschau',
+            'dialog.icon.onlySvg' => 'Nur .svg-Dateien werden akzeptiert.',
+            'dialog.icon.tooLarge' => 'Die Datei ist größer als {max} KB.',
+            'dialog.icon.notSvg' => 'Diese Datei ist kein lesbares SVG.',
+            'dialog.icon.normalised' => 'Die Zeichnung wurde automatisch an den Symbolkreis angepasst.',
+            'dialog.icon.fallbackHint' => 'Ohne Symbol wird der erste Buchstabe des Namens gezeigt.',
+            'dialog.icon.fileChosen' => 'Gewählte Datei: {name}',
+
+            // --- Bearbeiten-Modus und Kachelmenü ---
+            'footer.done' => 'Fertig',
+            'editMode.badge' => 'Bearbeiten-Modus',
+            'editMode.hint' => 'Über das Menü in der Ecke einer Kachel bearbeiten oder löschen.',
+            'action.moreTile' => 'Aktionen für {name}',
+
+            // --- Hinweise nach dem Speichern ---
+            'feedback.created' => '„{name}“ wurde angelegt.',
+            'feedback.updated' => '„{name}“ wurde gespeichert.',
+            'feedback.iconRemoved' => 'Das Symbol wurde entfernt.',
+
             'language.en' => 'EN',
             'language.de' => 'DE',
         ],

@@ -218,6 +218,13 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 </div>
 
                 <!--
+                    Shown only while the edit mode is on: it says what the menu
+                    in the corner of a tile does. The text comes from the
+                    translation table, so it follows the language switch.
+                -->
+                <p class="eyebrow edit-hint" id="edit-hint" role="status" data-i18n="editMode.hint" hidden><?= $text('editMode.hint') ?></p>
+
+                <!--
                     The scroll line of the tile row. It carries the position as
                     well as being the hairline above the footer, so the footer
                     needs none of its own. It is NEVER hidden: while every tile
@@ -356,135 +363,25 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         Escape and the backdrop without any extra code.
     -->
 
-    <!-- Form for a learning area or a subcategory, used for creating and editing. -->
-    <dialog class="dialog dialog--wide" id="category-dialog" aria-labelledby="category-dialog-title">
-        <form class="dialog__form" id="category-form" novalidate>
-            <h2 class="dialog__title" id="category-dialog-title"></h2>
+    <!--
+        ONE dialog for every form and every confirmation of this app.
 
-            <div class="dialog__field">
-                <label class="dialog__label" for="category-name" data-i18n="dialog.nameLabel"><?= $text('dialog.nameLabel') ?></label>
-                <input class="dialog__input" id="category-name" name="name" type="text"
-                       maxlength="100" autocomplete="off" required
-                       placeholder="<?= $text('dialog.namePlaceholder') ?>"
-                       data-i18n-placeholder="dialog.namePlaceholder">
-                <p class="dialog__hint" data-i18n="dialog.category.nameHint"><?= $text('dialog.category.nameHint') ?></p>
-            </div>
-
-            <div class="dialog__grid">
-                <div class="dialog__field">
-                    <label class="dialog__label" for="category-name-en" data-i18n="dialog.category.nameEn"><?= $text('dialog.category.nameEn') ?></label>
-                    <input class="dialog__input" id="category-name-en" name="name_en" type="text" maxlength="100" autocomplete="off">
-                </div>
-
-                <div class="dialog__field">
-                    <label class="dialog__label" for="category-name-de" data-i18n="dialog.category.nameDe"><?= $text('dialog.category.nameDe') ?></label>
-                    <input class="dialog__input" id="category-name-de" name="name_de" type="text" maxlength="100" autocomplete="off">
-                </div>
-
-                <div class="dialog__field">
-                    <label class="dialog__label" for="category-description-en" data-i18n="dialog.category.descriptionEn"><?= $text('dialog.category.descriptionEn') ?></label>
-                    <textarea class="dialog__input dialog__input--area" id="category-description-en" name="description_en"
-                              rows="2" maxlength="1000"></textarea>
-                </div>
-
-                <div class="dialog__field">
-                    <label class="dialog__label" for="category-description-de" data-i18n="dialog.category.descriptionDe"><?= $text('dialog.category.descriptionDe') ?></label>
-                    <textarea class="dialog__input dialog__input--area" id="category-description-de" name="description_de"
-                              rows="2" maxlength="1000"></textarea>
-                </div>
-            </div>
-
-            <div class="dialog__grid">
-                <div class="dialog__field">
-                    <label class="dialog__label" for="category-color" data-i18n="dialog.category.colorLabel"><?= $text('dialog.category.colorLabel') ?></label>
-                    <div class="dialog__inline">
-                        <!-- The value is set by app.js: the neutral colour of the
-                             stylesheet while nothing is stored yet. -->
-                        <input class="dialog__color" id="category-color" name="color" type="color">
-                        <button type="button" class="dialog__link-button" id="category-color-clear" data-i18n="action.delete"><?= $text('action.delete') ?></button>
-                    </div>
-                    <p class="dialog__hint" data-i18n="dialog.category.colorHint"><?= $text('dialog.category.colorHint') ?></p>
-                </div>
-
-                <div class="dialog__field">
-                    <label class="dialog__label" for="category-icon" data-i18n="dialog.category.iconLabel"><?= $text('dialog.category.iconLabel') ?></label>
-                    <input class="dialog__input dialog__input--file" id="category-icon" name="icon" type="file" accept="image/svg+xml,.svg">
-                    <p class="dialog__hint" data-i18n="dialog.category.iconHint"><?= $text('dialog.category.iconHint') ?></p>
-                    <div class="dialog__inline" id="category-icon-state" hidden>
-                        <span class="dialog__badge" id="category-icon-badge"></span>
-                        <button type="button" class="dialog__link-button" id="category-icon-remove" data-i18n="action.removeIcon"><?= $text('action.removeIcon') ?></button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dialog__field dialog__field--narrow">
-                <label class="dialog__label" for="category-icon-scale" data-i18n="dialog.category.iconScale"><?= $text('dialog.category.iconScale') ?></label>
-                <input class="dialog__input dialog__input--number" id="category-icon-scale" name="icon_scale"
-                       type="number" min="0.2" max="3" step="0.05" value="1">
-            </div>
-
-            <p class="dialog__error" id="category-error" role="alert" hidden></p>
-
+        The fields inside #app-dialog-fields are built by app.js, so a new
+        dialog never needs new markup and every dialog shares the same
+        behaviour: one open and close path, one validation path, one loading
+        state, one error area, one toast and one place that decides where the
+        focus goes.
+    -->
+    <dialog class="dialog" id="app-dialog" aria-labelledby="app-dialog-title">
+        <form class="dialog__form" id="app-dialog-form" novalidate>
+            <h2 class="dialog__title" id="app-dialog-title"></h2>
+            <p class="dialog__message" id="app-dialog-message" hidden></p>
+            <div class="dialog__fields" id="app-dialog-fields"></div>
+            <p class="dialog__error" id="app-dialog-error" role="alert" hidden></p>
             <div class="dialog__actions">
-                <button type="button" class="dialog__button dialog__button--danger" id="category-delete" hidden data-i18n="action.delete"><?= $text('action.delete') ?></button>
-                <button type="button" class="dialog__button dialog__button--ghost" id="category-cancel" data-i18n="dialog.cancel"><?= $text('dialog.cancel') ?></button>
-                <button type="submit" class="dialog__button dialog__button--primary" id="category-save" data-i18n="dialog.save"><?= $text('dialog.save') ?></button>
-            </div>
-        </form>
-    </dialog>
-
-    <!-- Form for one flashcard. -->
-    <dialog class="dialog" id="card-dialog" aria-labelledby="card-dialog-title">
-        <form class="dialog__form" id="card-form" novalidate>
-            <h2 class="dialog__title" id="card-dialog-title"></h2>
-
-            <div class="dialog__field">
-                <label class="dialog__label" for="card-front" data-i18n="dialog.card.frontLabel"><?= $text('dialog.card.frontLabel') ?></label>
-                <textarea class="dialog__input dialog__input--area" id="card-front" name="front" rows="2"
-                          maxlength="2000" required
-                          placeholder="<?= $text('dialog.card.frontPlaceholder') ?>"
-                          data-i18n-placeholder="dialog.card.frontPlaceholder"></textarea>
-            </div>
-
-            <div class="dialog__field">
-                <label class="dialog__label" for="card-back" data-i18n="dialog.card.backLabel"><?= $text('dialog.card.backLabel') ?></label>
-                <textarea class="dialog__input dialog__input--area" id="card-back" name="back" rows="2"
-                          maxlength="2000" required
-                          placeholder="<?= $text('dialog.card.backPlaceholder') ?>"
-                          data-i18n-placeholder="dialog.card.backPlaceholder"></textarea>
-            </div>
-
-            <div class="dialog__field dialog__field--check">
-                <input class="dialog__check" id="card-bidirectional" name="is_bidirectional" type="checkbox">
-                <label class="dialog__label" for="card-bidirectional" data-i18n="dialog.card.bidirectionalLabel"><?= $text('dialog.card.bidirectionalLabel') ?></label>
-            </div>
-
-            <p class="dialog__error" id="card-error" role="alert" hidden></p>
-
-            <div class="dialog__actions">
-                <button type="button" class="dialog__button dialog__button--ghost" id="card-cancel" data-i18n="dialog.cancel"><?= $text('dialog.cancel') ?></button>
-                <button type="submit" class="dialog__button dialog__button--primary" id="card-save" data-i18n="dialog.save"><?= $text('dialog.save') ?></button>
-            </div>
-        </form>
-    </dialog>
-
-    <!-- Delete confirmation for a category (and for a single card). -->
-    <dialog class="dialog" id="delete-dialog" aria-labelledby="delete-dialog-title">
-        <form class="dialog__form" id="delete-form" novalidate>
-            <h2 class="dialog__title" id="delete-dialog-title"></h2>
-            <p class="dialog__message" id="delete-message"></p>
-
-            <div class="dialog__field" id="delete-confirm-field">
-                <label class="dialog__label" for="delete-confirm" data-i18n="dialog.delete.confirmLabel"><?= $text('dialog.delete.confirmLabel') ?></label>
-                <input class="dialog__input" id="delete-confirm" name="confirm_name" type="text"
-                       autocomplete="off" autocapitalize="off" spellcheck="false">
-            </div>
-
-            <p class="dialog__error" id="delete-error" role="alert" hidden></p>
-
-            <div class="dialog__actions">
-                <button type="button" class="dialog__button dialog__button--ghost" id="delete-cancel" data-i18n="dialog.cancel"><?= $text('dialog.cancel') ?></button>
-                <button type="submit" class="dialog__button dialog__button--danger-solid" id="delete-submit" data-i18n="dialog.delete.submit"><?= $text('dialog.delete.submit') ?></button>
+                <button type="button" class="dialog__button dialog__button--danger" id="app-dialog-danger" hidden></button>
+                <button type="button" class="dialog__button--text" id="app-dialog-cancel"></button>
+                <button type="submit" class="dialog__button dialog__button--primary" id="app-dialog-submit"></button>
             </div>
         </form>
     </dialog>

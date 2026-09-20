@@ -10,7 +10,6 @@ declare(strict_types=1);
  *   {
  *     "name": "History",              // also: name_en, name_de
  *     "description_en": "...",        // also: description_de
- *     "color": "#8E9AB0",             // null removes the colour
  *     "icon_svg": "<svg ...>",        // null removes the icon
  *     "icon_scale": 1.15              // null resets it to 1.00
  *   }
@@ -96,9 +95,6 @@ try {
         }
     }
 
-    if (array_key_exists('color', $body)) {
-        $changes['color'] = optional_hex_color($body, 'color', 'invalid_color');
-    }
 
     if (array_key_exists('icon_scale', $body)) {
         $scale = optional_icon_scale($body, 'icon_scale', 'invalid_icon_scale');
@@ -111,6 +107,16 @@ try {
         $changes['icon_svg'] = $body['icon_svg'] === null || $body['icon_svg'] === ''
             ? null
             : optional_svg_icon($body, 'icon_svg', 'invalid_icon');
+    }
+
+    /*
+     * A normalised drawing fills its circle at scale 1, so the value is set
+     * automatically whenever an icon is part of this request. The column is
+     * still written - it is simply never filled in by a person any more.
+     */
+    if (array_key_exists('icon_svg', $changes) && $changes['icon_svg'] !== null
+        && !array_key_exists('icon_scale', $changes)) {
+        $changes['icon_scale'] = 1.0;
     }
 
     if ($changes === []) {

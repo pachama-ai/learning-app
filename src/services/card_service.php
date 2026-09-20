@@ -211,8 +211,13 @@ function card_count_for_category(PDO $pdo, int $categoryId): int
 /**
  * Deletes every card of the given categories and reports how many were removed.
  *
- * Used while a whole category is deleted: the cards have to go first, because
- * fk_cards_category is ON DELETE RESTRICT and would otherwise stop the delete.
+ * Used while a whole category is deleted. The order is:
+ *   1. the learning progress of those cards
+ *   2. the cards themselves, because fk_cards_category is ON DELETE RESTRICT
+ *
+ * The foreign key on the progress rows would remove them by itself, but the
+ * order is written out on purpose: whoever deletes a category should be able
+ * to read the whole order in one place.
  *
  * @param list<int> $categoryIds
  */
@@ -232,6 +237,18 @@ function delete_cards_of_categories(PDO $pdo, array $categoryIds): int
         $placeholders[] = ':id' . $index;
         $ids[':id' . $index] = (int) $categoryId;
     }
+
+    $deleteProgress = $pdo->prepare(
+        'DELETE FROM user_card_progress WHERE card_id IN ('
+        . 'SELECT id FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . ')'
+        . ')'
+    );
+
+    foreach ($ids as $placeholder => $id) {
+        $deleteProgress->bindValue($placeholder, $id, PDO::PARAM_INT);
+    }
+
+    $deleteProgress->execute();
 
     $statement = $pdo->prepare(
         'DELETE FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . ')'
