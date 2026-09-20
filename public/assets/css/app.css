@@ -1,0 +1,2480 @@
+/*
+ * Lernkartei - editorial visual design
+ *
+ * Visual styling and animation only. No layout logic, no API behaviour and no
+ * data changes live in this file.
+ *
+ * Structure
+ *   0. local font faces
+ *   1. design tokens
+ *   2. base and page frame
+ *   3. header
+ *   4. headings
+ *   5. overview band (statistics)
+ *   6. learning area grid
+ *   7. detail view (sidebar + subarea rows)
+ *   8. footer
+ *   9. dialog
+ *  10. animations
+ *  11. view transitions
+ *  12. responsive
+ *  13. reduced motion
+ */
+
+/* ==========================================================================
+   0. Local font faces
+   ========================================================================== */
+
+/*
+ * Only one face is self-hosted here: Inter Tight, a variable font whose single
+ * file covers the whole weight range from 100 to 900. Nothing is requested from
+ * Google Fonts or any other external service at runtime.
+ *
+ * The paths are relative to this stylesheet, so "../fonts/" resolves to
+ * public/assets/fonts/.
+ */
+/*
+ * The interface face.
+ *
+ * The file is self-hosted in public/assets/fonts, so the page needs no network
+ * access and no third-party font service. It is a variable font: one file
+ * carries the whole weight range from 100 to 900, which is why the range is
+ * declared here instead of a single weight.
+ *
+ * It is used for body and heading text through --font-sans in section 1. The
+ * monospaced slots (--font-mono) keep a system monospace stack instead: Inter
+ * Tight is proportional, so the alignment that counters and card labels rely
+ * on would be lost.
+ *
+ * The two faces the design originally asked for (Instrument Sans, IBM Plex Mono)
+ * are NOT declared: their files were never added to public/assets/fonts, so
+ * declaring them only produced a 404 on every page load. Their names were
+ * removed from the two stacks below. If the files are added later, one
+ * @font-face block per file is enough to switch them on.
+ */
+@font-face {
+    font-family: "Inter Tight";
+    src: url("../fonts/inter-tight-latin-wght-normal.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ==========================================================================
+   1. Design tokens
+   ========================================================================== */
+
+:root {
+    /* ---- The colour system of this design ---- */
+    /*
+     * The light theme is one flat, warm beige and it is the default of the
+     * design. The dark theme paints a vertical gradient over the darker slate
+     * family instead. The two themes differ in nothing else structurally.
+     */
+    --bg: #EDEAE4;
+    --bg-image: none;
+    --text: #2B2622;
+    --muted: #6B645C;
+    --line: rgba(43, 38, 34, 0.16);
+    --line-strong: rgba(43, 38, 34, 0.38);
+
+    /*
+     * The two washes the light theme still needs: the faint warm tint of a
+     * hovered control (the arrows of the tile row, a menu button, the ghost
+     * action in a dialog) and the circle behind a subject drawing. The tile
+     * SURFACE of the light theme is not a wash any more: it is one of the eight
+     * opaque palette colours and follows the position of the tile in the row
+     * (see "the light palette" further down). The dark theme keeps the
+     * translucent white washes for everything, which is why the three tokens
+     * are still named after them.
+     *
+     * NOTE: the light theme was measured against the palette. The text colour
+     * reaches at least 5.3:1 on all eight tile colours and 14.7:1 on the page,
+     * the darkened information line at least 5.1:1 on a tile, and the muted
+     * colour 4.9:1 on the page itself.
+     */
+    --tile-bg: rgba(43, 38, 34, 0.06);
+    --tile-bg-hover: rgba(43, 38, 34, 0.10);
+    --icon-circle: rgba(43, 38, 34, 0.09);
+    /* Older name for the tile wash, kept so the rest of the sheet stays readable. */
+    --surface: var(--tile-bg);
+
+    /*
+     * The accent of the light theme is the text colour itself. It is used by
+     * exactly three things: the focus ring, the underline of the selected
+     * language and the plus button. There is no aqua in the light theme.
+     *
+     * The plus button is the one solid control: a dark disc with the page colour
+     * as its plus, which is what makes it the obvious action on a beige page.
+     */
+    --accent: #2B2622;
+    --accent-ink: #EDEAE4;
+    --plus-bg: var(--text);
+    --plus-fg: var(--bg);
+
+    /*
+     * ---- The category colour ----
+     * The colour of a category is DATA: it lives in the `color` column of the
+     * `categories` table, and app.js writes the stored value onto the element as
+     * --cat-base. There is deliberately no table here that maps a category NAME
+     * to a colour any more - the database is the only place that decides.
+     *
+     * This value drives the dot beside a statistic, the progress track of a row
+     * and the preset of the colour field - but NOT a tile of the light theme:
+     * there the colour follows the position of the tile in the row, so a tile
+     * can never depend on a stored colour.
+     *
+     * --cat-default is the one neutral colour used while a category has no
+     * colour of its own yet; it can be set in the entry form at any time. In
+     * the light theme it is a warm neutral so that it fits the beige page.
+     */
+    --cat-default: #C6BFB2;
+
+    /*
+     * The muted red of anything destructive (a delete button, an error message).
+     * It is an ordinary design token and has nothing to do with a category, and
+     * it stays a red in both themes.
+     */
+    --cat-reserve-rose: #96493E;
+
+    /*
+     * The three light pools: one wide, soft radial gradient each, blurred so
+     * they have no visible edge at all. Only their drift is animated.
+     *
+     * The light theme has no pools at all: blue light does not belong on a warm
+     * beige page, so the three cores are transparent and the layer paints
+     * nothing. The markup and the slow drift stay exactly as they are, which is
+     * what keeps the dark theme untouched; its own stronger values live in the
+     * dark block below.
+     */
+    --blob-a: transparent;
+    --blob-b: transparent;
+    --blob-c: transparent;
+
+    /* ---- Older names, kept as aliases so the whole sheet stays readable ---- */
+    --background: var(--bg);
+    --hairline: var(--line);
+    --active-surface: var(--surface);
+
+    /* ---- Type and rhythm ---- */
+    --font-sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+    --max-width: 1280px;
+    /* Desktop up to 80px, tablet around 40px, mobile around 24px. */
+    --page-margin: clamp(24px, 5vw, 80px);
+    --radius-control: 2px;
+    --radius-tile: 12px;
+
+    --backdrop: rgba(43, 38, 34, 0.42);
+
+    /*
+     * A dialog, a menu and the feedback pill are panels and not the page, so
+     * they need a surface of their own. In the light theme that is a beige a
+     * touch lighter than the page, in the dark theme the opaque slate the page
+     * colour already is; the same goes for the shadow they cast.
+     */
+    --panel: #F4F2EE;
+    --panel-shadow: 0 14px 32px rgba(43, 38, 34, 0.18);
+
+    /*
+     * The film grain of the page as a token, because the light theme repeats it
+     * on a dialog panel: an open <dialog> is painted in the browser top layer,
+     * which sits above the grain layer, so the panel needs the texture itself.
+     */
+    --grain-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='noise'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23noise)'/></svg>");
+
+    /*
+     * The eight tile colours of the light theme, in this order:
+     *
+     *   1 salbei   2 graublau   3 altrosa   4 senf
+     *   5 tuerkisgrau   6 flieder   7 terrakotta   8 olivgruen
+     *
+     * A tile receives them by position, never from the stored category colour
+     * (see "the light palette"). --tile-ink-muted is the darkened variant of the
+     * text colour that the information line of a tile uses.
+     */
+    --palette-1: #9BAE9F;
+    --palette-2: #9DA6BE;
+    --palette-3: #C99790;
+    --palette-4: #D4A94A;
+    --palette-5: #92B5AD;
+    --palette-6: #B3A2BF;
+    --palette-7: #C48E6E;
+    --palette-8: #B2B27C;
+    --tile-ink-muted: #24201B;
+
+    /*
+     * The subject drawings are <img> files with baked-in colours, so they cannot
+     * use currentColor. The filter is the closest equivalent of "icons in
+     * --text": brightness(0) turns the drawing black and invert(17%) lifts that
+     * to about #2B2B2B, which is the text colour of the light theme. The dark
+     * theme swaps the whole filter for pure white. The inline moon, sun, plus
+     * and arrows are NOT filtered, they already use currentColor.
+     */
+    --icon-filter: brightness(0) invert(17%);
+
+    color-scheme: light;
+}
+
+[data-theme="dark"] {
+    /*
+     * The same slate family as the light theme, clearly darker, and as a vertical
+     * gradient. --bg stays the plain darker end because the tooltip and the
+     * dialog panel need an opaque colour; --bg-image is what paints.
+     */
+    --bg: #20243A;
+    --bg-image: linear-gradient(180deg, #282D44, #20243A);
+    --text: #F1F2F8;
+    --muted: #BCC1D6;
+    --line: rgba(241, 242, 248, 0.20);
+    --line-strong: rgba(241, 242, 248, 0.32);
+
+    /* The same two white washes, a touch lighter than they were. */
+    --tile-bg: rgba(255, 255, 255, 0.09);
+    --tile-bg-hover: rgba(255, 255, 255, 0.14);
+    --icon-circle: rgba(255, 255, 255, 0.10);
+    --surface: var(--tile-bg);
+
+    --accent: #8FD3E6;
+    --accent-ink: #1A2238;
+    --plus-bg: var(--accent);
+    --plus-fg: var(--accent-ink);
+
+    --cat-default: #A9AFC6;
+
+    /*
+     * A category colour that is stored in the database serves both themes: the
+     * rule on .has-cat below mixes the stored value towards the dark sky.
+     */
+    --cat-reserve-rose: #B8B0AC;
+
+    /* The three light pools, a little stronger than in the light theme. */
+    --blob-a: rgba(58, 110, 140, 0.60);
+    --blob-b: rgba(80, 140, 200, 0.45);
+    --blob-c: rgba(120, 135, 200, 0.28);
+
+    --backdrop: rgba(12, 14, 24, 0.55);
+
+    /*
+     * The panels are the opaque page colour of the dark theme, exactly as they
+     * were before the token existed, so nothing about them changes here.
+     */
+    --panel: #20243A;
+    --panel-shadow: 0 14px 32px rgba(10, 13, 24, 0.32);
+
+    /* The subject icons are pushed to white as well; see :root. */
+    --icon-filter: brightness(0) invert(1);
+
+    color-scheme: dark;
+}
+
+/*
+ * The category colour of a row, a dot or a bar segment.
+ *
+ * app.js adds the class "has-cat" and writes the colour of the row - the value
+ * of `categories.color` - onto the element as --cat-base. This is the only place
+ * that turns it into --cat, so no category name appears in this stylesheet.
+ *
+ * The dark theme mixes the very same stored colour towards the dark sky, so one
+ * single value in the database serves both themes:
+ *
+ *   #C3C8DB stored  ->  #A7ACBD in the dark theme (the value the design used)
+ */
+.has-cat {
+    --cat: var(--cat-base, var(--cat-default));
+}
+
+[data-theme="dark"] .has-cat {
+    --cat: color-mix(in srgb, var(--cat-base, var(--cat-default)) 85%, #0B0D16);
+}
+
+/* ==========================================================================
+   2. Base and page frame
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/*
+ * The page colour lives on the root element, not on <body>. The two decorative
+ * layers below (the light pools and the film grain) use a negative z-index, and
+ * those paint above the canvas background but below the in-flow content - which
+ * only holds while <body> paints no background of its own.
+ *
+ * The gradient of the dark theme lives here too, on the root element, so the
+ * pools still paint on top of it. The light theme has no gradient at all.
+ */
+html {
+    background-color: var(--bg);
+    background-image: var(--bg-image, none);
+    transition: background-color 300ms var(--ease);
+    /* Nothing on this page may ever scroll sideways, whatever a layer does. */
+    overflow-x: clip;
+}
+
+body {
+    margin: 0;
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition: color 300ms var(--ease);
+    /* Together with "html" this guarantees a page without a sideways scroll. */
+    overflow-x: clip;
+}
+
+/*
+ * Film grain. One fixed, repeating SVG noise tile - no animation and no
+ * full-window filter - so text stays sharp and nothing can start to scroll.
+ *
+ * It is its own element in the markup, sits in a fixed layer with z-index 9999
+ * and therefore covers everything, and it can never be clicked or scrolled
+ * because it takes no pointer events.
+ */
+.grain {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background-image: var(--grain-image);
+    background-size: 220px 220px;
+    opacity: 0.22;
+}
+
+/* The same texture, inverted: light grains instead of dark ones. */
+[data-theme="dark"] .grain {
+    opacity: 0.14;
+    filter: invert(1);
+}
+
+/*
+ * Headings, navigation and text controls use the interface font. Buttons and
+ * inputs do not inherit the page font from the browser, so they are named here
+ * explicitly. Class selectors are more specific, which is why the monospace
+ * elements listed below keep their own family.
+ */
+h1,
+h2,
+h3,
+nav,
+button,
+input {
+    font-family: var(--font-sans);
+}
+
+/*
+ * Everything monospace in this design: numbers such as [01], the statistics,
+ * the uppercase labels and the metadata.
+ * Tabular numerals give every digit the same width, so a value cannot shift
+ * sideways while the statistics count up or while its length changes.
+ */
+.eyebrow,
+.crumb,
+.lang-switch__option,
+.lang-switch__separator,
+.stats__value,
+.stats__label,
+.sidebar__link,
+.row__index,
+.text-button,
+.dialog__label,
+.dialog__button {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+p,
+dl,
+dd,
+dt,
+ul {
+    margin: 0;
+}
+
+ul {
+    padding: 0;
+    list-style: none;
+}
+
+img {
+    max-width: 100%;
+}
+
+/* One visible focus ring for everything interactive, including keyboard use. */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: var(--radius-control);
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/*
+ * The content is capped at 1280px and centred. The inline gutter grows from
+ * 24px on mobile to 80px on desktop and is never taken out of the content
+ * width.
+ *
+ * There is deliberately no "overflow" here. Clipping the page would cut the
+ * decorative background off at the content edges.
+ */
+.page {
+    width: min(var(--max-width), calc(100% - 2 * var(--page-margin)));
+    margin-inline: auto;
+    padding-block: clamp(24px, 3vw, 40px) clamp(32px, 4vw, 56px);
+    display: flex;
+    flex-direction: column;
+    /*
+     * The distance between the header and the heading. It is a little tighter
+     * than it used to be (4vh instead of 6vh): the larger heading needs that
+     * height, and every pixel of it ends up between the heading and the tile
+     * row, which is where the air is wanted.
+     */
+    gap: clamp(24px, 4vh, 56px);
+    min-height: 100dvh;
+}
+
+/*
+ * Full-viewport layer of three light pools. "position: fixed" with "inset: 0"
+ * makes the layer exactly as large as the viewport, so a pool can bleed past the
+ * content column and past the window edges and is never cut off at a content
+ * boundary. "overflow: clip" confines the pools to the layer, which is also what
+ * stops them from creating horizontal scrolling.
+ *
+ * z-index -1 puts the layer above the canvas background - the flat slate of the
+ * light theme and the gradient of the dark theme, both painted by <html> - and
+ * below the grain (9999), the tiles and the content.
+ *
+ * The pools sit at the window edges so the reading column keeps a clear
+ * background and no text ever ends up on top of one.
+ */
+.bg-layer {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: clip;
+    pointer-events: none;
+    /* The real content column, so a pool can always be kept outside it. */
+    --column-width: min(var(--max-width), 100% - 2 * var(--page-margin));
+}
+
+/*
+ * A pool is nothing but a wide radial gradient, blurred until it has no edge.
+ * Only "transform" is animated: animating a size or an offset instead would make
+ * the layer wider than the viewport and produce a horizontal scrollbar.
+ */
+.bg-blob {
+    position: absolute;
+    display: block;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--blob-core), transparent 100%);
+    filter: blur(40px);
+    will-change: transform;
+    animation: background-drift 46s ease-in-out infinite alternate;
+}
+
+/*
+ * The pools are anchored to the CONTENT COLUMN, not to the viewport.
+ *
+ * "calc(50% + var(--column-width) / 2 + 64px)" is the column edge plus 64px of
+ * clearance, and because the real column is never wider than the expression
+ * assumes, it always lands outside the column, at every window width. The 64px
+ * also covers the 40px of drift below, so no pool can ever drift onto text.
+ */
+
+/* A: large, upper left, mostly outside the window. */
+.bg-blob--a {
+    top: calc(4% - 18vw);
+    right: calc(50% + var(--column-width) / 2 + 64px);
+    width: 36vw;
+    aspect-ratio: 1;
+    --blob-core: var(--blob-a);
+}
+
+/* B: medium, lower left, its centre half under the bottom edge. */
+.bg-blob--b {
+    top: calc(100% - 16vw);
+    right: calc(50% + var(--column-width) / 2 + 64px);
+    width: 32vw;
+    aspect-ratio: 1;
+    --blob-core: var(--blob-b);
+    animation-duration: 54s;
+    animation-delay: -12s;
+}
+
+/* C: small and quiet, lower right, its centre on the right edge. */
+.bg-blob--c {
+    top: calc(66% - 13vw);
+    left: calc(50% + var(--column-width) / 2 + 64px);
+    width: 26vw;
+    aspect-ratio: 1;
+    --blob-core: var(--blob-c);
+    animation-duration: 62s;
+    animation-delay: -22s;
+}
+
+/* Slow drift, transform only. */
+@keyframes background-drift {
+    from {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    to {
+        transform: translate(40px, 28px) rotate(8deg);
+    }
+}
+
+
+.main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+}
+
+/* The start view is a column so the tile grid can take the free space and the
+   footer stays at the bottom of the viewport. */
+.view--start {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    /*
+     * Only a minimum spacing. The real distance between the heading and the
+     * tiles is the free height of the page: "margin-top: auto" on the tile row
+     * takes it, which is what keeps the page from scrolling.
+     */
+    gap: 24px;
+}
+
+.hairline {
+    width: 100%;
+    height: 0;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--hairline);
+}
+
+/* Small uppercase labels. */
+.eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* ==========================================================================
+   3. Header
+   ========================================================================== */
+
+.site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    /*
+     * No padding-bottom any more. The distance between the header and the heading
+     * is the "gap" on .page, so there is exactly one place that decides it.
+     */
+}
+
+.crumb {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+/* The start page has no breadcrumb, so the empty element must not take space. */
+.crumb:empty {
+    display: none;
+}
+
+.crumb a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 200ms var(--ease);
+}
+
+.crumb a:hover {
+    color: var(--text);
+}
+
+.site-header__right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/*
+ * The theme control has to read as a button: a 36px circle with a visible
+ * outline and the icon at full text colour, not a low-opacity glyph. The moon
+ * and the sun are inline SVGs drawn with currentColor, so they follow the theme
+ * by themselves - no colour filter is involved and no icon file is loaded.
+ */
+.theme-toggle {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    opacity: 1;
+    cursor: pointer;
+    transition: background 250ms var(--ease), border-color 250ms var(--ease), transform 250ms var(--ease);
+}
+
+.theme-toggle:hover {
+    background: var(--active-surface);
+}
+
+/*
+ * Both icons get the same box and the same stroke, so switching between them
+ * cannot change the size or the weight of the drawing.
+ */
+.theme-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* The filled disc is what makes the sun read as a sun and not as a circle. */
+.theme-toggle .sun-core {
+    fill: currentColor;
+}
+
+.theme-toggle__icon--light {
+    display: block;
+}
+
+.theme-toggle__icon--dark {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle__icon--light {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle__icon--dark {
+    display: block;
+}
+
+/* Explicit, so the sun can never inherit a muted colour from anywhere. */
+[data-theme="dark"] .theme-toggle {
+    color: var(--text);
+}
+
+/* Plain text switch with a sliding underline, not a framed control. */
+.lang-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 4px;
+}
+
+.lang-switch__option {
+    padding: 2px 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.lang-switch__option:hover {
+    color: var(--text);
+}
+
+.lang-switch__option[aria-pressed="true"] {
+    color: var(--text);
+}
+
+/*
+ * In dark mode the inactive language is the muted grey (#8C8A84) and the active
+ * one is the full text colour (#F2F0EA), so the selected language stays clearly
+ * readable. The underline is the sliding .lang-switch__underline element, which
+ * already uses var(--text), so nothing is underlined twice.
+ */
+[data-theme="dark"] .lang-switch__option {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .lang-switch__option[aria-pressed="true"] {
+    color: var(--text);
+}
+
+.lang-switch__separator {
+    color: var(--hairline);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.lang-switch__underline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: var(--accent);
+    transform: translateX(0);
+    transition: transform 200ms var(--ease), width 200ms var(--ease);
+}
+
+/* ==========================================================================
+   4. Headings
+   ========================================================================== */
+
+/*
+ * The H1. It is the only place that uses the heading face: light, large and set
+ * very tight, which is what makes the two lines read as one block of type.
+ *
+ * The line break does not come from wrapping. The translation carries a newline
+ * and app.js turns every line into its own masked element, so the break is the
+ * same in both languages and at every width. "max-width" only stops a very long
+ * single word from running out of the column.
+ */
+.heading {
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: clamp(56px, 6.6vw, 108px);
+    font-weight: 300;
+    /* 
+     * "1.0" keeps the two lines close together. The clip margin on
+     * .heading__mask below is measured for exactly this line height, so a "g",
+     * "y", "p" or "j" is still fully visible while the line slides in.
+     */
+    line-height: 1.0;
+    letter-spacing: -0.04em;
+    max-width: 18ch;
+}
+
+/*
+ * Each line lives in its own clipped mask so it can slide up into view.
+ *
+ * "overflow: clip" with "overflow-clip-margin" adds no layout box at all: the
+ * lines stay exactly where they were and only the visible area grows.
+ *
+ * The margin is 0.25em and not less, because at line-height 0.95 the descender
+ * of a "g" reaches 13.8px below this box at the largest heading size (72px),
+ * which is 0.192em. 0.25em (18px) clears that with about 4px to spare, so no
+ * letter is shaved off while the reveal animation is kept.
+ *
+ * Every heading that uses the reveal gets this, on every level.
+ */
+.heading__mask {
+    display: block;
+    overflow: clip;
+    overflow-clip-margin: 0.25em;
+}
+
+.heading__line {
+    display: block;
+    animation: heading-line 700ms var(--ease) both;
+    animation-delay: calc(var(--line-index, 0) * 90ms);
+}
+
+/* ==========================================================================
+   5. Start header and statistics
+   ========================================================================== */
+
+/*
+ * Two columns: the label and heading on the left, the statistics on the right.
+ * "align-items: end" lines the bottom of the statistics up with the bottom of
+ * the last heading line.
+ */
+.start-header {
+    display: grid;
+    /* One column: the heading is the only thing left in here. */
+    grid-template-columns: minmax(0, 1fr);
+    align-items: end;
+    gap: clamp(24px, 4vw, 64px);
+    /* No bottom padding of its own: .view--start's gap is the spacing. */
+    padding-bottom: 0;
+}
+
+.start-header__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(28px, 5vw, 72px);
+    margin-top: 14px;
+}
+
+
+/*
+ * Outline pills, the shared look for every statistic and every data badge.
+ */
+.stat-pill,
+.data-pill {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--line);
+    border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
+    color: var(--text);
+    background: transparent;
+    border-radius: 999px;
+}
+
+/* A data badge sits inside a line of text, so it has to be inline. */
+.data-pill {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*
+ * The statistic pill also needs its inner layout.
+ *
+ * "row-reverse" is what puts the number first: a definition list has to be
+ * written as <dt> then <dd>, and reversing the row shows the value before its
+ * label instead of after it.
+ */
+.stats__item {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+}
+
+/* A 6px dot beside the statistic, in the category colour of the open entry. */
+.stats__dot {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    /* Neutral while the entry has no colour of its own. */
+    background-color: var(--dot-color, var(--cat-default));
+}
+
+/* The open entry has a stored colour, so the dot carries it. */
+.stats__dot.has-cat {
+    background-color: var(--cat);
+}
+
+.stats__value {
+    font-family: var(--font-mono);
+    font-size: clamp(1rem, 1.4vw, 1.2rem);
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+
+.stats__label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+/* ==========================================================================
+   6. Learning area tiles
+   ========================================================================== */
+
+/*
+ * The tile row. The wrapper takes the free height of the page (never under 340px,
+ * never over 460px) and stacks the scroller above the navigation.
+ */
+.tiles {
+    display: flex;
+    flex-direction: column;
+    /*
+     * A fixed height that is never stretched: every spare pixel of the window
+     * belongs to the gap above the row, not to the row itself.
+     */
+    flex: 0 0 auto;
+    /*
+     * The height of the tile row. It follows the height of the window, so the
+     * row grows on a tall screen and gives way on a short one. Together with
+     * "margin-top: auto" below that is what keeps the start page from scrolling
+     * at 1920x1080, 1440x900 and 1024x768.
+     */
+    height: clamp(260px, 34vh, 340px);
+    /*
+     * The free height of the page collects ABOVE the tile row, so the row sits
+     * on the scroll line and the heading keeps its distance without a fixed
+     * margin. The row is never closer than the gap of .view--start to the
+     * heading, and on a normal window it is a good deal further away.
+     */
+    margin-top: auto;
+
+    /*
+     * How many whole tiles one view shows. The width of a tile follows from this
+     * number and from the width of the column - never a fixed pixel value, so a
+     * tile is always complete and never left half cut off.
+     */
+    --tiles-per-view: 4;
+    --tile-gap: 16px;
+}
+
+/*
+ * A horizontal scroller whose native scrollbar is hidden, because the custom
+ * navigation below carries the position. Nothing fades and nothing is cut off.
+ *
+ * The scrollport has 4px of inner padding so the focus ring of a tile is never
+ * clipped, and exactly those 4px are taken back with a negative margin. That way
+ * the ring has its room AND the first tile starts on the same vertical line as
+ * the heading and the footer hairline.
+ */
+.area-grid {
+    display: flex;
+    align-items: stretch;
+    gap: var(--tile-gap);
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-inline: -4px;
+    /* 10px on top: a focused tile lifts 4px and its ring needs 3px above that. */
+    padding: 10px 4px 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scroll-padding-inline: 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.area-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.area-card {
+    /* One view shows --tiles-per-view whole tiles, gaps included. */
+    flex: 0 0 calc((100% - (var(--tiles-per-view) - 1) * var(--tile-gap)) / var(--tiles-per-view));
+    scroll-snap-align: start;
+    /*
+     * "user-drag: none" is what lets the row be dragged with a mouse: without it
+     * Chrome starts its own link drag and stops sending the pointer events the
+     * row would pan with. A plain click is unaffected.
+     */
+    -webkit-user-drag: none;
+}
+
+/*
+ * Whole tiles per view: 4 on a desktop, 3 on a laptop, 2 on a tablet, 1 on a
+ * phone. The width of a tile is derived from this, so it is never a guess.
+ */
+@media (max-width: 1199px) {
+    .tiles {
+        --tiles-per-view: 3;
+    }
+}
+
+@media (max-width: 860px) {
+    .tiles {
+        --tiles-per-view: 2;
+    }
+}
+
+@media (max-width: 639px) {
+    .tiles {
+        --tiles-per-view: 1;
+    }
+}
+
+/*
+ * The scroll line under the tile row.
+ *
+ * It does two jobs at once: it shows the scroll position of the row AND it is
+ * the hairline above the footer - the footer has no <hr> of its own any more.
+ * It uses the existing tokens only, so it follows both themes.
+ */
+.tiles-nav {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    opacity: 1;
+    transition: opacity 200ms var(--ease);
+}
+
+.tiles-nav[hidden] {
+    display: none;
+}
+
+/*
+ * While every tile fits there is nothing to scroll. The line is NOT hidden in
+ * that case: it stays as the hairline above the footer, greyed out and without
+ * a pointer target. The two arrows are disabled and greyed by app.js.
+ */
+.tiles-nav.is-static {
+    opacity: .3;
+}
+
+.tiles-nav.is-static .tiles-nav__track {
+    pointer-events: none;
+}
+
+/*
+ * One pixel of line over the full width of the content. The strip you can click
+ * is 24px high and invisible, so the line itself can stay hairline thin.
+ */
+.tiles-nav__track {
+    position: relative;
+    flex: 1 1 auto;
+    height: 1px;
+    background-color: var(--line);
+    cursor: pointer;
+    touch-action: none;
+}
+
+.tiles-nav__track::before {
+    content: '';
+    position: absolute;
+    inset: -12px 0;
+}
+
+/* 2px at rest, 3px under the pointer and while the thumb is dragged. */
+.tiles-nav__thumb {
+    position: absolute;
+    left: 0;
+    top: -0.5px;
+    width: 25%;
+    height: 2px;
+    border-radius: 999px;
+    background-color: var(--text);
+    cursor: grab;
+    transition: height 150ms var(--ease), top 150ms var(--ease);
+}
+
+.tiles-nav__track:hover .tiles-nav__thumb,
+.tiles-nav__track.is-dragging .tiles-nav__thumb {
+    top: -1px;
+    height: 3px;
+}
+
+.tiles-nav__thumb:active {
+    cursor: grabbing;
+}
+
+/*
+ * The two arrows of the tile row. They live in the footer, to the left of the
+ * plus button; the track above the footer is the line they belong to.
+ */
+.tiles-nav__button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color 200ms var(--ease), opacity 200ms var(--ease);
+}
+
+.tiles-nav__button:hover:not([disabled]) {
+    background-color: var(--surface);
+}
+
+/* Greyed out and not clickable, but never hidden. */
+.tiles-nav__button[disabled] {
+    opacity: .3;
+    pointer-events: none;
+    cursor: default;
+}
+/*
+ * A category tile: one flat translucent white wash, no border and no shadow, so
+ * the surface reads as a surface and never as a solid block. The whole tile is
+ * one link, so it holds no nested controls.
+ *
+ * The category colour is deliberately NOT used here either. Both themes take the
+ * same two tokens; only the strength of the wash differs.
+ */
+.area-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /*
+     * Two zones. The icon sits at the top, everything that carries writing sits
+     * at the bottom, and "space-between" hands the free height to the gap
+     * between them - that is the air a taller tile gains.
+     */
+    justify-content: space-between;
+    gap: 10px;
+    padding: 24px;
+    border: 0;
+    border-radius: var(--radius-tile);
+    background-color: var(--tile-bg);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 200ms var(--ease), transform 250ms var(--ease);
+}
+
+/* Hover and keyboard focus get the same treatment, including the 4px lift. */
+.area-card:hover,
+.area-card:focus-visible {
+    transform: translateY(-4px);
+    background-color: var(--tile-bg-hover);
+}
+/* --------------------------------------------------------------------------
+   The light palette: eight tile colours, handed out by POSITION
+   -------------------------------------------------------------------------- */
+
+/*
+ * In the light theme a tile is a fully opaque colour surface, so the palette
+ * really is what is on screen: no wash, no border and no shadow, with the grain
+ * layer still lying over it.
+ *
+ * The colour follows the POSITION of the tile in the row. The first tile gets
+ * colour 1, the second colour 2, and so on; the ninth starts the palette again
+ * with colour 1. That is why the eight rules below are "8n+1" to "8n+8" instead
+ * of one rule per category: no tile can depend on a name, an id or a stored
+ * colour, and adding or reordering a learning area re-colours the row by itself.
+ *
+ * The dark theme is not involved at all: there a tile stays the translucent
+ * white wash of --tile-bg and the palette is never read.
+ */
+[data-theme="light"] .area-grid > .area-card {
+    background-color: var(--tile-palette, var(--tile-bg));
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+1) {
+    --tile-palette: var(--palette-1);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+2) {
+    --tile-palette: var(--palette-2);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+3) {
+    --tile-palette: var(--palette-3);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+4) {
+    --tile-palette: var(--palette-4);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+5) {
+    --tile-palette: var(--palette-5);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+6) {
+    --tile-palette: var(--palette-6);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+7) {
+    --tile-palette: var(--palette-7);
+}
+
+[data-theme="light"] .area-grid > .area-card:nth-child(8n+8) {
+    --tile-palette: var(--palette-8);
+}
+
+/*
+ * Hover and focus darken the very same colour by a few percent - no colour
+ * change and no second palette.
+ */
+[data-theme="light"] .area-grid > .area-card:hover,
+[data-theme="light"] .area-grid > .area-card:focus-visible {
+    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 92%, #2B2622);
+}
+
+/* The brief highlight after a new area appears: the same colour, lighter. */
+[data-theme="light"] .area-card.is-highlighted {
+    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 82%, #FFFFFF);
+}
+
+/* The information line is the darkened text colour, the arrow the text colour. */
+[data-theme="light"] .area-grid > .area-card .area-card__stat {
+    color: var(--tile-ink-muted);
+}
+
+[data-theme="light"] .area-grid > .area-card .arrow {
+    color: var(--text);
+}
+
+/* Blob on the left, index on the right. */
+.area-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/*
+ * The one organic shape in the design: the circle behind the subject drawing. It
+ * is a white wash too, a little stronger than the tile itself, and it sits
+ * behind the drawing so the icon is never distorted.
+ */
+.blob {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 52% 48% 44% 56% / 48% 52% 48% 52%;
+    background-color: var(--icon-circle);
+    transition: border-radius 500ms var(--ease), background-color 500ms var(--ease);
+}
+
+.area-card:hover .blob,
+.area-card:focus-visible .blob {
+    border-radius: 40% 60% 62% 38% / 60% 40% 60% 40%;
+}
+
+/*
+ * The four subject drawings do not share one aspect ratio, so a plain 30px box
+ * makes some of them look noticeably smaller than others. --icon-scale
+ * normalises the visible size per subject; the blob is larger than the icon, so
+ * the small overflow is harmless.
+ */
+.blob__icon {
+    /* 34px keeps the same drawing-to-circle ratio the 40px icon had in an 88px
+       circle, so the smaller circle does not look crowded. */
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    transform: scale(var(--icon-scale, 1));
+    filter: var(--icon-filter);
+}
+
+/* Small neutral marker in the top-right corner: the row number of the entry.
+   The tile itself carries no number any more - only the rows and the sidebar do. */
+
+/*
+ * The icon hover effect is the blob morph, defined above with .blob.
+ *
+ * A stroke-by-stroke "draw" was tried earlier and does not work with these
+ * files: the subject SVGs are Inkscape drawings made of filled shapes rather
+ * than stroked paths, their insides cannot be reached from outside the file,
+ * and the files themselves must not be edited. The blob morph is the effect
+ * that does work and it is what the design asks for.
+ */
+
+/*
+ * Everything that carries writing sits in one block at the bottom of the tile.
+ * Grouping it is what lets a single "space-between" on the tile keep the icon
+ * and this block apart.
+ */
+.area-card__bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.area-card__name {
+    font-size: 1.5rem;
+    /* 400 instead of 500: with the light heading weight above, a heavier tile
+       title would sit louder than the page title. */
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+/* The information line and the arrow share one row; the arrow sits on the right. */
+.area-card__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+/*
+ * The information line of a tile is plain muted prose - no pill, no border, no
+ * monospace. It stays on one line, small type follows the tile width so it fits
+ * even in the narrowest four-column layout and in German.
+ */
+.area-card__stat {
+    white-space: nowrap;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    color: var(--muted);
+}
+
+.arrow {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--muted);
+    transition: transform 250ms var(--ease), color 250ms var(--ease);
+}
+
+.area-card:hover .arrow,
+.area-card:focus-visible .arrow,
+.area-card.is-linked .arrow {
+    color: var(--text);
+    transform: translateX(6px);
+}
+
+/* Small monospace tooltip, shown for the hovered tile. */
+.area-card__tooltip {
+    position: absolute;
+    top: -6px;
+    left: 0;
+    z-index: 2;
+    padding: 4px 8px;
+    border: 1px solid var(--hairline);
+    background-color: var(--background);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+    transition: opacity 150ms var(--ease);
+}
+
+.area-card:hover .area-card__tooltip,
+.area-card:focus-visible .area-card__tooltip,
+.area-card.is-linked .area-card__tooltip {
+    opacity: 1;
+}
+
+/*
+ * Linked hover: the hovered tile keeps full strength while the other tiles fade
+ * to 60%, so the row always shows which tile is meant.
+ */
+.area-grid.is-linking .area-card {
+    opacity: .6;
+    transition: opacity 150ms var(--ease);
+}
+
+.area-grid.is-linking .area-card.is-linked {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   7. Detail view
+   ========================================================================== */
+
+.view--detail {
+    display: grid;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+    gap: clamp(32px, 5vw, 64px);
+    align-items: start;
+}
+
+.sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 12px;
+}
+
+.sidebar__link {
+    display: flex;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-control);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background-color 200ms var(--ease), color 200ms var(--ease);
+}
+
+.sidebar__link:hover {
+    color: var(--text);
+}
+
+/* The active entry gets the subtle active surface of the design tokens. */
+.sidebar__link[aria-current="page"] {
+    background-color: var(--active-surface);
+    color: var(--text);
+}
+
+.stats--detail {
+    margin-top: clamp(24px, 3vw, 36px);
+    padding-top: 20px;
+    border-top: 1px solid var(--hairline);
+}
+
+.rows {
+    margin-top: clamp(24px, 3vw, 36px);
+    border-top: 1px dotted var(--line);
+}
+
+/*
+ * One row is a link plus a menu button.
+ *
+ * The link carries the grid that used to sit on the row itself, so a row still
+ * reads as "index | name | count | track | arrow" - and the menu button stays
+ * OUTSIDE the link. A button inside a link cannot be clicked reliably, and a
+ * link that contains another control is not valid markup.
+ */
+.row {
+    position: relative;
+    display: grid;
+    /* the link | the menu button */
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 0;
+    border-bottom: 1px dotted var(--line);
+}
+
+.row__link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 18px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.row__index {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.row__name {
+    font-size: 1.02rem;
+}
+
+/* The card count is a data pill, exactly like the data line on a tile. */
+.row__count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    padding: 3px 10px;
+}
+
+/*
+ * Same situation as the tile progress line: there is no review history yet, so
+ * this is an empty track and not an invented value. It is aria-hidden.
+ */
+.row__progress {
+    width: 48px;
+    height: 2px;
+    background-color: var(--line);
+}
+
+.row__progress-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    background-color: var(--cat, var(--cat-default));
+    transform-origin: left;
+}
+
+.row__arrow {
+    color: var(--muted);
+    transition: transform 250ms var(--ease), color 250ms var(--ease);
+}
+
+.row:hover .row__arrow {
+    color: var(--text);
+    transform: translateX(6px);
+}
+
+/*
+ * Status text and empty states. Used on both views, which is why they live here
+ * after the detail rules.
+ */
+.state {
+    padding-block: 24px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+}
+
+.state--error {
+    color: var(--text);
+    border-left: 2px solid var(--cat-reserve-rose);
+    padding-left: 12px;
+}
+
+/*
+ * Empty state: a dashed outline instead of a filled panel, so it reads as a
+ * placeholder and not as another card.
+ */
+.notice {
+    margin-top: clamp(24px, 3vw, 36px);
+    padding: 28px 24px;
+    border: 1px dashed var(--hairline);
+    border-radius: var(--radius-control);
+    text-align: center;
+}
+
+.notice__title {
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.notice__hint {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* The button inside an empty state really creates something now. */
+.notice__button {
+    margin-top: 18px;
+    padding: 9px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-control);
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 200ms var(--ease), background-color 200ms var(--ease);
+}
+
+.notice__button:hover {
+    border-color: var(--text);
+    background-color: var(--active-surface);
+}
+
+.notice__button[disabled] {
+    opacity: .55;
+}
+
+/* ==========================================================================
+   8. Footer
+   ========================================================================== */
+
+.site-footer {
+    /*
+     * No margin of its own any more. The scroll line of the tile row sits
+     * directly above the footer and is the hairline that separates them, so the
+     * footer needs no <hr> and no 80px of air above it. That is what frees the
+     * height the larger heading asks for.
+     */
+    margin-top: 0;
+}
+
+.site-footer__row {
+    display: grid;
+    /* left: the two scroll arrows of the tile row, middle: plus, right: edit */
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 16px;
+    padding-top: 18px;
+}
+
+/* The two arrows of the tile row, together on the left of the footer. */
+.site-footer__nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+}
+
+.site-footer__nav[hidden] {
+    display: none;
+}
+
+/*
+ * The circular plus button. It is the one solid filled control, which is what
+ * makes it the obvious action on the page: a dark disc in the light theme, an
+ * aqua disc in the dark one. The faint aqua glow belongs to the dark theme and
+ * is switched off in the light theme, where there is no aqua at all.
+ */
+.plus-button {
+    display: grid;
+    place-items: center;
+    justify-self: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background-color: var(--plus-bg);
+    color: var(--plus-fg);
+    box-shadow: none;
+    cursor: pointer;
+    transition: opacity 250ms var(--ease);
+}
+
+[data-theme="dark"] .plus-button {
+    box-shadow: 0 0 22px rgba(143, 211, 230, 0.30);
+}
+
+.plus-button:hover {
+    opacity: .85;
+}
+
+.plus-button__icon {
+    transition: transform 250ms var(--ease);
+}
+
+.plus-button:hover .plus-button__icon,
+.plus-button:focus-visible .plus-button__icon {
+    transform: rotate(90deg);
+}
+
+.text-button {
+    justify-self: end;
+    padding: 6px 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.text-button:hover {
+    color: var(--text);
+}
+
+/* ==========================================================================
+   9. Dialog
+   ========================================================================== */
+
+.dialog {
+    width: min(420px, calc(100vw - 32px));
+    padding: 0;
+    /* A form with an icon field is taller than the window on a small screen;
+       scrolling inside the dialog keeps every field reachable. */
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-control);
+    background-color: var(--panel);
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+
+.dialog[open].is-open {
+    opacity: 1;
+    transform: translateY(0);
+    transition-duration: 320ms;
+}
+
+.dialog::backdrop {
+    background-color: var(--backdrop);
+    opacity: 0;
+    transition: opacity 200ms var(--ease);
+}
+
+.dialog[open].is-open::backdrop {
+    opacity: 1;
+    transition-duration: 320ms;
+}
+
+/*
+ * The light theme repeats the film grain on a dialog panel. The grain layer of
+ * the page sits at z-index 9999, but an open <dialog> is painted in the top
+ * layer of the browser, above every z-index - without this the one surface
+ * floating over the page would be the only untextured one.
+ */
+[data-theme="light"] .dialog {
+    background-image: var(--grain-image);
+    background-size: 220px 220px;
+}
+
+.dialog__form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 28px;
+}
+
+.dialog__title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+}
+
+.dialog__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dialog__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* Underlined input instead of a boxed one. */
+.dialog__input {
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    transition: border-color 200ms var(--ease);
+}
+
+.dialog__input:focus {
+    border-bottom-color: var(--text);
+    outline: none;
+}
+
+.dialog__input::placeholder {
+    color: var(--muted);
+}
+
+.dialog__error {
+    color: var(--text);
+    font-size: 0.85rem;
+    border-left: 2px solid var(--cat-reserve-rose);
+    padding-left: 12px;
+}
+
+.dialog__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+}
+
+.dialog__button {
+    padding: 9px 16px;
+    border-radius: var(--radius-control);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 200ms var(--ease), opacity 200ms var(--ease);
+}
+
+.dialog__button--ghost {
+    border: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--muted);
+}
+
+.dialog__button--ghost:hover {
+    border-color: var(--text);
+    color: var(--text);
+}
+
+.dialog__button--primary {
+    border: 1px solid var(--text);
+    background: transparent;
+    color: var(--text);
+}
+
+/*
+ * The primary action is a solid surface in the light theme: the text colour as
+ * the button and the page beige as its writing. The dark theme keeps the
+ * outlined version. The arrow below follows currentColor in both themes.
+ */
+[data-theme="light"] .dialog__button--primary {
+    background-color: var(--text);
+    color: var(--bg);
+}
+
+[data-theme="light"] .dialog__button--primary:hover:not([disabled]) {
+    background-color: color-mix(in srgb, var(--text) 88%, var(--bg));
+}
+
+/*
+ * Arrow submit button. The arrow is drawn in CSS rather than added as an
+ * element, so the existing save/saving label can keep replacing the button's
+ * text without wiping it.
+ */
+.dialog__button--primary::after {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 10px;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    transform: translateY(-1px) rotate(45deg);
+    transition: transform 250ms var(--ease);
+}
+
+.dialog__button--primary:hover:not([disabled])::after {
+    transform: translate(4px, -1px) rotate(45deg);
+}
+
+.dialog__button--primary:hover {
+    background-color: var(--active-surface);
+}
+
+.dialog__button[disabled] {
+    opacity: .5;
+    cursor: default;
+}
+
+/* ==========================================================================
+   10. Animations
+   ========================================================================== */
+
+/*
+ * Page enter: fade in, rise 12px, staggered by 60ms.
+ *
+ * The fill mode is "backwards", not "both". With "both" the animation keeps
+ * holding its final opacity:1 for ever, which would silently beat the linked
+ * hover rule that dims the tiles which are not being pointed at.
+ * "backwards" still applies the from-state during the delay and then hands the
+ * element back to the stylesheet.
+ */
+.reveal {
+    animation: page-enter 600ms var(--ease) backwards;
+    animation-delay: calc(var(--reveal-index, 0) * 60ms);
+}
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/*
+ * Heading lines slide up out of their mask. The travel is 135%, not 105%: the
+ * mask shows 0.25em below the baseline as well, and a shorter travel would
+ * leave the top of the next line showing in that room before its turn. At 135%
+ * the line starts about 6px below the clip edge, so it is completely hidden.
+ */
+@keyframes heading-line {
+    from {
+        transform: translateY(135%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* A new item grows in from zero height. */
+@keyframes item-in {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        max-height: 460px;
+        transform: translateY(0);
+    }
+}
+
+.area-card.is-new {
+    animation: item-in 400ms var(--ease) both;
+}
+
+/* Brief accent highlight after a new item appears; the class is removed after
+   1.2 seconds by JavaScript. */
+.area-card.is-highlighted {
+    /* The stronger of the two tile washes, because the base one is the same as
+       the resting tile and would not be visible. */
+    background-color: var(--tile-bg-hover);
+    transition: background-color 400ms var(--ease);
+}
+
+/* Fade used by the language switch and the view transition fallback. */
+@keyframes fade-in-soft {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out-soft {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* The changing interface text fades while the language is swapped. */
+.page.is-lang-switching [data-i18n],
+.page.is-lang-switching .crumb,
+.page.is-lang-switching [data-i18n-label] {
+    opacity: 0;
+    transition: opacity 150ms var(--ease);
+}
+
+/* Thin-line skeletons with a soft pulse. No gradient is used. */
+.skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
+}
+
+.skeleton__blob {
+    width: 54px;
+    height: 54px;
+    border-radius: 52% 48% 44% 56% / 48% 52% 48% 52%;
+    background-color: var(--active-surface);
+    animation: skeleton-pulse 1.4s var(--ease) infinite;
+}
+
+.skeleton__line {
+    height: 10px;
+    background-color: var(--active-surface);
+    animation: skeleton-pulse 1.4s var(--ease) infinite;
+}
+
+.skeleton__line--short {
+    width: 45%;
+}
+
+@keyframes skeleton-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .40;
+    }
+}
+
+/* The theme icon turns while the theme changes. */
+@keyframes icon-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(90deg);
+    }
+}
+
+.theme-toggle.is-rotating .theme-toggle__icon {
+    animation: icon-rotate 500ms var(--ease) both;
+}
+
+/* ==========================================================================
+   11. View transitions
+   ========================================================================== */
+
+/* Cross-document navigation fades. Browsers without support simply show the
+   page-enter animation instead. */
+@view-transition {
+    navigation: auto;
+}
+
+::view-transition-old(root) {
+    animation: fade-out-soft 300ms var(--ease);
+}
+
+::view-transition-new(root) {
+    animation: fade-in-soft 300ms var(--ease);
+}
+
+/* The theme change reveals in a circle that starts at the theme button. */
+@keyframes theme-reveal {
+    from {
+        clip-path: circle(0% at var(--reveal-x, 50%) var(--reveal-y, 0%));
+    }
+
+    to {
+        clip-path: circle(150vmax at var(--reveal-x, 50%) var(--reveal-y, 0%));
+    }
+}
+
+html.is-theme-switching::view-transition-old(root) {
+    animation: none;
+}
+
+html.is-theme-switching::view-transition-new(root) {
+    animation: theme-reveal 500ms var(--ease);
+}
+
+/* ==========================================================================
+   12. Responsive
+   ========================================================================== */
+
+
+/* Below this width the sidebar becomes a horizontally scrollable tab bar. */
+@media (max-width: 860px) {
+    .view--detail {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 28px;
+    }
+
+    .sidebar__nav {
+        flex-direction: row;
+        gap: 4px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        /* Keeps the swipe gesture inside the tab bar instead of the page. */
+        overscroll-behavior-x: contain;
+    }
+
+    .sidebar__link {
+        white-space: nowrap;
+    }
+}
+@media (max-width: 639px) {
+    .heading {
+        max-width: none;
+    }
+
+    /* The card count stays, the decorative track is dropped: the row would
+       otherwise be too cramped to read on a phone. */
+    .row__link {
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+    }
+
+    .row__progress {
+        display: none;
+    }
+}
+
+
+/* ==========================================================================
+   14. Entry rows, action menus, forms and dialogs
+   ========================================================================== */
+
+/*
+ * A row that opens a card list instead of a category: the same grid, but with
+ * the decorative track left out, because a card list has no count to show.
+ */
+.row--card .row__link {
+    /* index | front and back | the "both directions" badge */
+    grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+/* Front and back of a card share one cell, one above the other. */
+.row__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.row__back {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    /* A long back is cut off after one line here; the dialog shows all of it. */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.row__badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+/* The overflow menu: one small round button per row. */
+.menu-button {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 200ms var(--ease), border-color 200ms var(--ease),
+        background-color 200ms var(--ease);
+}
+
+.menu-button:hover,
+.menu-button[aria-expanded="true"] {
+    border-color: var(--line-strong);
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+/*
+ * The menu is absolutely positioned inside the row, so it floats above the
+ * rows below it without pushing anything around. It is hidden with the "hidden"
+ * attribute, which is why it needs no animation of its own.
+ */
+.menu {
+    position: absolute;
+    top: calc(100% - 10px);
+    right: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    min-width: 170px;
+    padding: 6px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background-color: var(--panel);
+    box-shadow: var(--panel-shadow);
+}
+
+.menu__item {
+    padding: 9px 10px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    cursor: pointer;
+}
+
+.menu__item:hover {
+    background-color: var(--active-surface);
+}
+
+.menu__item--danger {
+    color: var(--cat-reserve-rose);
+}
+
+/* Heading of one entry, with the actions that belong to that entry. */
+.detail__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.detail__actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 8px;
+}
+
+.text-button--icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    /* The footer places these buttons with "justify-self"; in a flex row that
+       value would do nothing, so it is reset here. */
+    justify-self: auto;
+}
+
+.text-button--danger:hover {
+    color: var(--cat-reserve-rose);
+}
+
+/* Cards that sit directly in a learning area. */
+.detail__section {
+    margin-top: clamp(32px, 4vw, 48px);
+}
+
+.detail__section-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.detail__section .rows {
+    margin-top: 12px;
+}
+
+/* Short confirmation after saving or deleting. */
+.feedback {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    z-index: 40;
+    transform: translateX(-50%);
+    padding: 10px 18px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background-color: var(--panel);
+    color: var(--text);
+    font-size: 0.9rem;
+    box-shadow: var(--panel-shadow);
+}
+
+.feedback[hidden] {
+    display: none;
+}
+
+/* --- the wider forms ----------------------------------------------------- */
+
+.dialog--wide {
+    width: min(640px, calc(100vw - 32px));
+}
+
+/* English and German side by side, and both descriptions underneath. */
+.dialog__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.dialog__field--narrow {
+    max-width: 160px;
+}
+
+.dialog__field--check {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.dialog__check {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+.dialog__hint {
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.dialog__message {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.dialog__input--area {
+    min-height: 44px;
+    padding: 6px 0;
+    resize: vertical;
+}
+
+.dialog__input--file,
+.dialog__input--number,
+.dialog__color {
+    font-size: 0.92rem;
+}
+
+.dialog__color {
+    width: 56px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: transparent;
+    cursor: pointer;
+}
+
+.dialog__inline {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dialog__link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.dialog__link-button:hover {
+    color: var(--text);
+}
+
+.dialog__badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* "Delete" inside a form sits on the left, away from cancel and save. */
+.dialog__button--danger {
+    margin-right: auto;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--cat-reserve-rose);
+}
+
+.dialog__button--danger:hover {
+    border-color: var(--cat-reserve-rose);
+}
+
+.dialog__button--danger-solid {
+    border: 1px solid var(--cat-reserve-rose);
+    background: transparent;
+    color: var(--cat-reserve-rose);
+}
+
+.dialog__button--danger-solid:hover:not([disabled]) {
+    background-color: var(--cat-reserve-rose);
+    color: var(--background);
+}
+
+@media (max-width: 639px) {
+    .dialog__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail__actions {
+        gap: 12px;
+    }
+}
+/* ==========================================================================
+   15. Reduced motion (mandatory)
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 150ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 150ms !important;
+        transition-delay: 0ms !important;
+    }
+
+    /* Movement becomes a plain fade. */
+    .reveal,
+    .heading__line,
+    .area-card.is-new {
+        animation-name: fade-in-soft !important;
+    }
+
+    /*
+     * The blob morph is a shape effect rather than a fade, so it is switched off
+     * instead of being shortened: the blob keeps its resting silhouette.
+     */
+    .area-card:hover .blob,
+    .area-card:focus-visible .blob {
+        border-radius: 52% 48% 44% 56% / 48% 52% 48% 52% !important;
+        transition: none !important;
+    }
+
+    /* No tile sliding upwards on hover. */
+    .area-card:hover,
+    .area-card:focus-visible {
+        transform: none !important;
+    }
+
+    /* The light pools keep their colour but stop moving. */
+    .bg-blob {
+        animation: none !important;
+    }
+
+    /* The tile row jumps instead of travelling. */
+    .area-grid {
+        scroll-behavior: auto;
+    }
+
+
+    .skeleton__blob,
+    .skeleton__line {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+
+    /* No travel on hover. */
+    .area-card:hover .arrow,
+    .area-card:focus-visible .arrow,
+    .row:hover .row__arrow,
+    .row__link:focus-visible .row__arrow {
+        transform: none !important;
+    }
+
+    .theme-toggle.is-rotating .theme-toggle__icon {
+        animation: none !important;
+    }
+
+    .plus-button:hover .plus-button__icon {
+        transform: none !important;
+    }
+
+    /* The tooltip does not travel, it only fades. */
+    .area-card__tooltip {
+        transition: opacity 150ms var(--ease) !important;
+    }
+
+    .area-card.is-linked .arrow {
+        transform: none !important;
+    }
+
+    /* The theme reveal is dropped entirely. */
+    html.is-theme-switching::view-transition-old(root),
+    html.is-theme-switching::view-transition-new(root) {
+        animation: none !important;
+    }
+}

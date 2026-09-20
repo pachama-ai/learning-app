@@ -1,0 +1,35 @@
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# --- IDE / editor ---
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# --- Secrets / environment ---
+.env
+.env.*
+!.env.example
+src/config/config.local.php
+
+# Local credential files. database.example.php is committed; the *.local.php
+# copies hold real values and stay on this machine only.
+src/config/database.local.php
+src/config/*.local.php
+
+# --- Runtime output, logs, caches ---
+*.log
+logs/
+tmp/
+cache/
+
+# --- Dependencies (reserved, none installed yet) ---
+/vendor/
+
+# --- User uploads ---
+/public/uploads/
