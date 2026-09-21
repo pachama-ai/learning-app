@@ -3380,9 +3380,9 @@ html.is-theme-switching::view-transition-new(root) {
 /* The status of a card, in the list and in the study session. The colour is
    never the only carrier: the word stands right next to the dot. */
 :root {
-    --status-new: var(--text-muted, #8A8478);
-    --status-unsure: #B4794A;
-    --status-known: #5C7A55;
+    --status-new: var(--muted);
+    --status-unsure: #8A5322;
+    --status-known: #47613F;
 }
 
 [data-theme="dark"] {
@@ -3466,7 +3466,7 @@ html.is-theme-switching::view-transition-new(root) {
     font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .card-tools__due {
@@ -3504,7 +3504,7 @@ html.is-theme-switching::view-transition-new(root) {
 .card-tools__legend {
     margin: 0;
     font-size: 13px;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .card-tools__search-input {
@@ -3558,7 +3558,7 @@ html.is-theme-switching::view-transition-new(root) {
 
 .state--quiet {
     font-size: 14px;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 /* --- the preview inside the card dialog ----------------------------------- */
@@ -3577,7 +3577,7 @@ html.is-theme-switching::view-transition-new(root) {
     font-size: 10.5px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .card-preview__text {
@@ -3590,7 +3590,7 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .card-preview__text.is-empty {
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
     font-style: italic;
 }
 
@@ -3642,12 +3642,9 @@ body.is-learning {
     z-index: 1200;
     display: flex;
     flex-direction: column;
-    background-color: var(--page, #F4F0E8);
+    background-color: var(--bg);
+    background-image: var(--bg-image);
     color: var(--text);
-}
-
-[data-theme="dark"] .learn {
-    background-color: var(--page-dark, #0B0D16);
 }
 
 /* A hairline that fills up: the only progress the session shows. */
@@ -3702,7 +3699,7 @@ body.is-learning {
     font-size: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__stage {
@@ -3848,7 +3845,7 @@ body.is-learning {
 .learn__rating-label {
     margin: 0;
     font-size: 13px;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__buttons {
@@ -3902,7 +3899,7 @@ body.is-learning {
 
 .learn__button-interval {
     font-size: 11.5px;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__button--again {
@@ -3940,7 +3937,7 @@ body.is-learning {
     font-size: 12px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__summary-number {
@@ -3953,7 +3950,7 @@ body.is-learning {
 .learn__summary-left {
     margin: 0;
     font-size: 14px;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__bars {
@@ -3976,7 +3973,7 @@ body.is-learning {
 
 .learn__bar-label {
     text-align: left;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__bar-track {
@@ -4078,7 +4075,7 @@ body.is-learning {
 .learn__ask-text {
     margin: 0 0 20px;
     font-size: 15px;
-    color: var(--text-muted, #8A8478);
+    color: var(--muted);
 }
 
 .learn__ask-actions {
