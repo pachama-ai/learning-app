@@ -144,7 +144,15 @@ try {
     }
 
     $userId = current_user_id($pdo);
-    $cards = review_cards_with_progress($pdo, $categoryId, $userId);
+
+    /*
+     * The session belongs to the entry that was opened. A subcategory brings its
+     * own cards; a learning area brings the cards of its subcategories as well,
+     * which is what makes "Study all" possible without touching the repetition
+     * logic - the queue and the scheduler see exactly the same cards as before.
+     */
+    $branchIds = review_branch_category_ids($pdo, $categoryId);
+    $cards = review_cards_in_categories($pdo, $branchIds, $userId, optional_query_language());
     $summary = review_summarise_cards($cards);
 
     $cardsForQueue = [];
@@ -186,6 +194,7 @@ try {
         'summary' => $summary,
         'counts' => $built['counts'],
         'queue' => $queue,
+        'content_languages' => card_content_languages(card_columns($pdo)),
     ]);
 } catch (Throwable $error) {
     error_log('Loading a learning session failed: ' . $error->getMessage());

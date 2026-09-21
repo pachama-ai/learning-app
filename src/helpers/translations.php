@@ -198,6 +198,13 @@ function learning_app_translations(): array
 
             // --- The card list of a subcategory ---
             'cards.learn' => 'Study',
+            'cards.learnAll' => 'Study all',
+            'cards.learnThis' => 'Study “{name}”',
+            'cards.addCardShort' => '+ Card',
+            'cards.addSubcategoryShort' => '+ Subcategory',
+            'cards.onlyGerman' => 'German only',
+            'cards.onlyEnglish' => 'English only',
+            'learn.noCards' => 'There is nothing to study here yet.',
             'cards.learnAria' => 'Start studying this subcategory',
             'cards.summary' => '{count} cards',
             'cards.summaryOne' => '1 card',
@@ -229,6 +236,14 @@ function learning_app_translations(): array
             'dialog.card.hintShortcut' => 'Ctrl+Enter saves, Tab goes to the back',
             'dialog.card.previewFront' => 'Front',
             'dialog.card.previewBack' => 'Back',
+            'dialog.card.languageLabel' => 'Language of this card',
+            'dialog.card.languageDe' => 'German',
+            'dialog.card.languageEn' => 'English',
+            'dialog.card.languageFilled' => 'filled in',
+            'dialog.card.languageEmpty' => 'still empty',
+            'dialog.card.languageHint' => 'Switch the language here and fill in the other side of this card. One complete language is enough.',
+            'dialog.card.keepOneLanguage' => 'Fill in a question and an answer in at least one language.',
+            'dialog.card.otherLanguage' => 'The other language may stay empty.',
 
             // --- The learning session ---
             'learn.title' => 'Study session',
@@ -446,6 +461,13 @@ function learning_app_translations(): array
             'language.en' => 'EN',
             // --- Die Kartenliste einer Unterkategorie ---
             'cards.learn' => 'Lernen',
+            'cards.learnAll' => 'Alles lernen',
+            'cards.learnThis' => '„{name}“ lernen',
+            'cards.addCardShort' => '+ Karte',
+            'cards.addSubcategoryShort' => '+ Unterkategorie',
+            'cards.onlyGerman' => 'Nur Deutsch',
+            'cards.onlyEnglish' => 'Nur Englisch',
+            'learn.noCards' => 'Hier gibt es noch nichts zu lernen.',
             'cards.learnAria' => 'Diese Unterkategorie jetzt lernen',
             'cards.summary' => '{count} Karten',
             'cards.summaryOne' => '1 Karte',
@@ -477,6 +499,14 @@ function learning_app_translations(): array
             'dialog.card.hintShortcut' => 'Strg+Enter speichert, Tab springt zur Rückseite',
             'dialog.card.previewFront' => 'Vorderseite',
             'dialog.card.previewBack' => 'Rückseite',
+            'dialog.card.languageLabel' => 'Sprache dieser Karte',
+            'dialog.card.languageDe' => 'Deutsch',
+            'dialog.card.languageEn' => 'English',
+            'dialog.card.languageFilled' => 'ausgefüllt',
+            'dialog.card.languageEmpty' => 'noch leer',
+            'dialog.card.languageHint' => 'Hier die Sprache umschalten und die andere Seite dieser Karte ausfüllen. Eine vollständige Sprache genügt.',
+            'dialog.card.keepOneLanguage' => 'Fülle in mindestens einer Sprache Frage und Antwort aus.',
+            'dialog.card.otherLanguage' => 'Die andere Sprache darf leer bleiben.',
 
             // --- Die Lernsitzung ---
             'learn.title' => 'Lernsitzung',

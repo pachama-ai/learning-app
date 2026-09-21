@@ -49,14 +49,63 @@ try {
         send_json_success(['deleted' => true, 'id' => $cardId]);
     }
 
+    $columns = card_columns($pdo);
+    $languages = card_content_languages($columns);
     $changes = [];
 
-    if (array_key_exists('front', $body)) {
-        $changes['front'] = require_input_text($body, 'front', CARD_MAX_TEXT_LENGTH, 'invalid_front');
+    /*
+     * The text of every language the table holds. German lives in the two
+     * original columns, English in the two that the migration adds. A language
+     * that the table does not have is refused instead of being dropped without a
+     * word.
+     */
+    foreach (card_language_columns($columns) as $pair) {
+        foreach ($pair as $column) {
+            if (!array_key_exists($column, $body)) {
+                continue;
+            }
+
+            $changes[$column] = (string) optional_input_text($body, $column, CARD_MAX_TEXT_LENGTH, 'invalid_' . $column);
+        }
     }
 
-    if (array_key_exists('back', $body)) {
-        $changes['back'] = require_input_text($body, 'back', CARD_MAX_TEXT_LENGTH, 'invalid_back');
+    foreach (['front_en', 'back_en'] as $englishColumn) {
+        if (array_key_exists($englishColumn, $body) && !in_array('en', $languages, true)) {
+            send_json_error('card_language_unavailable', 'This table has no English columns yet.', 400);
+        }
+    }
+
+    foreach (['front', 'back'] as $germanColumn) {
+        if (array_key_exists($germanColumn, $body) && !array_key_exists($germanColumn, $changes)) {
+            $changes[$germanColumn] = (string) optional_input_text($body, $germanColumn, CARD_MAX_TEXT_LENGTH, 'invalid_' . $germanColumn);
+        }
+    }
+
+    /*
+     * At least one language has to be complete afterwards. The card as it would
+     * be is the change on top of what is stored now.
+     */
+    $languageColumns = [];
+
+    foreach (card_language_columns($columns) as $pair) {
+        foreach ($pair as $column) {
+            $languageColumns[] = $column;
+        }
+    }
+
+    if (array_intersect(array_keys($changes), $languageColumns) !== []) {
+        $after = array_merge($current, $changes);
+        $complete = false;
+
+        foreach ($languages as $language) {
+            if (card_language_is_complete($after, $language, $columns)) {
+                $complete = true;
+            }
+        }
+
+        if (!$complete) {
+            send_json_error('invalid_card_text', 'Fill in a question and an answer in at least one language.', 400);
+        }
     }
 
     if (array_key_exists('is_bidirectional', $body)) {

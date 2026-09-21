@@ -254,3 +254,30 @@ function require_query_id(string $key, string $code = 'invalid_id'): int
 
     return (int) $raw;
 }
+
+/**
+ * The language the card text should be shown in.
+ *
+ * The interface switches between German and English without a reload, so it
+ * tells the server which of the two it is showing. A missing or unknown value
+ * falls back to German instead of being an error: the list still has to load.
+ */
+function optional_query_language(string $key = 'language', string $fallback = 'de'): string
+{
+    $raw = $_GET[$key] ?? null;
+
+    if (!is_string($raw) || trim($raw) === '') {
+        return $fallback;
+    }
+
+    $value = strtolower(substr(trim($raw), 0, 2));
+
+    if (!in_array($value, SUPPORTED_CONTENT_LANGUAGES, true)) {
+        return $fallback;
+    }
+
+    return $value;
+}
+
+/** The languages card text can be stored in. */
+const SUPPORTED_CONTENT_LANGUAGES = ['de', 'en'];

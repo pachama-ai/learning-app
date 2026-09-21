@@ -267,6 +267,32 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             the same control as a row or a tile does.
                         -->
                         <div class="detail__actions" id="detail-actions" hidden></div>
+
+                            <!--
+                                The main action of this entry and the quiet way to add
+                                the next one. Both sit in the head next to the title, so
+                                nobody has to scroll to find them, and app.js fills them
+                                for the page that is open:
+
+                                  a subcategory  -> "Study"      and "+ Card"
+                                  a learning area -> "Study all"  and "+ Subcategory"
+
+                                A button is only shown where it belongs: there is no
+                                "Study" without cards, and no "+ Card" while the empty
+                                state already offers that step.
+                            -->
+                            <div class="detail__learn">
+                                <button type="button" class="learn-button" id="learn-button" hidden>
+                                    <span class="learn-button__icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" focusable="false">
+                                            <path d="M8 5.2v13.6L18.4 12 8 5.2z"/>
+                                        </svg>
+                                    </span>
+                                    <span class="learn-button__label" id="learn-button-label"></span>
+                                </button>
+
+                                <button type="button" class="add-entry-button" id="add-entry-button" hidden></button>
+                            </div>
                     </div>
 
                     <!--
@@ -290,8 +316,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     -->
                     <div class="card-tools" id="card-tools" hidden>
                         <div class="card-tools__top">
-                            <button type="button" class="learn-button" id="learn-button" data-i18n="cards.learn">Study</button>
-
                             <p class="card-tools__counts">
                                 <span class="card-tools__count" id="card-tools-count"></span>
                                 <span class="card-tools__due" id="card-tools-due" hidden></span>

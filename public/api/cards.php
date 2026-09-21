@@ -47,8 +47,6 @@ if ($method === 'POST') {
         send_json_error('invalid_category_id', 'The field "category_id" must be a positive whole number.', 400);
     }
 
-    $front = require_input_text($body, 'front', CARD_MAX_TEXT_LENGTH, 'invalid_front');
-    $back = require_input_text($body, 'back', CARD_MAX_TEXT_LENGTH, 'invalid_back');
     $isBidirectional = optional_flag($body, 'is_bidirectional') ?? false;
 
     try {
@@ -58,7 +56,35 @@ if ($method === 'POST') {
             send_json_error('category_not_found', 'This category does not exist.', 404);
         }
 
-        $card = create_card($pdo, $categoryId, $front, $back, $isBidirectional);
+        /*
+         * The text of every language the table can hold. German lives in the two
+         * original columns, English in the two the migration adds. A language the
+         * table does not have is refused instead of being dropped without a word.
+         */
+        $columns = card_columns($pdo);
+        $languages = card_content_languages($columns);
+        $texts = card_texts_from_body($body, $columns);
+
+        foreach (['front_en', 'back_en'] as $englishColumn) {
+            if (array_key_exists($englishColumn, $body) && !in_array('en', $languages, true)) {
+                send_json_error('card_language_unavailable', 'This table has no English columns yet.', 400);
+            }
+        }
+
+        /* At least one language has to be complete: a question AND an answer. */
+        $complete = false;
+
+        foreach ($languages as $language) {
+            if (card_language_is_complete($texts, $language, $columns)) {
+                $complete = true;
+            }
+        }
+
+        if (!$complete) {
+            send_json_error('invalid_card_text', 'Fill in a question and an answer in at least one language.', 400);
+        }
+
+        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional);
 
         send_json_success($card, 201);
     } catch (Throwable $error) {
@@ -71,6 +97,9 @@ if ($method === 'POST') {
 /* --------------------------------------------------------------------- GET */
 
 $categoryId = require_query_id('category_id', 'invalid_category_id');
+
+/* The interface says which of its two languages it is showing. */
+$language = optional_query_language();
 
 try {
     $pdo = create_database_connection();
@@ -85,13 +114,17 @@ try {
      * which is the truth: without a user id no progress row can exist.
      */
     $userId = current_user_id($pdo);
-    $cards = review_cards_with_progress($pdo, $categoryId, $userId);
+    $cards = review_cards_with_progress($pdo, $categoryId, $userId, $language);
 
     // An empty list is a valid answer and lets the page show its empty state.
     send_json_success([
         'cards' => $cards,
         'summary' => review_summarise_cards($cards),
         'has_user' => $userId !== null,
+        /* Which languages this table can hold: one, or two after the
+           migration. The card dialog shows its language tabs only for two. */
+        'content_languages' => card_content_languages(card_columns($pdo)),
+        'language' => $language,
     ]);
 } catch (Throwable $error) {
     error_log('Loading cards failed: ' . $error->getMessage());

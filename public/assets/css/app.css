@@ -4172,3 +4172,430 @@ body.is-learning {
         opacity: 1;
     }
 }
+/* ==========================================================================
+   The UX pass: tile hover, one way to edit, the actions in the head and the
+   two languages of a card.
+   ==========================================================================
+
+   Everything here is either a new class or a deliberate override of a rule that
+   was defined earlier in this file. No colour is invented: the tokens of
+   section 2 are used, and the two reds below are the only new values, measured
+   against the panel they sit on.
+   -------------------------------------------------------------------------- */
+
+/* --- the hovered tile lifts, the others stay as they are ------------------ */
+
+/*
+ * The row used to dim every tile except the hovered one. That is switched off for
+ * good: the classes are not set any more (app.js), and the rules that drew the
+ * dimming are neutralised here as well, so a browser with an older script in its
+ * cache shows the same calm row.
+ */
+.area-grid.is-linking .area-card,
+.area-grid.is-linking .area-card.is-linked {
+    opacity: 1;
+}
+
+.area-card {
+    cursor: pointer;
+    transition: transform 180ms var(--ease), box-shadow 180ms var(--ease),
+        background-color 180ms var(--ease);
+}
+
+/*
+ * The tile under the pointer is the click target: it rises a little, casts a
+ * soft, wider shadow and its surface shifts by a few percent - darker in the
+ * light theme, lighter in the dark one.
+ */
+.area-card:hover,
+.area-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 34px rgba(28, 24, 20, 0.20);
+}
+
+[data-theme="light"] .area-card:hover,
+[data-theme="light"] .area-card:focus-visible {
+    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 93%, #2B2622);
+}
+
+[data-theme="dark"] .area-card:hover,
+[data-theme="dark"] .area-card:focus-visible {
+    background-color: color-mix(in srgb, var(--tile-bg-hover) 70%, #FFFFFF 14%);
+    box-shadow: 0 18px 40px rgba(4, 6, 14, 0.55);
+}
+
+/* The keyboard must see where it is. */
+.area-card:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+/* The arrow of a tile: quiet at rest, fully there on hover and focus. */
+.area-card .arrow {
+    opacity: 0.65;
+    transition: transform 180ms var(--ease), color 180ms var(--ease), opacity 180ms var(--ease);
+}
+
+.area-card:hover .arrow,
+.area-card:focus-visible .arrow {
+    opacity: 1;
+    transform: translateX(4px);
+}
+
+/* --- the two actions in the head of an entry ------------------------------ */
+
+.detail__head {
+    /* The buttons belong beside the title, so the head wraps on a narrow window
+       instead of squeezing the name into one word per line. */
+    flex-wrap: wrap;
+    gap: 14px 20px;
+}
+
+.detail__learn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    /* Between the title and the menu: the main action sits with the name. */
+    order: 1;
+}
+
+.detail__actions {
+    order: 2;
+    margin-left: auto;
+}
+
+/*
+ * The main action of the page: a filled pill in the accent colour, larger than
+ * a normal button, with the play triangle in front of its label. In the light
+ * theme that is the dark surface the other primary buttons use; in the dark
+ * theme it is the aqua accent with dark writing.
+ */
+.learn-button {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 28px 13px 24px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-color: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 180ms var(--ease), box-shadow 180ms var(--ease),
+        filter 180ms var(--ease);
+}
+
+.learn-button__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--accent-ink) 18%, transparent);
+}
+
+.learn-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 38%, transparent);
+    filter: brightness(1.04);
+}
+
+.learn-button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+.learn-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* The quiet way to add the next entry: clearly a button, clearly not the main
+   action. */
+.add-entry-button {
+    appearance: none;
+    padding: 11px 20px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    cursor: pointer;
+    transition: background-color 180ms var(--ease), border-color 180ms var(--ease);
+}
+
+.add-entry-button:hover {
+    background-color: var(--panel);
+    border-color: var(--line-strong);
+}
+
+.add-entry-button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+/* --- the direct way into a session, from the subcategory row -------------- */
+
+.row__play {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    margin-left: 4px;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background-color: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 160ms var(--ease), background-color 160ms var(--ease), color 160ms var(--ease);
+}
+
+/* It appears with the row, so the list stays calm until a row is meant. A touch
+   device has no hover and keeps it visible in a quiet form. */
+.row:hover .row__play,
+.row:focus-within .row__play {
+    opacity: 1;
+}
+
+.row__play:hover {
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
+}
+
+.row__play:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+@media (hover: none), (pointer: coarse) {
+    .row__play {
+        opacity: 0.7;
+    }
+}
+
+/* --- the footer: back on the left, plus in the middle, on on the right ---- */
+
+/*
+ * The wrapper of the two arrows steps out of the layout ("display: contents"),
+ * so the arrows themselves become the grid children they always should have
+ * been: the way back sits in the first column, the way on in the third, and the
+ * plus button keeps the middle to itself.
+ */
+.site-footer__nav {
+    display: contents;
+}
+
+#tiles-nav-prev {
+    grid-column: 1;
+    justify-self: start;
+}
+
+#tiles-nav-next {
+    grid-column: 3;
+    justify-self: end;
+}
+
+/* While nothing can be scrolled, both arrows stay quiet and unclickable. */
+.tiles-nav__button[disabled] {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* --- a calmer title in the head of a subcategory ------------------------- */
+
+/*
+ * Half the size it was: the head card becomes lower and the list moves up. The
+ * name may wrap onto two lines, and the icon and the menu stay vertically in the
+ * middle of the card because the row is aligned on the centre line.
+ */
+.heading--detail {
+    font-size: clamp(19px, 2.2vw, 33px);
+    line-height: 1.25;
+    /* Two lines at most: a name that needs more is cut off, never the card. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.detail__titles {
+    align-items: center;
+}
+
+/* --- the one red button: the confirmation of a deletion ------------------ */
+
+/*
+ * Measured: white on #A8443A is 6.1:1, white on #B34D40 5.2:1 - both well above
+ * the 4.5:1 that a small label needs.
+ */
+.dialog__button--danger-pill {
+    background-color: #A8443A;
+    color: #FFFFFF;
+    border-color: transparent;
+}
+
+.dialog__button--danger-pill:hover:not(:disabled) {
+    background-color: #963A31;
+}
+
+[data-theme="dark"] .dialog__button--danger-pill {
+    background-color: #B34D40;
+}
+
+[data-theme="dark"] .dialog__button--danger-pill:hover:not(:disabled) {
+    background-color: #C4574B;
+}
+
+.dialog__button--danger-pill:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
+
+/* --- the two languages of a card, in the dialog -------------------------- */
+
+.dialog__field--languages {
+    margin-bottom: 4px;
+}
+
+.lang-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.lang-tab {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), color 160ms var(--ease),
+        border-color 160ms var(--ease);
+}
+
+.lang-tab:hover {
+    border-color: var(--line-strong);
+    color: var(--text);
+}
+
+.lang-tab.is-active {
+    background-color: var(--text);
+    border-color: transparent;
+    color: var(--panel);
+}
+
+.lang-tab:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+/* The mark is quiet: filled, half done, or nothing at all. It is decoration -
+   the state is in the label of the button as well. */
+.lang-tab__mark {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.75;
+}
+
+.lang-tab.is-filled .lang-tab__mark {
+    color: var(--status-known);
+}
+
+.lang-tab.is-active.is-filled .lang-tab__mark {
+    color: var(--panel);
+}
+
+/* --- the preview in the dialog ------------------------------------------ */
+
+.dialog__preview-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.dialog__preview-language {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.card-preview {
+    cursor: pointer;
+}
+
+.card-preview:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+/* The two sides of the preview: the answer only shows when the card is turned
+   over. It carries the colour of the area, exactly like the answer face of a
+   real card in the session. */
+.card-preview__side--back {
+    display: none;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: color-mix(in srgb, var(--detail-palette, var(--tile-bg)) 22%, transparent);
+}
+
+.card-preview.is-flipped .card-preview__side--front {
+    display: none;
+}
+
+.card-preview.is-flipped .card-preview__side--back {
+    display: block;
+}
+
+/* --- the marker of a card that exists in one language only --------------- */
+
+.row__badge--language {
+    color: var(--muted);
+    border-color: var(--line);
+}
+
+/* --- reduced motion: the states change, nothing moves ------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .area-card,
+    .learn-button,
+    .add-entry-button,
+    .arrow,
+    .row__play {
+        transition: none;
+    }
+
+    .area-card:hover,
+    .area-card:focus-visible,
+    .learn-button:hover:not(:disabled) {
+        transform: none;
+    }
+
+    .area-card:hover .arrow,
+    .area-card:focus-visible .arrow {
+        transform: none;
+    }
+}

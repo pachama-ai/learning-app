@@ -13,6 +13,12 @@
 
     /* A thin stroke arrow, drawn inline so no extra icon file is needed.
        "currentColor" makes it follow the theme. */
+    /*
+     * The play triangle of the two "Study" entries. It is drawn inline with
+     * currentColor, so it follows the theme without a second icon file.
+     */
+    var PLAY_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" focusable="false" aria-hidden="true"><path d="M8 5.2v13.6L18.4 12 8 5.2z"/></svg>';
+
     var ARROW_SVG = '<svg class="arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
 
     /*
@@ -176,6 +182,8 @@
         cardSearch: document.getElementById('card-search'),
         cardSearchEmpty: document.getElementById('card-search-empty'),
         learnButton: document.getElementById('learn-button'),
+        learnLabel: document.getElementById('learn-button-label'),
+        addEntryButton: document.getElementById('add-entry-button'),
 
         /* The study session. */
         learn: document.getElementById('learn'),
@@ -478,36 +486,21 @@
        Linked hover between the tiles of the start page
        ---------------------------------------------------------------------- */
 
-    function setLinked(index) {
-        linkedTiles.forEach(function (tile, position) {
-            tile.classList.toggle('is-linked', position === index);
+    /*
+     * A hovered tile used to dim every other tile of the row. That read as
+     * "the others are not available", although a click simply opens them, so
+     * the dimming is gone: each tile keeps its full strength, and the one under
+     * the pointer lifts itself and gets the shadow instead (see the
+     * stylesheet).
+     *
+     * clearLinked() stays: the render path calls it.
+     */
+    function clearLinked() {
+        linkedTiles.forEach(function (tile) {
+            tile.classList.remove('is-linked');
         });
 
-        elements.grid.classList.toggle('is-linking', index !== null);
-    }
-
-    function clearLinked() {
-        setLinked(null);
-    }
-
-    function wireLinkedHover() {
-        function wire(node, index) {
-            if (node === null) {
-                return;
-            }
-
-            node.addEventListener('mouseenter', function () {
-                setLinked(index);
-            });
-            node.addEventListener('mouseleave', clearLinked);
-            /* Keyboard focus behaves exactly like hovering. */
-            node.addEventListener('focus', function () {
-                setLinked(index);
-            });
-            node.addEventListener('blur', clearLinked);
-        }
-
-        linkedTiles.forEach(wire);
+        elements.grid.classList.remove('is-linking');
     }
 
     /* ----------------------------------------------------------------------
@@ -1050,7 +1043,6 @@
                 }, 1400);
             }
 
-            wireLinkedHover();
             updateFooterControls('home');
             updateTileNavigation();
         }).catch(handleLoadError);
@@ -1213,6 +1205,25 @@
         link.appendChild(arrow);
 
         item.appendChild(link);
+
+        /*
+         * The direct way into the session of THIS subcategory: one click from
+         * the list, no detour over the page. It sits next to the arrow and next
+         * to the menu, and because it is a button and not part of the link, it
+         * never opens the page instead.
+         */
+        var play = document.createElement('button');
+        play.type = 'button';
+        play.className = 'row__play';
+        play.setAttribute('aria-label', t('cards.learnThis', { name: title }));
+        play.setAttribute('title', t('cards.learnThis', { name: title }));
+        play.innerHTML = PLAY_SVG;
+        play.addEventListener('click', function () {
+            startLearning('all', entry.id, title);
+        });
+
+        item.appendChild(play);
+
         item.appendChild(buildMenu([
             {
                 label: t('action.edit'),
@@ -1245,21 +1256,12 @@
         var meta = cardStatusMeta(card);
 
         /*
-         * The whole row opens the card dialog. It is a real button, because a
-         * click target that can be reached with the keyboard is the only kind
-         * that works for everybody; the stylesheet takes the browser's own button
-         * box away again, so the row still looks like a row.
-         *
-         * The three dots menu sits NEXT to this button and not inside it, so a
-         * click on the menu can never open the dialog as well.
+         * The row itself does nothing. The three dots menu on the right is the
+         * ONE way into the card form, on every level (tile, row, head): a second
+         * way to the same form is only a way to open it by accident.
          */
-        var body = document.createElement('button');
-        body.type = 'button';
-        body.className = 'row__link row__link--static row__open';
-        body.setAttribute('aria-label', t('cards.openEditor', { name: card.front }));
-        body.addEventListener('click', function () {
-            openCardForm(card, card.category_id);
-        });
+        var body = document.createElement('span');
+        body.className = 'row__link row__link--static';
 
         var number = document.createElement('span');
         number.className = 'row__index';
@@ -1286,6 +1288,16 @@
         badge.hidden = card.is_bidirectional !== true;
 
         /*
+         * A card that only exists in one language says so, instead of looking
+         * empty in the other one. The marker only appears once the table really
+         * has a second language.
+         */
+        var languageBadge = document.createElement('span');
+        languageBadge.className = 'row__badge row__badge--language';
+        languageBadge.textContent = t(card.language === 'en' ? 'cards.onlyEnglish' : 'cards.onlyGerman');
+        languageBadge.hidden = card.missing_language !== true;
+
+        /*
          * The status: a dot and the word for it, always both. The colour alone
          * would say nothing to a person who cannot tell the three colours apart,
          * and the title carries the longer sentence.
@@ -1308,6 +1320,7 @@
         body.appendChild(number);
         body.appendChild(stack);
         body.appendChild(badge);
+        body.appendChild(languageBadge);
         body.appendChild(status);
 
         item.appendChild(body);
@@ -1449,7 +1462,8 @@
             fetchCategories(''),
             apiRequest(config.endpoints.categories + '?id=' + encodeURIComponent(categoryId), 'GET'),
             fetchCategories('?parent_id=' + encodeURIComponent(categoryId)),
-            apiRequest(config.endpoints.cards + '?category_id=' + encodeURIComponent(categoryId), 'GET')
+            apiRequest(config.endpoints.cards + '?category_id=' + encodeURIComponent(categoryId)
+                + '&language=' + encodeURIComponent(locale), 'GET')
         ]).then(function (results) {
             var allAreas = results[0];
             var single = results[1];
@@ -1501,6 +1515,15 @@
             if (cardsPayload !== null && Array.isArray(cardsPayload.cards)) {
                 currentEntryCards = cardsPayload.cards;
                 openCardSummary = typeof cardsPayload.summary === 'object' ? cardsPayload.summary : null;
+
+                /*
+                 * Which languages a card can have is decided by the table, not
+                 * by this script: the API reports it, and the card dialog shows
+                 * the language tabs only when there really are two.
+                 */
+                if (Array.isArray(cardsPayload.content_languages) && cardsPayload.content_languages.length > 0) {
+                    cardContentLanguages = cardsPayload.content_languages;
+                }
             } else {
                 currentEntryCards = Array.isArray(cardsResult.data) ? cardsResult.data : [];
                 openCardSummary = null;
@@ -1568,6 +1591,7 @@
             if (isSubcategory) {
                 renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
                 renderCardTools(openCardSummary);
+                showHeadActions('card', current.id, currentEntryCards.length, currentEntryCards.length > 0);
 
                 if (currentEntryCards.length === 0) {
                     /* Nothing to learn, nothing to search: the header stays away
@@ -1594,6 +1618,15 @@
             renderCardTools(null);
             openCards = [];
 
+            /* Everything below this area can be studied in one session, so the
+               button is there as soon as the branch holds a single card. */
+            showHeadActions(
+                'area',
+                current.id,
+                typeof current.card_count === 'number' ? current.card_count : 0,
+                children.length > 0
+            );
+
             renderFigures(children.length, 'tile.subcategories.one', 'tile.subcategories.other', currentEntryCards.length);
 
             elements.entryList.textContent = '';
@@ -1606,10 +1639,6 @@
                 children.forEach(function (child, index) {
                     elements.entryList.appendChild(buildEntryRow(child, index));
                 });
-
-                elements.entryList.appendChild(buildAddRow('detail.addSubcategory', function () {
-                    openCategoryForm('create', null, current.id);
-                }));
 
                 elements.entryList.hidden = false;
             }
@@ -1648,6 +1677,13 @@
          * updateTileNavigation().
          */
         elements.tilesButtons.hidden = level !== 'home';
+
+        /*
+         * The round plus button is the start page's own action and stays there:
+         * on a detail page the way to add the next entry sits in the head, where
+         * it is visible without scrolling to the end of the list.
+         */
+        elements.addButton.hidden = level !== 'home';
     }
 
     /* The plus button acts on whatever the detail view is showing. */
@@ -2079,6 +2115,7 @@
      */
     function closeDialog() {
         elements.dialog.classList.remove('is-open');
+        elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
 
         window.setTimeout(function () {
             if (typeof elements.dialog.close === 'function' && elements.dialog.open) {
@@ -2747,12 +2784,36 @@
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
 
+        /*
+         * Both languages of this card while the dialog is open. Switching a tab
+         * never loses what was typed in the other one: the fields are written
+         * into this draft before the language changes.
+         */
+        cardDraft = {
+            de: {
+                front: card === null ? '' : cardText(card, 'front', 'de'),
+                back: card === null ? '' : cardText(card, 'back', 'de')
+            },
+            en: {
+                front: card === null ? '' : cardText(card, 'front', 'en'),
+                back: card === null ? '' : cardText(card, 'back', 'en')
+            }
+        };
+
+        /* The language of the interface opens first, so nobody has to switch
+           before typing. */
+        cardTab = cardContentLanguages.indexOf(locale) === -1 ? cardContentLanguages[0] : locale;
+
+        if (cardContentLanguages.length > 1) {
+            elements.dialogFields.appendChild(buildLanguageTabs());
+        }
+
         addField('front', 'textarea', {
             labelKey: 'dialog.card.frontLabel',
             placeholderKey: 'dialog.card.frontPlaceholder',
             maxLength: config.limits.cardText,
             rows: 2,
-            value: card === null ? '' : card.front
+            value: cardDraft[cardTab].front
         });
 
         addField('back', 'textarea', {
@@ -2760,7 +2821,7 @@
             placeholderKey: 'dialog.card.backPlaceholder',
             maxLength: config.limits.cardText,
             rows: 2,
-            value: card === null ? '' : card.back
+            value: cardDraft[cardTab].back
         });
 
         addField('is_bidirectional', 'checkbox', {
@@ -2789,30 +2850,72 @@
     }
 
     function validateCardForm() {
-        var front = dialogFields.front.control.value.trim();
-        var back = dialogFields.back.control.value.trim();
-        var firstBad = null;
-
-        if (front === '') {
-            setFieldError('front', t('dialog.errorFrontRequired'));
-            firstBad = dialogFields.front.control;
+        /* What is in the fields belongs to the language that is open. */
+        if (cardDraft !== null) {
+            cardDraft[cardTab].front = dialogFields.front.control.value;
+            cardDraft[cardTab].back = dialogFields.back.control.value;
         }
 
-        if (back === '') {
-            setFieldError('back', t('dialog.errorBackRequired'));
-            firstBad = firstBad || dialogFields.back.control;
+        var payload = {
+            is_bidirectional: dialogFields.is_bidirectional.control.checked
+        };
+        var complete = 0;
+        var half = [];
+
+        cardContentLanguages.forEach(function (code) {
+            var front = cardDraft[code].front.trim();
+            var back = cardDraft[code].back.trim();
+
+            payload['front_' + code] = front;
+            payload['back_' + code] = back;
+
+            if (front !== '' && back !== '') {
+                complete++;
+            }
+
+            if ((front === '') !== (back === '')) {
+                half.push(code);
+            }
+        });
+
+        /*
+         * The two original columns of the table carry the German text, so the
+         * same value travels under both names. A card may be German only,
+         * English only or both.
+         */
+        if (cardContentLanguages.indexOf('de') !== -1) {
+            payload.front = payload.front_de;
+            payload.back = payload.back_de;
         }
 
-        if (firstBad !== null) {
-            firstBad.focus();
+        /*
+         * A language that has only one of its two sides is the one mistake that
+         * would store a card nobody can answer. The tab of that language opens,
+         * so the missing side is right there.
+         */
+        if (half.length > 0 && complete === 0) {
+            var broken = half[0];
+
+            if (broken !== cardTab) {
+                switchCardLanguage(broken);
+            }
+
+            var missingFront = cardDraft[broken].front.trim() === '';
+
+            setFieldError(missingFront ? 'front' : 'back', t(missingFront ? 'dialog.errorFrontRequired' : 'dialog.errorBackRequired'));
+            dialogFields[missingFront ? 'front' : 'back'].control.focus();
+
             return null;
         }
 
-        return {
-            front: front,
-            back: back,
-            is_bidirectional: dialogFields.is_bidirectional.control.checked
-        };
+        if (complete === 0) {
+            setDialogError(t('dialog.card.keepOneLanguage'));
+            dialogFields.front.control.focus();
+
+            return null;
+        }
+
+        return payload;
     }
 
     /* "2 subcategories, 1 flashcard" in the language that is switched on. */
@@ -2880,25 +2983,37 @@
      * $node is the element that shows the entry; it is removed right away so the
      * page does not keep a row that the person has just deleted.
      */
+    /*
+     * Every deletion is asked about first - an empty entry as well.
+     *
+     * It used to be different: an empty entry disappeared straight away and only
+     * one with content was asked about, so the same click sometimes deleted
+     * something and sometimes did not. A question in front of every deletion is
+     * the only behaviour a person can predict.
+     */
     function requestDelete(kind, target, node) {
-        var isCategory = kind === 'category';
-        var openEntry = isCategory && currentEntry !== null && currentEntry.id === target.id;
-
         /* Only one deletion waits at a time: a second one finishes the first. */
         finishPendingDelete();
 
+        openDeleteDialog(kind, target, node === undefined ? null : node);
+    }
+
+    /* What happens after the question was answered with "Delete". */
+    function confirmDelete(kind, target, node) {
+        var isCategory = kind === 'category';
+        var openEntry = isCategory && currentEntry !== null && currentEntry.id === target.id;
+
         if (openEntry) {
+            /* The page itself is going away, so there is no row to take back. */
             sendDelete(kind, target, false, false);
             return;
         }
 
-        var dependents = isCategory ? knownDependents(target) : { categories: 0, cards: 0 };
-
-        if (dependents === null || dependents.categories > 0 || dependents.cards > 0) {
-            openDeleteDialog(kind, target);
-            return;
-        }
-
+        /*
+         * A row that stays on the page is taken off the screen first and really
+         * deleted when the undo window has passed, so "Undo" can bring it back
+         * with everything that belongs to it.
+         */
         queueDelete(kind, target, node);
     }
 
@@ -3090,9 +3205,9 @@
      * focus starts on Cancel, so the safe answer is the one that is already
      * selected.
      */
-    function openDeleteDialog(kind, target) {
+    function openDeleteDialog(kind, target, node) {
         dialogKind = 'delete';
-        dialogEntry = { kind: kind, target: target };
+        dialogEntry = { kind: kind, target: target, node: node };
         dialogParentId = null;
         dialogIcon = null;
         dialogUsed = false;
@@ -3105,6 +3220,10 @@
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.textContent = t('dialog.delete.submit');
+
+        /* The only red button of the application, and only while this question
+           is open: closeDialog() takes the class away again. */
+        elements.dialogSubmit.classList.add('dialog__button--danger-pill');
 
         var parts = deletePreviewParts(knownDependents(target) || { categories: 0, cards: 0 });
 
@@ -3193,13 +3312,23 @@
         var isCard = dialogKind === 'card';
 
         /*
+         * The question was answered with "Delete": the row leaves the screen and
+         * the request follows when the undo window has passed. The dialog closes
+         * first, so the focus goes back to where it came from.
+         */
+        if (isDelete) {
+            var question = dialogEntry;
+            closeDialog();
+            confirmDelete(question.kind, question.target, question.node);
+            return;
+        }
+
+        /*
          * Saving is a change of the same list a waiting deletion belongs to, so
          * the deletion is sent first instead of being sent into a page that is
          * about to be rebuilt.
          */
-        if (!isDelete) {
-            finishPendingDelete();
-        }
+        finishPendingDelete();
         var payload = null;
         var url = '';
         var method = 'POST';
@@ -3542,7 +3671,6 @@
 
         if (!usable) {
             elements.cardSearchWrap.hidden = true;
-            elements.learnButton.disabled = true;
             return;
         }
 
@@ -3568,9 +3696,6 @@
         setCardToolsPart(elements.cardToolsPartNew, fresh, total);
         setCardToolsPart(elements.cardToolsPartUnsure, unsure, total);
         setCardToolsPart(elements.cardToolsPartKnown, known, total);
-
-        /* There is something to study, so the button works. */
-        elements.learnButton.disabled = false;
 
         /* A search over three cards is more work than looking at them. */
         elements.cardSearchWrap.hidden = total < cardSearchMin;
@@ -3616,10 +3741,6 @@
             elements.entryList.appendChild(buildCardRow(entry.card, entry.index));
         });
 
-        elements.entryList.appendChild(buildAddRow('cards.addCard', function () {
-            openCardForm(null, categoryId);
-        }));
-
         elements.entryList.hidden = false;
     }
 
@@ -3637,18 +3758,42 @@
      */
     function buildCardPreview() {
         var wrap = el('div', 'dialog__field dialog__field--preview');
+
+        var head = el('div', 'dialog__preview-head');
         var label = el('p', 'dialog__label', t('dialog.card.preview'));
         label.setAttribute('data-i18n', 'dialog.card.preview');
 
+        /* Which language is in the preview right now. */
+        var language = el('span', 'dialog__preview-language', '');
+        language.id = 'card-preview-language';
+
+        head.appendChild(label);
+        head.appendChild(language);
+
+        /*
+         * The preview can be turned over, so both sides of what is being written
+         * are visible before saving. It is reachable with the keyboard like any
+         * other control on the page.
+         */
         var card = el('div', 'card-preview');
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', t('dialog.card.preview'));
+        card.addEventListener('click', function () {
+            card.classList.toggle('is-flipped');
+        });
+        card.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                card.classList.toggle('is-flipped');
+            }
+        });
         var frontLabel = el('p', 'card-preview__label', t('dialog.card.previewFront'));
         frontLabel.setAttribute('data-i18n', 'dialog.card.previewFront');
 
         var front = el('p', 'card-preview__text', '');
         front.id = 'card-preview-front';
         front.setAttribute('data-i18n-empty', 'dialog.card.frontPlaceholder');
-
-        var divider = el('div', 'card-preview__divider');
 
         var backLabel = el('p', 'card-preview__label', t('dialog.card.previewBack'));
         backLabel.setAttribute('data-i18n', 'dialog.card.previewBack');
@@ -3657,11 +3802,21 @@
         back.id = 'card-preview-back';
         back.setAttribute('data-i18n-empty', 'dialog.card.backPlaceholder');
 
-        card.appendChild(frontLabel);
-        card.appendChild(front);
-        card.appendChild(divider);
-        card.appendChild(backLabel);
-        card.appendChild(back);
+        /*
+         * Two sides, exactly like the card in a session: the front is what is
+         * asked, the back is what is answered, and the click on the preview
+         * shows one or the other.
+         */
+        var frontSide = el('div', 'card-preview__side card-preview__side--front');
+        frontSide.appendChild(frontLabel);
+        frontSide.appendChild(front);
+
+        var backSide = el('div', 'card-preview__side card-preview__side--back');
+        backSide.appendChild(backLabel);
+        backSide.appendChild(back);
+
+        card.appendChild(frontSide);
+        card.appendChild(backSide);
 
         var count = el('p', 'dialog__hint', '');
         count.id = 'card-preview-count';
@@ -3669,7 +3824,7 @@
         var hint = el('p', 'dialog__hint', t('dialog.card.hintShortcut'));
         hint.setAttribute('data-i18n', 'dialog.card.hintShortcut');
 
-        wrap.appendChild(label);
+        wrap.appendChild(head);
         wrap.appendChild(card);
         wrap.appendChild(count);
         wrap.appendChild(hint);
@@ -3703,6 +3858,12 @@
                 max: config.limits.cardText
             });
         }
+
+        var language = document.getElementById('card-preview-language');
+
+        if (language !== null) {
+            language.textContent = t(cardTab === 'en' ? 'dialog.card.languageEn' : 'dialog.card.languageDe');
+        }
     }
 
     /*
@@ -3720,7 +3881,14 @@
             }
 
             field.control.addEventListener('input', function () {
+                /* What is typed belongs to the language that is open. */
+                if (cardDraft !== null) {
+                    cardDraft[cardTab].front = dialogFields.front.control.value;
+                    cardDraft[cardTab].back = dialogFields.back.control.value;
+                }
+
                 updateCardPreview();
+                updateCardLanguageTabs();
             });
 
             field.control.addEventListener('keydown', function (event) {
@@ -3758,14 +3926,23 @@
     }
 
     /* Opens the session for the open subcategory. */
-    function startLearning(mode) {
-        if (currentEntry === null || currentEntry.parent_id === null) {
+    function startLearning(mode, targetCategoryId, label) {
+        /*
+         * The session belongs to the entry that was clicked: the one that is
+         * open, the subcategory behind a row of the list, or the whole learning
+         * area behind "Study all". The server decides what belongs to it.
+         */
+        var categoryId = typeof targetCategoryId === 'number'
+            ? targetCategoryId
+            : (currentEntry === null ? null : currentEntry.id);
+
+        if (categoryId === null) {
             return;
         }
 
-        var categoryId = currentEntry.id;
         var url = config.endpoints.review
             + '?category_id=' + encodeURIComponent(categoryId)
+            + '&language=' + encodeURIComponent(locale)
             + '&mode=' + (mode === 'difficult' ? 'difficult' : 'all');
 
         elements.learnButton.disabled = true;
@@ -3786,6 +3963,7 @@
             learnSession = {
                 categoryId: categoryId,
                 mode: result.data.mode === 'difficult' ? 'difficult' : 'all',
+                label: typeof label === 'string' ? label : (currentEntry === null ? '' : displayName(currentEntry)),
                 queue: result.data.queue.slice(),
                 hasUser: result.data.has_user === true,
                 index: 0,
@@ -4223,7 +4401,11 @@
            cards just answered are not guessed from memory. */
         responseCache = {};
         render();
-        elements.learnButton.focus();
+
+        /* Back to the way in that was used - if it is still on the page. */
+        if (!elements.learnButton.hidden) {
+            elements.learnButton.focus();
+        }
     }
 
     /*
@@ -4393,5 +4575,218 @@
     }
 
     wireLearning();
+    /* ----------------------------------------------------------------------
+       The two languages of a card
+       ---------------------------------------------------------------------- */
+
+    /*
+     * Which languages a card can carry. There is one until the English columns
+     * exist in the table - the API reports the truth and this side only follows
+     * it, so the language tabs appear by themselves the moment the migration has
+     * been run.
+     */
+    var cardContentLanguages = ['de'];
+
+    /* What is in the two fields, per language, while the card dialog is open. */
+    var cardDraft = null;
+    var cardTab = 'de';
+    var cardTabs = {};
+
+    /*
+     * One side of a card in one language.
+     *
+     * The German text lives in the two original columns (`front` and `back`), so
+     * this falls back to them when the language-specific key is not there. That
+     * keeps the dialog correct with and without the English columns.
+     */
+    function cardText(card, side, language) {
+        var value = card[side + '_' + language];
+
+        if (typeof value !== 'string' && language === 'de') {
+            value = card[side];
+        }
+
+        return typeof value === 'string' ? value : '';
+    }
+
+    /* The name of a language, in the language of the interface. */
+    function cardLanguageName(code) {
+        return t(code === 'en' ? 'dialog.card.languageEn' : 'dialog.card.languageDe');
+    }
+
+    /*
+     * The small switch above the two fields: "Deutsch" and "English". It only
+     * exists while the table really holds two languages.
+     */
+    function buildLanguageTabs() {
+        var wrap = el('div', 'dialog__field dialog__field--languages');
+        var label = el('p', 'dialog__label', t('dialog.card.languageLabel'));
+        label.setAttribute('data-i18n', 'dialog.card.languageLabel');
+
+        var row = el('div', 'lang-tabs');
+        row.setAttribute('role', 'tablist');
+
+        cardTabs = {};
+
+        cardContentLanguages.forEach(function (code) {
+            var button = el('button', 'lang-tab');
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+
+            var name = el('span', 'lang-tab__name', cardLanguageName(code));
+            var mark = el('span', 'lang-tab__mark');
+            mark.setAttribute('aria-hidden', 'true');
+
+            button.appendChild(name);
+            button.appendChild(mark);
+
+            button.addEventListener('click', function () {
+                switchCardLanguage(code);
+            });
+
+            row.appendChild(button);
+            cardTabs[code] = button;
+        });
+
+        var hint = el('p', 'dialog__hint', t('dialog.card.languageHint'));
+        hint.setAttribute('data-i18n', 'dialog.card.languageHint');
+
+        wrap.appendChild(label);
+        wrap.appendChild(row);
+        wrap.appendChild(hint);
+
+        updateCardLanguageTabs();
+
+        return wrap;
+    }
+
+    /* Changes which language the two fields are showing. */
+    function switchCardLanguage(code) {
+        if (cardDraft === null || dialogFields.front === undefined || code === cardTab) {
+            return;
+        }
+
+        /* Nothing is lost: what was typed stays with its language. */
+        cardDraft[cardTab].front = dialogFields.front.control.value;
+        cardDraft[cardTab].back = dialogFields.back.control.value;
+
+        cardTab = code;
+
+        dialogFields.front.control.value = cardDraft[code].front;
+        dialogFields.back.control.value = cardDraft[code].back;
+
+        updateCardLanguageTabs();
+        updateCardPreview();
+
+        var preview = document.querySelector('.card-preview');
+
+        if (preview !== null) {
+            preview.classList.remove('is-flipped');
+        }
+
+        dialogFields.front.control.focus();
+    }
+
+    /* Marks which language is open and which one still needs work. */
+    function updateCardLanguageTabs() {
+        if (cardDraft === null) {
+            return;
+        }
+
+        Object.keys(cardTabs).forEach(function (code) {
+            var button = cardTabs[code];
+            var draft = cardDraft[code];
+            var front = draft.front.trim();
+            var back = draft.back.trim();
+            var filled = front !== '' && back !== '';
+            var half = (front !== '') !== (back !== '');
+            var mark = button.querySelector('.lang-tab__mark');
+
+            button.classList.toggle('is-active', code === cardTab);
+            button.classList.toggle('is-filled', filled);
+            button.classList.toggle('is-half', half);
+            button.setAttribute('aria-selected', code === cardTab ? 'true' : 'false');
+            button.setAttribute(
+                'aria-label',
+                cardLanguageName(code) + ', ' + t(filled ? 'dialog.card.languageFilled' : 'dialog.card.languageEmpty')
+            );
+
+            if (mark !== null) {
+                mark.textContent = filled ? '\u2713' : (half ? '\u00b7' : '');
+            }
+        });
+    }
+
+    /* ----------------------------------------------------------------------
+       The two actions in the head of an entry
+       ---------------------------------------------------------------------- */
+
+    /*
+     * Fills the head of the detail view.
+     *
+     * level      'card' for a subcategory, 'area' for a learning area
+     * cardCount  how many cards can be studied (the whole branch for an area)
+     * hasEntries whether the list below has rows - if it has none, the empty
+     *            state already offers the step of adding one, and a second
+     *            button for the same thing would be one too many
+     */
+    function showHeadActions(level, categoryId, cardCount, hasEntries) {
+        var isArea = level === 'area';
+        var canStudy = typeof cardCount === 'number' && cardCount > 0;
+
+        /*
+         * The button keeps its place when there is nothing to learn: it stays
+         * visible, greyed out, and a tooltip says why it cannot be used. Only a
+         * view without any card level (an empty learning area) hides it - there
+         * the empty state already offers the one useful step.
+         */
+        elements.learnButton.hidden = !isArea && typeof cardCount !== 'number';
+        elements.learnButton.disabled = !canStudy;
+        elements.learnButton.title = canStudy ? '' : t('learn.noCards');
+        elements.learnButton.setAttribute('data-i18n-title', canStudy ? '' : 'learn.noCards');
+        elements.learnButton.dataset.level = level;
+        elements.learnButton.dataset.categoryId = String(categoryId);
+
+        elements.learnLabel.textContent = t(isArea ? 'cards.learnAll' : 'cards.learn');
+        elements.learnLabel.setAttribute('data-i18n', isArea ? 'cards.learnAll' : 'cards.learn');
+        elements.learnButton.setAttribute(
+            'aria-label',
+            isArea
+                ? t('cards.learnAll')
+                : t('cards.learnThis', { name: elements.detailHeading.textContent })
+        );
+
+        elements.addEntryButton.hidden = hasEntries !== true;
+        elements.addEntryButton.textContent = t(isArea ? 'cards.addSubcategoryShort' : 'cards.addCardShort');
+        elements.addEntryButton.setAttribute('data-i18n', isArea ? 'cards.addSubcategoryShort' : 'cards.addCardShort');
+        elements.addEntryButton.dataset.level = level;
+        elements.addEntryButton.dataset.categoryId = String(categoryId);
+    }
+
+    function wireHeadActions() {
+        elements.learnButton.addEventListener('click', function () {
+            var level = elements.learnButton.dataset.level;
+
+            startLearning(
+                'all',
+                Number(elements.learnButton.dataset.categoryId),
+                level === 'area' ? elements.detailHeading.textContent : null
+            );
+        });
+
+        elements.addEntryButton.addEventListener('click', function () {
+            var level = elements.addEntryButton.dataset.level;
+            var categoryId = Number(elements.addEntryButton.dataset.categoryId);
+
+            if (level === 'area') {
+                openCategoryForm('create', null, categoryId);
+                return;
+            }
+
+            openCardForm(null, categoryId);
+        });
+    }
+
+    wireHeadActions();
     init();
 })();

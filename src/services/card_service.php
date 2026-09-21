@@ -89,7 +89,7 @@ function find_cards(PDO $pdo, int $categoryId): array
 function find_card(PDO $pdo, int $cardId): ?array
 {
     $statement = $pdo->prepare(
-        'SELECT id, category_id, front, back, is_bidirectional
+        'SELECT ' . implode(', ', card_read_columns($pdo)) . '
            FROM cards
           WHERE id = :id'
     );
@@ -140,11 +140,15 @@ function create_card(PDO $pdo, int $categoryId, string $front, string $back, boo
  */
 function update_card(PDO $pdo, int $cardId, array $changes): ?array
 {
-    $columns = [
-        'front' => PDO::PARAM_STR,
-        'back' => PDO::PARAM_STR,
-        'is_bidirectional' => PDO::PARAM_INT,
-    ];
+    $available = card_columns($pdo);
+    $pairs = card_language_columns($available);
+    $columns = ['is_bidirectional' => PDO::PARAM_INT];
+
+    foreach ($pairs as $pair) {
+        foreach ($pair as $column) {
+            $columns[$column] = PDO::PARAM_STR;
+        }
+    }
 
     $assignments = [];
     $values = [];
@@ -156,6 +160,24 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
 
         $assignments[] = $column . ' = :' . $column;
         $values[$column] = [$changes[$column], $type];
+    }
+
+    /*
+     * A change to the German side is mirrored into front and back: those two are
+     * NOT NULL and older readers still use them, so leaving them behind would make
+     * the two versions of the German text drift apart.
+     */
+    foreach (['front' => 0, 'back' => 1] as $column => $index) {
+        $germanColumn = $pairs['de'][$index] ?? null;
+
+        if ($germanColumn === null || $column === $germanColumn || !card_column_available($available, $column)) {
+            continue;
+        }
+
+        if (array_key_exists($germanColumn, $changes)) {
+            $assignments[] = $column . ' = :' . $column;
+            $values[$column] = [(string) $changes[$germanColumn], PDO::PARAM_STR];
+        }
     }
 
     if ($assignments === []) {
@@ -262,6 +284,324 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds): int
  *
  * @param list<int> $categoryIds
  */
+
+/* -------------------------------------------------------------------------
+   The two languages of a card
+   ------------------------------------------------------------------------- */
+
+/*
+ * A card carries its German text in the two original columns (`front`, `back`)
+ * and, once the migration in database/add_card_english_columns.sql has been run,
+ * its English text in `front_en` and `back_en`.
+ *
+ * Which of those columns really exist is asked once per request and then
+ * remembered - exactly like the optional columns of `categories`. Everything
+ * below works with one language as well as with two, so the application is
+ * correct before and after the migration.
+ */
+
+/** The column pairs per language. German uses the two original columns. */
+function card_language_columns(array $columns = []): array
+{
+    $known = [
+        'de' => ['front_de', 'back_de'],
+        'en' => ['front_en', 'back_en'],
+    ];
+
+    /* Without a column list the app asks for every language it knows. */
+    if ($columns === []) {
+        return $known;
+    }
+
+    $pairs = [];
+
+    foreach ($known as $language => $pair) {
+        if (card_column_available($columns, $pair[0]) && card_column_available($columns, $pair[1])) {
+            $pairs[$language] = $pair;
+        }
+    }
+
+    /*
+     * A table from before the language columns: the German text sits in front
+     * and back, under the names this app has always used.
+     */
+    if (!isset($pairs['de'])) {
+        $pairs['de'] = ['front', 'back'];
+    }
+
+    return $pairs;
+}
+
+/**
+ * The names of the columns that really exist in the `cards` table.
+ *
+ * Read from the metadata of a query that returns no rows: the names are part of
+ * the answer, so the table does not have to be described twice.
+ *
+ * @return list<string>
+ */
+function card_columns(PDO $pdo): array
+{
+    static $columns = null;
+
+    if ($columns === null) {
+        $columns = [];
+        $statement = $pdo->query('SELECT * FROM cards LIMIT 0');
+
+        for ($index = 0; $index < $statement->columnCount(); $index++) {
+            $meta = $statement->getColumnMeta($index);
+
+            if (is_array($meta) && isset($meta['name']) && is_string($meta['name'])) {
+                $columns[] = $meta['name'];
+            }
+        }
+
+        if ($columns === []) {
+            foreach ($pdo->query('SHOW COLUMNS FROM cards')->fetchAll() as $row) {
+                $columns[] = (string) $row['Field'];
+            }
+        }
+    }
+
+    return $columns;
+}
+
+/**
+ * @param list<string> $columns
+ */
+function card_column_available(array $columns, string $column): bool
+{
+    return in_array($column, $columns, true);
+}
+
+/**
+ * The languages a card can have in this table: "de" always, "en" once the
+ * migration has been run.
+ *
+ * @param list<string> $columns
+ * @return list<string>
+ */
+function card_content_languages(array $columns): array
+{
+    return array_keys(card_language_columns($columns));
+}
+
+/**
+ * Every column a card read needs: the fixed ones plus the question and the answer
+ * of every language the table has. front and back stay in the list because the
+ * older shape of a card row still uses them.
+ *
+ * @return list<string>
+ */
+function card_read_columns(PDO $pdo): array
+{
+    $columns = ['id', 'category_id', 'is_bidirectional', 'front', 'back'];
+
+    foreach (card_language_columns(card_columns($pdo)) as $pair) {
+        foreach ($pair as $column) {
+            $columns[] = $column;
+        }
+    }
+
+    return array_values(array_unique($columns));
+}
+
+/**
+ * Reports whether one language of a card is complete (question AND answer).
+ *
+ * @param array<string, mixed> $texts
+ */
+function card_language_is_complete(array $texts, string $language, array $columns = []): bool
+{
+    $pair = card_language_columns($columns)[$language] ?? null;
+
+    if ($pair === null) {
+        return false;
+    }
+
+    return trim((string) ($texts[$pair[0]] ?? '')) !== ''
+        && trim((string) ($texts[$pair[1]] ?? '')) !== '';
+}
+
+/**
+ * The text of one card in the language that should be shown, with the marker that
+ * tells the browser when the other language had to be used.
+ *
+ * A card may be German only, English only or both. The rule is simple and the
+ * same everywhere:
+ *
+ *   1. the language that was asked for, when it is complete,
+ *   2. otherwise the other one, when THAT one is complete - marked as the
+ *      language it really is,
+ *   3. otherwise whatever text there is, in the language that was asked for.
+ *
+ * @param array<string, mixed> $row the row, with the language columns if they exist
+ * @param list<string> $columns
+ * @return array<string, mixed>
+ */
+function card_localized_text(array $row, array $columns, string $language): array
+{
+    $pairs = card_language_columns($columns);
+    $languages = array_keys($pairs);
+
+    /*
+     * One flat table "column => text". Completeness is asked per language, and
+     * that question is about the real columns, not about the words "front" and
+     * "back".
+     */
+    $texts = [];
+
+    foreach ($pairs as $pair) {
+        foreach ($pair as $column) {
+            $texts[$column] = (string) ($row[$column] ?? '');
+        }
+    }
+
+    /*
+     * The language that was asked for, when this table has it at all. A table
+     * with one language can never answer a request for the other one, and saying
+     * so is what makes the interface show "German only".
+     */
+    $asked = in_array($language, $languages, true) ? $language : null;
+    $shown = $asked ?? $languages[0];
+    $missing = $asked === null;
+
+    if (!card_language_is_complete($texts, $shown, $columns)) {
+        $other = null;
+
+        foreach ($languages as $code) {
+            if ($code !== $shown && card_language_is_complete($texts, $code, $columns)) {
+                $other = $code;
+                break;
+            }
+        }
+
+        if ($other !== null) {
+            $shown = $other;
+        }
+
+        /* The text that is shown is not in the language that was asked for. */
+        $missing = true;
+    }
+
+    $result = [
+        'front' => $texts[$pairs[$shown][0]] ?? '',
+        'back' => $texts[$pairs[$shown][1]] ?? '',
+        'language' => $shown,
+        'missing_language' => $missing,
+    ];
+
+    /* Both languages travel with the card, so the dialog can edit both sides
+       without asking again. */
+    foreach ($languages as $code) {
+        $result['front_' . $code] = $texts[$pairs[$code][0]] ?? '';
+        $result['back_' . $code] = $texts[$pairs[$code][1]] ?? '';
+    }
+
+    return $result;
+}
+
+/**
+ * Reads the text fields of a card from a request body, in every language the
+ * table supports.
+ *
+ * @param array<string, mixed> $body
+ * @param list<string> $columns
+ * @return array<string, string>
+ */
+function card_texts_from_body(array $body, array $columns): array
+{
+    $texts = [];
+
+    foreach (card_language_columns($columns) as $pair) {
+        foreach ($pair as $column) {
+            if (array_key_exists($column, $body)) {
+                $texts[$column] = (string) optional_input_text($body, $column, CARD_MAX_TEXT_LENGTH, 'invalid_' . $column);
+            }
+        }
+    }
+
+    /*
+     * The dialog sends "front" and "back" as well when a card has one language:
+     * they are the German text under its original name. A table without the
+     * front_de/back_de columns keeps the German text there alone.
+     */
+    foreach (['front', 'back'] as $column) {
+        if (array_key_exists($column, $body) && trim((string) ($texts[$column] ?? '')) === '') {
+            $texts[$column] = (string) optional_input_text($body, $column, CARD_MAX_TEXT_LENGTH, 'invalid_' . $column);
+        }
+    }
+
+    return $texts;
+}
+
+/**
+ * Inserts a card with the text of every language the table supports.
+ *
+ * @param array<string, string> $texts keyed by column name
+ * @param list<string> $columns
+ * @return array<string, mixed>
+ */
+function create_card_translated(PDO $pdo, int $categoryId, array $texts, array $columns, bool $isBidirectional): array
+{
+    $pairs = card_language_columns($columns);
+    $names = ['category_id', 'is_bidirectional'];
+    $values = [':category_id', ':is_bidirectional'];
+
+    foreach ($pairs as $pair) {
+        foreach ($pair as $column) {
+            $names[] = $column;
+            $values[] = ':' . $column;
+        }
+    }
+
+    /*
+     * front and back are NOT NULL and older readers still use them, so the German
+     * text is written there as well whenever they are not the German columns
+     * themselves.
+     */
+    $legacy = [];
+
+    foreach (['front' => 0, 'back' => 1] as $column => $index) {
+        $germanColumn = $pairs['de'][$index] ?? null;
+
+        if ($germanColumn === null || $column === $germanColumn || !card_column_available($columns, $column)) {
+            continue;
+        }
+
+        $legacy[$column] = (string) ($texts[$germanColumn] ?? '');
+        $names[] = $column;
+        $values[] = ':' . $column;
+    }
+
+    $statement = $pdo->prepare(
+        'INSERT INTO cards (' . implode(', ', $names) . ')
+         VALUES (' . implode(', ', $values) . ')'
+    );
+
+    $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':is_bidirectional', $isBidirectional ? 1 : 0, PDO::PARAM_INT);
+
+    foreach ($pairs as $pair) {
+        foreach ($pair as $column) {
+            $statement->bindValue(':' . $column, (string) ($texts[$column] ?? ''), PDO::PARAM_STR);
+        }
+    }
+
+    foreach ($legacy as $column => $text) {
+        $statement->bindValue(':' . $column, $text, PDO::PARAM_STR);
+    }
+
+    $statement->execute();
+
+    $created = find_card($pdo, (int) $pdo->lastInsertId());
+
+    if ($created === null) {
+        throw new RuntimeException('The card was inserted but cannot be read back.');
+    }
+
+    return $created;
+}
 function delete_cards_of_categories(PDO $pdo, array $categoryIds): int
 {
     if ($categoryIds === []) {

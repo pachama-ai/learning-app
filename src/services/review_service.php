@@ -226,21 +226,92 @@ function review_is_due($progress, ?int $now = null): bool
  *
  * @return list<array<string, mixed>>
  */
-function review_cards_with_progress(PDO $pdo, int $categoryId, ?int $userId): array
+function review_cards_with_progress(PDO $pdo, int $categoryId, ?int $userId, string $language = 'de'): array
 {
+    return review_cards_in_categories($pdo, [$categoryId], $userId, $language);
+}
+
+/**
+ * The category and everything directly below it.
+ *
+ * A learning area holds no cards of its own: they sit in its subcategories. So
+ * "Study all" is one session over the area and its subcategories, and that is
+ * the same set the card counter of the area always showed.
+ *
+ * @return list<int>
+ */
+function review_branch_category_ids(PDO $pdo, int $categoryId): array
+{
+    $statement = $pdo->prepare('SELECT id FROM categories WHERE parent_id = :parent_id ORDER BY id ASC');
+    $statement->bindValue(':parent_id', $categoryId, PDO::PARAM_INT);
+    $statement->execute();
+
+    $ids = [$categoryId];
+
+    foreach ($statement->fetchAll() as $row) {
+        $ids[] = (int) $row['id'];
+    }
+
+    return $ids;
+}
+
+/**
+ * The cards of one or more categories, with the progress of one user and the
+ * text in the language that should be shown.
+ *
+ * One query for the whole list. The placeholders are built from the COUNT of
+ * the ids and every value is still bound.
+ *
+ * @param list<int> $categoryIds
+ * @return list<array<string, mixed>>
+ */
+function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, string $language = 'de'): array
+{
+    $ids = array_values(array_unique(array_filter($categoryIds, static fn ($id) => (int) $id > 0)));
+
+    if ($ids === []) {
+        return [];
+    }
+
+    $columns = card_columns($pdo);
+
+    /*
+     * Every language the table has is read in the same query. front and back stay
+     * in the list: the older shape of a card row reads them.
+     */
+    $selected = ['k.id', 'k.category_id', 'k.is_bidirectional', 'k.front', 'k.back'];
+
+    foreach (card_language_columns($columns) as $pair) {
+        foreach ($pair as $column) {
+            $selected[] = 'k.' . $column;
+        }
+    }
+
+    $selection = implode(', ', array_unique($selected));
+
+    /*
+     * Every placeholder gets its own name. The user id in the join above is a
+     * named placeholder, and a statement may not mix named and positional ones.
+     */
+    $placeholders = [];
+
+    foreach ($ids as $index => $id) {
+        $placeholders[] = ':card_category_' . $index;
+    }
+
     /*
      * The join condition carries the user id. When there is nobody signed in the
      * value is NULL, and "p.user_id = NULL" is never true - so the join brings
      * back no progress at all instead of the progress of somebody else.
      */
     $statement = $pdo->prepare(
-        'SELECT k.id, k.category_id, k.front, k.back, k.is_bidirectional,
+        'SELECT ' . $selection . ',
                 p.state, p.due_at, p.last_reviewed_at, p.repetitions, p.lapses,
                 p.stability, p.difficulty
            FROM cards AS k
            LEFT JOIN user_card_progress AS p
                   ON p.card_id = k.id AND p.user_id = :user_id
-          WHERE k.category_id = :category_id
+          WHERE k.category_id IN (' . implode(', ', $placeholders) . ')
           ORDER BY k.id ASC'
     );
 
@@ -250,7 +321,10 @@ function review_cards_with_progress(PDO $pdo, int $categoryId, ?int $userId): ar
         $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
     }
 
-    $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+    foreach ($ids as $index => $id) {
+        $statement->bindValue(':card_category_' . $index, $id, PDO::PARAM_INT);
+    }
+
     $statement->execute();
 
     $entries = [];
@@ -258,7 +332,7 @@ function review_cards_with_progress(PDO $pdo, int $categoryId, ?int $userId): ar
     foreach ($statement->fetchAll() as $row) {
         $progress = $row['state'] === null ? null : $row;
 
-        $card = normalize_card_row($row);
+        $card = array_merge(normalize_card_row($row), card_localized_text($row, $columns, $language));
         $card['progress'] = review_public_progress($progress);
 
         $entries[] = $card;
