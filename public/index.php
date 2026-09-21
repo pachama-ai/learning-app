@@ -40,6 +40,7 @@ $appConfig = [
         'category' => 'api/category.php',
         'cards' => 'api/cards.php',
         'card' => 'api/card.php',
+        'review' => 'api/review.php',
     ],
     'storageKeys' => [
         'theme' => 'lernkartei.theme',
@@ -278,6 +279,49 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         <span class="detail__figure" id="detail-figure-cards" hidden><span id="detail-card-count">0</span> <span id="detail-card-label"></span></span>
                     </p>
 
+                    <!--
+                        The header of a card list. It only shows while the open
+                        subcategory really has cards: a bar over an empty list would
+                        be three zeroes in a row, and that tells nobody anything.
+
+                        The "Study" button is the main action of this page. It is
+                        disabled while there is nothing to study, so a click can
+                        never open an empty session.
+                    -->
+                    <div class="card-tools" id="card-tools" hidden>
+                        <div class="card-tools__top">
+                            <button type="button" class="learn-button" id="learn-button" data-i18n="cards.learn">Study</button>
+
+                            <p class="card-tools__counts">
+                                <span class="card-tools__count" id="card-tools-count"></span>
+                                <span class="card-tools__due" id="card-tools-due" hidden></span>
+                            </p>
+                        </div>
+
+                        <!--
+                            The distribution bar. Its three parts are sized by the
+                            numbers from the API and carry the colour of the status;
+                            the sentence below names the same numbers, so the colours
+                            are never the only thing that says something.
+                        -->
+                        <div class="card-tools__bar" id="card-tools-bar" role="img">
+                            <span class="card-tools__part card-tools__part--new" id="card-tools-part-new"></span>
+                            <span class="card-tools__part card-tools__part--unsure" id="card-tools-part-unsure"></span>
+                            <span class="card-tools__part card-tools__part--known" id="card-tools-part-known"></span>
+                        </div>
+
+                        <p class="card-tools__legend" id="card-tools-legend"></p>
+
+                        <!-- Only from about fifteen cards: searching three cards is
+                             more work than looking at them. -->
+                        <div class="card-tools__search" id="card-tools-search" hidden>
+                            <input type="search" class="card-tools__search-input" id="card-search"
+                                   autocomplete="off" data-i18n-placeholder="cards.searchPlaceholder">
+                        </div>
+                    </div>
+
+                    <p class="state state--quiet" id="card-search-empty" hidden></p>
+
                     <!-- The rows of the open entry: subcategories or flashcards. -->
                     <ul class="rows" id="entry-list"></ul>
 
@@ -392,6 +436,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <div class="dialog__actions">
                 <button type="button" class="dialog__button dialog__button--danger" id="app-dialog-danger" hidden></button>
                 <button type="button" class="dialog__button--text" id="app-dialog-cancel"></button>
+                <button type="button" class="dialog__button dialog__button--secondary" id="app-dialog-save-next" hidden></button>
                 <button type="submit" class="dialog__button dialog__button--primary" id="app-dialog-submit"></button>
             </div>
         </form>
@@ -403,6 +448,96 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         text alike - and cannot be clicked, hovered or scrolled.
     -->
     <div class="grain" aria-hidden="true"></div>
+
+    <!--
+        The full screen study session.
+
+        It is not a <dialog>: a session is a view of its own and not a question
+        waiting for an answer, and it must cover the header, the sidebar and the
+        footer completely. Escape is handled in app.js, because the session may
+        have to ask first when answers were already saved.
+
+        The card itself is one element with two faces: the front is the question,
+        the back is the answer, and the flip is a rotation around the vertical
+        axis. The order of the two faces is what the stylesheet puts behind each
+        other; the text is written by app.js.
+    -->
+    <div class="learn" id="learn" hidden>
+        <div class="learn__progress" id="learn-progress" role="progressbar"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span class="learn__progress-fill" id="learn-progress-fill"></span>
+        </div>
+
+        <div class="learn__top">
+            <button type="button" class="learn__close" id="learn-close"
+                    aria-label="<?= $text('learn.close') ?>" data-i18n-label="learn.close">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                     stroke-width="1.6" stroke-linecap="round" focusable="false" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+
+            <p class="learn__counter" id="learn-counter" aria-live="polite"></p>
+        </div>
+
+        <div class="learn__stage" id="learn-stage">
+            <div class="learn__card" id="learn-card" tabindex="0" role="group">
+                <div class="learn__face learn__face--front">
+                    <p class="learn__label" id="learn-side-label"><?= $text('learn.question') ?></p>
+                    <p class="learn__text" id="learn-front-text"></p>
+                </div>
+
+                <div class="learn__face learn__face--back">
+                    <p class="learn__label" data-i18n="learn.answer"><?= $text('learn.answer') ?></p>
+                    <p class="learn__text" id="learn-back-text"></p>
+                </div>
+
+                <p class="learn__hint" id="learn-hint" data-i18n="learn.flipHint"><?= $text('learn.flipHint') ?></p>
+            </div>
+
+            <!--
+                The four answers. They keep their place from the first moment, so
+                nothing jumps when the card is flipped; before that they are
+                disabled and out of reach for a screen reader.
+            -->
+            <div class="learn__rating" id="learn-rating">
+                <p class="learn__rating-label" id="learn-rating-label" data-i18n="learn.ratingLabel"><?= $text('learn.ratingLabel') ?></p>
+                <div class="learn__buttons" id="learn-buttons" role="group" aria-labelledby="learn-rating-label"></div>
+            </div>
+        </div>
+
+        <!-- The quiet end of a session: one number, four bars, two ways on. -->
+        <div class="learn__summary" id="learn-summary" hidden>
+            <h2 class="learn__summary-title" data-i18n="learn.done.title"><?= $text('learn.done.title') ?></h2>
+            <p class="learn__summary-number" id="learn-summary-number"></p>
+            <ul class="learn__bars" id="learn-summary-bars"></ul>
+            <p class="learn__summary-left" id="learn-summary-left" hidden></p>
+
+            <div class="learn__summary-actions">
+                <button type="button" class="learn__action learn__action--ghost" id="learn-repeat"
+                        data-i18n="learn.done.repeat"><?= $text('learn.done.repeat') ?></button>
+                <button type="button" class="learn__action learn__action--primary" id="learn-finish"
+                        data-i18n="learn.done.finish"><?= $text('learn.done.finish') ?></button>
+            </div>
+        </div>
+
+        <!-- The one question the session asks: leave, or keep going? -->
+        <div class="learn__ask" id="learn-ask" hidden>
+            <div class="learn__ask-box" role="alertdialog" aria-labelledby="learn-ask-title">
+                <h2 class="learn__ask-title" id="learn-ask-title" data-i18n="learn.askEnd.title"><?= $text('learn.askEnd.title') ?></h2>
+                <p class="learn__ask-text" id="learn-ask-text"></p>
+
+                <div class="learn__ask-actions">
+                    <button type="button" class="learn__action learn__action--ghost" id="learn-ask-cancel"
+                            data-i18n="learn.askEnd.cancel"><?= $text('learn.askEnd.cancel') ?></button>
+                    <button type="button" class="learn__action learn__action--danger" id="learn-ask-confirm"
+                            data-i18n="learn.askEnd.confirm"><?= $text('learn.askEnd.confirm') ?></button>
+                </div>
+            </div>
+        </div>
+
+        <p class="learn__notice" id="learn-notice" role="status" aria-live="polite" hidden></p>
+    </div>
 
     <script src="assets/js/app.js"></script>
 </body>

@@ -60,6 +60,20 @@
      */
     var currentEntry = null;
     var currentEntryCards = [];
+
+    /*
+     * What the card list of the open subcategory knows: the cards themselves, the
+     * counts the API made and the text in the search field. The list is filtered
+     * in the browser and never reloaded for a search - the filter only looks at
+     * what is already there.
+     */
+    var openCards = [];
+    var openCardSummary = null;
+    var cardSearchQuery = '';
+    var cardSearchMin = 15;
+
+    /* Remembers a "save and next" so the dialog can open again afterwards. */
+    var cardSaveAndNext = false;
     var openMenu = null;
     var feedbackTimer = null;
 
@@ -147,7 +161,50 @@
         /* The short message, its text and the button that can belong to it. */
         feedback: document.getElementById('feedback'),
         feedbackText: document.getElementById('feedback-text'),
-        feedbackAction: document.getElementById('feedback-action')
+        feedbackAction: document.getElementById('feedback-action'),
+
+        /* The header of a card list, above the rows of a subcategory. */
+        cardTools: document.getElementById('card-tools'),
+        cardToolsCount: document.getElementById('card-tools-count'),
+        cardToolsDue: document.getElementById('card-tools-due'),
+        cardToolsBar: document.getElementById('card-tools-bar'),
+        cardToolsLegend: document.getElementById('card-tools-legend'),
+        cardToolsPartNew: document.getElementById('card-tools-part-new'),
+        cardToolsPartUnsure: document.getElementById('card-tools-part-unsure'),
+        cardToolsPartKnown: document.getElementById('card-tools-part-known'),
+        cardSearchWrap: document.getElementById('card-tools-search'),
+        cardSearch: document.getElementById('card-search'),
+        cardSearchEmpty: document.getElementById('card-search-empty'),
+        learnButton: document.getElementById('learn-button'),
+
+        /* The study session. */
+        learn: document.getElementById('learn'),
+        learnStage: document.getElementById('learn-stage'),
+        learnCard: document.getElementById('learn-card'),
+        learnCounter: document.getElementById('learn-counter'),
+        learnProgress: document.getElementById('learn-progress'),
+        learnProgressFill: document.getElementById('learn-progress-fill'),
+        learnSideLabel: document.getElementById('learn-side-label'),
+        learnFrontText: document.getElementById('learn-front-text'),
+        learnBackText: document.getElementById('learn-back-text'),
+        learnHint: document.getElementById('learn-hint'),
+        learnRating: document.getElementById('learn-rating'),
+        learnButtons: document.getElementById('learn-buttons'),
+        learnSummary: document.getElementById('learn-summary'),
+        learnSummaryNumber: document.getElementById('learn-summary-number'),
+        learnSummaryBars: document.getElementById('learn-summary-bars'),
+        learnSummaryLeft: document.getElementById('learn-summary-left'),
+        learnRepeat: document.getElementById('learn-repeat'),
+        learnFinish: document.getElementById('learn-finish'),
+        learnAsk: document.getElementById('learn-ask'),
+        learnAskText: document.getElementById('learn-ask-text'),
+        learnAskCancel: document.getElementById('learn-ask-cancel'),
+        learnAskConfirm: document.getElementById('learn-ask-confirm'),
+        learnClose: document.getElementById('learn-close'),
+        learnNotice: document.getElementById('learn-notice'),
+
+        /* The second button of the card dialog. */
+        dialogSaveNext: document.getElementById('app-dialog-save-next')
     };
 
     /* ----------------------------------------------------------------------
@@ -578,6 +635,23 @@
 
         if (code === 'invalid_name' || code === 'invalid_request_body') {
             return t('dialog.errorName');
+        }
+
+        /*
+         * The study session needs a signed-in user before it can store anything.
+         * The sentence says that plainly instead of pretending the answer was
+         * saved.
+         */
+        if (code === 'no_user_session') {
+            return t('cards.noUser');
+        }
+
+        if (code === 'review_failed') {
+            return t('learn.savedFailed');
+        }
+
+        if (code === 'undo_conflict') {
+            return t('learn.undoFailed');
         }
 
         return t('dialog.errorServer');
@@ -1168,8 +1242,24 @@
         item.className = 'row row--card reveal';
         item.style.setProperty('--reveal-index', String(index));
 
-        var body = document.createElement('span');
-        body.className = 'row__link row__link--static';
+        var meta = cardStatusMeta(card);
+
+        /*
+         * The whole row opens the card dialog. It is a real button, because a
+         * click target that can be reached with the keyboard is the only kind
+         * that works for everybody; the stylesheet takes the browser's own button
+         * box away again, so the row still looks like a row.
+         *
+         * The three dots menu sits NEXT to this button and not inside it, so a
+         * click on the menu can never open the dialog as well.
+         */
+        var body = document.createElement('button');
+        body.type = 'button';
+        body.className = 'row__link row__link--static row__open';
+        body.setAttribute('aria-label', t('cards.openEditor', { name: card.front }));
+        body.addEventListener('click', function () {
+            openCardForm(card, card.category_id);
+        });
 
         var number = document.createElement('span');
         number.className = 'row__index';
@@ -1192,12 +1282,33 @@
 
         var badge = document.createElement('span');
         badge.className = 'row__badge';
-        badge.textContent = t('card.bidirectional');
+        badge.textContent = t('cards.bidirectionalShort');
         badge.hidden = card.is_bidirectional !== true;
+
+        /*
+         * The status: a dot and the word for it, always both. The colour alone
+         * would say nothing to a person who cannot tell the three colours apart,
+         * and the title carries the longer sentence.
+         */
+        var status = document.createElement('span');
+        status.className = 'row__status ' + meta.className;
+        status.setAttribute('title', meta.hint);
+
+        var dot = document.createElement('span');
+        dot.className = 'row__status-dot';
+        dot.setAttribute('aria-hidden', 'true');
+
+        var statusText = document.createElement('span');
+        statusText.className = 'row__status-text';
+        statusText.textContent = meta.label;
+
+        status.appendChild(dot);
+        status.appendChild(statusText);
 
         body.appendChild(number);
         body.appendChild(stack);
         body.appendChild(badge);
+        body.appendChild(status);
 
         item.appendChild(body);
         item.appendChild(buildMenu([
@@ -1378,7 +1489,22 @@
             }
 
             currentEntry = current;
-            currentEntryCards = cardsResult.ok && Array.isArray(cardsResult.data) ? cardsResult.data : [];
+            /*
+             * The card list arrives as cards plus the counts the API made in the
+             * same query. A card of an older answer without that envelope would
+             * still be an array, so both shapes are understood.
+             */
+            var cardsPayload = cardsResult.ok && cardsResult.data !== null && typeof cardsResult.data === 'object'
+                ? cardsResult.data
+                : null;
+
+            if (cardsPayload !== null && Array.isArray(cardsPayload.cards)) {
+                currentEntryCards = cardsPayload.cards;
+                openCardSummary = typeof cardsPayload.summary === 'object' ? cardsPayload.summary : null;
+            } else {
+                currentEntryCards = Array.isArray(cardsResult.data) ? cardsResult.data : [];
+                openCardSummary = null;
+            }
 
             var pageTitle = displayName(current);
 
@@ -1441,29 +1567,32 @@
 
             if (isSubcategory) {
                 renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
-
-                elements.entryList.textContent = '';
+                renderCardTools(openCardSummary);
 
                 if (currentEntryCards.length === 0) {
-                    showEntryEmpty('cards.empty.title', categoryMeta(areaRow), 'cards.addCard', function () {
+                    /* Nothing to learn, nothing to search: the header stays away
+                       and the page offers the one useful step. */
+                    elements.entryList.textContent = '';
+                    openCards = [];
+
+                    showEntryEmpty('cards.empty.title', categoryMeta(areaRow), 'cards.addFirst', function () {
                         openCardForm(null, current.id);
                     });
                 } else {
-                    currentEntryCards.forEach(function (card, index) {
-                        elements.entryList.appendChild(buildCardRow(card, index));
-                    });
-
-                    elements.entryList.appendChild(buildAddRow('cards.addCard', function () {
-                        openCardForm(null, current.id);
-                    }));
-
-                    elements.entryList.hidden = false;
+                    openCards = currentEntryCards;
+                    cardSearchQuery = '';
+                    elements.cardSearch.value = '';
+                    renderCardList(current.id);
                 }
 
                 /* The learning area section belongs to the level above. */
                 elements.areaCards.hidden = true;
                 return;
             }
+
+            /* A learning area has no card list of its own, so its header goes. */
+            renderCardTools(null);
+            openCards = [];
 
             renderFigures(children.length, 'tile.subcategories.one', 'tile.subcategories.other', currentEntryCards.length);
 
@@ -2639,8 +2768,24 @@
             checked: card !== null && card.is_bidirectional === true
         });
 
+        /* The live preview: the same card shape the study session shows. */
+        elements.dialogFields.appendChild(buildCardPreview());
+
+        /*
+         * A new card can be typed one after another: the second button saves and
+         * keeps the dialog open. While an existing card is edited there is no
+         * "next" card, so the button stays away.
+         */
+        cardSaveAndNext = false;
+        elements.dialogSaveNext.hidden = card !== null;
+        elements.dialogSaveNext.textContent = t('dialog.card.saveNext');
+        elements.dialogSaveNext.disabled = false;
+
+        wireCardDialogShortcuts();
+
         openDialog();
         dialogFields.front.control.focus();
+        updateCardPreview();
     }
 
     function validateCardForm() {
@@ -3089,6 +3234,10 @@
                 payload.category_id = dialogParentId;
             }
 
+            /* Remembered before the dialog closes: the "save and next" path needs
+               it to open the empty form again for the same subcategory. */
+            cardSubmitCategoryId = dialogParentId;
+
             url = isCardEdit
                 ? config.endpoints.card + '?id=' + encodeURIComponent(dialogEntry.id)
                 : config.endpoints.cards;
@@ -3185,6 +3334,22 @@
                 showFeedback(t('feedback.created', { name: createdName }));
             } else {
                 showFeedback(t('feedback.updated', { name: isCard ? payload.front : displayName(dialogEntry) }));
+            }
+
+            /*
+             * "Save and next card": the list is rebuilt from the API first, so the
+             * card that was just saved really is in it, and then the empty form
+             * opens again for the same subcategory.
+             */
+            if (isCard && cardSaveAndNext) {
+                cardSaveAndNext = false;
+                render();
+
+                window.setTimeout(function () {
+                    openCardForm(null, cardSubmitCategoryId);
+                }, prefersReducedMotion() ? 0 : 140);
+
+                return;
             }
 
             render();
@@ -3311,5 +3476,922 @@
         applyLocale(locale, false);
     }
 
+    /* ----------------------------------------------------------------------
+       The card list of a subcategory
+       ---------------------------------------------------------------------- */
+
+    /* Which subcategory a "save and next card" belongs to. */
+    var cardSubmitCategoryId = null;
+
+    /*
+     * The three statuses a card can have, with the wording and the class name
+     * that belongs to each. The status itself comes from the API: it counts what
+     * is in the database, incl. whether a card is due, and the browser only
+     * repeats it.
+     */
+    function cardStatusMeta(card) {
+        var status = card.progress && typeof card.progress.status === 'string' ? card.progress.status : 'new';
+        var name = status === 'known' ? 'known' : (status === 'unsure' ? 'unsure' : 'new');
+        var hint = t('cards.status.' + name + 'Hint');
+
+        /*
+         * A card that is due says since when. The date is shown in the language
+         * that is switched on, and it is only a hint: the word next to the dot
+         * already says that something has to be done.
+         */
+        if (card.progress && card.progress.is_due === true && typeof card.progress.due_at === 'string') {
+            hint = hint + ' · ' + t('cards.dueHint', { date: formatDueDate(card.progress.due_at) });
+        }
+
+        return {
+            status: name,
+            label: t('cards.status.' + name),
+            hint: hint,
+            className: 'row__status--' + name
+        };
+    }
+
+    /* Turns "2026-09-21 15:04:05" into a short date in the current language. */
+    function formatDueDate(value) {
+        var parsed = new Date(String(value).replace(' ', 'T'));
+
+        if (isNaN(parsed.getTime())) {
+            return String(value);
+        }
+
+        return parsed.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    /*
+     * The header of a card list: how many cards there are, how many of them are
+     * waiting, and the bar that shows the three statuses as shares.
+     *
+     * null means "this page has no card list", and then the whole header goes.
+     */
+    function renderCardTools(summary) {
+        var usable = summary !== null
+            && typeof summary === 'object'
+            && typeof summary.total === 'number'
+            && summary.total > 0;
+
+        elements.cardTools.hidden = !usable;
+
+        if (!usable) {
+            elements.cardSearchWrap.hidden = true;
+            elements.learnButton.disabled = true;
+            return;
+        }
+
+        var total = summary.total;
+        var fresh = summary['new'] || 0;
+        var unsure = summary.unsure || 0;
+        var known = summary.known || 0;
+        var due = summary.due || 0;
+
+        elements.cardToolsCount.textContent = total === 1
+            ? t('cards.summaryOne')
+            : t('cards.summary', { count: total });
+
+        elements.cardToolsDue.textContent = t('cards.due', { count: due });
+        elements.cardToolsDue.hidden = due === 0;
+
+        elements.cardToolsLegend.textContent = t('cards.legend', { 'new': fresh, unsure: unsure, known: known });
+        elements.cardToolsBar.setAttribute(
+            'aria-label',
+            t('cards.distribution', { 'new': fresh, unsure: unsure, known: known })
+        );
+
+        setCardToolsPart(elements.cardToolsPartNew, fresh, total);
+        setCardToolsPart(elements.cardToolsPartUnsure, unsure, total);
+        setCardToolsPart(elements.cardToolsPartKnown, known, total);
+
+        /* There is something to study, so the button works. */
+        elements.learnButton.disabled = false;
+
+        /* A search over three cards is more work than looking at them. */
+        elements.cardSearchWrap.hidden = total < cardSearchMin;
+        elements.cardSearch.setAttribute('placeholder', t('cards.searchPlaceholder'));
+        elements.cardSearch.setAttribute('aria-label', t('cards.search'));
+    }
+
+    function setCardToolsPart(element, count, total) {
+        element.hidden = count === 0;
+        element.style.setProperty('--share', (total > 0 ? (count / total) * 100 : 0) + '%');
+    }
+
+    /*
+     * Builds the rows that are visible right now.
+     *
+     * The filter runs over the list that is already loaded and asks the server
+     * for nothing: a search is a view of the same data, and no query is built
+     * from what somebody typed.
+     */
+    function renderCardList(categoryId) {
+        var query = cardSearchQuery.trim().toLowerCase();
+        var visible = [];
+        var index;
+
+        elements.entryList.textContent = '';
+
+        for (index = 0; index < openCards.length; index++) {
+            if (query === '' || cardMatches(openCards[index], query)) {
+                visible.push({ card: openCards[index], index: index });
+            }
+        }
+
+        /* Nothing matches the search: that is not "no cards yet". */
+        elements.cardSearchEmpty.textContent = query === '' ? '' : t('cards.searchEmpty');
+        elements.cardSearchEmpty.hidden = query === '' || visible.length > 0;
+
+        if (visible.length === 0 && query !== '') {
+            elements.entryList.hidden = true;
+            return;
+        }
+
+        visible.forEach(function (entry) {
+            elements.entryList.appendChild(buildCardRow(entry.card, entry.index));
+        });
+
+        elements.entryList.appendChild(buildAddRow('cards.addCard', function () {
+            openCardForm(null, categoryId);
+        }));
+
+        elements.entryList.hidden = false;
+    }
+
+    function cardMatches(card, query) {
+        var front = typeof card.front === 'string' ? card.front.toLowerCase() : '';
+        var back = typeof card.back === 'string' ? card.back.toLowerCase() : '';
+
+        return front.indexOf(query) !== -1 || back.indexOf(query) !== -1;
+    }
+
+    /*
+     * The live preview inside the card dialog: the two text fields as they are
+     * typed, in the shape the study session uses, so what is written is what will
+     * be asked later.
+     */
+    function buildCardPreview() {
+        var wrap = el('div', 'dialog__field dialog__field--preview');
+        var label = el('p', 'dialog__label', t('dialog.card.preview'));
+        label.setAttribute('data-i18n', 'dialog.card.preview');
+
+        var card = el('div', 'card-preview');
+        var frontLabel = el('p', 'card-preview__label', t('dialog.card.previewFront'));
+        frontLabel.setAttribute('data-i18n', 'dialog.card.previewFront');
+
+        var front = el('p', 'card-preview__text', '');
+        front.id = 'card-preview-front';
+        front.setAttribute('data-i18n-empty', 'dialog.card.frontPlaceholder');
+
+        var divider = el('div', 'card-preview__divider');
+
+        var backLabel = el('p', 'card-preview__label', t('dialog.card.previewBack'));
+        backLabel.setAttribute('data-i18n', 'dialog.card.previewBack');
+
+        var back = el('p', 'card-preview__text', '');
+        back.id = 'card-preview-back';
+        back.setAttribute('data-i18n-empty', 'dialog.card.backPlaceholder');
+
+        card.appendChild(frontLabel);
+        card.appendChild(front);
+        card.appendChild(divider);
+        card.appendChild(backLabel);
+        card.appendChild(back);
+
+        var count = el('p', 'dialog__hint', '');
+        count.id = 'card-preview-count';
+
+        var hint = el('p', 'dialog__hint', t('dialog.card.hintShortcut'));
+        hint.setAttribute('data-i18n', 'dialog.card.hintShortcut');
+
+        wrap.appendChild(label);
+        wrap.appendChild(card);
+        wrap.appendChild(count);
+        wrap.appendChild(hint);
+
+        return wrap;
+    }
+
+    /* Writes the two fields into the preview, keeping the line breaks. */
+    function updateCardPreview() {
+        if (dialogKind !== 'card' || !dialogFields.front || !dialogFields.back) {
+            return;
+        }
+
+        var front = document.getElementById('card-preview-front');
+        var back = document.getElementById('card-preview-back');
+        var count = document.getElementById('card-preview-count');
+
+        if (front !== null) {
+            front.textContent = dialogFields.front.control.value;
+            front.classList.toggle('is-empty', dialogFields.front.control.value.trim() === '');
+        }
+
+        if (back !== null) {
+            back.textContent = dialogFields.back.control.value;
+            back.classList.toggle('is-empty', dialogFields.back.control.value.trim() === '');
+        }
+
+        if (count !== null) {
+            count.textContent = t('dialog.card.frontCount', {
+                count: dialogFields.front.control.value.length,
+                max: config.limits.cardText
+            });
+        }
+    }
+
+    /*
+     * The two keyboard shortcuts of the card dialog: typing in the fields updates
+     * the preview, and Ctrl+Enter saves without reaching for the mouse. Tab is
+     * left alone - it goes from the front to the back by itself, because that is
+     * the order of the fields.
+     */
+    function wireCardDialogShortcuts() {
+        ['front', 'back'].forEach(function (name) {
+            var field = dialogFields[name];
+
+            if (!field) {
+                return;
+            }
+
+            field.control.addEventListener('input', function () {
+                updateCardPreview();
+            });
+
+            field.control.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    submitDialog();
+                }
+            });
+        });
+    }
+
+    /* ----------------------------------------------------------------------
+       The study session
+       ---------------------------------------------------------------------- */
+
+    /*
+     * One session, held in memory only:
+     *
+     *   queue     the turns to work through, as the API ordered them
+     *   index     the turn that is on screen
+     *   flipped   whether the answer is showing
+     *   results   card id -> the status the API stored for it
+     *   ratings   every answer given, in order (for the summary)
+     *   undo      the last answer, with everything needed to take it back
+     *
+     * Nothing about the schedule is calculated here. The queue order, the status
+     * and the interval all come from the API; this side only shows them and
+     * counts what it was told.
+     */
+    var learnSession = null;
+    var learnTimer = null;
+
+    function learnIsOpen() {
+        return learnSession !== null;
+    }
+
+    /* Opens the session for the open subcategory. */
+    function startLearning(mode) {
+        if (currentEntry === null || currentEntry.parent_id === null) {
+            return;
+        }
+
+        var categoryId = currentEntry.id;
+        var url = config.endpoints.review
+            + '?category_id=' + encodeURIComponent(categoryId)
+            + '&mode=' + (mode === 'difficult' ? 'difficult' : 'all');
+
+        elements.learnButton.disabled = true;
+
+        apiRequest(url, 'GET').then(function (result) {
+            elements.learnButton.disabled = false;
+
+            if (!result.ok || result.data === null || !Array.isArray(result.data.queue)) {
+                showFeedback(errorMessage(result.code));
+                return;
+            }
+
+            if (result.data.queue.length === 0) {
+                showFeedback(t('learn.noCards'));
+                return;
+            }
+
+            learnSession = {
+                categoryId: categoryId,
+                mode: result.data.mode === 'difficult' ? 'difficult' : 'all',
+                queue: result.data.queue.slice(),
+                hasUser: result.data.has_user === true,
+                index: 0,
+                flipped: false,
+                busy: false,
+                results: {},
+                ratings: [],
+                again: {},
+                undo: null,
+                saved: 0
+            };
+
+            openLearnView();
+            renderLearnCard();
+        });
+    }
+
+    function openLearnView() {
+        elements.learn.hidden = false;
+        elements.learnSummary.hidden = true;
+        elements.learnStage.hidden = false;
+        elements.learnAsk.hidden = true;
+        elements.learnNotice.hidden = true;
+        document.body.classList.add('is-learning');
+
+        /* The focus goes into the session, so the keyboard works right away. */
+        elements.learnCard.focus();
+
+        if (learnSession.hasUser !== true) {
+            showLearnNotice(t('learn.noUser'), true);
+        }
+    }
+
+    /*
+     * Shows the turn that is on screen: the counter, the line, the two sides and
+     * the four answers with the interval each of them would lead to.
+     */
+    function renderLearnCard() {
+        if (learnSession === null) {
+            return;
+        }
+
+        var entry = learnSession.queue[learnSession.index];
+
+        if (entry === undefined) {
+            showLearnSummary();
+            return;
+        }
+
+        elements.learnCounter.textContent = t('learn.counter', {
+            position: learnSession.index + 1,
+            total: learnSession.queue.length
+        });
+
+        var percent = Math.min(100, Math.round((learnSession.index / learnSession.queue.length) * 100));
+        elements.learnProgressFill.style.width = percent + '%';
+        elements.learnProgress.setAttribute('aria-valuenow', String(percent));
+        elements.learnProgress.setAttribute('aria-valuetext', t('learn.progress', { percent: percent }));
+
+        elements.learnFrontText.textContent = entry.front;
+        elements.learnBackText.textContent = entry.back;
+        elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
+
+        /* Both faces are written; which one is visible is the flip. */
+        elements.learnCard.classList.toggle('is-flipped', learnSession.flipped);
+        elements.learnStage.classList.toggle('is-flipped', learnSession.flipped);
+        elements.learnSideLabel.textContent = t(learnSession.flipped ? 'learn.answer' : 'learn.question');
+        elements.learnSideLabel.setAttribute('data-i18n', learnSession.flipped ? 'learn.answer' : 'learn.question');
+        elements.learnHint.hidden = learnSession.flipped;
+
+        buildLearnButtons(entry);
+    }
+
+    /*
+     * The four answers. The interval under each of them comes from the API, which
+     * calculated it with the same scheduler that will store the answer.
+     */
+    function buildLearnButtons(entry) {
+        var previews = entry.preview_minutes && typeof entry.preview_minutes === 'object' ? entry.preview_minutes : null;
+
+        elements.learnButtons.textContent = '';
+
+        learnRatingKeys().forEach(function (rating) {
+            var button = el('button', 'learn__button learn__button--' + rating.name);
+            button.type = 'button';
+            button.disabled = !learnSession.flipped;
+            button.dataset.rating = String(rating.value);
+
+            var label = el('span', 'learn__button-label', t(rating.labelKey));
+            label.setAttribute('data-i18n', rating.labelKey);
+
+            var key = el('span', 'learn__button-key', rating.key);
+            key.setAttribute('aria-hidden', 'true');
+
+            button.appendChild(label);
+            button.appendChild(key);
+
+            if (previews !== null) {
+                var minutes = previews[rating.name];
+                var interval = el('span', 'learn__button-interval', '');
+                interval.setAttribute(
+                    'title',
+                    t('learn.shortcut', { key: rating.key })
+                );
+
+                if (typeof minutes === 'number') {
+                    interval.textContent = t('learn.nextInterval', { interval: formatLearnInterval(minutes) });
+                }
+
+                button.appendChild(interval);
+            }
+
+            button.setAttribute(
+                'aria-label',
+                t(rating.labelKey) + (typeof previews === 'object' && previews !== null && typeof previews[rating.name] === 'number'
+                    ? ', ' + t('learn.nextInterval', { interval: formatLearnInterval(previews[rating.name]) })
+                    : '')
+            );
+
+            button.addEventListener('click', function () {
+                rateLearnCard(rating.value);
+            });
+
+            elements.learnButtons.appendChild(button);
+        });
+    }
+
+    /* The four answers, in the order they are shown and pressed. */
+    function learnRatingKeys() {
+        return [
+            { value: 1, key: '1', name: 'again', labelKey: 'learn.again' },
+            { value: 2, key: '2', name: 'hard', labelKey: 'learn.hard' },
+            { value: 3, key: '3', name: 'good', labelKey: 'learn.good' },
+            { value: 4, key: '4', name: 'easy', labelKey: 'learn.easy' }
+        ];
+    }
+
+    /* "10 min", "19 h", "1 day", "3 days": the number comes from the server. */
+    function formatLearnInterval(minutes) {
+        if (minutes < 60) {
+            return t('learn.intervalMinutes', { count: minutes });
+        }
+
+        if (minutes < 60 * 24) {
+            return t('learn.intervalHours', { count: Math.round(minutes / 60) });
+        }
+
+        var days = Math.round((minutes / (60 * 24)) * 10) / 10;
+
+        return days === 1
+            ? t('learn.intervalOneDay')
+            : t('learn.intervalDays', { count: days });
+    }
+
+    function flipLearnCard() {
+        if (learnSession === null || learnSession.busy) {
+            return;
+        }
+
+        learnSession.flipped = !learnSession.flipped;
+
+        elements.learnCard.classList.toggle('is-flipped', learnSession.flipped);
+        elements.learnStage.classList.toggle('is-flipped', learnSession.flipped);
+        elements.learnSideLabel.textContent = t(learnSession.flipped ? 'learn.answer' : 'learn.question');
+        elements.learnHint.hidden = learnSession.flipped;
+
+        var entry = learnSession.queue[learnSession.index];
+
+        if (entry !== undefined) {
+            elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
+        }
+
+        /* The answers keep their place: before the flip they are there, but out
+           of reach. */
+        Array.prototype.forEach.call(elements.learnButtons.children, function (button) {
+            button.disabled = !learnSession.flipped;
+        });
+
+        /*
+         * The focus stays on the card while it is turned over. If it jumped to
+         * the first answer, the space bar would press that answer instead of
+         * turning the card back - and the space bar is meant to turn the card,
+         * always. The four answers are reached with Tab, and their number keys
+         * work at any time.
+         */
+        elements.learnCard.focus();
+    }
+
+    /*
+     * Stores one answer. The API decides everything: the new status, the interval
+     * and when the card comes back. This function only shows what came back.
+     */
+    function rateLearnCard(rating) {
+        if (learnSession === null || learnSession.busy || !learnSession.flipped) {
+            return;
+        }
+
+        if (learnSession.hasUser !== true) {
+            showLearnNotice(t('learn.noUser'));
+            return;
+        }
+
+        var entry = learnSession.queue[learnSession.index];
+
+        if (entry === undefined) {
+            return;
+        }
+
+        learnSession.busy = true;
+        setLearnButtonsDisabled(true);
+
+        apiRequest(config.endpoints.review, 'POST', {
+            action: 'rate',
+            category_id: learnSession.categoryId,
+            card_id: entry.card_id,
+            rating: rating
+        }).then(function (result) {
+            learnSession.busy = false;
+            setLearnButtonsDisabled(false);
+
+            if (!result.ok) {
+                /* The answer was NOT stored, so the card stays where it is and
+                   the message says why. */
+                showLearnNotice(errorMessage(result.code));
+                return;
+            }
+
+            var data = result.data;
+
+            learnSession.saved++;
+            learnSession.ratings.push(rating);
+            learnSession.results[entry.card_id] = data.status;
+
+            /*
+             * "Again" comes back inside the same session. The card is put behind
+             * everything that is left, twice at most, so a card that is simply
+             * not there yet cannot keep the session running forever.
+             */
+            var repeats = learnSession.again[entry.card_id] || 0;
+            var pushedAgain = false;
+
+            if (rating === 1 && repeats < 2) {
+                learnSession.again[entry.card_id] = repeats + 1;
+                learnSession.queue.push(entry);
+                pushedAgain = true;
+            }
+
+            learnSession.undo = {
+                index: learnSession.index,
+                cardId: entry.card_id,
+                rating: rating,
+                stored: data.stored,
+                previous: data.previous_state,
+                hadProgressBefore: data.had_progress_before === true,
+                pushedAgain: pushedAgain
+            };
+
+            if (rating === 1) {
+                showLearnNotice(t('learn.rateAgain'));
+            } else {
+                hideLearnNotice();
+            }
+
+            moveToNextLearnCard();
+        });
+    }
+
+    function setLearnButtonsDisabled(disabled) {
+        Array.prototype.forEach.call(elements.learnButtons.children, function (button) {
+            button.disabled = disabled || !learnSession.flipped;
+        });
+    }
+
+    /* The card leaves to the left, the next one comes in from the right. */
+    function moveToNextLearnCard() {
+        var reduced = prefersReducedMotion();
+
+        elements.learnCard.classList.add('is-leaving-left');
+
+        window.clearTimeout(learnTimer);
+        learnTimer = window.setTimeout(function () {
+            elements.learnCard.classList.remove('is-leaving-left', 'is-flipped');
+            learnSession.index++;
+            learnSession.flipped = false;
+
+            if (learnSession.index >= learnSession.queue.length) {
+                showLearnSummary();
+                return;
+            }
+
+            renderLearnCard();
+            elements.learnCard.classList.add('is-entering-right');
+
+            learnTimer = window.setTimeout(function () {
+                elements.learnCard.classList.remove('is-entering-right');
+            }, reduced ? 0 : 260);
+        }, reduced ? 0 : 250);
+    }
+
+    /*
+     * Takes the last answer back. The API checks that nothing changed since, so a
+     * card that was rated again in another tab is never overwritten silently.
+     */
+    function undoLearnRating() {
+        if (learnSession === null || learnSession.busy || learnSession.undo === null) {
+            return;
+        }
+
+        var undo = learnSession.undo;
+
+        learnSession.busy = true;
+
+        apiRequest(config.endpoints.review, 'POST', {
+            action: 'undo',
+            category_id: learnSession.categoryId,
+            card_id: undo.cardId,
+            stored: undo.stored,
+            previous: undo.previous
+        }).then(function (result) {
+            learnSession.busy = false;
+
+            if (!result.ok) {
+                showLearnNotice(errorMessage(result.code));
+                return;
+            }
+
+            learnSession.saved = Math.max(0, learnSession.saved - 1);
+            learnSession.ratings.pop();
+            delete learnSession.results[undo.cardId];
+
+            if (undo.pushedAgain) {
+                var last = learnSession.queue.length - 1;
+
+                while (last > undo.index && learnSession.queue[last].card_id === undo.cardId) {
+                    learnSession.queue.splice(last, 1);
+                    last--;
+                }
+            }
+
+            learnSession.undo = null;
+            learnSession.index = undo.index;
+            learnSession.flipped = false;
+
+            elements.learnSummary.hidden = true;
+            elements.learnStage.hidden = false;
+
+            renderLearnCard();
+            showLearnNotice(t('learn.undone'));
+        });
+    }
+
+    /*
+     * The end of a session: how many cards are known now, how the answers were
+     * spread, and the two ways on.
+     */
+    function showLearnSummary() {
+        if (learnSession === null) {
+            return;
+        }
+
+        var counts = { again: 0, hard: 0, good: 0, easy: 0 };
+        var known = 0;
+        var total = 0;
+        var seen = {};
+
+        learnSession.ratings.forEach(function (rating) {
+            var found = learnRatingKeys().filter(function (item) {
+                return item.value === rating;
+            })[0];
+
+            if (found) {
+                counts[found.name]++;
+            }
+        });
+
+        Object.keys(learnSession.results).forEach(function (cardId) {
+            seen[cardId] = true;
+        });
+
+        total = Math.max(1, Object.keys(seen).length);
+
+        Object.keys(learnSession.results).forEach(function (cardId) {
+            if (learnSession.results[cardId] === 'known') {
+                known++;
+            }
+        });
+
+        elements.learnStage.hidden = true;
+        elements.learnSummary.hidden = false;
+        elements.learnSummaryNumber.textContent = t('learn.done.known', { known: known, total: total });
+
+        elements.learnSummaryBars.textContent = '';
+
+        var highest = Math.max(1, counts.again, counts.hard, counts.good, counts.easy);
+
+        learnRatingKeys().forEach(function (rating) {
+            var item = el('li', 'learn__bar learn__bar--' + rating.name);
+            var label = el('span', 'learn__bar-label', t(rating.labelKey));
+            label.setAttribute('data-i18n', rating.labelKey);
+            var track = el('span', 'learn__bar-track');
+            var fill = el('span', 'learn__bar-fill');
+            fill.style.setProperty('--share', (counts[rating.name] / highest) * 100 + '%');
+            track.appendChild(fill);
+            var value = el('span', 'learn__bar-value', String(counts[rating.name]));
+            item.appendChild(label);
+            item.appendChild(track);
+            item.appendChild(value);
+            elements.learnSummaryBars.appendChild(item);
+        });
+
+        /* The difficult cards of this session can be repeated right away. */
+        var difficult = learnSession.ratings.filter(function (rating) {
+            return rating === 1 || rating === 2;
+        }).length;
+
+        elements.learnRepeat.hidden = difficult === 0;
+        elements.learnSummaryLeft.textContent = t('learn.done.left', { count: counts.again });
+        elements.learnSummaryLeft.hidden = counts.again === 0 && difficult === 0;
+
+        elements.learnFinish.focus();
+    }
+
+    /* Leaves the session and reloads the list, so the dots are up to date. */
+    function closeLearnView() {
+        window.clearTimeout(learnTimer);
+        learnSession = null;
+
+        elements.learn.hidden = true;
+        elements.learnAsk.hidden = true;
+        elements.learnNotice.hidden = true;
+        elements.learnCard.classList.remove('is-flipped', 'is-leaving-left', 'is-entering-right');
+        document.body.classList.remove('is-learning');
+
+        /* Everything the page shows comes from the API again: the statuses of the
+           cards just answered are not guessed from memory. */
+        responseCache = {};
+        render();
+        elements.learnButton.focus();
+    }
+
+    /*
+     * Closing asks first when answers were already stored. A session that has
+     * only been looked at closes straight away - there is nothing to lose.
+     */
+    function askBeforeClosingLearn() {
+        if (learnSession === null) {
+            return;
+        }
+
+        if (learnSession.saved === 0) {
+            closeLearnView();
+            return;
+        }
+
+        elements.learnAskText.textContent = t('learn.askEnd.text', { count: learnSession.saved });
+        elements.learnAsk.hidden = false;
+        elements.learnAskCancel.focus();
+    }
+
+    function showLearnNotice(message, show) {
+        elements.learnNotice.textContent = message;
+        elements.learnNotice.hidden = show === false;
+    }
+
+    function hideLearnNotice() {
+        elements.learnNotice.hidden = true;
+        elements.learnNotice.textContent = '';
+    }
+
+    /* ----------------------------------------------------------------------
+       Wiring: the study button, the search, the session keys and the swipe
+       ---------------------------------------------------------------------- */
+
+    function wireLearning() {
+        elements.learnButton.addEventListener('click', function () {
+            startLearning('all');
+        });
+
+        /* The search filters the loaded list; it never asks the server. */
+        elements.cardSearch.addEventListener('input', function () {
+            cardSearchQuery = elements.cardSearch.value;
+
+            if (currentEntry !== null) {
+                renderCardList(currentEntry.id);
+            }
+        });
+
+        elements.learnClose.addEventListener('click', askBeforeClosingLearn);
+        elements.learnAskCancel.addEventListener('click', function () {
+            elements.learnAsk.hidden = true;
+            elements.learnCard.focus();
+        });
+        elements.learnAskConfirm.addEventListener('click', closeLearnView);
+        elements.learnFinish.addEventListener('click', closeLearnView);
+
+        elements.learnRepeat.addEventListener('click', function () {
+            startLearning('difficult');
+        });
+
+        /* A click on the card turns it over - on a phone this is the tap. */
+        elements.learnCard.addEventListener('click', function (event) {
+            if (event.target.closest('button') === null) {
+                flipLearnCard();
+            }
+        });
+
+        wireLearnKeyboard();
+        wireLearnSwipe();
+    }
+
+    /*
+     * The keys of a session: space and Enter turn the card over, 1 to 4 answer
+     * it, the left arrow takes the last answer back and Escape ends the session.
+     *
+     * The listener sits on the document, so it works no matter which element has
+     * the focus - but it stays out of the way while a button is focused, because
+     * Enter and space belong to that button then.
+     */
+    function wireLearnKeyboard() {
+        document.addEventListener('keydown', function (event) {
+            if (learnSession === null) {
+                return;
+            }
+
+            /* A question about ending the session owns the keyboard. */
+            if (!elements.learnAsk.hidden) {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    elements.learnAsk.hidden = true;
+                    elements.learnCard.focus();
+                }
+
+                return;
+            }
+
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                askBeforeClosingLearn();
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                undoLearnRating();
+                return;
+            }
+
+            var focusedIsButton = document.activeElement !== null
+                && typeof document.activeElement.closest === 'function'
+                && document.activeElement.closest('button') !== null;
+
+            if (event.key === ' ' || event.key === 'Enter') {
+                if (focusedIsButton && event.target !== elements.learnCard) {
+                    return;
+                }
+
+                event.preventDefault();
+                flipLearnCard();
+                return;
+            }
+
+            if (event.key >= '1' && event.key <= '4') {
+                event.preventDefault();
+                rateLearnCard(Number(event.key));
+            }
+        });
+    }
+
+    /*
+     * Swiping: to the left means "Again", to the right means "Good". The four
+     * buttons stay where they are - a swipe is a shortcut, not the only way.
+     */
+    function wireLearnSwipe() {
+        var start = null;
+
+        elements.learnStage.addEventListener('pointerdown', function (event) {
+            start = { x: event.clientX, y: event.clientY, id: event.pointerId };
+        });
+
+        elements.learnStage.addEventListener('pointerup', function (event) {
+            if (start === null || start.id !== event.pointerId) {
+                start = null;
+                return;
+            }
+
+            var dx = event.clientX - start.x;
+            var dy = event.clientY - start.y;
+            start = null;
+
+            if (learnSession === null || learnSession.busy || !learnSession.flipped) {
+                return;
+            }
+
+            /* Only a clearly horizontal movement counts as a swipe. */
+            if (Math.abs(dx) < 70 || Math.abs(dy) > 60) {
+                return;
+            }
+
+            rateLearnCard(dx < 0 ? 1 : 3);
+        });
+
+        elements.learnStage.addEventListener('pointercancel', function () {
+            start = null;
+        });
+    }
+
+    wireLearning();
     init();
 })();

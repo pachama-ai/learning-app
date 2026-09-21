@@ -25,8 +25,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
+require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
+require_once __DIR__ . '/../../src/services/review_service.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -77,8 +79,20 @@ try {
         send_json_error('category_not_found', 'This category does not exist.', 404);
     }
 
+    /*
+     * Every card carries the status it has for the signed-in user. Without a
+     * signed-in user there is no progress to read and every card is "new",
+     * which is the truth: without a user id no progress row can exist.
+     */
+    $userId = current_user_id($pdo);
+    $cards = review_cards_with_progress($pdo, $categoryId, $userId);
+
     // An empty list is a valid answer and lets the page show its empty state.
-    send_json_success(find_cards($pdo, $categoryId));
+    send_json_success([
+        'cards' => $cards,
+        'summary' => review_summarise_cards($cards),
+        'has_user' => $userId !== null,
+    ]);
 } catch (Throwable $error) {
     error_log('Loading cards failed: ' . $error->getMessage());
 
