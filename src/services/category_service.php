@@ -10,7 +10,9 @@ declare(strict_types=1);
  *   parent_id      int unsigned, NULL, foreign key to categories.id
  *   name           varchar(100), NOT NULL
  *   color          varchar(7), NULL      -- still in the table, not read or written here
- *   icon_svg       text, NULL            -- the drawn icon, sanitised
+ *   icon_svg       mediumtext, NULL       -- the drawn icon, sanitised
+ *                                           (never part of an answer: the row
+ *                                            carries only the address)
  *   icon_scale     decimal(3,2), NOT NULL, default 1.00
  *   name_en        varchar(100), NULL
  *   name_de        varchar(100), NULL
@@ -87,16 +89,18 @@ function category_column_available(array $columns, string $column): bool
  *
  * @param list<string> $columns
  */
-function category_select_sql(array $columns, bool $withIconSvg = false): string
+function category_select_sql(array $columns): string
 {
     /*
-     * The drawing itself is only part of the answer for a SINGLE category: a
-     * list must not carry one drawing of up to 60 KB per row. For a list the
-     * browser asks api/category_icon.php instead.
+     * The drawing is NEVER part of an answer - not in a list and not for a single
+     * category. A drawing may be 350 KB, and a page that asks for a category
+     * would carry it in every answer.
+     *
+     * What a row carries instead is the address of the drawing (icon_url below),
+     * with a short fingerprint of its content in it. The browser fetches the
+     * drawing once from api/category_icon.php and keeps it, and a replaced icon
+     * gets a new address, so nothing stale is ever shown.
      */
-    $iconSvg = $withIconSvg && category_column_available($columns, 'icon_svg')
-        ? "                c.icon_svg AS icon_svg,\n"
-        : '';
     $scale = category_column_available($columns, 'icon_scale') ? 'c.icon_scale' : '1.00';
     $iconFingerprint = category_column_available($columns, 'icon_svg')
         ? "CASE WHEN c.icon_svg IS NULL OR c.icon_svg = '' THEN NULL ELSE MD5(c.icon_svg) END"
@@ -174,7 +178,7 @@ function find_subcategories(PDO $pdo, int $parentId): array
 function find_category(PDO $pdo, int $categoryId, bool $withDeletePreview = false): ?array
 {
     $statement = $pdo->prepare(
-        category_select_sql(category_columns($pdo), true) . '
+        category_select_sql(category_columns($pdo)) . '
          WHERE c.id = :id'
     );
     $statement->bindValue(':id', $categoryId, PDO::PARAM_INT);
@@ -664,13 +668,7 @@ function normalize_category_row(array $row): array
      * category_select_sql), and a category without a drawing answers with null,
      * never with a file name.
      */
-    if (array_key_exists('icon_svg', $row)) {
-        $iconSvg = $row['icon_svg'];
 
-        $category['icon_svg'] = is_string($iconSvg) && trim($iconSvg) !== ''
-            ? $iconSvg
-            : null;
-    }
 
     return $category;
 }

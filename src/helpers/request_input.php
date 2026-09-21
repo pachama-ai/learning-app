@@ -19,6 +19,13 @@ declare(strict_types=1);
  * needs the database.
  */
 
+/*
+ * An uploaded drawing is validated by the sanitiser, which owns the size limit.
+ * It is included here because the size is checked in this file, before the
+ * drawing is handed over.
+ */
+require_once __DIR__ . '/svg_sanitizer.php';
+
 /**
  * Reads the request body as a JSON object.
  *
@@ -206,6 +213,19 @@ function optional_svg_icon(array $body, string $key, string $code): ?string
 
     if (!is_string($body[$key])) {
         send_json_error($code, 'The icon must be sent as text.', 400);
+    }
+
+    /*
+     * Too large is its own answer. "This is not a usable SVG file" would be true
+     * but unhelpful: the person has a file that is simply bigger than allowed,
+     * and the message says exactly that.
+     */
+    if (strlen($body[$key]) > SVG_MAX_UPLOAD_BYTES) {
+        send_json_error(
+            'icon_too_large',
+            'The icon is larger than ' . (int) (SVG_MAX_UPLOAD_BYTES / 1024) . ' KB.',
+            400
+        );
     }
 
     $svg = svg_sanitize($body[$key]);

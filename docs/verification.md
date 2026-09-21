@@ -187,7 +187,7 @@ UPDATE categories SET color = '#C3C8DB'      WHERE id = 2;
 
 1. Footer **plus** on the start page -> `Add learning area`. Fill in a name, an
    English and a German name, one description, pick a colour and choose an SVG
-   file (max 300 KB) -> **Save**.
+   file (max 350 KB) -> **Save**.
    The tile appears with the uploaded drawing. **Reload the page**: it is still
    there (it was written to the database, not into the page).
 2. Open it, footer **plus** -> `Add subcategory`, save. Reload: it stays.
@@ -200,7 +200,7 @@ UPDATE categories SET color = '#C3C8DB'      WHERE id = 2;
    subcategories and cards that disappear **and** demands the exact name. Type a
    wrong name -> `The name does not match this entry.`, nothing is deleted. Type
    the right name -> the whole subtree is gone. Reload: still gone.
-6. Try to upload a file that is not an SVG, or one above 300 KB: it is refused
+6. Try to upload a file that is not an SVG, or one above 350 KB: it is refused
    with a message and nothing is written.
 
 ---
@@ -303,3 +303,68 @@ Expected: the subtree really disappears (`deleted_categories`, `deleted_cards`,
 5. There is no edit mode any more: the menu in the corner of a tile is quiet
    until the tile is hovered, focused or a menu is open (on a touch device it is
    always visible).
+
+---
+
+## H. Drawings (icons) - 350 KB, and never inside an answer (2026-09-21)
+
+### H1. The limit
+
+1. Open the menu of a learning area -> **Edit**.
+2. Expected: under the symbol row the hint *"Optional. One .svg file, at most 350 KB."*
+   (German: *"Optional. Eine .svg-Datei, höchstens 350 KB."*).
+3. Choose an SVG file of about 349 KB. Expected: the file name appears, the circle
+   shows the drawing, no error.
+4. Choose a file above 350 KB. Expected: *"The file is larger than 350 KB."* and
+   nothing is staged (`input.icon-row__file` is not part of the form value).
+5. Press Escape - the form was only a test, nothing is saved by it.
+
+### H2. The same limit on the server
+
+```bash
+curl -s -X PATCH "http://127.0.0.1:8081/api/category.php?id=<id>" \
+     -H 'Content-Type: application/json' \
+     -d '{"icon_svg":"<a drawing of 358401 bytes>"}'
+```
+Expected: HTTP 400 with `"code":"icon_too_large"` and the message
+`The icon is larger than 350 KB.` - and the row keeps its old drawing.
+
+### H3. A drawing is never part of an answer
+
+```bash
+curl -s "http://127.0.0.1:8081/api/categories.php" | wc -c
+curl -s "http://127.0.0.1:8081/api/categories.php?id=2" | wc -c
+```
+Expected: the list is well under 2 KB and the single category under 500 bytes -
+neither contains `<svg`. Both carry `icon_url` only, which is the address of the
+drawing plus a fingerprint of its content.
+
+### H4. The drawing endpoint caches and revalidates
+
+```bash
+curl -sI "http://127.0.0.1:8081/api/category_icon.php?id=2"
+```
+Expected: `Content-Type: image/svg+xml`, `ETag: "<fingerprint>"`,
+`Cache-Control: public, max-age=604800, immutable`.
+
+```bash
+curl -s -o /dev/null -w '%{http_code}' -H 'If-None-Match: "<the same ETag>"' \
+     "http://127.0.0.1:8081/api/category_icon.php?id=2"
+```
+Expected: `304` - the browser keeps the drawing it already has.
+
+The address carries `v=<first 8 characters of MD5(icon_svg)>`, so replacing a
+drawing produces a new address and an old drawing can never be shown again.
+
+### H5. Where the drawing appears
+
+Check each of them in the light **and** the dark theme:
+
+* the tiles on the start page (four drawings, all loaded)
+* the head card of a detail view
+* the preview circle inside the edit dialog
+* a category without a drawing shows the first letter of its name instead
+
+The colour comes from `--icon-filter` alone (`brightness(0) invert(0.17)` in the
+light theme, `brightness(0) invert(1)` in the dark one), so nothing about the
+drawings changed with the larger limit.

@@ -49,7 +49,8 @@ $appConfig = [
         // Must match the limits the API enforces.
         'name' => 100,
         'cardText' => 2000,
-        'iconBytes' => 307200,
+        /* Must match SVG_MAX_UPLOAD_BYTES on the server (350 KB). */
+        'iconBytes' => 358400,
     ],
     'defaultLocale' => $defaultLocale,
     'supportedLocales' => array_keys($translations),

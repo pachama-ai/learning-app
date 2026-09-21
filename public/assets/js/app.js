@@ -542,6 +542,12 @@
             return t('dialog.errorIcon');
         }
 
+        /* The server refuses a drawing above the limit with its own code, and the
+           sentence is the one the form already shows for a local file. */
+        if (code === 'icon_too_large') {
+            return t('dialog.icon.tooLarge', { max: Math.round(config.limits.iconBytes / 1024) });
+        }
+
         if (code === 'invalid_icon_scale') {
             return t('dialog.errorScale');
         }
@@ -2293,6 +2299,15 @@
         row.appendChild(remove);
         wrap.appendChild(row);
 
+        /*
+         * What is allowed, in one line under the row: which file types and how
+         * large a file may be. The text carries the language key, so the switch
+         * translates it like every other static text.
+         */
+        var hint = el('p', 'dialog__hint', t('dialog.category.iconHint'));
+        hint.setAttribute('data-i18n', 'dialog.category.iconHint');
+        wrap.appendChild(hint);
+
         var error = el('p', 'dialog__field-error');
         error.hidden = true;
         error.setAttribute('role', 'alert');
@@ -2954,7 +2969,8 @@
             category_exists: 'name',
             invalid_name_en: 'name_en',
             invalid_name_de: 'name_de',
-            invalid_icon: 'icon'
+            invalid_icon: 'icon',
+            icon_too_large: 'icon'
         };
 
         return map[code] || null;

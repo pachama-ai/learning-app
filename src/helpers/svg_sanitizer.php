@@ -13,171 +13,92 @@ declare(strict_types=1);
  *   - <image> and <feImage> can fetch a file from another server
  *   - "javascript:" and "data:text/html" URLs can run code when they are opened
  *   - <use href="http://..."> can load something from outside this file
+ *   - a doctype or an entity definition can make a small file explode into a
+ *     huge one or load something from outside
  *
  * The icon is always drawn through an <img> tag, and an <img> never runs a
  * script inside an SVG. This file is the second layer of that protection, not
- * the only one. After cleaning, the result is checked again: anything that
- * still looks dangerous is refused instead of being stored.
+ * the only one.
  *
- * The stored value also has to fit into the `icon_svg` column, which is TEXT
- * and therefore holds at most 65,535 BYTES. The Inkscape files in this project
- * are up to 113 KB of coordinates, so the drawing is compacted: whitespace is
- * collapsed and coordinates are rounded. An icon is drawn 34 px wide here, so
- * a rounding of 0.1 unit inside a ~1000 unit drawing is far below one pixel and
- * nothing visible changes.
+ * HOW IT WORKS
+ *
+ * The file is parsed with a real XML parser (libxml through DOMDocument), not
+ * with text patterns. That has three consequences, and all three are wanted:
+ *
+ *   1. It is fast and predictable. A 350 KB drawing is one parse and one walk
+ *      over its elements; no pattern has to scan the whole text again and
+ *      again, and nothing can backtrack.
+ *   2. A file that is not valid XML is refused instead of being patched with
+ *      text replacements. A half repaired drawing is worse than no drawing.
+ *   3. Only the <svg> element is written back (saveXML of the root element).
+ *      Text before or after the drawing cannot survive, because it was never
+ *      part of the element that is written.
+ *
+ * Character references are resolved by the parser before the checks run, so
+ * "&#106;avascript:" cannot hide anything.
+ *
+ * The stored value does not have to be squeezed into 65 KB any more: the
+ * `icon_svg` column is MEDIUMTEXT now, so a drawing is stored as it is drawn -
+ * nothing is rounded or shortened. The limit is the upload limit.
  */
 
-/** Largest SVG accepted for upload, before any processing. */
-const SVG_MAX_UPLOAD_BYTES = 307200;
+/** Largest SVG accepted for upload: 350 KB (358 400 bytes). */
+const SVG_MAX_UPLOAD_BYTES = 358400;
 
-/** Largest SVG that may be written into the TEXT column. */
-const SVG_MAX_STORED_BYTES = 63000;
+/**
+ * Nothing larger than this is written into the column. It is the same number as
+ * the upload limit: the parser only ever makes a file smaller (it drops what is
+ * not allowed), never larger.
+ */
+const SVG_MAX_STORED_BYTES = 358400;
 
 /**
  * Elements that are removed together with everything inside them.
  *
- * The group is written as a real group (?:...) because it is used both for the
- * opening and for the closing tag; without the parentheses the closing pattern
- * would become a list of alternatives instead of one tag name.
+ * Compared in lower case, so the list is written in lower case.
  */
-const SVG_BLOCKED_ELEMENTS = '(?:script|foreignObject|iframe|object|embed|image|feImage|audio|video|handler|listener)';
+const SVG_BLOCKED_ELEMENTS = [
+    'script',
+    'foreignobject',
+    'iframe',
+    'object',
+    'embed',
+    'image',
+    'feimage',
+    'audio',
+    'video',
+    'handler',
+    'listener',
+    'metadata',
+];
 
 /**
- * Removes everything that could execute code or load a foreign document.
- */
-function svg_strip_dangerous(string $svg): string
-{
-    $blocked = SVG_BLOCKED_ELEMENTS;
-
-    // XML prolog, doctype and comments carry no drawing information.
-    $svg = (string) preg_replace('/<\?xml[^>]*\?>/i', '', $svg);
-    $svg = (string) preg_replace('/<!DOCTYPE[^>]*>/i', '', $svg);
-    $svg = (string) preg_replace('/<!--.*?-->/s', '', $svg);
-
-    // Blocked elements WITH their content, then the ones without a closing tag,
-    // then any closing tag that is left over.
-    $svg = (string) preg_replace('/<' . $blocked . '\b.*?<\/' . $blocked . '\s*>/is', '', $svg);
-    $svg = (string) preg_replace('/<' . $blocked . '\b[^>]*>/is', '', $svg);
-    $svg = (string) preg_replace('/<\/' . $blocked . '\s*>/is', '', $svg);
-
-    // Editor metadata that is never part of the drawing.
-    $svg = (string) preg_replace('/<metadata\b.*?<\/metadata\s*>/is', '', $svg);
-    $svg = (string) preg_replace('/<sodipodi:namedview\b.*?\/?>/is', '', $svg);
-    $svg = (string) preg_replace('/<inkscape:perspective\b[^>]*>/is', '', $svg);
-
-    // <use> is allowed only when it points inside this same file.
-    $svg = (string) preg_replace_callback(
-        '/<use\b[^>]*\/?>/is',
-        static function (array $match): string {
-            return preg_match('/\b(?:xlink:)?href\s*=\s*["\']#/i', $match[0]) === 1 ? $match[0] : '';
-        },
-        $svg
-    );
-
-    // Event handler attributes: onclick, onload, onmouseover, ...
-    $svg = (string) preg_replace('/\son[a-z]+\s*=\s*"[^"]*"/i', '', $svg);
-    $svg = (string) preg_replace('/\son[a-z]+\s*=\s*\'[^\']*\'/i', '', $svg);
-    $svg = (string) preg_replace('/\son[a-z]+\s*=\s*[^\s>]+/i', '', $svg);
-
-    // Active URLs, in any attribute and in any quoting style.
-    $svg = (string) preg_replace('/javascript\s*:/i', '', $svg);
-    $svg = (string) preg_replace('/vbscript\s*:/i', '', $svg);
-    $svg = (string) preg_replace('/data\s*:\s*text\s*\/\s*html/i', '', $svg);
-
-    // A stylesheet inside an SVG may import something from outside.
-    $svg = (string) preg_replace('/@import[^;]*;?/i', '', $svg);
-
-    // Entities can be used to expand a document into something much larger.
-    $svg = (string) preg_replace('/<!ENTITY[^>]*>/i', '', $svg);
-
-    return $svg;
-}
-
-/**
- * Reports whether the cleaned SVG still contains something dangerous.
+ * The same names as a lookup table.
  *
- * This runs after cleaning on purpose. A pattern that slipped through the
- * removal rules is then refused instead of being stored and served again.
+ * A drawing of 350 KB has thousands of elements, so "is this name blocked?" is
+ * asked thousands of times. A key lookup answers that in one step instead of
+ * walking a list.
  */
-function svg_looks_risky(string $svg): bool
-{
-    $patterns = [
-        '/<script/i',
-        '/<' . SVG_BLOCKED_ELEMENTS . '/i',
-        '/\son[a-z]+\s*=/i',
-        '/javascript\s*:/i',
-        '/vbscript\s*:/i',
-        '/data\s*:\s*text\s*\/\s*html/i',
-        '/<!ENTITY/i',
-        '/@import/i',
-        // A link that does not point inside this same file.
-        '/\b(?:xlink:)?href\s*=\s*["\']?(?!\s*#)/i',
-    ];
-
-    foreach ($patterns as $pattern) {
-        if (preg_match($pattern, $svg) === 1) {
-            return true;
-        }
-    }
-
-    return false;
-}
+const SVG_BLOCKED_ELEMENT_LOOKUP = [
+    'script' => true,
+    'foreignobject' => true,
+    'iframe' => true,
+    'object' => true,
+    'embed' => true,
+    'image' => true,
+    'feimage' => true,
+    'audio' => true,
+    'video' => true,
+    'handler' => true,
+    'listener' => true,
+    'metadata' => true,
+];
 
 /**
- * Rounds the numbers inside one attribute value.
+ * Returns a safe SVG, or null when the input cannot be used.
  *
- * Values smaller than 1 keep three decimals by default, so a hairline stroke or
- * a small opacity does not change its weight. For path data that caution is not
- * needed - there a small number is just a coordinate - so $roundSmall is used
- * there and every number is rounded the same way.
- */
-function svg_round_numbers(string $value, int $decimals = 1, bool $roundSmall = false): string
-{
-    return (string) preg_replace_callback(
-        '/-?\d+\.\d+/',
-        static function (array $match) use ($decimals, $roundSmall): string {
-            $number = (float) $match[0];
-            $digits = (!$roundSmall && abs($number) < 1.0) ? max($decimals, 3) : $decimals;
-            $text = rtrim(rtrim(number_format($number, $digits, '.', ''), '0'), '.');
-
-            if ($text === '' || $text === '-') {
-                return '0';
-            }
-
-            return $text;
-        },
-        $value
-    );
-}
-
-/**
- * Shrinks the file without changing how it looks.
- */
-function svg_compact(string $svg, int $decimals = 1): string
-{
-    $svg = (string) preg_replace('/\s+/', ' ', $svg);
-    $svg = (string) preg_replace('/>\s+</', '><', $svg);
-
-    // Path data first: that is where nearly all of the bytes are.
-    $svg = (string) preg_replace_callback(
-        '/\bd="([^"]*)"/',
-        static fn (array $match): string => 'd="' . svg_round_numbers($match[1], $decimals, true) . '"',
-        $svg
-    );
-
-    // Every other attribute, with the careful rule for small values.
-    return (string) preg_replace_callback(
-        '/="([^"]*)"/',
-        static fn (array $match): string => '="' . svg_round_numbers($match[1], $decimals) . '"',
-        $svg
-    );
-}
-
-/**
- * Returns a safe, compact SVG, or null when the input cannot be used.
- *
- * The result always starts with the <svg> element and ends with </svg>, so no
- * text and no markup can be smuggled in around the drawing.
+ * The caller only has to know these two answers: the drawing is usable, or it
+ * is not. Every reason to refuse ends in null.
  */
 function svg_sanitize(string $svg): ?string
 {
@@ -187,36 +108,220 @@ function svg_sanitize(string $svg): ?string
         return null;
     }
 
-    /* Everything before the opening <svg> tag is dropped: an XML prolog, a
-       doctype, comments - and any text someone put in front of the drawing. */
-    $start = stripos($svg, '<svg');
-
-    if ($start === false) {
+    /*
+     * A doctype or an entity definition is refused before the parser sees it.
+     * These are the two constructs that could load something from outside or
+     * expand into a much larger document, and no icon needs them. The check is
+     * a plain text search, so it costs nothing.
+     */
+    if (stripos($svg, '<!doctype') !== false || stripos($svg, '<!entity') !== false) {
         return null;
     }
 
-    $svg = substr($svg, $start);
+    $document = new DOMDocument();
 
-    /* Everything after the last </svg> is dropped as well. */
-    $end = strripos($svg, '</svg>');
+    /*
+     * libxml reports through its own error queue while it parses; that queue is
+     * emptied here because this function answers with null, not with a warning
+     * on the page. LIBXML_NONET forbids every network access while parsing.
+     */
+    $previous = libxml_use_internal_errors(true);
+    $loaded = $document->loadXML($svg, LIBXML_NONET | LIBXML_COMPACT);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous);
 
-    if ($end === false) {
+    $root = $loaded ? $document->documentElement : null;
+
+    if (!$root instanceof DOMElement || strtolower($root->localName) !== 'svg') {
         return null;
     }
 
-    $svg = svg_strip_dangerous(substr($svg, 0, $end + 6));
-    $svg = svg_compact($svg);
+    svg_clean_children($root);
+    svg_clean_element($root);
 
-    /* Still too large for the column? A coarser rounding of the coordinates is
-       tried once, and if even that does not fit the file is refused instead of
-       being stored in a shortened, broken form. */
-    if (strlen($svg) > SVG_MAX_STORED_BYTES) {
-        $svg = svg_compact($svg, 0);
-    }
+    $clean = $document->saveXML($root);
 
-    if (strlen($svg) > SVG_MAX_STORED_BYTES || stripos($svg, '<svg') !== 0 || svg_looks_risky($svg)) {
+    if ($clean === false) {
         return null;
     }
 
-    return $svg;
+    $clean = trim($clean);
+
+    if (strlen($clean) > SVG_MAX_STORED_BYTES
+        || stripos($clean, '<svg') !== 0
+        || substr($clean, -6) !== '</svg>'
+        || svg_looks_risky($clean)) {
+        return null;
+    }
+
+    return $clean;
+}
+
+/**
+ * Walks the children of one element: comments, the blocked elements and the
+ * dangerous attributes are removed, the rest is checked one level deeper.
+ *
+ * The walk is written iteratively over the siblings (not with a fixed depth
+ * limit), so a deeply nested drawing cannot stop it.
+ */
+function svg_clean_children(DOMElement $parent): void
+{
+    $child = $parent->firstChild;
+
+    while ($child !== null) {
+        $next = $child->nextSibling;
+
+        if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction) {
+            /* Editor comments and processing instructions carry no drawing. */
+            $parent->removeChild($child);
+            $child = $next;
+            continue;
+        }
+
+        if ($child instanceof DOMElement) {
+            $name = strtolower($child->localName);
+
+            if (isset(SVG_BLOCKED_ELEMENT_LOOKUP[$name])) {
+                /* Removed with everything inside it. */
+                $parent->removeChild($child);
+                $child = $next;
+                continue;
+            }
+
+            if ($name === 'use' && !svg_use_points_inside($child)) {
+                /* <use> may only reuse something from this very file. */
+                $parent->removeChild($child);
+                $child = $next;
+                continue;
+            }
+
+            if ($name === 'style' && stripos($child->textContent, '@import') !== false) {
+                /* A stylesheet that pulls in another file. */
+                $parent->removeChild($child);
+                $child = $next;
+                continue;
+            }
+
+            svg_clean_element($child);
+            svg_clean_children($child);
+        }
+
+        $child = $next;
+    }
+}
+
+/**
+ * Removes the dangerous attributes of one element.
+ *
+ * The names are collected first and removed afterwards: an attribute list is
+ * not changed while it is being read.
+ */
+function svg_clean_element(DOMElement $element): void
+{
+    $remove = [];
+
+    foreach ($element->attributes as $attribute) {
+        $name = strtolower($attribute->nodeName);
+        $value = (string) $attribute->nodeValue;
+
+        /* Event handlers: onclick, onload, onmouseover, ... */
+        if (strlen($name) > 2 && strpos($name, 'on') === 0) {
+            $remove[] = $attribute->nodeName;
+            continue;
+        }
+
+        /* A URL that could run code, in any attribute and any quoting style.
+           Character references were already resolved by the parser, so nothing
+           can hide behind &#106;avascript: */
+        if (svg_text_is_dangerous($value)) {
+            $remove[] = $attribute->nodeName;
+            continue;
+        }
+
+        /* A link that leaves this file. The one exception is a reference to an
+           element inside the same drawing, which is how <use> works. */
+        if ($name === 'href' || $name === 'xlink:href') {
+            if (strpos(ltrim($value), '#') !== 0) {
+                $remove[] = $attribute->nodeName;
+            }
+        }
+    }
+
+    foreach ($remove as $name) {
+        $element->removeAttribute($name);
+    }
+}
+
+/**
+ * Reports whether a <use> element points at something inside this same file.
+ */
+function svg_use_points_inside(DOMElement $use): bool
+{
+    $href = $use->getAttribute('href');
+
+    if ($href === '') {
+        $href = $use->getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+    }
+
+    return strpos(ltrim((string) $href), '#') === 0;
+}
+
+/**
+ * Reports whether a value contains something that could run code.
+ *
+ * Whitespace and control characters are taken out before the search, so
+ * "java\nscript:" is found as well.
+ */
+function svg_text_is_dangerous(string $value): bool
+{
+    /*
+     * Nearly every value in a drawing is a number, a colour or path data - and
+     * none of them contains a colon. A URL scheme always does, so this one
+     * comparison answers most of the thousands of attributes of a 350 KB file
+     * without doing any work at all.
+     */
+    if ($value === '' || strpos($value, ':') === false) {
+        return false;
+    }
+
+    $flat = strtolower((string) preg_replace('/[\x00-\x20]+/', '', $value));
+
+    foreach (['javascript:', 'vbscript:', 'data:text/html'] as $needle) {
+        if (strpos($flat, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * The last look at the result, before it is stored and served again.
+ *
+ * Everything above should have removed all of this already. Should one of these
+ * ever appear here, the file is refused instead of being stored - a second look
+ * that costs a few plain text searches and no pattern matching.
+ */
+function svg_looks_risky(string $svg): bool
+{
+    $needles = [
+        '<script',
+        '<!doctype',
+        '<!entity',
+        '<foreignobject',
+        '<image',
+        'onload=',
+        'onclick=',
+        'javascript:',
+        'vbscript:',
+        'data:text/html',
+    ];
+
+    foreach ($needles as $needle) {
+        if (stripos($svg, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
