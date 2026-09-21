@@ -1628,6 +1628,33 @@
         return tile.getBoundingClientRect().width + (isNaN(gap) ? 0 : gap);
     }
 
+    /*
+     * Collects the work of one frame into one call.
+     *
+     * A scroll, a resize and a change of the row width can each fire several
+     * times within the same frame, and every call reads the layout and writes
+     * two styles. Waiting for the next animation frame keeps the same result -
+     * the line is updated before that frame is painted - and runs the work
+     * once instead of once per event.
+     */
+    var tileNavigationFrame = null;
+
+    function scheduleTileNavigation() {
+        if (typeof window.requestAnimationFrame !== 'function') {
+            updateTileNavigation();
+            return;
+        }
+
+        if (tileNavigationFrame !== null) {
+            return;
+        }
+
+        tileNavigationFrame = window.requestAnimationFrame(function () {
+            tileNavigationFrame = null;
+            updateTileNavigation();
+        });
+    }
+
     function updateTileNavigation() {
         if (elements.grid === null || elements.tilesNav === null) {
             return;
@@ -1653,12 +1680,24 @@
             ? Math.max(28, Math.round(trackWidth * ratio))
             : trackWidth;
 
-        elements.tilesThumb.style.width = thumbWidth + 'px';
+        /*
+         * The width only changes when the row is resized, the offset on every
+         * scroll. Writing a value that is already there would still invalidate
+         * the style of the element, so both are only written when they differ.
+         */
+        var widthValue = thumbWidth + 'px';
+
+        if (elements.tilesThumb.style.width !== widthValue) {
+            elements.tilesThumb.style.width = widthValue;
+        }
 
         var travel = Math.max(0, trackWidth - thumbWidth);
         var progress = maximum > 0 ? elements.grid.scrollLeft / maximum : 0;
+        var offsetValue = 'translateX(' + Math.round(progress * travel) + 'px)';
 
-        elements.tilesThumb.style.transform = 'translateX(' + Math.round(progress * travel) + 'px)';
+        if (elements.tilesThumb.style.transform !== offsetValue) {
+            elements.tilesThumb.style.transform = offsetValue;
+        }
     }
 
     function scrollTilesBy(direction) {
@@ -1721,7 +1760,7 @@
             return;
         }
 
-        elements.grid.addEventListener('scroll', updateTileNavigation, { passive: true });
+        elements.grid.addEventListener('scroll', scheduleTileNavigation, { passive: true });
 
         elements.tilesPrev.addEventListener('click', function () {
             scrollTilesBy(-1);
@@ -1817,12 +1856,12 @@
          * so the thumb is recalculated whenever the row is resized.
          */
         if (typeof window.ResizeObserver === 'function') {
-            tileObserver = new window.ResizeObserver(updateTileNavigation);
+            tileObserver = new window.ResizeObserver(scheduleTileNavigation);
             tileObserver.observe(elements.grid);
             tileObserver.observe(elements.tiles);
         }
 
-        window.addEventListener('resize', updateTileNavigation);
+        window.addEventListener('resize', scheduleTileNavigation);
     }
 
     function handleLoadError(error) {
