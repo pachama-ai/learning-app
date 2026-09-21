@@ -10,7 +10,6 @@ declare(strict_types=1);
  * PATCH body (only the fields that should change):
  *   {
  *     "name": "History",              // also: name_en, name_de
- *     "description_en": "...",        // also: description_de
  *     "icon_svg": "<svg ...>",        // null removes the icon
  *     "icon_scale": 1.15              // null resets it to 1.00
  *   }
@@ -134,11 +133,14 @@ try {
         $changes['name'] = require_input_text($body, 'name', CATEGORY_MAX_NAME_LENGTH, 'invalid_name');
     }
 
+    /*
+     * Only the names are accepted here. The description columns are left alone:
+     * they are not part of the application any more, and a request that still
+     * sends them must not be an error (it simply changes nothing).
+     */
     foreach ([
         'name_en' => CATEGORY_MAX_NAME_LENGTH,
         'name_de' => CATEGORY_MAX_NAME_LENGTH,
-        'description_en' => CATEGORY_MAX_DESCRIPTION_LENGTH,
-        'description_de' => CATEGORY_MAX_DESCRIPTION_LENGTH,
     ] as $field => $maxLength) {
         if (array_key_exists($field, $body)) {
             // An empty value clears the field.

@@ -14,8 +14,10 @@ declare(strict_types=1);
  *   icon_scale     decimal(3,2), NOT NULL, default 1.00
  *   name_en        varchar(100), NULL
  *   name_de        varchar(100), NULL
- *   description_en text, NULL
- *   description_de text, NULL
+ *
+ * The two description columns are still in the table, but nothing in this
+ * application reads or writes them any more: a category is shown by its name.
+ * They were not dropped and their data was not touched.
  *
  * A NULL parent_id means "top-level learning area". Any other value points at
  * the parent category, which is how subcategories are stored.
@@ -32,8 +34,6 @@ declare(strict_types=1);
 /** Longest accepted name, matching the varchar(100) column. */
 const CATEGORY_MAX_NAME_LENGTH = 100;
 
-/** Longest accepted description. */
-const CATEGORY_MAX_DESCRIPTION_LENGTH = 1000;
 
 /** How deep the tree may be walked while a category is deleted. */
 const CATEGORY_MAX_DEPTH = 12;
@@ -103,8 +103,6 @@ function category_select_sql(array $columns, bool $withIconSvg = false): string
         : 'NULL';
     $nameEn = category_column_available($columns, 'name_en') ? 'c.name_en' : 'NULL';
     $nameDe = category_column_available($columns, 'name_de') ? 'c.name_de' : 'NULL';
-    $descriptionEn = category_column_available($columns, 'description_en') ? 'c.description_en' : 'NULL';
-    $descriptionDe = category_column_available($columns, 'description_de') ? 'c.description_de' : 'NULL';
 
     return 'SELECT
                 c.id,
@@ -114,8 +112,6 @@ function category_select_sql(array $columns, bool $withIconSvg = false): string
                 ' . $iconFingerprint . ' AS icon_fingerprint,
                 ' . $nameEn . ' AS name_en,
                 ' . $nameDe . ' AS name_de,
-                ' . $descriptionEn . ' AS description_en,
-                ' . $descriptionDe . ' AS description_de,
                 (SELECT COUNT(*)
                    FROM categories AS child
                   WHERE child.parent_id = c.id) AS subcategory_count,
@@ -306,8 +302,6 @@ function create_category(PDO $pdo, array $fields): array
     $optional = [
         'name_en' => PDO::PARAM_STR,
         'name_de' => PDO::PARAM_STR,
-        'description_en' => PDO::PARAM_STR,
-        'description_de' => PDO::PARAM_STR,
         'icon_svg' => PDO::PARAM_STR,
         'icon_scale' => PDO::PARAM_STR,
     ];
@@ -360,8 +354,6 @@ function update_category(PDO $pdo, int $categoryId, array $changes): ?array
         'name' => PDO::PARAM_STR,
         'name_en' => PDO::PARAM_STR,
         'name_de' => PDO::PARAM_STR,
-        'description_en' => PDO::PARAM_STR,
-        'description_de' => PDO::PARAM_STR,
         'icon_svg' => PDO::PARAM_STR,
         'icon_scale' => PDO::PARAM_STR,
     ];
@@ -662,8 +654,6 @@ function normalize_category_row(array $row): array
         'icon_scale' => round((float) $scale, 2),
         'name_en' => normalize_optional_text($row['name_en'] ?? null, CATEGORY_MAX_NAME_LENGTH),
         'name_de' => normalize_optional_text($row['name_de'] ?? null, CATEGORY_MAX_NAME_LENGTH),
-        'description_en' => normalize_optional_text($row['description_en'] ?? null, CATEGORY_MAX_DESCRIPTION_LENGTH),
-        'description_de' => normalize_optional_text($row['description_de'] ?? null, CATEGORY_MAX_DESCRIPTION_LENGTH),
         'subcategory_count' => (int) ($row['subcategory_count'] ?? 0),
         'own_card_count' => (int) ($row['own_card_count'] ?? 0),
         'card_count' => (int) ($row['card_count'] ?? 0),

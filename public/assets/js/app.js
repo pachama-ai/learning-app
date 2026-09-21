@@ -117,6 +117,7 @@
 
         entryList: document.getElementById('entry-list'),
         entryEmpty: document.getElementById('entry-empty'),
+        entryEmptyBlob: document.getElementById('entry-empty-blob'),
         entryEmptyTitle: document.getElementById('entry-empty-title'),
         entryEmptyHint: document.getElementById('entry-empty-hint'),
         entryEmptyAction: document.getElementById('entry-empty-action'),
@@ -125,8 +126,8 @@
 
         detailActions: document.getElementById('detail-actions'),
         detailBlob: document.getElementById('detail-blob'),
-        detailDescription: document.getElementById('detail-description'),
         detailStats: document.getElementById('detail-stats'),
+        detailFigureCount: document.getElementById('detail-figure-count'),
         detailFigureCards: document.getElementById('detail-figure-cards'),
         detailCardCount: document.getElementById('detail-card-count'),
         detailCardLabel: document.getElementById('detail-card-label'),
@@ -1237,17 +1238,25 @@
     /*
      * The figures of the open entry.
      *
-     * The noun follows the number ("1 subcategory" / "8 subcategories"), which
-     * is why the word is set here and not in the template. The flashcard part is
-     * only there when there is something to count.
+     * A figure only appears when there is something to count ("1 subcategory",
+     * "8 subcategories", "32 flashcards"), and when there is nothing at all the
+     * whole line stays away: a row of zeroes tells nobody anything.
+     *
+     * The noun follows the number, which is why the word is set here and not in
+     * the template.
      */
     function renderFigures(count, oneKey, otherKey, cardCount) {
-        animateCount(elements.detailCount, count);
-        elements.statLabel.textContent = t(count === 1 ? oneKey : otherKey);
+        var showMain = count > 0;
+        var showCards = typeof cardCount === 'number' && cardCount > 0;
 
-        var showCards = typeof cardCount === 'number';
-
+        elements.detailStats.hidden = !showMain && !showCards;
+        elements.detailFigureCount.hidden = !showMain;
         elements.detailFigureCards.hidden = !showCards;
+
+        if (showMain) {
+            animateCount(elements.detailCount, count);
+            elements.statLabel.textContent = t(count === 1 ? oneKey : otherKey);
+        }
 
         if (showCards) {
             elements.detailCardCount.textContent = String(cardCount);
@@ -1256,13 +1265,21 @@
     }
 
     /*
-     * The empty state of the detail view. Which button it offers depends on what
-     * the page is about, so the action is handed in as a function.
+     * The empty state of the detail view.
+     *
+     * The circle carries the drawing of the area this page belongs to - or the
+     * first letter of its name when it has no drawing - so the empty page still
+     * belongs to that area. One sentence and one button follow; which button it
+     * is depends on the page, so the action is handed in as a function.
      */
-    function showEntryEmpty(titleKey, hintKey, actionKey, run) {
+    function showEntryEmpty(titleKey, meta, actionKey, run) {
         elements.entryList.hidden = true;
+        elements.entryEmptyBlob.hidden = false;
+        fillIconCircle(elements.entryEmptyBlob, meta);
         elements.entryEmptyTitle.textContent = t(titleKey);
-        elements.entryEmptyHint.textContent = t(hintKey);
+        /* One sentence: the second line belongs to the "not found" notice. */
+        elements.entryEmptyHint.textContent = '';
+        elements.entryEmptyHint.hidden = true;
         elements.entryEmptyAction.textContent = t(actionKey);
         elements.entryEmptyAction.hidden = false;
         entryEmptyHandler = run;
@@ -1328,10 +1345,15 @@
             });
 
             if (!single.ok) {
-                /* The id is in the URL but the category is gone. */
+                /* The id is in the URL but the category is gone. This notice
+                   keeps its second line: it explains what happened. There is no
+                   area to draw, so the circle stays away. */
                 setHeading(elements.detailHeading, t('detail.notFound.title'));
+                elements.entryEmptyBlob.hidden = true;
+                elements.entryEmptyBlob.textContent = '';
                 elements.entryEmptyTitle.textContent = t('detail.notFound.title');
                 elements.entryEmptyHint.textContent = t('detail.notFound.hint');
+                elements.entryEmptyHint.hidden = false;
                 elements.entryEmptyAction.hidden = true;
                 elements.entryEmpty.hidden = false;
                 return;
@@ -1374,21 +1396,6 @@
             fillIconCircle(elements.detailBlob, categoryMeta(areaRow));
 
             /*
-             * The description of the entry, in the language that is switched on.
-             * A row may carry one per language and no neutral one, so the German
-             * text is used when German is on - and nothing is shown when the
-             * entry has no description at all.
-             */
-            var description = locale === 'de' ? current.description_de : current.description_en;
-
-            if (typeof description !== 'string' || description === '') {
-                description = locale === 'de' ? current.description_en : current.description_de;
-            }
-
-            elements.detailDescription.textContent = typeof description === 'string' ? description : '';
-            elements.detailDescription.hidden = typeof description !== 'string' || description === '';
-
-            /*
              * One menu instead of two labelled buttons: the same control that
              * every row and every tile carries, with the same two entries.
              */
@@ -1425,7 +1432,6 @@
 
 
             elements.detailActions.hidden = false;
-            elements.detailStats.hidden = false;
 
             if (isSubcategory) {
                 renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
@@ -1433,7 +1439,7 @@
                 elements.entryList.textContent = '';
 
                 if (currentEntryCards.length === 0) {
-                    showEntryEmpty('cards.empty.title', 'cards.empty.hint', 'cards.addCard', function () {
+                    showEntryEmpty('cards.empty.title', categoryMeta(areaRow), 'cards.addCard', function () {
                         openCardForm(null, current.id);
                     });
                 } else {
@@ -1458,7 +1464,7 @@
             elements.entryList.textContent = '';
 
             if (children.length === 0) {
-                showEntryEmpty('detail.empty.title', 'detail.empty.hint', 'detail.addSubcategory', function () {
+                showEntryEmpty('detail.empty.title', categoryMeta(areaRow), 'detail.addSubcategory', function () {
                     openCategoryForm('create', null, current.id);
                 });
             } else {
@@ -2078,32 +2084,21 @@
 
         var grid = el('div', 'dialog__grid');
 
+        /*
+         * One name per language, nothing else. The description columns are still
+         * in the table, but no part of the application reads or writes them any
+         * more (see the note in category_service.php).
+         */
         [
-            { name: 'name_en', labelKey: 'dialog.category.nameEn', maxLength: config.limits.name },
-            { name: 'name_de', labelKey: 'dialog.category.nameDe', maxLength: config.limits.name },
-            { name: 'description_en', labelKey: 'dialog.category.descriptionEn', maxLength: config.limits.description, textarea: true },
-            { name: 'description_de', labelKey: 'dialog.category.descriptionDe', maxLength: config.limits.description, textarea: true }
+            { name: 'name_en', labelKey: 'dialog.category.nameEn' },
+            { name: 'name_de', labelKey: 'dialog.category.nameDe' }
         ].forEach(function (def) {
-            var control = addField(def.name, def.textarea ? 'textarea' : 'text', {
+            addField(def.name, 'text', {
                 labelKey: def.labelKey,
-                maxLength: def.maxLength,
+                maxLength: config.limits.name,
                 value: entry === null || typeof entry[def.name] !== 'string' ? '' : entry[def.name],
                 container: grid
             });
-
-            /* The main description field and the description of the language
-               that is switched on are the same column, so they stay in sync. */
-            var mainName = def.name === 'description_' + locale ? 'description' : null;
-
-            if (mainName !== null && dialogFields[mainName]) {
-                var main = dialogFields[mainName].control;
-                main.addEventListener('input', function () {
-                    control.value = main.value;
-                });
-                control.addEventListener('input', function () {
-                    main.value = control.value;
-                });
-            }
         });
 
         details.appendChild(grid);
@@ -2435,17 +2430,6 @@
        The three forms that use the shared dialog
        ---------------------------------------------------------------------- */
 
-    /*
-     * Which description column the single "Description" field writes to.
-     *
-     * The table has one description per language and no neutral one, so the
-     * field in the main part of the form always writes to the description of the
-     * language the interface is in. The same column is shown again, in sync,
-     * inside the collapsed translations group.
-     */
-    function descriptionColumn() {
-        return locale === 'de' ? 'description_de' : 'description_en';
-    }
 
     /* mode "create"/"edit", entry the row, parentId where a new row belongs. */
     function openCategoryForm(mode, entry, parentId) {
@@ -2484,10 +2468,6 @@
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.dataset.busy = t('dialog.saving');
 
-        var descriptionValue = isEdit && typeof entry[descriptionColumn()] === 'string'
-            ? entry[descriptionColumn()]
-            : '';
-
         addField('name', 'text', {
             labelKey: 'dialog.nameLabel',
             placeholderKey: 'dialog.namePlaceholder',
@@ -2496,17 +2476,6 @@
             /* Without a drawing the circle shows the first letter of the name,
                so it has to follow what is being typed. */
             onInput: function () {
-                renderIconPreview();
-            }
-        });
-
-        var description = addField('description', 'textarea', {
-            labelKey: 'dialog.descriptionLabel',
-            placeholderKey: 'dialog.descriptionPlaceholder',
-            maxLength: config.limits.description,
-            rows: 2,
-            value: descriptionValue,
-            onInput: function (control) {
                 renderIconPreview();
             }
         });
@@ -2521,8 +2490,6 @@
          * the name, which is the one field nobody can skip.
          */
         dialogFields.name.control.focus();
-
-        return description;
     }
 
     /* The icon payload of the open category form, or null when nothing changed. */
@@ -2540,7 +2507,6 @@
 
     function validateCategoryForm() {
         var name = dialogFields.name.control.value.trim();
-        var description = dialogFields.description.control.value.trim();
         var firstBad = null;
 
         if (name === '') {
@@ -2551,17 +2517,11 @@
             firstBad = firstBad || dialogFields.name.control;
         }
 
-        if (description.length > config.limits.description) {
-            setFieldError('description', t('dialog.errorDescriptionTooLong', { max: config.limits.description }));
-            firstBad = firstBad || dialogFields.description.control;
-        }
-
-        ['name_en', 'name_de', 'description_en', 'description_de'].forEach(function (field) {
-            var limit = field.indexOf('description') === 0 ? config.limits.description : config.limits.name;
+        ['name_en', 'name_de'].forEach(function (field) {
             var value = dialogFields[field].control.value.trim();
 
-            if (value.length > limit) {
-                setFieldError(field, t('dialog.errorDescriptionTooLong', { max: limit }));
+            if (value.length > config.limits.name) {
+                setFieldError(field, t('dialog.errorNameTooLong', { max: config.limits.name }));
                 firstBad = firstBad || dialogFields[field].control;
             }
         });
@@ -2573,8 +2533,6 @@
 
         var payload = {
             name: name,
-            description_en: dialogFields.description_en.control.value.trim(),
-            description_de: dialogFields.description_de.control.value.trim(),
             name_en: dialogFields.name_en.control.value.trim(),
             name_de: dialogFields.name_de.control.value.trim()
         };
@@ -2996,8 +2954,6 @@
             category_exists: 'name',
             invalid_name_en: 'name_en',
             invalid_name_de: 'name_de',
-            invalid_description_en: 'description_en',
-            invalid_description_de: 'description_de',
             invalid_icon: 'icon'
         };
 

@@ -1607,6 +1607,15 @@ img {
     margin-top: 0;
 }
 
+/*
+ * On a detail view there is no tile row and therefore no scroll line. That one
+ * line is then drawn by the footer itself, so the footer looks the same on
+ * every level - same height, same distance, same hairline.
+ */
+body:has(#view-detail:not([hidden])) .site-footer {
+    border-top: 1px solid var(--hairline);
+}
+
 .site-footer__row {
     display: grid;
     /* left: the two scroll arrows of the tile row, middle: plus, right: edit */
@@ -1616,8 +1625,16 @@ img {
     padding-top: 18px;
 }
 
-/* The two arrows of the tile row, together on the left of the footer. */
+/*
+ * The two arrows of the tile row, together on the left of the footer.
+ *
+ * The three columns are assigned explicitly: without that, an element that is
+ * hidden with "display: none" would shift the plus button into the first column
+ * on a detail page, and the one control that must always sit in the same place
+ * would move. Both keep their column, hidden or not.
+ */
 .site-footer__nav {
+    grid-column: 1;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1635,6 +1652,7 @@ img {
  * is switched off in the light theme, where there is no aqua at all.
  */
 .plus-button {
+    grid-column: 2;
     display: grid;
     place-items: center;
     justify-self: center;
@@ -2773,10 +2791,14 @@ html.is-theme-switching::view-transition-new(root) {
 
 /*
  * --- the collapsed translations ----------------------------------------
+ *
+ * No line of its own: the field above it already carries one, and two lines
+ * close together read like a table. The group is held apart by air alone (the
+ * gap of .dialog__fields), and once it is open the grid keeps its distance from
+ * the heading the same way.
  */
 .dialog__group {
-    border-top: 1px solid var(--hairline);
-    padding-top: 14px;
+    padding-top: 0;
 }
 
 .dialog__summary {
@@ -2824,6 +2846,10 @@ html.is-theme-switching::view-transition-new(root) {
 .dialog__group[open] .dialog__summary {
     color: var(--text);
     margin-bottom: 12px;
+}
+
+.dialog__group[open] .dialog__grid {
+    margin-top: 16px;
 }
 
 /*
@@ -3049,6 +3075,13 @@ html.is-theme-switching::view-transition-new(root) {
     padding: 20px 22px;
     border-radius: 26px;
     background-color: var(--tile-bg);
+    /*
+     * One line, always: the drawing and the name on the left, the menu on the
+     * right. A long name wraps inside its own block instead of pushing the menu
+     * onto a second line, so the menu keeps its place and stays vertically
+     * centred even on a narrow phone.
+     */
+    flex-wrap: nowrap;
 }
 
 /*
@@ -3081,15 +3114,10 @@ html.is-theme-switching::view-transition-new(root) {
 /* A step smaller than the start page: this is a page about one entry. */
 .heading--detail {
     font-size: clamp(34px, 4.4vw, 62px);
+    /* A very long name wraps inside the card instead of pushing it apart. */
+    overflow-wrap: anywhere;
 }
 
-.detail__description {
-    margin-top: 8px;
-    max-width: 60ch;
-    color: var(--muted);
-    font-size: 0.98rem;
-    line-height: 1.5;
-}
 
 /* The menu next to the heading, in the surface the row menus already use. */
 .detail__menu {
@@ -3207,7 +3235,7 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 /* A quiet mark above the sentence, in the colour of the area. */
-.notice::before {
+#empty-state::before {
     content: '';
     display: block;
     width: 46px;
@@ -3215,6 +3243,16 @@ html.is-theme-switching::view-transition-new(root) {
     margin: 0 auto 16px;
     border-radius: 50%;
     background-color: color-mix(in srgb, var(--detail-palette, var(--cat-default)) 45%, transparent);
+}
+
+/*
+ * The circle of an empty list is the very circle a tile and the head card use -
+ * it carries the drawing of the area, or the first letter of its name.
+ */
+.notice__blob {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 16px;
 }
 
 .notice__title {

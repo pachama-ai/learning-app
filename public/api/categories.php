@@ -14,8 +14,6 @@ declare(strict_types=1);
  *     "name": "History",
  *     "name_en": "History",            // wording shown in English
  *     "name_de": "Geschichte",         // wording shown in German
- *     "description_en": "...",
- *     "description_de": "...",
  *     "icon_svg": "<svg ...>",
  *     "icon_scale": 1.15
  *   }
@@ -48,8 +46,8 @@ if ($method === 'POST') {
     $name = require_input_text($body, 'name', CATEGORY_MAX_NAME_LENGTH, 'invalid_name');
     $nameEn = optional_input_text($body, 'name_en', CATEGORY_MAX_NAME_LENGTH, 'invalid_name_en');
     $nameDe = optional_input_text($body, 'name_de', CATEGORY_MAX_NAME_LENGTH, 'invalid_name_de');
-    $descriptionEn = optional_input_text($body, 'description_en', CATEGORY_MAX_DESCRIPTION_LENGTH, 'invalid_description_en');
-    $descriptionDe = optional_input_text($body, 'description_de', CATEGORY_MAX_DESCRIPTION_LENGTH, 'invalid_description_de');
+    /* The description columns of this table are not read or written any more, so
+       a request that still carries them simply does not change anything. */
     $iconSvg = optional_svg_icon($body, 'icon_svg', 'invalid_icon');
     $iconScale = optional_icon_scale($body, 'icon_scale', 'invalid_icon_scale');
 
@@ -79,8 +77,6 @@ if ($method === 'POST') {
         foreach ([
             'name_en' => $nameEn,
             'name_de' => $nameDe,
-            'description_en' => $descriptionEn,
-            'description_de' => $descriptionDe,
             'icon_svg' => $iconSvg,
             'icon_scale' => $iconScale,
         ] as $column => $value) {

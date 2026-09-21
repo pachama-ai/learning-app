@@ -48,7 +48,6 @@ $appConfig = [
     'limits' => [
         // Must match the limits the API enforces.
         'name' => 100,
-        'description' => 1000,
         'cardText' => 2000,
         'iconBytes' => 307200,
     ],
@@ -257,7 +256,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             <span class="blob detail__blob" id="detail-blob" aria-hidden="true"></span>
                             <div class="detail__text">
                                 <h1 class="heading heading--detail" id="detail-heading"></h1>
-                                <p class="detail__description" id="detail-description" hidden></p>
                             </div>
                         </div>
 
@@ -275,16 +273,28 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         counted by the API, and the wording follows the number.
                     -->
                     <p class="detail__figures" id="detail-stats" hidden>
-                        <span class="detail__figure"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
+                        <span class="detail__figure" id="detail-figure-count"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
                         <span class="detail__figure" id="detail-figure-cards" hidden><span id="detail-card-count">0</span> <span id="detail-card-label"></span></span>
                     </p>
 
                     <!-- The rows of the open entry: subcategories or flashcards. -->
                     <ul class="rows" id="entry-list"></ul>
 
+                    <!--
+                        The empty state of a list: the circle carries the drawing
+                        of the area this page belongs to (or the first letter of
+                        its name), then one sentence and one button. app.js fills
+                        the circle and the two texts.
+                    -->
                     <div class="notice" id="entry-empty" hidden>
+                        <span class="blob notice__blob" id="entry-empty-blob" aria-hidden="true"></span>
                         <h2 class="notice__title" id="entry-empty-title"></h2>
-                        <p class="notice__hint" id="entry-empty-hint"></p>
+                        <!--
+                            Only the "this entry no longer exists" notice uses this
+                            second line. An empty list shows its one sentence
+                            without it, which is why it starts hidden.
+                        -->
+                        <p class="notice__hint" id="entry-empty-hint" hidden></p>
                         <button type="button" class="notice__button" id="entry-empty-action" hidden></button>
                     </div>
 
