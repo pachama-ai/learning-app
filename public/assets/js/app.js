@@ -5,8 +5,8 @@
  *   api/categories.php -> the learning areas with colour and counts
  *
  * Nothing is invented here: every number on the page is a value the API really
- * returned. api/stats.php still exists and still answers - the start page simply
- * does not display those figures any more.
+ * returned. The start page asks for exactly what it shows and nothing else; the
+ * old statistics endpoint that no page called any more is gone.
  */
 (function () {
     'use strict';

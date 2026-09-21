@@ -13,13 +13,34 @@ entry and delete it again.
 
 ```bash
 cd /home/user/projects/learning-app
+./start-dev.sh
+```
+
+Then open <http://127.0.0.1:8081/>. Another port works as well:
+
+```bash
+PORT=8082 ./start-dev.sh
+```
+
+The script starts the same development server with **four workers**
+(`PHP_CLI_SERVER_WORKERS=4`). A subcategory page asks for its area list, the
+category, its subcategories and its cards at the same time; with a single worker
+the four requests are answered one after another and the page waits for their
+sum. Measured on this machine, the four calls of one detail page:
+
+| server | fastest | typical |
+| --- | --- | --- |
+| `php -S` with one worker | 83.5 ms | 118.6 ms |
+| `./start-dev.sh` with four workers | 38.0 ms | 50.3 ms |
+
+Without the script it is the same as before:
+
+```bash
 php -S 127.0.0.1:8081 -t public
 ```
 
-Then open <http://127.0.0.1:8081/>.
-
 > The Apache server that also runs in this distro serves `/var/www/html` and has
-> nothing to do with this project. Use the command above.
+> nothing to do with this project. Use one of the commands above.
 
 ---
 
@@ -32,11 +53,23 @@ Expected: `"database":"learning_app"` and `"message":"Database connection works"
 This proves the PDO connection **and** that the right database is selected.
 
 ```bash
-curl -s http://127.0.0.1:8081/api/stats.php
+curl -s "http://127.0.0.1:8081/api/cards.php?category_id=50"
 ```
-Expected: `learning_areas: 6`, `subcategories: 8`, `total_cards: null`
-(`null` because the `cards` table is empty - a value that cannot be known is
-never invented).
+Expected: `{"success":true,"data":{"cards":[...],"summary":{...},"has_user":false}}`
+- one entry per card, each with `front`, `back`, `is_bidirectional` and a
+`progress` block (`status`, `due_at`, `repetitions`, `lapses`, `stability`,
+`difficulty`). `summary` counts the cards by status and how many are due.
+`has_user` is false while nobody is signed in.
+
+```bash
+curl -s "http://127.0.0.1:8081/api/review.php?category_id=50"
+```
+Expected: the queue of a study session: `queue` (each turn with `card_id`,
+`direction`, `front`, `back`, `status` and `preview_minutes`), `counts`,
+`summary` and `has_user`.
+
+Old endpoint: `api/stats.php` was removed. Nothing called it any more - the four
+figures it returned were replaced by the footer counter long ago.
 
 ```bash
 curl -s "http://127.0.0.1:8081/api/categories.php"
