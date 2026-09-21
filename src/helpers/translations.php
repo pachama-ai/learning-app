@@ -65,8 +65,6 @@ function learning_app_translations(): array
             'footer.addAria' => 'Add learning area',
             'footer.addSubcategoryAria' => 'Add subcategory',
             'footer.addCardAria' => 'Add flashcard',
-            'footer.editAria' => 'Edit this entry',
-            'footer.edit' => 'Edit',
 
             'dialog.addTitle' => 'Add learning area',
             'dialog.nameLabel' => 'Name',
@@ -198,9 +196,6 @@ function learning_app_translations(): array
             'dialog.icon.fileChosen' => 'File chosen: {name}',
 
             // --- Edit mode and the tile menu ---
-            'footer.done' => 'Done',
-            'editMode.badge' => 'Edit mode',
-            'editMode.hint' => 'Use the menu in the corner of a tile to edit or delete it.',
             'action.moreTile' => 'Actions for {name}',
 
             // --- Toasts after a successful save ---
@@ -249,8 +244,6 @@ function learning_app_translations(): array
             'footer.addAria' => 'Themengebiet hinzufügen',
             'footer.addSubcategoryAria' => 'Unterkategorie hinzufügen',
             'footer.addCardAria' => 'Karteikarte hinzufügen',
-            'footer.editAria' => 'Diesen Eintrag bearbeiten',
-            'footer.edit' => 'Bearbeiten',
 
             'dialog.addTitle' => 'Themengebiet hinzufügen',
             'dialog.nameLabel' => 'Name',
@@ -382,9 +375,6 @@ function learning_app_translations(): array
             'dialog.icon.fileChosen' => 'Gewählte Datei: {name}',
 
             // --- Bearbeiten-Modus und Kachelmenü ---
-            'footer.done' => 'Fertig',
-            'editMode.badge' => 'Bearbeiten-Modus',
-            'editMode.hint' => 'Über das Menü in der Ecke einer Kachel bearbeiten oder löschen.',
             'action.moreTile' => 'Aktionen für {name}',
 
             // --- Hinweise nach dem Speichern ---

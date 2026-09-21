@@ -82,12 +82,6 @@
     var editingParentId = null;
     var entryEmptyHandler = null;
 
-    /*
-     * True while the home page is in edit mode: every tile then carries a menu
-     * in its corner. The mode is not stored anywhere - leaving the page or
-     * opening a detail view simply ends it.
-     */
-    var editMode = false;
 
     var elements = {
         page: document.querySelector('.page'),
@@ -116,7 +110,6 @@
         emptyTitle: document.getElementById('empty-title'),
         emptyHint: document.getElementById('empty-hint'),
         addButton: document.getElementById('add-button'),
-        editButton: document.getElementById('edit-button'),
         themeToggle: document.getElementById('theme-toggle'),
         langUnderline: document.getElementById('lang-underline'),
         localeButtons: document.querySelectorAll('[data-locale]'),
@@ -131,8 +124,12 @@
         areaCardList: document.getElementById('area-card-list'),
 
         detailActions: document.getElementById('detail-actions'),
-        editEntry: document.getElementById('edit-entry'),
-        deleteEntry: document.getElementById('delete-entry'),
+        detailBlob: document.getElementById('detail-blob'),
+        detailDescription: document.getElementById('detail-description'),
+        detailStats: document.getElementById('detail-stats'),
+        detailFigureCards: document.getElementById('detail-figure-cards'),
+        detailCardCount: document.getElementById('detail-card-count'),
+        detailCardLabel: document.getElementById('detail-card-label'),
         statLabel: document.getElementById('detail-stat-label'),
 
         /* The one dialog. Its fields are built while it opens. */
@@ -145,10 +142,6 @@
         dialogDanger: document.getElementById('app-dialog-danger'),
         dialogCancel: document.getElementById('app-dialog-cancel'),
         dialogSubmit: document.getElementById('app-dialog-submit'),
-
-        /* The hint line that belongs to the edit mode. */
-        editHint: document.getElementById('edit-hint'),
-        tilesView: document.getElementById('view-home'),
 
         /* The short message, its text and the button that can belong to it. */
         feedback: document.getElementById('feedback'),
@@ -986,22 +979,26 @@
        Detail view (unchanged behaviour)
        ---------------------------------------------------------------------- */
 
+    /*
+     * One learning area in the sidebar.
+     *
+     * No counter in front of the name any more: the dot carries the colour of
+     * that area instead, which is the same colour its tile has on the start
+     * page. The order still comes from the list itself, so nothing shifts.
+     */
     function buildSidebarLink(area, index, isActive) {
         var link = document.createElement('a');
         link.className = 'sidebar__link';
         link.href = 'index.php?category=' + encodeURIComponent(area.id);
+        link.style.setProperty('--link-color', 'var(--palette-' + ((index % 8) + 1) + ')');
 
         if (isActive) {
             link.setAttribute('aria-current', 'page');
         }
 
-        var number = document.createElement('span');
-        number.textContent = '[' + pad2(index + 1) + ']';
-
         var name = document.createElement('span');
         name.textContent = displayName(area);
 
-        link.appendChild(number);
         link.appendChild(name);
 
         return link;
@@ -1216,12 +1213,46 @@
     }
 
     /*
-     * The label above the number of the detail view. The key is kept on the
-     * element as well, so a language switch translates it again by itself.
+     * The last row of a list is the way in: "Add subcategory" or "Add
+     * flashcard". It is a real button with the height of a row, so the list ends
+     * with the next step instead of with a dead end.
      */
-    function setStatLabel(key) {
-        elements.statLabel.textContent = t(key);
-        elements.statLabel.setAttribute('data-i18n', key);
+    function buildAddRow(labelKey, handler) {
+        var item = document.createElement('li');
+        item.className = 'row-add';
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'add-row';
+        /* The stored labels already start with "+"; the sign is drawn here so
+           the two parts can be spaced by the stylesheet. */
+        button.textContent = '+ ' + t(labelKey).replace(/^\+\s*/, '');
+        button.addEventListener('click', handler);
+
+        item.appendChild(button);
+
+        return item;
+    }
+
+    /*
+     * The figures of the open entry.
+     *
+     * The noun follows the number ("1 subcategory" / "8 subcategories"), which
+     * is why the word is set here and not in the template. The flashcard part is
+     * only there when there is something to count.
+     */
+    function renderFigures(count, oneKey, otherKey, cardCount) {
+        animateCount(elements.detailCount, count);
+        elements.statLabel.textContent = t(count === 1 ? oneKey : otherKey);
+
+        var showCards = typeof cardCount === 'number';
+
+        elements.detailFigureCards.hidden = !showCards;
+
+        if (showCards) {
+            elements.detailCardCount.textContent = String(cardCount);
+            elements.detailCardLabel.textContent = t(cardCount === 1 ? 'tile.cards.one' : 'tile.cards.other');
+        }
     }
 
     /*
@@ -1307,7 +1338,6 @@
             }
 
             var current = single.data;
-            editMode = false;
             var isSubcategory = current.parent_id !== null;
             var parent = null;
 
@@ -1323,6 +1353,59 @@
             currentEntryCards = cardsResult.ok && Array.isArray(cardsResult.data) ? cardsResult.data : [];
 
             var pageTitle = displayName(current);
+
+            /*
+             * The head zone wears the colour of the learning area this page
+             * belongs to. A learning area is its own area; a subcategory takes
+             * the colour of its parent, so both levels of one branch look alike.
+             * The value is the same palette token the tile uses, chosen by the
+             * position of the area in the list.
+             */
+            var areaRow = isSubcategory && parent !== null ? parent : current;
+            var areaIndex = 0;
+
+            allAreas.forEach(function (area, index) {
+                if (area.id === areaRow.id) {
+                    areaIndex = index;
+                }
+            });
+
+            elements.detailView.style.setProperty('--detail-palette', 'var(--palette-' + ((areaIndex % 8) + 1) + ')');
+            fillIconCircle(elements.detailBlob, categoryMeta(areaRow));
+
+            /*
+             * The description of the entry, in the language that is switched on.
+             * A row may carry one per language and no neutral one, so the German
+             * text is used when German is on - and nothing is shown when the
+             * entry has no description at all.
+             */
+            var description = locale === 'de' ? current.description_de : current.description_en;
+
+            if (typeof description !== 'string' || description === '') {
+                description = locale === 'de' ? current.description_en : current.description_de;
+            }
+
+            elements.detailDescription.textContent = typeof description === 'string' ? description : '';
+            elements.detailDescription.hidden = typeof description !== 'string' || description === '';
+
+            /*
+             * One menu instead of two labelled buttons: the same control that
+             * every row and every tile carries, with the same two entries.
+             */
+            elements.detailActions.textContent = '';
+            elements.detailActions.appendChild(buildMenu([
+                {
+                    label: t('action.edit'),
+                    run: openEditForCurrentEntry
+                },
+                {
+                    label: t('action.delete'),
+                    danger: true,
+                    run: function () {
+                        requestDelete('category', currentEntry, null);
+                    }
+                }
+            ], pageTitle, 'detail__menu'));
 
             var crumbParts = [];
 
@@ -1345,8 +1428,7 @@
             elements.detailStats.hidden = false;
 
             if (isSubcategory) {
-                setStatLabel('cards.heading');
-                animateCount(elements.detailCount, currentEntryCards.length);
+                renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
 
                 elements.entryList.textContent = '';
 
@@ -1359,6 +1441,10 @@
                         elements.entryList.appendChild(buildCardRow(card, index));
                     });
 
+                    elements.entryList.appendChild(buildAddRow('cards.addCard', function () {
+                        openCardForm(null, current.id);
+                    }));
+
                     elements.entryList.hidden = false;
                 }
 
@@ -1367,8 +1453,7 @@
                 return;
             }
 
-            setStatLabel('detail.subareas');
-            animateCount(elements.detailCount, children.length);
+            renderFigures(children.length, 'tile.subcategories.one', 'tile.subcategories.other', currentEntryCards.length);
 
             elements.entryList.textContent = '';
 
@@ -1380,6 +1465,10 @@
                 children.forEach(function (child, index) {
                     elements.entryList.appendChild(buildEntryRow(child, index));
                 });
+
+                elements.entryList.appendChild(buildAddRow('detail.addSubcategory', function () {
+                    openCategoryForm('create', null, current.id);
+                }));
 
                 elements.entryList.hidden = false;
             }
@@ -1411,16 +1500,6 @@
 
         elements.addButton.setAttribute('aria-label', t(addKey));
         elements.addButton.setAttribute('data-i18n-label', addKey);
-
-        /*
-         * The button switches the edit mode of the tile row, so it belongs to
-         * the start page. On a detail view the entry is edited with the two
-         * actions next to the heading instead, which is why the button is hidden
-         * there.
-         */
-        elements.editButton.hidden = level !== 'home';
-        elements.editButton.setAttribute('aria-label', t('footer.editAria'));
-        elements.editButton.setAttribute('data-i18n-label', 'footer.editAria');
 
         /*
          * The two arrows belong to the tile row, so only the start page shows
@@ -3102,28 +3181,6 @@
     }
 
     /* ----------------------------------------------------------------------
-       Edit mode on the home page
-       ---------------------------------------------------------------------- */
-
-    function setEditMode(next) {
-        editMode = next;
-
-        elements.tilesView.classList.toggle('is-editing', editMode);
-        elements.editHint.hidden = !editMode;
-        elements.editButton.setAttribute('aria-pressed', editMode ? 'true' : 'false');
-        /*
-         * The key travels with the button, so the language switch translates the
-         * label that is really on screen - "Done" while the mode is on.
-         */
-        elements.editButton.setAttribute('data-i18n', editMode ? 'footer.done' : 'footer.edit');
-        elements.editButton.textContent = t(editMode ? 'footer.done' : 'footer.edit');
-
-        if (!editMode) {
-            closeMenu();
-        }
-    }
-
-    /* ----------------------------------------------------------------------
        Start
        ---------------------------------------------------------------------- */
 
@@ -3141,19 +3198,6 @@
         /* Add follows the level that is open. */
         elements.addButton.addEventListener('click', openAddForCurrentEntry);
 
-        /* The footer button on the right switches the edit mode of the tiles. */
-        elements.editButton.setAttribute('aria-pressed', 'false');
-        elements.editButton.addEventListener('click', function () {
-            setEditMode(!editMode);
-        });
-
-        /* The detail view has its own two actions next to the heading. */
-        elements.editEntry.addEventListener('click', openEditForCurrentEntry);
-        elements.deleteEntry.addEventListener('click', function () {
-            if (currentEntry !== null) {
-                requestDelete('category', currentEntry, null);
-            }
-        });
 
         elements.emptyAction.addEventListener('click', function () {
             openCategoryForm('create', null, null);
@@ -3252,9 +3296,6 @@
         applyRevealOrder(document.querySelectorAll('.view--start .reveal'), 0);
 
         wireEvents();
-        /* No translation table is on the page before this line, so the label of
-           the edit button is set here for the first time. */
-        elements.editButton.textContent = t('footer.edit');
 
         applyLocale(locale, false);
     }

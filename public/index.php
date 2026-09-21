@@ -218,13 +218,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 </div>
 
                 <!--
-                    Shown only while the edit mode is on: it says what the menu
-                    in the corner of a tile does. The text comes from the
-                    translation table, so it follows the language switch.
-                -->
-                <p class="eyebrow edit-hint" id="edit-hint" role="status" data-i18n="editMode.hint" hidden><?= $text('editMode.hint') ?></p>
-
-                <!--
                     The scroll line of the tile row. It carries the position as
                     well as being the hairline above the footer, so the footer
                     needs none of its own. It is NEVER hidden: while every tile
@@ -252,39 +245,39 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         row or a tile: a row is one link, and a button inside a
                         link cannot be clicked reliably.
                     -->
+                    <!--
+                        The head of the open entry: its drawing, its name and its
+                        description. The drawing is the same circle a tile uses,
+                        so arriving here feels like opening that tile. The colour
+                        of the zone comes from the palette position of the
+                        learning area (see app.js and the stylesheet).
+                    -->
                     <div class="detail__head">
-                        <h1 class="heading" id="detail-heading"></h1>
-
-                        <div class="detail__actions" id="detail-actions" hidden>
-                            <button type="button" class="text-button text-button--icon" id="edit-entry">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                                     stroke-linejoin="round" focusable="false" aria-hidden="true">
-                                    <path d="M4 20h4L20 8l-4-4L4 16v4Z"/>
-                                </svg>
-                                <span data-i18n="action.edit"><?= $text('action.edit') ?></span>
-                            </button>
-
-                            <button type="button" class="text-button text-button--icon text-button--danger" id="delete-entry">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                                     stroke-linejoin="round" focusable="false" aria-hidden="true">
-                                    <path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>
-                                </svg>
-                                <span data-i18n="action.delete"><?= $text('action.delete') ?></span>
-                            </button>
+                        <div class="detail__titles">
+                            <span class="blob detail__blob" id="detail-blob" aria-hidden="true"></span>
+                            <div class="detail__text">
+                                <h1 class="heading heading--detail" id="detail-heading"></h1>
+                                <p class="detail__description" id="detail-description" hidden></p>
+                            </div>
                         </div>
+
+                        <!--
+                            The actions of this entry. app.js puts the one menu
+                            into this container, so a detail view offers exactly
+                            the same control as a row or a tile does.
+                        -->
+                        <div class="detail__actions" id="detail-actions" hidden></div>
                     </div>
 
-                    <dl class="stats stats--detail" id="detail-stats">
-                        <div class="stats__item stat-pill stats__item--blue">
-                            <dt class="stats__label">
-                                <span class="stats__dot" id="detail-dot" aria-hidden="true"></span>
-                                <span id="detail-stat-label" data-i18n="detail.subareas"><?= $text('detail.subareas') ?></span>
-                            </dt>
-                            <dd class="stats__value" id="detail-count" aria-live="polite">0</dd>
-                        </div>
-                    </dl>
+                    <!--
+                        What the entry holds, in one quiet line: the number of
+                        subcategories and the number of flashcards. Both are
+                        counted by the API, and the wording follows the number.
+                    -->
+                    <p class="detail__figures" id="detail-stats" hidden>
+                        <span class="detail__figure"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
+                        <span class="detail__figure" id="detail-figure-cards" hidden><span id="detail-card-count">0</span> <span id="detail-card-label"></span></span>
+                    </p>
 
                     <!-- The rows of the open entry: subcategories or flashcards. -->
                     <ul class="rows" id="entry-list"></ul>
@@ -349,8 +342,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         <path d="M12 5v14M5 12h14"/>
                     </svg>
                 </button>
-
-                <button type="button" class="text-button" id="edit-button" data-i18n="footer.edit"><?= $text('footer.edit') ?></button>
             </div>
         </footer>
     </div>

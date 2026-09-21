@@ -2626,10 +2626,6 @@ html.is-theme-switching::view-transition-new(root) {
     }
 }
 
-.is-editing .tile-menu {
-    display: block;
-}
-
 .tile-menu .menu-button {
     width: 28px;
     height: 28px;
@@ -2672,13 +2668,6 @@ html.is-theme-switching::view-transition-new(root) {
     }
 }
 
-/*
- * --- the hint that belongs to the edit mode -----------------------------
- */
-.edit-hint {
-    margin-top: 6px;
-    color: var(--muted);
-}
 
 /*
  * --- the dialog ---------------------------------------------------------
@@ -3043,4 +3032,301 @@ html.is-theme-switching::view-transition-new(root) {
     .dialog__form {
         padding: 24px 20px 28px;
     }
+}
+
+/* ==========================================================================
+   The detail view: one calm head, a quiet list and a way in
+
+   Everything here is an addition. The classes of the head, the figures, the add
+   row and the quiet row count are new; the few overrides at the end only remove
+   a frame (the pill, the dashed box) so a page of this app has one surface
+   language and not three.
+   ========================================================================== */
+
+.detail__head {
+    align-items: center;
+    gap: 20px;
+    padding: 20px 22px;
+    border-radius: 26px;
+    background-color: var(--tile-bg);
+}
+
+/*
+ * In the light theme the zone carries the colour of its learning area, softly
+ * mixed with the page colour so it is a tint and not a coloured block. In the
+ * dark theme it stays neutral: the dark look is not changed.
+ */
+[data-theme="light"] .detail__head {
+    background-color: color-mix(in srgb, var(--detail-palette, var(--tile-bg)) 30%, var(--bg));
+}
+
+.detail__titles {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+}
+
+.detail__text {
+    min-width: 0;
+}
+
+/* The same circle a tile uses - here as a fixed mark next to the name. */
+.detail__blob {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+}
+
+/* A step smaller than the start page: this is a page about one entry. */
+.heading--detail {
+    font-size: clamp(34px, 4.4vw, 62px);
+}
+
+.detail__description {
+    margin-top: 8px;
+    max-width: 60ch;
+    color: var(--muted);
+    font-size: 0.98rem;
+    line-height: 1.5;
+}
+
+/* The menu next to the heading, in the surface the row menus already use. */
+.detail__menu {
+    position: relative;
+    display: inline-block;
+}
+
+.detail__menu .menu {
+    top: calc(100% + 6px);
+    right: 0;
+    left: auto;
+}
+
+.detail__menu .menu-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--panel) 70%, transparent);
+    border-color: transparent;
+    backdrop-filter: blur(6px);
+}
+
+.detail__menu .menu-button:hover,
+.detail__menu .menu-button[aria-expanded="true"] {
+    background-color: var(--panel);
+    border-color: var(--line-strong);
+}
+
+/* --- the figures: numbers in a sentence, not in a pill ------------------- */
+
+.detail__figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin-top: 20px;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+}
+
+.detail__figure {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    min-height: 24px;
+}
+
+.detail__figure > span:first-child {
+    color: var(--text);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- the last row of a list is the way in ------------------------------- */
+
+.row-add {
+    margin-top: 6px;
+}
+
+.add-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 56px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 16px;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.98rem;
+    text-align: left;
+    cursor: pointer;
+    transition: color 200ms var(--ease), background-color 200ms var(--ease);
+}
+
+.add-row:hover,
+.add-row:focus-visible {
+    background-color: var(--tile-bg);
+    color: var(--text);
+}
+
+/* --- one quiet line per row --------------------------------------------- */
+
+/*
+ * The number of flashcards of a row reads as text now: the pill around it made
+ * every row look like a dashboard. The real number stays, only its frame goes.
+ */
+.rows .row__count {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.rows .row__progress {
+    opacity: .7;
+}
+
+/*
+ * The empty state is a sentence and one button, no dashed box: a dashed frame
+ * reads like a place that is still being built.
+ */
+.rows + .notice,
+.notice {
+    padding: 34px 24px 30px;
+    border: 0;
+    border-radius: 26px;
+    background-color: var(--tile-bg);
+}
+
+/* A quiet mark above the sentence, in the colour of the area. */
+.notice::before {
+    content: '';
+    display: block;
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--detail-palette, var(--cat-default)) 45%, transparent);
+}
+
+.notice__title {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 1.15rem;
+}
+
+.notice__button {
+    min-height: 44px;
+    margin-top: 20px;
+    padding: 12px 24px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-color: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-sans);
+    font-size: 0.98rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.notice__button:hover {
+    border-color: transparent;
+    background-color: color-mix(in srgb, var(--accent) 88%, var(--bg));
+}
+
+/* --- the sidebar: a dot, a name, an active surface ---------------------- */
+
+.sidebar__link {
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    font-size: 0.98rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.sidebar__link::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--link-color, currentColor);
+    opacity: .55;
+    transition: opacity 200ms var(--ease);
+}
+
+.sidebar__link:hover::before {
+    opacity: .9;
+}
+
+.sidebar__link[aria-current="page"] {
+    color: var(--text);
+    background-color: color-mix(in srgb, var(--link-color, var(--tile-bg)) 26%, transparent);
+}
+
+.sidebar__link[aria-current="page"]::before {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Comfortable targets
+
+   Measured at 1920, 1440, 1024 and 390px: a few controls were smaller than the
+   40px a finger needs. What grows here is the area that answers to a click, not
+   the drawing of the control - the design stays as it is.
+   ========================================================================== */
+
+/*
+ * The language switch: the two words keep their size and their underline, the
+ * button around them gets the height of the other controls in the top bar.
+ */
+.lang-switch__option {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 8px;
+}
+
+/*
+ * The three-dot menu: one size everywhere. On a tile it stays a little smaller,
+ * because it sits on a coloured surface in the corner.
+ */
+.menu-button {
+    width: 40px;
+    height: 40px;
+}
+
+.tile-menu .menu-button {
+    width: 36px;
+    height: 36px;
+}
+
+/*
+ * A step back in the breadcrumb. The letters stay small - that is the design -
+ * but the link is as tall as a control.
+ */
+.crumb a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+}
+
+/*
+ * The link inside a row: the row is 72px tall, the link inside it was only as
+ * tall as its text. It fills the row now, so the whole row is the target.
+ */
+.row__link {
+    min-height: 44px;
 }
