@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * PATCH  /api/category.php?id=7  -> changes the fields that are sent
  * DELETE /api/category.php?id=7  -> removes the category and everything in it
+ *                                    ({"confirm": true} when something is inside)
  *
  * PATCH body (only the fields that should change):
  *   {
@@ -15,22 +16,23 @@ declare(strict_types=1);
  *   }
  *
  * DELETE body (optional):
- *   {"confirm_name": "History"}
+ *   {"confirm": true}
  *
  * Deleting removes the category, every subcategory below it and every card in
  * that subtree, because the foreign keys of this database are ON DELETE
  * RESTRICT and would otherwise refuse the delete. Everything happens in one
  * transaction, so a half deleted tree can never be left behind.
  *
- * A delete request needs NO body. The name only has to be repeated when
+ * A delete request needs NO body. The confirmation is only asked for when
  * something really depends on the category - subcategories or cards - and the
  * server decides that from the data, not the browser:
  *
  *   - an empty category is deleted with the id alone
- *   - a category with subcategories or cards needs "confirm_name"
+ *   - a category with subcategories or cards needs "confirm": true
  *
- * Any of the three names of the category (the neutral one, the English and the
- * German wording) confirms it, compared without upper and lower case.
+ * Nothing has to be typed: the browser shows the counts in the shared dialog and
+ * sends the flag once the person agreed. A request that was not confirmed gets
+ * the code "confirm_required" and changes nothing.
  *
  * The answer is
  *   {"success": true, "data": {"deleted_category_id": 7, ...}}
@@ -68,33 +70,26 @@ try {
     }
 
     /* ---------------------------------------------------------------------
-       DELETE: the name has to be repeated, then the whole subtree disappears
+       DELETE: one confirmation, then the whole subtree disappears
        --------------------------------------------------------------------- */
 
     if ($method === 'DELETE') {
         /*
          * How much depends on this category decides whether the request has to
-         * repeat the name. That is counted HERE, from the database - a hand
-         * written request cannot skip the confirmation by leaving the field out,
-         * and the browser cannot demand one where none is needed.
+         * be confirmed. That is counted HERE, from the database - a hand written
+         * request cannot skip the confirmation by leaving the flag out, and the
+         * browser cannot demand one where none is needed.
+         *
+         * The browser answers "confirm_required" by reading the category again
+         * (api/categories.php?id=N) and asking the person with those numbers.
          */
         $dependents = category_delete_dependents($pdo, $categoryId);
 
         if ($dependents['descendants'] > 0 || $dependents['cards'] > 0) {
-            $confirmName = optional_confirm_name($body);
-
-            if ($confirmName === null) {
+            if (optional_flag($body, 'confirm') !== true) {
                 send_json_error(
-                    'confirm_name_required',
-                    'This category has subcategories or cards. Repeat its name to confirm.',
-                    400
-                );
-            }
-
-            if (!category_name_matches($current, $confirmName)) {
-                send_json_error(
-                    'name_mismatch',
-                    'The name does not match this category.',
+                    'confirm_required',
+                    'This category has subcategories or cards. Send "confirm": true to delete it.',
                     400
                 );
             }

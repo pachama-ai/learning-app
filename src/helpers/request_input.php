@@ -217,43 +217,6 @@ function optional_svg_icon(array $body, string $key, string $code): ?string
     return $svg;
 }
 
-/**
- * The name a person typed into the delete dialog.
- *
- * Deleting a category removes everything below it, so the endpoint asks for the
- * name again. The comparison ignores upper and lower case and surrounding
- * spaces, but nothing else.
- *
- * @param array<string, mixed> $body
- */
-function require_confirm_name(array $body): string
-{
-    if (!array_key_exists('confirm_name', $body) || !is_string($body['confirm_name'])) {
-        send_json_error('invalid_request_body', 'Send a JSON object with a "confirm_name" field.', 400);
-    }
-
-    return trim($body['confirm_name']);
-}
-
-/**
- * The optional confirmation name of a delete request.
- *
- * A delete that really needs a confirmation sends the name; one that does not
- * (an empty category, or a client that never had the field) simply sends
- * nothing, and null comes back instead of an error.
- *
- * @param array<string, mixed> $body
- */
-function optional_confirm_name(array $body): ?string
-{
-    if (!array_key_exists('confirm_name', $body) || !is_string($body['confirm_name'])) {
-        return null;
-    }
-
-    $value = trim($body['confirm_name']);
-
-    return $value === '' ? null : $value;
-}
 
 /**
  * A required id that arrives in the query string, such as ?id=7.

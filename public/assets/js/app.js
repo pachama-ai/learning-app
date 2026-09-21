@@ -63,6 +63,21 @@
     var openMenu = null;
     var feedbackTimer = null;
 
+    /*
+     * How long a deletion can still be taken back.
+     *
+     * Nothing is sent to the server during this window, so "Undo" really does
+     * undo: the row never left the database.
+     */
+    var UNDO_WINDOW_MS = 6500;
+
+    /*
+     * The deletion that is waiting right now, or null:
+     *   { kind, target, url, timer }
+     * Only one can be waiting at a time - a second one finishes the first.
+     */
+    var pendingDelete = null;
+
     /* Which entry a new one is created in, and what the empty state offers. */
     var editingParentId = null;
     var entryEmptyHandler = null;
@@ -135,7 +150,10 @@
         editHint: document.getElementById('edit-hint'),
         tilesView: document.getElementById('view-home'),
 
-        feedback: document.getElementById('feedback')
+        /* The short message, its text and the button that can belong to it. */
+        feedback: document.getElementById('feedback'),
+        feedbackText: document.getElementById('feedback-text'),
+        feedbackAction: document.getElementById('feedback-action')
     };
 
     /* ----------------------------------------------------------------------
@@ -204,26 +222,6 @@
         return row.name;
     }
 
-    /*
-     * Whether a typed name confirms a category.
-     *
-     * A category can carry three names - the neutral one plus the English and
-     * the German wording - and the page shows the one that belongs to the
-     * language that is switched on. The server accepts all three, so this does
-     * the same: without it the button could say "the name matches" while the
-     * server refused to delete.
-     */
-    function nameMatchesTarget(target, typed) {
-        var wanted = String(typed === undefined || typed === null ? '' : typed).trim().toLowerCase();
-
-        if (wanted === '') {
-            return false;
-        }
-
-        return ['name', 'name_en', 'name_de'].some(function (key) {
-            return typeof target[key] === 'string' && target[key].trim().toLowerCase() === wanted;
-        });
-    }
 
     /*
      * Everything the page needs to draw one learning area.
@@ -562,12 +560,8 @@
             return t('dialog.errorBack');
         }
 
-        if (code === 'name_mismatch') {
-            return t('dialog.errorConfirmName');
-        }
-
-        if (code === 'confirm_name_required') {
-            return t('dialog.errorConfirmRequired');
+        if (code === 'confirm_required') {
+            return t('dialog.errorDelete');
         }
 
         if (code === 'category_delete_conflict') {
@@ -589,15 +583,48 @@
         return t('dialog.errorServer');
     }
 
-    /* Short message at the bottom of the page, for a moment. */
-    function showFeedback(message) {
-        elements.feedback.textContent = message;
+    /* Takes the message away, together with any button that belonged to it. */
+    function hideFeedback() {
+        window.clearTimeout(feedbackTimer);
+        feedbackTimer = null;
+        elements.feedbackAction.hidden = true;
+        elements.feedbackAction.onclick = null;
+        elements.feedback.hidden = true;
+    }
+
+    /*
+     * Short message at the bottom of the page, for a moment.
+     *
+     * With an action the message becomes an offer: it stays a little longer and
+     * the button next to it can still take the last step back. The button is
+     * removed with the message, so a stale button can never be clicked - and it
+     * is one-shot, because a second click after an undo would undo what was
+     * already kept.
+     *
+     * options: { actionLabel, onAction, duration }
+     */
+    function showFeedback(message, options) {
+        var settings = options || {};
+
+        hideFeedback();
+        elements.feedbackText.textContent = message;
+
+        if (typeof settings.actionLabel === 'string' && typeof settings.onAction === 'function') {
+            elements.feedbackAction.textContent = settings.actionLabel;
+            elements.feedbackAction.hidden = false;
+            elements.feedbackAction.onclick = function (event) {
+                event.preventDefault();
+                var run = settings.onAction;
+                hideFeedback();
+                run();
+            };
+        }
+
         elements.feedback.hidden = false;
 
-        window.clearTimeout(feedbackTimer);
         feedbackTimer = window.setTimeout(function () {
-            elements.feedback.hidden = true;
-        }, 3200);
+            hideFeedback();
+        }, typeof settings.duration === 'number' ? settings.duration : 3200);
     }
 
     /* ----------------------------------------------------------------------
@@ -859,7 +886,7 @@
                 label: t('action.delete'),
                 danger: true,
                 run: function () {
-                    openDeleteDialog('category', area);
+                    requestDelete('category', area, slot);
                 }
             }
         ], meta.title, 'tile-menu');
@@ -1119,7 +1146,7 @@
                 label: t('action.delete'),
                 danger: true,
                 run: function () {
-                    openDeleteDialog('category', entry);
+                    requestDelete('category', entry, item);
                 }
             }
         ], title));
@@ -1180,7 +1207,7 @@
                 label: t('action.delete'),
                 danger: true,
                 run: function () {
-                    openDeleteDialog('card', card);
+                    requestDelete('card', card, item);
                 }
             }
         ], card.front));
@@ -2573,6 +2600,260 @@
         return parts.join(', ');
     }
 
+    /*
+     * How much sits inside a category, as far as this page knows.
+     *
+     * Two sources, one shape: a category read on its own
+     * (api/categories.php?id=N) carries a delete_preview for the whole subtree,
+     * a tile from the list counts its direct subcategories and the cards of that
+     * branch. null means "unknown" - then the dialog is opened instead of
+     * guessing, and the server counts again inside its own transaction anyway.
+     */
+    function knownDependents(target) {
+        if (target === null || typeof target !== 'object') {
+            return null;
+        }
+
+        if (typeof target.delete_preview === 'object' && target.delete_preview !== null) {
+            return {
+                categories: Number(target.delete_preview.categories) || 0,
+                cards: Number(target.delete_preview.cards) || 0
+            };
+        }
+
+        if (typeof target.subcategory_count === 'number' && typeof target.card_count === 'number') {
+            return { categories: target.subcategory_count, cards: target.card_count };
+        }
+
+        return null;
+    }
+
+    /*
+     * The one entry point of every delete button in this app.
+     *
+     * Three cases, one rule: the more sits inside, the more is asked.
+     *
+     *   - the entry whose own page is open: nothing to decide, so it goes
+     *     straight away (the page has to leave anyway)
+     *   - a category with subcategories or cards: the shared dialog names the
+     *     counts and asks once, nothing is typed
+     *   - everything else - a card, or a category that is empty: it goes at
+     *     once, and the message that appears can still take it back
+     *     (see queueDelete)
+     *
+     * $node is the element that shows the entry; it is removed right away so the
+     * page does not keep a row that the person has just deleted.
+     */
+    function requestDelete(kind, target, node) {
+        var isCategory = kind === 'category';
+        var openEntry = isCategory && currentEntry !== null && currentEntry.id === target.id;
+
+        /* Only one deletion waits at a time: a second one finishes the first. */
+        finishPendingDelete();
+
+        if (openEntry) {
+            sendDelete(kind, target, false, false);
+            return;
+        }
+
+        var dependents = isCategory ? knownDependents(target) : { categories: 0, cards: 0 };
+
+        if (dependents === null || dependents.categories > 0 || dependents.cards > 0) {
+            openDeleteDialog(kind, target);
+            return;
+        }
+
+        queueDelete(kind, target, node);
+    }
+
+    /*
+     * The deletion waits, so "Undo" is possible.
+     *
+     * Nothing is sent to the server yet: the row is only taken off the screen,
+     * and the request follows when the undo window has passed. Taking it back
+     * therefore restores the entry exactly as it was - including every card and
+     * every bit of learning progress, because none of it was ever touched.
+     */
+    function queueDelete(kind, target, node) {
+        var label = displayName(target);
+
+        if (node && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+
+        pendingDelete = {
+            kind: kind,
+            target: target,
+            url: (kind === 'category' ? config.endpoints.category : config.endpoints.card)
+                + '?id=' + encodeURIComponent(target.id),
+            timer: window.setTimeout(function () {
+                var entry = pendingDelete;
+                pendingDelete = null;
+                sendDelete(entry.kind, entry.target, false, true);
+            }, UNDO_WINDOW_MS)
+        };
+
+        showFeedback(t('feedback.deleted', { name: label }), {
+            actionLabel: t('feedback.undo'),
+            onAction: undoPendingDelete,
+            duration: UNDO_WINDOW_MS
+        });
+    }
+
+    /* "Undo" was pressed: the deletion never happened, so the page is enough. */
+    function undoPendingDelete() {
+        if (pendingDelete === null) {
+            return;
+        }
+
+        window.clearTimeout(pendingDelete.timer);
+        pendingDelete = null;
+
+        render();
+        showFeedback(t('feedback.undone'));
+    }
+
+    /* Another deletion started: the waiting one is sent before it. */
+    function finishPendingDelete() {
+        if (pendingDelete === null) {
+            return;
+        }
+
+        var entry = pendingDelete;
+        window.clearTimeout(entry.timer);
+        pendingDelete = null;
+
+        sendDelete(entry.kind, entry.target, false, true);
+    }
+
+    /*
+     * The page is being left while a deletion is still waiting.
+     *
+     * The waiting request is sent once more, this time with "keepalive", which
+     * lets the browser finish it after the page is gone. Without this a closed
+     * tab could leave an entry that the person was told is deleted. The message
+     * is taken away before, because a button that leads nowhere must not stay on
+     * the screen.
+     */
+    function flushPendingDelete() {
+        if (pendingDelete === null) {
+            return;
+        }
+
+        var entry = pendingDelete;
+        window.clearTimeout(entry.timer);
+        pendingDelete = null;
+        hideFeedback();
+
+        window.fetch(entry.url, {
+            method: 'DELETE',
+            headers: { Accept: 'application/json' },
+            keepalive: true
+        }).catch(function () {
+            /* The page is going away; there is nothing left to show. */
+        });
+    }
+
+    /*
+     * The one place that really deletes something.
+     *
+     * $confirm is true only when the person agreed in the dialog, and it is what
+     * the server asks for when subcategories or cards depend on the category.
+     * $quiet suppresses the message, because the waiting deletion has already
+     * shown its own.
+     */
+    function sendDelete(kind, target, confirm, quiet) {
+        var isCategory = kind === 'category';
+        var url = (isCategory ? config.endpoints.category : config.endpoints.card)
+            + '?id=' + encodeURIComponent(target.id);
+        var label = isCategory ? displayName(target) : target.front;
+        var wasOpen = isCategory && currentEntry !== null && currentEntry.id === target.id;
+
+        return apiRequest(url, 'DELETE', confirm === true ? { confirm: true } : undefined)
+            .then(function (result) {
+                if (!result.ok) {
+                    /*
+                     * The page knew less than the database: something sits inside
+                     * this category after all. The category is read again - that
+                     * answer carries the counts of the whole subtree - and the
+                     * question is asked once more with the right numbers.
+                     */
+                    if (result.code === 'confirm_required') {
+                        responseCache = {};
+                        render();
+                        askDeleteAgain(kind, target);
+                        return;
+                    }
+
+                    /*
+                     * A delete that answers 404 is not a failure of the request:
+                     * the row really is gone (somebody else deleted it, or it was
+                     * already removed). The page is reloaded so it shows the
+                     * truth instead of an entry that can never be deleted.
+                     */
+                    if (result.status === 404) {
+                        responseCache = {};
+                        render();
+                        showFeedback(t('dialog.errorAlreadyGone'));
+                        return;
+                    }
+
+                    /*
+                     * The row is still in the database and was taken off the
+                     * screen while the request was on its way, so the page is
+                     * built again from the API.
+                     */
+                    responseCache = {};
+                    render();
+                    showFeedback(t('dialog.errorDelete'));
+                    return;
+                }
+
+                /* Everything the page shows comes from the API again. */
+                responseCache = {};
+
+                if (wasOpen) {
+                    /* The page itself is gone, so the browser goes up one level. */
+                    window.location.href = target.parent_id === null
+                        ? 'index.php'
+                        : 'index.php?category=' + encodeURIComponent(target.parent_id);
+                    return;
+                }
+
+                render();
+
+                if (quiet !== true) {
+                    showFeedback(t('feedback.deleted', { name: label }));
+                }
+            });
+    }
+
+    /* Reads the category again and asks with the numbers that are true now. */
+    function askDeleteAgain(kind, target) {
+        apiRequest(config.endpoints.categories + '?id=' + encodeURIComponent(target.id), 'GET')
+            .then(function (result) {
+                if (!result.ok || typeof result.data !== 'object' || result.data === null) {
+                    showFeedback(t('dialog.errorDelete'));
+                    return;
+                }
+
+                openDeleteDialog(kind, result.data);
+            });
+    }
+
+    /*
+     * The one question this app asks before something with content disappears.
+     *
+     * Only a category that still has subcategories or cards reaches this
+     * function - a card and an empty category are deleted without a question
+     * (see requestDelete) - so the sentence always has numbers to name.
+     *
+     * It names the entry and, in the same sentence, what would go with it: the
+     * counts from the database and the word "permanently". Nothing has to be
+     * typed and there is no checkbox: the red button is the answer, and the
+     * focus starts on Cancel, so the safe answer is the one that is already
+     * selected.
+     */
     function openDeleteDialog(kind, target) {
         dialogKind = 'delete';
         dialogEntry = { kind: kind, target: target };
@@ -2587,72 +2868,26 @@
         elements.dialogDanger.hidden = true;
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.disabled = false;
-
-        if (kind === 'category') {
-            /*
-             * Two sources, one shape.
-             *
-             * A category that was read on its own (api/categories.php?id=N)
-             * carries a delete_preview with the whole subtree. A tile comes from
-             * the list, which counts the direct subcategories and the cards of
-             * the branch - enough to decide whether anything depends on it, and
-             * the server counts again inside its own transaction before it
-             * deletes anything.
-             */
-            var preview = target.delete_preview || {
-                categories: typeof target.subcategory_count === 'number' ? target.subcategory_count : 0,
-                cards: typeof target.card_count === 'number' ? target.card_count : 0
-            };
-            var parts = deletePreviewParts(preview);
-            var dependent = preview.categories > 0 || preview.cards > 0;
-
-            elements.dialogTitle.textContent = t('dialog.delete.title', { name: displayName(target) });
-            elements.dialogMessage.textContent = parts === ''
-                ? t('dialog.delete.nothingBelow')
-                : t('dialog.delete.consequence', { parts: parts });
-            elements.dialogMessage.hidden = false;
-            elements.dialogSubmit.textContent = t('dialog.delete.submit');
-
-            /*
-             * Only a category that really has something below it asks for the
-             * name to be typed again - an empty one is deleted with a single
-             * click, because there is nothing to be careful about.
-             */
-            if (dependent) {
-                var confirm = addField('confirm_name', 'text', {
-                    labelKey: 'dialog.delete.confirmLabel',
-                    maxLength: config.limits.name,
-                    onInput: function (control) {
-                        elements.dialogSubmit.disabled = !nameMatchesTarget(target, control.value);
-                    }
-                });
-
-                elements.dialogSubmit.disabled = true;
-                openDialog();
-                confirm.focus();
-                return;
-            }
-
-            openDialog();
-            elements.dialogCancel.focus();
-            return;
-        }
-
-        elements.dialogTitle.textContent = t('dialog.deleteCard.title');
-        elements.dialogMessage.textContent = t('dialog.deleteCard.hint');
-        elements.dialogMessage.hidden = false;
         elements.dialogSubmit.textContent = t('dialog.delete.submit');
+
+        var parts = deletePreviewParts(knownDependents(target) || { categories: 0, cards: 0 });
+
+        elements.dialogTitle.textContent = t('dialog.delete.title', { name: displayName(target) });
+        elements.dialogMessage.textContent = parts === ''
+            ? t('dialog.delete.nothingBelow')
+            : t('dialog.delete.consequence', { parts: parts });
+        elements.dialogMessage.hidden = false;
 
         openDialog();
         elements.dialogCancel.focus();
     }
 
-    /* "Delete" inside the edit form: close it, then ask for the name. */
+    /* "Delete" inside the edit form: close it, then take the same path. */
     function askDeleteAfterEdit(entry) {
         closeDialog();
 
         window.setTimeout(function () {
-            openDeleteDialog('category', entry);
+            requestDelete('category', entry, null);
         }, prefersReducedMotion() ? 0 : 220);
     }
 
@@ -2721,6 +2956,15 @@
 
         var isDelete = dialogKind === 'delete';
         var isCard = dialogKind === 'card';
+
+        /*
+         * Saving is a change of the same list a waiting deletion belongs to, so
+         * the deletion is sent first instead of being sent into a page that is
+         * about to be rebuilt.
+         */
+        if (!isDelete) {
+            finishPendingDelete();
+        }
         var payload = null;
         var url = '';
         var method = 'POST';
@@ -2730,25 +2974,14 @@
             var target = dialogEntry.target;
             var isCategory = dialogEntry.kind === 'category';
 
-            if (dialogFields.confirm_name) {
-                var typed = dialogFields.confirm_name.control.value.trim();
-
-                if (!nameMatchesTarget(target, typed)) {
-                    setFieldError('confirm_name', t('dialog.errorConfirmName'));
-                    dialogFields.confirm_name.control.focus();
-                    return;
-                }
-
-                payload = { confirm_name: typed };
-            } else {
-                /*
-                 * No body at all: the id in the URL already says what is meant,
-                 * and the server only asks for a name when something depends on
-                 * the category. Sending an empty body would make the request look
-                 * like a confirmation with a missing field.
-                 */
-                payload = undefined;
-            }
+            /*
+             * This path is only used for an entry that still has something inside
+             * - an empty one is deleted at once, see requestDelete - so the
+             * server gets the one thing it asks for: a plain confirmation flag.
+             * Nothing is typed, and no body at all is sent for a card, because
+             * the id in the URL already says what is meant.
+             */
+            payload = isCategory ? { confirm: true } : undefined;
 
             url = (isCategory ? config.endpoints.category : config.endpoints.card)
                 + '?id=' + encodeURIComponent(target.id);
@@ -2918,7 +3151,7 @@
         elements.editEntry.addEventListener('click', openEditForCurrentEntry);
         elements.deleteEntry.addEventListener('click', function () {
             if (currentEntry !== null) {
-                openDeleteDialog('category', currentEntry);
+                requestDelete('category', currentEntry, null);
             }
         });
 
@@ -2937,6 +3170,13 @@
             event.preventDefault();
             submitDialog();
         });
+
+        /*
+         * A deletion that is still waiting is finished when the page is left, so
+         * a closed tab cannot leave an entry that the person was told is deleted.
+         * "keepalive" lets the browser complete the request after the unload.
+         */
+        window.addEventListener('pagehide', flushPendingDelete);
 
         elements.dialogCancel.addEventListener('click', function () {
             closeDialog();

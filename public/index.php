@@ -355,8 +355,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         </footer>
     </div>
 
-    <!-- Short confirmation after saving or deleting, announced politely. -->
-    <p class="feedback" id="feedback" role="status" aria-live="polite" hidden></p>
+    <!--
+        Short confirmation after saving or deleting, announced politely.
+
+        The element is only a frame: the sentence and the optional action are
+        written by app.js, so one place in the markup serves both a plain message
+        and the message that still offers to take a deletion back.
+    -->
+    <div class="feedback" id="feedback" role="status" aria-live="polite" hidden>
+        <span class="feedback__text" id="feedback-text"></span>
+        <button type="button" class="feedback__action" id="feedback-action" hidden></button>
+    </div>
 
     <!--
         One <dialog> per job. A native dialog gives focus trapping, closing with

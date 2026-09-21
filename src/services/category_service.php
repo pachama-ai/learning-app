@@ -473,41 +473,10 @@ function category_subtree_stats(PDO $pdo, int $categoryId): array
 }
 
 /**
- * Reports whether one of the names of a category matches what somebody typed.
- *
- * A category can carry three names (the neutral one plus the English and the
- * German wording), and the interface shows the one that belongs to the current
- * language. Whichever of them was typed, it confirms the same category - so the
- * check accepts all three and compares without case.
- *
- * @param array<string, mixed> $category
- */
-function category_name_matches(array $category, string $typed): bool
-{
-    $wanted = trim(mb_strtolower($typed));
-
-    if ($wanted === '') {
-        return false;
-    }
-
-    foreach (['name', 'name_en', 'name_de'] as $key) {
-        if (!isset($category[$key]) || !is_string($category[$key])) {
-            continue;
-        }
-
-        if (trim(mb_strtolower($category[$key])) === $wanted) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
  * Reports how much depends on a category: its descendants and their cards.
  *
- * The delete endpoint uses this to decide whether a request has to repeat the
- * name. The decision is made on the server, never in the browser, so a hand
+ * The delete endpoint uses this to decide whether a request has to be confirmed
+ * once more. The decision is made on the server, never in the browser, so a hand
  * written request cannot skip the confirmation by leaving the field out.
  *
  * @return array{categories: int, cards: int, descendants: int}

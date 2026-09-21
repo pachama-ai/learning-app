@@ -129,13 +129,12 @@ function learning_app_translations(): array
 
             // --- Delete confirmation ---
             'dialog.delete.title' => 'Delete "{name}"?',
-            'dialog.delete.consequence' => 'Everything below it is deleted as well: {parts}.',
+            'dialog.delete.consequence' => 'This also deletes {parts} - permanently.',
             'dialog.delete.nothingBelow' => 'Nothing sits below it, so only this entry is removed.',
             'dialog.delete.subcategories.one' => '1 subcategory',
             'dialog.delete.subcategories.other' => '{count} subcategories',
             'dialog.delete.cards.one' => '1 flashcard',
             'dialog.delete.cards.other' => '{count} flashcards',
-            'dialog.delete.confirmLabel' => 'Type the name to confirm',
             'dialog.delete.submit' => 'Delete',
             'dialog.delete.deleting' => 'Deleting …',
             'dialog.deleteCard.title' => 'Delete this flashcard?',
@@ -150,7 +149,6 @@ function learning_app_translations(): array
             'feedback.saved' => 'Saved.',
             'dialog.errorSave' => 'The entry could not be saved.',
             'dialog.errorDelete' => 'The entry could not be deleted.',
-            'dialog.errorConfirmName' => 'The name does not match this entry.',
 
             'state.loading' => 'Loading learning areas …',            'state.error' => 'The learning areas could not be loaded. Please try again later.',
             'state.noscript' => 'JavaScript is required to load the learning areas.',
@@ -181,7 +179,6 @@ function learning_app_translations(): array
             'dialog.errorFrontTooLong' => 'The front may be at most {max} characters long.',
             'dialog.errorBackRequired' => 'Please enter the back of the card.',
             'dialog.errorBackTooLong' => 'The back may be at most {max} characters long.',
-            'dialog.errorConfirmRequired' => 'Type the name to confirm.',
             'dialog.errorDeleteConflict' => 'Other data still refers to this category, so it could not be deleted.',
             'dialog.errorAlreadyGone' => 'This entry no longer exists.',
 
@@ -210,6 +207,8 @@ function learning_app_translations(): array
             'feedback.created' => '{name} was created.',
             'feedback.updated' => '{name} was saved.',
             'feedback.iconRemoved' => 'The icon was removed.',
+            'feedback.undo' => 'Undo',
+            'feedback.undone' => 'Kept as it was.',
 
             'language.en' => 'EN',
             'language.de' => 'DE',
@@ -314,13 +313,12 @@ function learning_app_translations(): array
 
             // --- Löschbestätigung ---
             'dialog.delete.title' => '„{name}“ löschen?',
-            'dialog.delete.consequence' => 'Dabei wird auch alles darunter gelöscht: {parts}.',
+            'dialog.delete.consequence' => 'Dabei werden auch {parts} endgültig gelöscht.',
             'dialog.delete.nothingBelow' => 'Darunter befindet sich nichts, es wird nur dieser Eintrag entfernt.',
             'dialog.delete.subcategories.one' => '1 Unterkategorie',
             'dialog.delete.subcategories.other' => '{count} Unterkategorien',
             'dialog.delete.cards.one' => '1 Karteikarte',
             'dialog.delete.cards.other' => '{count} Karteikarten',
-            'dialog.delete.confirmLabel' => 'Zum Bestätigen den Namen eingeben',
             'dialog.delete.submit' => 'Löschen',
             'dialog.delete.deleting' => 'Wird gelöscht …',
             'dialog.deleteCard.title' => 'Diese Karteikarte löschen?',
@@ -335,7 +333,6 @@ function learning_app_translations(): array
             'feedback.saved' => 'Gespeichert.',
             'dialog.errorSave' => 'Der Eintrag konnte nicht gespeichert werden.',
             'dialog.errorDelete' => 'Der Eintrag konnte nicht gelöscht werden.',
-            'dialog.errorConfirmName' => 'Der Name stimmt nicht mit diesem Eintrag überein.',
 
             'state.loading' => 'Themengebiete werden geladen …',            'state.error' => 'Die Themengebiete konnten nicht geladen werden. Bitte später erneut versuchen.',
             'state.noscript' => 'JavaScript wird benötigt, um die Themengebiete zu laden.',
@@ -366,7 +363,6 @@ function learning_app_translations(): array
             'dialog.errorFrontTooLong' => 'Die Vorderseite darf höchstens {max} Zeichen lang sein.',
             'dialog.errorBackRequired' => 'Bitte die Rückseite eingeben.',
             'dialog.errorBackTooLong' => 'Die Rückseite darf höchstens {max} Zeichen lang sein.',
-            'dialog.errorConfirmRequired' => 'Bitte den Namen zur Bestätigung eingeben.',
             'dialog.errorDeleteConflict' => 'Andere Daten verweisen noch auf dieses Themengebiet, deshalb konnte es nicht gelöscht werden.',
             'dialog.errorAlreadyGone' => 'Dieser Eintrag existiert nicht mehr.',
 
@@ -395,6 +391,8 @@ function learning_app_translations(): array
             'feedback.created' => '„{name}“ wurde angelegt.',
             'feedback.updated' => '„{name}“ wurde gespeichert.',
             'feedback.iconRemoved' => 'Das Symbol wurde entfernt.',
+            'feedback.undo' => 'Rückgängig',
+            'feedback.undone' => 'Unverändert behalten.',
 
             'language.en' => 'EN',
             'language.de' => 'DE',

@@ -2264,15 +2264,25 @@ html.is-theme-switching::view-transition-new(root) {
     margin-top: 12px;
 }
 
-/* Short confirmation after saving or deleting. */
+/*
+ * Short confirmation after saving or deleting.
+ *
+ * It is a row, not a sentence: a plain message uses one child, the message that
+ * offers to take a deletion back uses two. The text can be long (it carries a
+ * name), so it wraps instead of pushing the button off the screen.
+ */
 .feedback {
     position: fixed;
     left: 50%;
     bottom: 28px;
     /* Above the grain layer (900) and above an open menu. */
     z-index: 1010;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(680px, calc(100vw - 32px));
     transform: translateX(-50%);
-    padding: 10px 18px;
+    padding: 8px 10px 8px 20px;
     border: 1px solid var(--line-strong);
     border-radius: 999px;
     background-color: var(--panel);
@@ -2282,6 +2292,40 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .feedback[hidden] {
+    display: none;
+}
+
+.feedback__text {
+    min-width: 0;
+}
+
+/*
+ * The way back: a quiet pill inside the message. It is a second chance and not
+ * the point of the message, so it stays quiet - but it is still a real target of
+ * 36px, and it disappears with the message it belongs to.
+ */
+.feedback__action {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-height: 36px;
+    margin-left: auto;
+    padding: 6px 16px;
+    border: 0;
+    border-radius: 999px;
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: background-color 200ms var(--ease);
+}
+
+.feedback__action:hover {
+    background-color: var(--line);
+}
+
+.feedback__action[hidden] {
     display: none;
 }
 
