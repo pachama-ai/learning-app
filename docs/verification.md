@@ -218,3 +218,88 @@ Browser  --fetch-->  public/api/*.php  --PDO-->  MySQL/MariaDB  --JSON-->  Brows
 * Every write answers with the row as it was really stored, and the frontend
   reloads the list from the API afterwards (`responseCache = {}` + `render()`).
 * `user_card_progress` and the spaced-repetition columns were not touched.
+
+---
+
+## F. Deleting without typing a name (2026-09-21)
+
+The rule changed in this pass: nothing has to be typed any more, and a deletion
+that has nothing below it can even be taken back. Section D6 step 5 describes the
+old behaviour - this is the current one.
+
+### F1. An empty entry disappears at once, with a way back
+
+1. Start page, three dots on the corner of a tile of an **empty** learning area
+   (one that says "No subcategories yet") -> **Delete**.
+2. Expected: no question appears. The tile disappears immediately and a short
+   message appears at the bottom: *"<name> was deleted."* with the button
+   **Undo**. Nothing has been sent to the server yet.
+3. Press **Undo** within six seconds: the tile is back and the message says
+   *"Kept as it was."* Nothing was ever deleted.
+4. Repeat and simply wait: after about six seconds the message goes away and the
+   list is reloaded. The tile stays gone, and a reload confirms it.
+
+### F2. Leaving the page finishes the deletion
+
+1. Delete an empty entry and **immediately** click another tile (or close the
+   tab).
+2. Expected: the deletion still happens - the browser sends the waiting request
+   with `keepalive` while the page goes away. There is no undo in this case.
+
+### F3. An entry with content asks once
+
+1. Three dots on the Mathematics tile -> **Delete**.
+2. Expected: the shared dialog opens with the name in the title and one sentence
+   that names the numbers, for example
+   *"This also deletes 8 subcategories - permanently."*
+   There is **no input field** and no checkbox; the focus starts on **Cancel**.
+3. **Cancel** (or Escape, or a click next to the panel): nothing is deleted.
+4. Open it again and press the red **Delete**: the whole subtree disappears in
+   one transaction and the message *"<name> was deleted."* appears.
+5. The same dialog appears for a subcategory that still holds flashcards.
+
+### F4. Where else the delete is offered
+
+* Every row of a list (subcategory or flashcard) has its own three dots menu
+  with **Edit** and **Delete**.
+* The head of a detail view has the same menu next to the name.
+* Deleting the entry whose own page is open deletes at once and then goes one
+  level up.
+
+### F5. The contract behind it
+
+```bash
+curl -s -X DELETE "http://127.0.0.1:8081/api/category.php?id=2"
+```
+Expected: HTTP 400 with `"code":"confirm_required"` - nothing is deleted.
+
+```bash
+curl -s -X DELETE "http://127.0.0.1:8081/api/category.php?id=999999"
+```
+Expected: HTTP 404 with `"code":"category_not_found"`.
+
+```bash
+curl -s -X DELETE "http://127.0.0.1:8081/api/category.php?id=2" -H 'Content-Type: application/json' -d '{"confirm":true}'
+```
+Expected: the subtree really disappears (`deleted_categories`, `deleted_cards`,
+`deleted_progress`). **Only run this on a throwaway entry.**
+
+---
+
+## G. The detail view (2026-09-21)
+
+1. Open a learning area. Expected: a head zone in the colour of that area (light
+   theme), the same circle a tile shows, the description in the current
+   language, one line of figures ("8 subcategories · 0 cards"), one three-dot
+   menu next to the name and, at the end of the list, a plain
+   **+ Add subcategory** row.
+2. Open a subcategory that has no cards. Expected: the same head with the
+   colour and the drawing of the *parent* area, one line "0 cards", and an empty
+   state with a sentence and one button instead of a dashed box.
+3. Switch the language: the heading, the description and the figures follow; the
+   sidebar loses its counters and shows a coloured dot per area.
+4. Switch the theme: the head zone is neutral in the dark theme, the light tint
+   comes back in the light theme.
+5. There is no edit mode any more: the menu in the corner of a tile is quiet
+   until the tile is hovered, focused or a menu is open (on a touch device it is
+   always visible).
