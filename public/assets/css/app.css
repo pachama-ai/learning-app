@@ -4251,13 +4251,17 @@ body.is-learning {
     gap: 14px 20px;
 }
 
+/*
+ * One quiet row of actions, directly under the counts: the main action first,
+ * then the ways to add something. It is NOT in the head any more - the title
+ * stands alone there, and a row of buttons next to it made both harder to read.
+ */
 .detail__learn {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    /* Between the title and the menu: the main action sits with the name. */
-    order: 1;
+    margin-top: 14px;
 }
 
 .detail__actions {
@@ -4275,14 +4279,16 @@ body.is-learning {
     appearance: none;
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    padding: 13px 28px 13px 24px;
+    gap: 8px;
+    /* A little finer than before: the button stays the main action of the card
+       list, it just no longer outweighs the title. */
+    padding: 9px 20px 9px 16px;
     border: 1px solid transparent;
     border-radius: 999px;
     background-color: var(--accent);
     color: var(--accent-ink);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 14.5px;
     font-weight: 500;
     letter-spacing: 0.01em;
     cursor: pointer;
@@ -4294,8 +4300,8 @@ body.is-learning {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background-color: color-mix(in srgb, var(--accent-ink) 18%, transparent);
 }
@@ -4600,6 +4606,103 @@ body.is-learning {
     }
 }
 
+
+/* ==========================================================================
+   The map of a card
+
+   A card may carry one region of one of three static map files. The colours come
+   from tokens, never from the file: every region is a quiet surface and the one
+   region that matters is drawn in the accent colour - in both themes, with a
+   contrast far above the 3:1 that the surroundings need.
+   ========================================================================== */
+
+:root {
+    --map-fill: #E9E3D8;
+    --map-line: #C6BCAB;
+    --map-active: #2B2622;
+    --map-active-line: #2B2622;
+}
+
+[data-theme="dark"] {
+    --map-fill: #343C56;
+    --map-line: #4C5578;
+    --map-active: #8FD3E6;
+    --map-active-line: #8FD3E6;
+}
+
+.card-map {
+    display: block;
+    max-width: 100%;
+    margin: 0;
+}
+
+.card-map svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+}
+
+/* Every region is quiet ... */
+.card-map svg path,
+.card-map svg polygon,
+.card-map svg g path {
+    fill: var(--map-fill);
+    stroke: var(--map-line);
+    stroke-width: 0.7;
+    vector-effect: non-scaling-stroke;
+}
+
+/* ... and the one that matters is not. This rule is more specific than the one
+   above, which is what lets the highlight win inside a group (the world map
+   marks a <g>, not a single path). */
+.card-map svg .is-active,
+.card-map svg .is-active path,
+.card-map svg .is-active polygon {
+    fill: var(--map-active);
+    stroke: var(--map-active-line);
+    stroke-width: 1;
+}
+
+/* --- where a map appears ------------------------------------------------- */
+
+/* In a row of the list: small and above the text, so the question stays first. */
+.card-map--row {
+    width: 92px;
+    margin-bottom: 8px;
+}
+
+/* On a face of the study card: as large as the text column allows. */
+.card-map--learn {
+    width: min(300px, 70%);
+    margin: 14px auto 0;
+}
+
+/* In the card dialog, under the two selects. */
+.card-map--dialog {
+    width: min(230px, 70%);
+    margin-top: 10px;
+}
+
+/* In the live preview of the card. */
+.card-map--preview {
+    width: min(190px, 80%);
+    margin-top: 10px;
+}
+
+/*
+ * On a narrow screen the map sits under the text instead of next to it, and it
+ * never grows wider than the card it belongs to.
+ */
+@media (max-width: 639px) {
+    .card-map--row {
+        width: 76px;
+    }
+
+    .card-map--learn {
+        width: min(240px, 80%);
+    }
+}
 
 /* ==========================================================================
    The CSV import: one quiet button, one dashed area, one honest preview
@@ -4921,4 +5024,15 @@ body.is-learning {
     .import__table td {
         max-width: 120px;
     }
+}
+
+
+/*
+ * Hovering a tile: the lift, the brighter surface and the arrow stay, the shadow
+ * goes. While the pointer is on a tile it already is the focus of the row, and a
+ * shadow cast on the tiles next to it only made the row look busy.
+ */
+.area-card:hover,
+.area-card:focus-visible {
+    box-shadow: none;
 }

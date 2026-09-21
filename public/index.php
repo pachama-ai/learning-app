@@ -61,6 +61,35 @@ $appConfig = [
         'importBytes' => 1048576,
         'importRows' => 1000,
     ],
+    /*
+     * The three map files and the sixteen German states. The states carry the id
+     * that germany.svg uses (that is the value the database stores) and a
+     * translation key, so the picker can offer a readable name in both languages.
+     * Never a second list of ids somewhere else.
+     */
+    'maps' => [
+        'DE' => 'assets/maps/germany.svg',
+        'EU' => 'assets/maps/europe.svg',
+        'WORLD' => 'assets/maps/world.svg',
+    ],
+    'germanStates' => [
+        ['id' => 'Baden__x26__Württemberg', 'label' => 'map.state.bw'],
+        ['id' => 'Bayern', 'label' => 'map.state.by'],
+        ['id' => 'Berlin', 'label' => 'map.state.be'],
+        ['id' => 'Brandenburg', 'label' => 'map.state.bb'],
+        ['id' => 'Bremen', 'label' => 'map.state.hb'],
+        ['id' => 'Hamburg', 'label' => 'map.state.hh'],
+        ['id' => 'Hessen', 'label' => 'map.state.he'],
+        ['id' => 'Mecklenburg-Vorpommern', 'label' => 'map.state.mv'],
+        ['id' => 'Niedersachsen', 'label' => 'map.state.ni'],
+        ['id' => 'Nordrhein-Westfalen', 'label' => 'map.state.nw'],
+        ['id' => 'Rheinland-Pfalz', 'label' => 'map.state.rp'],
+        ['id' => 'Saarland', 'label' => 'map.state.sl'],
+        ['id' => 'Sachsen', 'label' => 'map.state.sn'],
+        ['id' => 'Sachsen-Anhalt', 'label' => 'map.state.st'],
+        ['id' => 'Schleswig-Holstein', 'label' => 'map.state.sh'],
+        ['id' => 'Thüringen', 'label' => 'map.state.th'],
+    ],
     'defaultLocale' => $defaultLocale,
     'supportedLocales' => array_keys($translations),
     'categoryId' => $requestedCategoryId,
@@ -275,40 +304,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             the same control as a row or a tile does.
                         -->
                         <div class="detail__actions" id="detail-actions" hidden></div>
-
-                            <!--
-                                The main action of this entry and the quiet way to add
-                                the next one. Both sit in the head next to the title, so
-                                nobody has to scroll to find them, and app.js fills them
-                                for the page that is open:
-
-                                  a subcategory  -> "Study", "+ Card" and "Import"
-                                  a learning area -> "Study all"  and "+ Subcategory"
-
-                                A button is only shown where it belongs: there is no
-                                "Study" without cards, and no "+ Card" while the empty
-                                state already offers that step.
-                            -->
-                            <div class="detail__learn">
-                                <button type="button" class="learn-button" id="learn-button" hidden>
-                                    <span class="learn-button__icon" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" focusable="false">
-                                            <path d="M8 5.2v13.6L18.4 12 8 5.2z"/>
-                                        </svg>
-                                    </span>
-                                    <span class="learn-button__label" id="learn-button-label"></span>
-                                </button>
-
-                                <button type="button" class="add-entry-button" id="add-entry-button" hidden></button>
-
-                                <!--
-                                    The quiet way in for a whole file. It carries the
-                                    same look as "+ Card" and is only shown on a
-                                    subcategory page: that is the level a card belongs
-                                    to, so it is the level an import can write to.
-                                -->
-                                <button type="button" class="add-entry-button import-button" id="import-button" hidden></button>
-                            </div>
                     </div>
 
                     <!--
@@ -320,6 +315,34 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         <span class="detail__figure" id="detail-figure-count"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
                         <span class="detail__figure" id="detail-figure-cards" hidden><span id="detail-card-count">0</span> <span id="detail-card-label"></span></span>
                     </p>
+
+                    <!--
+                        One quiet row of actions, directly under the counts: the
+                        main action first, then the ways to add something. app.js
+                        fills the row for the level that is open:
+
+                          a subcategory  -> "Study", "+ Card" and "Import"
+                          a learning area -> "+ Subcategory"
+
+                        A button only appears where it belongs: no "Study" without
+                        cards, no "+ Card" while the empty state already offers that
+                        step, and no "Import" on a learning area - a file of cards
+                        belongs to a subcategory.
+                    -->
+                    <div class="detail__learn">
+                        <button type="button" class="learn-button" id="learn-button" hidden>
+                            <span class="learn-button__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" focusable="false">
+                                    <path d="M8 5.2v13.6L18.4 12 8 5.2z"/>
+                                </svg>
+                            </span>
+                            <span class="learn-button__label" id="learn-button-label"></span>
+                        </button>
+
+                        <button type="button" class="add-entry-button" id="add-entry-button" hidden></button>
+
+                        <button type="button" class="add-entry-button import-button" id="import-button" hidden></button>
+                    </div>
 
                     <!--
                         The header of a card list. It only shows while the open
@@ -522,14 +545,22 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
         <div class="learn__stage" id="learn-stage">
             <div class="learn__card" id="learn-card" tabindex="0" role="group">
+                <!--
+                    Each face can carry a map. Which one shows it depends on the
+                    direction of the turn: the map belongs to the answer, and on a
+                    card that is studied the other way round the answer is the
+                    question. app.js fills the right side and leaves the other empty.
+                -->
                 <div class="learn__face learn__face--front">
                     <p class="learn__label" id="learn-side-label"><?= $text('learn.question') ?></p>
                     <p class="learn__text" id="learn-front-text"></p>
+                    <div class="card-map card-map--learn" id="learn-map-front" hidden></div>
                 </div>
 
                 <div class="learn__face learn__face--back">
                     <p class="learn__label" data-i18n="learn.answer"><?= $text('learn.answer') ?></p>
                     <p class="learn__text" id="learn-back-text"></p>
+                    <div class="card-map card-map--learn" id="learn-map-back" hidden></div>
                 </div>
 
                 <p class="learn__hint" id="learn-hint" data-i18n="learn.flipHint"><?= $text('learn.flipHint') ?></p>

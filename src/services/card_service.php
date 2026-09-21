@@ -42,6 +42,15 @@ function normalize_card_row(array $row): array
         'back' => (string) $row['back'],
         // JSON has real booleans, so the tinyint becomes true or false here.
         'is_bidirectional' => (int) $row['is_bidirectional'] === 1,
+        /*
+         * The map region is either a key like "DE:Bayern" or nothing at all - an
+         * empty column and a value that does not pass the pattern both mean "no
+         * map". The value is never interpreted as markup anywhere; it is only
+         * used to look up one element in a static map file.
+         */
+        'map_region' => isset($row['map_region']) && card_map_region_is_valid((string) $row['map_region'])
+            ? (string) $row['map_region']
+            : null,
     ];
 }
 
@@ -144,6 +153,10 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
     $pairs = card_language_columns($available);
     $columns = ['is_bidirectional' => PDO::PARAM_INT];
 
+    if (card_column_available($available, 'map_region')) {
+        $columns['map_region'] = PDO::PARAM_STR;
+    }
+
     foreach ($pairs as $pair) {
         foreach ($pair as $column) {
             $columns[$column] = PDO::PARAM_STR;
@@ -192,6 +205,17 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
     foreach ($values as $column => [$value, $type]) {
         if ($column === 'is_bidirectional') {
             $statement->bindValue(':' . $column, $value ? 1 : 0, $type);
+            continue;
+        }
+
+        /* An empty map_region means "no map" and has to be NULL, not "". */
+        if ($column === 'map_region') {
+            if ($value === null || $value === '' || !card_map_region_is_valid((string) $value)) {
+                $statement->bindValue(':' . $column, null, PDO::PARAM_NULL);
+            } else {
+                $statement->bindValue(':' . $column, (string) $value, PDO::PARAM_STR);
+            }
+
             continue;
         }
 
@@ -300,6 +324,29 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds): int
  * correct before and after the migration.
  */
 
+/**
+ * What a map_region value may look like.
+ *
+ * AREA is one of three names and decides the file (DE -> germany.svg, EU ->
+ * europe.svg, WORLD -> world.svg). REGION is the id of one element in that file:
+ * a German state name, an ISO country code, or - for Baden-Württemberg - the id
+ * that file uses for it. Anything else never reaches the database, and a value
+ * that is already stored but does not match is simply ignored when a card is
+ * shown. Nowhere is the value interpreted as markup: it is only used to look up
+ * one element in a static application asset.
+ */
+const CARD_MAP_REGION_PATTERN = '/^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/u';
+
+/** The longest map_region value (the column is varchar(40)). */
+const CARD_MAP_REGION_MAX_LENGTH = 40;
+
+function card_map_region_is_valid(string $value): bool
+{
+    return $value !== ''
+        && mb_strlen($value) <= CARD_MAP_REGION_MAX_LENGTH
+        && preg_match(CARD_MAP_REGION_PATTERN, $value) === 1;
+}
+
 /** The column pairs per language. German uses the two original columns. */
 function card_language_columns(array $columns = []): array
 {
@@ -396,6 +443,11 @@ function card_content_languages(array $columns): array
 function card_read_columns(PDO $pdo): array
 {
     $columns = ['id', 'category_id', 'is_bidirectional', 'front', 'back'];
+
+    /* The map region only travels along when the table really has the column. */
+    if (card_column_available(card_columns($pdo), 'map_region')) {
+        $columns[] = 'map_region';
+    }
 
     foreach (card_language_columns(card_columns($pdo)) as $pair) {
         foreach ($pair as $column) {
@@ -542,11 +594,24 @@ function card_texts_from_body(array $body, array $columns): array
  * @param list<string> $columns
  * @return array<string, mixed>
  */
-function create_card_translated(PDO $pdo, int $categoryId, array $texts, array $columns, bool $isBidirectional): array
-{
+function create_card_translated(
+    PDO $pdo,
+    int $categoryId,
+    array $texts,
+    array $columns,
+    bool $isBidirectional,
+    ?string $mapRegion = null
+): array {
     $pairs = card_language_columns($columns);
     $names = ['category_id', 'is_bidirectional'];
     $values = [':category_id', ':is_bidirectional'];
+
+    $hasMap = card_column_available($columns, 'map_region');
+
+    if ($hasMap) {
+        $names[] = 'map_region';
+        $values[] = ':map_region';
+    }
 
     foreach ($pairs as $pair) {
         foreach ($pair as $column) {
@@ -581,6 +646,14 @@ function create_card_translated(PDO $pdo, int $categoryId, array $texts, array $
 
     $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
     $statement->bindValue(':is_bidirectional', $isBidirectional ? 1 : 0, PDO::PARAM_INT);
+
+    if ($hasMap) {
+        if ($mapRegion === null || !card_map_region_is_valid($mapRegion)) {
+            $statement->bindValue(':map_region', null, PDO::PARAM_NULL);
+        } else {
+            $statement->bindValue(':map_region', $mapRegion, PDO::PARAM_STR);
+        }
+    }
 
     foreach ($pairs as $pair) {
         foreach ($pair as $column) {

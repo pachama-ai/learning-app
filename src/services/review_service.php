@@ -281,6 +281,11 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
      */
     $selected = ['k.id', 'k.category_id', 'k.is_bidirectional', 'k.front', 'k.back'];
 
+    /* Only when the table has it: a card may carry a map region. */
+    if (card_column_available($columns, 'map_region')) {
+        $selected[] = 'k.map_region';
+    }
+
     foreach (card_language_columns($columns) as $pair) {
         foreach ($pair as $column) {
             $selected[] = 'k.' . $column;
@@ -871,6 +876,11 @@ function review_directions_of(array $card, string $status, bool $isDue): array
         'status' => $status,
         'is_due' => $isDue,
         'is_bidirectional' => (bool) $card['is_bidirectional'],
+        /* Only a value that passes the pattern goes to the browser, so the
+           session never receives anything it would have to distrust. */
+        'map_region' => isset($card['map_region']) && card_map_region_is_valid((string) $card['map_region'])
+            ? (string) $card['map_region']
+            : null,
     ];
 
     if (($card['is_bidirectional'] ?? false) !== true) {

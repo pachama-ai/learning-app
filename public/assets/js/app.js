@@ -223,6 +223,9 @@
         learnAskConfirm: document.getElementById('learn-ask-confirm'),
         learnClose: document.getElementById('learn-close'),
         learnNotice: document.getElementById('learn-notice'),
+        /* The two faces of the study card can carry a map. */
+        learnMapFront: document.getElementById('learn-map-front'),
+        learnMapBack: document.getElementById('learn-map-back'),
 
         /* The second button of the card dialog. */
         dialogSaveNext: document.getElementById('app-dialog-save-next')
@@ -617,6 +620,10 @@
 
         if (code === 'invalid_front') {
             return t('dialog.errorFront');
+        }
+
+        if (code === 'invalid_map_region') {
+            return t('dialog.errorMapRegion');
         }
 
         if (code === 'invalid_back') {
@@ -1291,6 +1298,13 @@
         var back = document.createElement('span');
         back.className = 'row__back';
         back.textContent = card.back;
+
+        /* A card with a map region shows the map above its text: the question
+           stays the first thing that is read. */
+        var map = el('span', 'card-map card-map--row');
+        map.hidden = true;
+        stack.appendChild(map);
+        showMap(map, card.map_region, 'card-map card-map--row');
 
         stack.appendChild(front);
         stack.appendChild(back);
@@ -2783,6 +2797,7 @@
 
     function openCardForm(card, categoryId) {
         dialogKind = 'card';
+        dialogMapField = null;
         dialogEntry = card;
         dialogParentId = categoryId;
         dialogIcon = null;
@@ -2839,6 +2854,9 @@
             value: cardDraft[cardTab].back
         });
 
+        /* The optional map: area, region, and the marked map underneath. */
+        addMapField(card !== null && typeof card.map_region === 'string' ? card.map_region : null);
+
         addField('is_bidirectional', 'checkbox', {
             labelKey: 'dialog.card.bidirectionalLabel',
             checked: card !== null && card.is_bidirectional === true
@@ -2872,7 +2890,9 @@
         }
 
         var payload = {
-            is_bidirectional: dialogFields.is_bidirectional.control.checked
+            is_bidirectional: dialogFields.is_bidirectional.control.checked,
+            /* null means "no map": the column is empty then. */
+            map_region: dialogMapValue()
         };
         var complete = 0;
         var half = [];
@@ -3704,9 +3724,12 @@
         var known = summary.known || 0;
         var due = summary.due || 0;
 
-        elements.cardToolsCount.textContent = total === 1
-            ? t('cards.summaryOne')
-            : t('cards.summary', { count: total });
+        /*
+         * The number of cards is NOT repeated here: the quiet line under the head
+         * already says "34 cards", and the same number twice in a row only made
+         * the head harder to read. What stays is everything the count cannot say.
+         */
+        elements.cardToolsCount.hidden = true;
 
         elements.cardToolsDue.textContent = t('cards.due', { count: due });
         elements.cardToolsDue.hidden = due === 0;
@@ -3839,6 +3862,12 @@
         backSide.appendChild(backLabel);
         backSide.appendChild(back);
 
+        /* The live preview of the map, on the side that carries the answer. */
+        var previewMap = el('div', 'card-map card-map--preview');
+        previewMap.id = 'card-preview-map';
+        previewMap.hidden = true;
+        backSide.appendChild(previewMap);
+
         card.appendChild(frontSide);
         card.appendChild(backSide);
 
@@ -3875,6 +3904,8 @@
             back.textContent = dialogFields.back.control.value;
             back.classList.toggle('is-empty', dialogFields.back.control.value.trim() === '');
         }
+
+        showMap(document.getElementById('card-preview-map'), dialogMapValue(), 'card-map card-map--preview');
 
         if (count !== null) {
             count.textContent = t('dialog.card.frontCount', {
@@ -4049,6 +4080,20 @@
 
         elements.learnFrontText.textContent = entry.front;
         elements.learnBackText.textContent = entry.back;
+
+        /*
+         * The map belongs to the side that carries the ANSWER: on a card that asks
+         * "where is Bavaria?" it is the back, so the person guesses first and then
+         * sees the marked map. A card that is studied the other way round (the
+         * answer is the question) shows it on the front instead.
+         */
+        showMap(elements.learnMapFront, null);
+        showMap(elements.learnMapBack, null);
+        showMap(
+            entry.direction === 'reverse' ? elements.learnMapFront : elements.learnMapBack,
+            entry.map_region,
+            'card-map card-map--learn'
+        );
         elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
 
         /* Both faces are written; which one is visible is the flip. */
@@ -5172,30 +5217,452 @@
         return sentence === key ? errorMessage(code) : sentence;
     }
 
+    /* ----------------------------------------------------------------------
+       The map of a card
+       ---------------------------------------------------------------------- */
+
+    /*
+     * A card may carry a map region: "DE:Bayern", "EU:FR" or "WORLD:CN". The area
+     * decides which of three static files is shown, the region is the id of the
+     * element inside it that is highlighted.
+     *
+     * Three rules make this safe and quick:
+     *   * the value is checked against the same pattern the API uses. A value that
+     *     does not match is ignored, and the card stays a text card.
+     *   * the file is an application asset: it is fetched, parsed with DOMParser,
+     *     cleaned (no <style>, no <script>, no inline style) and then copied. No
+     *     value from the database is ever interpreted as markup - it is only used
+     *     to look up one element by its id.
+     *   * a file is fetched once per session and reused from memory afterwards,
+     *     because the world map alone is about 1.2 MB.
+     */
+    var MAP_PATTERN = /^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/;
+    var mapDocuments = {};
+    var mapRequests = {};
+    var dialogMapField = null;
+
+    /* "DE:Bayern" -> { area, region, value }, or null when it is not a valid key. */
+    function parseMapRegion(value) {
+        if (typeof value !== 'string' || MAP_PATTERN.test(value) !== true) {
+            return null;
+        }
+
+        var parts = value.split(':');
+
+        return { area: parts[0], region: parts[1], value: value };
+    }
+
+    /* A readable name for a country code, in the language of the interface. */
+    function countryName(code) {
+        try {
+            if (typeof window.Intl === 'object' && typeof window.Intl.DisplayNames === 'function') {
+                var names = new window.Intl.DisplayNames([locale === 'de' ? 'de' : 'en'], { type: 'region' });
+                var name = names.of(code);
+
+                if (typeof name === 'string' && name !== '' && name !== code) {
+                    return name;
+                }
+            }
+        } catch (error) {
+            /* An unknown code keeps the code itself as its name. */
+        }
+
+        return code;
+    }
+
+    /* The readable name of a region, for a tooltip or a screen reader. */
+    function regionLabel(value) {
+        var parsed = parseMapRegion(value);
+
+        if (parsed === null) {
+            return '';
+        }
+
+        if (parsed.area === 'DE') {
+            var found = '';
+
+            config.germanStates.forEach(function (state) {
+                if (state.id === parsed.region) {
+                    found = t(state.label);
+                }
+            });
+
+            return found === '' ? parsed.region : found;
+        }
+
+        return countryName(parsed.region);
+    }
+
+    /*
+     * Fetches one map file once and hands back a cleaned, inert SVG element.
+     * Nothing here touches the page until the caller puts it somewhere.
+     */
+    function loadMap(area) {
+        if (mapDocuments[area] !== undefined) {
+            return Promise.resolve(mapDocuments[area]);
+        }
+
+        if (mapRequests[area] === undefined) {
+            mapRequests[area] = window.fetch(config.maps[area], { headers: { Accept: 'image/svg+xml' } })
+                .then(function (response) {
+                    return response.ok ? response.text() : '';
+                })
+                .then(function (text) {
+                    if (text.trim() === '') {
+                        mapDocuments[area] = null;
+
+                        return null;
+                    }
+
+                    var parsed = new window.DOMParser().parseFromString(text, 'image/svg+xml');
+                    var root = parsed.documentElement;
+
+                    if (root === null || String(root.nodeName).toLowerCase() !== 'svg'
+                        || parsed.getElementsByTagName('parsererror').length > 0) {
+                        mapDocuments[area] = null;
+
+                        return null;
+                    }
+
+                    /*
+                     * The file may carry its own colours and its own size. Both are
+                     * removed: the colours come from the stylesheet of the app, and
+                     * the size comes from the box the map is put into.
+                     */
+                    Array.prototype.forEach.call(root.querySelectorAll('style, script, title, desc'), function (node) {
+                        if (node.parentNode !== null) {
+                            node.parentNode.removeChild(node);
+                        }
+                    });
+
+                    Array.prototype.forEach.call(root.querySelectorAll('[style]'), function (node) {
+                        node.removeAttribute('style');
+                    });
+
+                    root.removeAttribute('style');
+                    root.removeAttribute('width');
+                    root.removeAttribute('height');
+                    root.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                    root.setAttribute('aria-hidden', 'true');
+                    root.setAttribute('focusable', 'false');
+
+                    mapDocuments[area] = root;
+
+                    return root;
+                })
+                .catch(function () {
+                    /* No file, no network, bad XML: the card simply stays a text card. */
+                    mapDocuments[area] = null;
+
+                    return null;
+                });
+        }
+
+        return mapRequests[area];
+    }
+
+    /*
+     * The regions of an area, ready for a select: the id that is stored and the
+     * readable name.
+     *
+     * Germany: the sixteen states from the configuration, because their ids are
+     * the ones germany.svg uses. Europe and the world: the two letter ids inside
+     * the file, with the name the browser knows for that code.
+     */
+    function regionsOfArea(area) {
+        if (area === 'DE') {
+            return Promise.resolve(config.germanStates.map(function (state) {
+                return { id: state.id, label: t(state.label) };
+            }));
+        }
+
+        return loadMap(area).then(function (root) {
+            if (root === null) {
+                return [];
+            }
+
+            var found = [];
+            var selector = area === 'WORLD' ? 'g[id]' : 'path[id], g[id]';
+
+            Array.prototype.forEach.call(root.querySelectorAll(selector), function (node) {
+                if (/^[A-Z]{2}$/.test(node.id)) {
+                    found.push({ id: node.id, label: countryName(node.id) });
+                }
+            });
+
+            found.sort(function (first, second) {
+                return first.label.localeCompare(second.label, locale === 'de' ? 'de' : 'en');
+            });
+
+            return found;
+        });
+    }
+
+    /*
+     * One map for one card: a fresh copy of the file with exactly one region
+     * marked. The copy is needed because an element can only be in one place, and
+     * a list may show the same map several times.
+     *
+     * The returned element stays hidden while there is nothing to show, so a card
+     * without a map (or with a region the file does not know) simply shows its
+     * text.
+     */
+    function buildCardMap(mapRegion, className) {
+        var parsed = parseMapRegion(mapRegion);
+        var wrap = el('div', className || 'card-map');
+        wrap.hidden = true;
+
+        if (parsed === null || config.maps[parsed.area] === undefined) {
+            return Promise.resolve(wrap);
+        }
+
+        return loadMap(parsed.area).then(function (root) {
+            if (root === null) {
+                return wrap;
+            }
+
+            var svg = root.cloneNode(true);
+            var active = null;
+
+            /* Looking the id up by walking the tree: an id may contain characters
+               a CSS selector would have to escape. */
+            Array.prototype.forEach.call(svg.querySelectorAll('*'), function (node) {
+                if (active === null && node.id === parsed.region) {
+                    active = node;
+                }
+            });
+
+            if (active === null) {
+                return wrap;
+            }
+
+            active.classList.add('is-active');
+            wrap.appendChild(svg);
+            wrap.hidden = false;
+            wrap.dataset.region = parsed.value;
+            wrap.setAttribute('title', regionLabel(parsed.value));
+
+            return wrap;
+        });
+    }
+
+    /* Puts one map into a container, or leaves the container empty. */
+    function showMap(container, mapRegion, className) {
+        if (container === null) {
+            return;
+        }
+
+        container.textContent = '';
+        container.hidden = true;
+
+        if (parseMapRegion(mapRegion) === null) {
+            return;
+        }
+
+        buildCardMap(mapRegion, className).then(function (map) {
+            if (map.hidden || map.firstChild === null) {
+                return;
+            }
+
+            /* The inner map moves into the container, so there is no box in a box. */
+            container.appendChild(map.firstChild);
+            container.hidden = false;
+        });
+    }
+
+    /* ----------------------------------------------------------------------
+       The map field of the card dialog
+       ---------------------------------------------------------------------- */
+
+    /*
+     * First the area, then the region - nobody has to know an id by heart. The
+     * map below the two selects shows the choice straight away, and "no map" is
+     * the default: a region is always optional.
+     */
+    function addMapField(value) {
+        var parsed = parseMapRegion(value);
+        var wrap = el('div', 'dialog__field dialog__field--map');
+        var label = el('p', 'dialog__label', t('dialog.card.mapLabel'));
+        label.setAttribute('data-i18n', 'dialog.card.mapLabel');
+
+        var row = el('div', 'map-picker');
+        var area = el('select', 'dialog__select');
+        var region = el('select', 'dialog__select');
+
+        area.id = 'dialog-field-map-area';
+        region.id = 'dialog-field-map-region';
+        area.appendChild(new Option(t('dialog.card.mapNone'), ''));
+        area.appendChild(new Option(t('dialog.card.mapAreaDe'), 'DE'));
+        area.appendChild(new Option(t('dialog.card.mapAreaEu'), 'EU'));
+        area.appendChild(new Option(t('dialog.card.mapAreaWorld'), 'WORLD'));
+
+        var note = el('p', 'dialog__hint');
+        note.hidden = true;
+
+        var preview = el('div', 'card-map card-map--dialog');
+        preview.hidden = true;
+
+        var error = el('p', 'dialog__field-error');
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+
+        row.appendChild(area);
+        row.appendChild(region);
+        wrap.appendChild(label);
+        wrap.appendChild(row);
+        wrap.appendChild(note);
+        wrap.appendChild(preview);
+        wrap.appendChild(error);
+        elements.dialogFields.appendChild(wrap);
+
+        /* The field is registered like every other one, so clearDialogErrors()
+           and setFieldError() work on it. */
+        dialogFields.map_region = { control: region, error: error, wrap: wrap };
+        dialogMapField = { area: area, region: region, note: note, preview: preview };
+
+        if (parsed !== null) {
+            area.value = parsed.area;
+        }
+
+        fillRegionOptions(parsed === null ? null : parsed.region);
+
+        area.addEventListener('change', function () {
+            dialogUsed = true;
+            fillRegionOptions(null);
+        });
+
+        region.addEventListener('change', function () {
+            dialogUsed = true;
+            updateMapPreview();
+        });
+    }
+
+    /* What the two selects mean together, or null for "no map". */
+    function dialogMapValue() {
+        if (dialogMapField === null) {
+            return null;
+        }
+
+        var area = dialogMapField.area.value;
+        var region = dialogMapField.region.value;
+
+        if (area === '' || dialogMapField.region.hidden || region === '') {
+            return null;
+        }
+
+        return area + ':' + region;
+    }
+
+    /* Fills the second select for the chosen area and keeps the wanted region. */
+    function fillRegionOptions(wanted) {
+        var field = dialogMapField;
+
+        if (field === null) {
+            return;
+        }
+
+        var area = field.area.value;
+        field.region.textContent = '';
+        field.region.hidden = true;
+        field.note.hidden = false;
+
+        if (area === '') {
+            field.note.textContent = t('dialog.card.mapChooseArea');
+            updateMapPreview();
+
+            return;
+        }
+
+        if (area === 'DE') {
+            regionsOfArea('DE').then(function (regions) {
+                if (dialogMapField !== field) {
+                    return;
+                }
+
+                regions.forEach(function (item) {
+                    field.region.appendChild(new Option(item.label, item.id));
+                });
+
+                if (wanted !== null) {
+                    field.region.value = wanted;
+                }
+
+                field.region.hidden = false;
+                field.note.hidden = true;
+                updateMapPreview();
+            });
+
+            return;
+        }
+
+        /* Europe and the world: the ids are inside the file, so it has to be
+           loaded - that is the moment the browser shows what it is doing. */
+        field.note.textContent = t('dialog.card.mapLoading');
+
+        regionsOfArea(area).then(function (regions) {
+            if (dialogMapField !== field) {
+                return;
+            }
+
+            if (regions.length === 0) {
+                field.note.textContent = t('dialog.card.mapUnavailable');
+                updateMapPreview();
+
+                return;
+            }
+
+            regions.forEach(function (item) {
+                field.region.appendChild(new Option(item.label, item.id));
+            });
+
+            if (wanted !== null) {
+                Array.prototype.forEach.call(field.region.options, function (option) {
+                    if (option.value === wanted) {
+                        field.region.value = wanted;
+                    }
+                });
+            }
+
+            field.region.hidden = false;
+            field.note.hidden = true;
+            updateMapPreview();
+        });
+    }
+
+    /* The map under the two selects shows the region that is chosen right now. */
+    function updateMapPreview() {
+        if (dialogMapField === null) {
+            return;
+        }
+
+        showMap(dialogMapField.preview, dialogMapValue(), 'card-map card-map--dialog');
+        clearFieldError('map_region');
+    }
+
     function showHeadActions(level, categoryId, cardCount, hasEntries) {
         var isArea = level === 'area';
         var canStudy = typeof cardCount === 'number' && cardCount > 0;
 
         /*
-         * The button keeps its place when there is nothing to learn: it stays
-         * visible, greyed out, and a tooltip says why it cannot be used. Only a
-         * view without any card level (an empty learning area) hides it - there
-         * the empty state already offers the one useful step.
+         * Studying belongs to the card level: a session always runs over the cards
+         * of one subcategory. On a learning area there is nothing to study, so the
+         * button is not there at all.
+         *
+         * With no card to study it keeps its place, greyed out, and a tooltip says
+         * why.
          */
-        elements.learnButton.hidden = !isArea && typeof cardCount !== 'number';
+        elements.learnButton.hidden = isArea;
         elements.learnButton.disabled = !canStudy;
         elements.learnButton.title = canStudy ? '' : t('learn.noCards');
         elements.learnButton.setAttribute('data-i18n-title', canStudy ? '' : 'learn.noCards');
         elements.learnButton.dataset.level = level;
         elements.learnButton.dataset.categoryId = String(categoryId);
 
-        elements.learnLabel.textContent = t(isArea ? 'cards.learnAll' : 'cards.learn');
-        elements.learnLabel.setAttribute('data-i18n', isArea ? 'cards.learnAll' : 'cards.learn');
+        elements.learnLabel.textContent = t('cards.learn');
+        elements.learnLabel.setAttribute('data-i18n', 'cards.learn');
         elements.learnButton.setAttribute(
             'aria-label',
-            isArea
-                ? t('cards.learnAll')
-                : t('cards.learnThis', { name: elements.detailHeading.textContent })
+            t('cards.learnThis', { name: elements.detailHeading.textContent })
         );
 
         elements.addEntryButton.hidden = hasEntries !== true;
@@ -5210,6 +5677,7 @@
          * holds subcategories, so the button stays away there.
          */
         elements.importButton.hidden = isArea;
+        elements.importButton.dataset.level = level;
         elements.importButton.textContent = t('cards.import');
         elements.importButton.setAttribute('data-i18n', 'cards.import');
         elements.importButton.dataset.categoryId = String(categoryId);
@@ -5217,13 +5685,9 @@
 
     function wireHeadActions() {
         elements.learnButton.addEventListener('click', function () {
-            var level = elements.learnButton.dataset.level;
-
-            startLearning(
-                'all',
-                Number(elements.learnButton.dataset.categoryId),
-                level === 'area' ? elements.detailHeading.textContent : null
-            );
+            /* The button only exists in the card view, so it always starts the
+               session over the cards of that subcategory. */
+            startLearning('all', Number(elements.learnButton.dataset.categoryId), null);
         });
 
         elements.importButton.addEventListener('click', function () {

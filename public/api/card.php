@@ -108,6 +108,21 @@ try {
         }
     }
 
+    /*
+     * The map region can be set, replaced or taken away again. An empty value is
+     * "no map" and is stored as NULL; a value that does not match the pattern is
+     * refused instead of being stored and ignored later.
+     */
+    if (array_key_exists('map_region', $body)) {
+        $mapRegion = $body['map_region'] === null ? '' : trim((string) $body['map_region']);
+
+        if ($mapRegion !== '' && !card_map_region_is_valid($mapRegion)) {
+            send_json_error('invalid_map_region', 'The map region must look like "DE:Bayern", "EU:FR" or "WORLD:CN".', 400);
+        }
+
+        $changes['map_region'] = $mapRegion === '' ? null : $mapRegion;
+    }
+
     if (array_key_exists('is_bidirectional', $body)) {
         $changes['is_bidirectional'] = optional_flag($body, 'is_bidirectional') ?? false;
     }

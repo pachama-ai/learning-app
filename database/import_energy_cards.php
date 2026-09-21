@@ -3,15 +3,23 @@
 declare(strict_types=1);
 
 /**
- * One-off import of the energy flashcards.
+ * Command line import of flashcards from a CSV file.
  *
  *   php database/import_energy_cards.php --dry-run
- *   php database/import_energy_cards.php --execute --wipe-subcategories
+ *   php database/import_energy_cards.php --file=database/import/energie_gesamt_import.csv \
+ *        --execute --wipe-subcategories --expect=209
  *
- * The file is database/import/energie_karten_import.csv (UTF-8, separated by
- * semicolons) with the header
+ * The file is UTF-8 and separated by semicolons. Two headers are accepted:
  *
- *   parent_category;subcategory;front;back;is_bidirectional
+ *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional
+ *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional;map_region
+ *
+ * A row must carry at least one complete language (front side and back side);
+ * the second language may be missing, but not half filled. map_region is either
+ * empty or "AREA:REGION" with AREA one of DE, EU, WORLD - see the pattern below.
+ *
+ * The learning area named in the file has to exist already: this tool never
+ * creates one. It creates the subcategories of the file below that area.
  *
  * What this script does
  *
@@ -59,29 +67,29 @@ $projectRoot = dirname(__DIR__);
 require_once $projectRoot . '/src/config/database.php';
 require_once $projectRoot . '/src/services/card_service.php';
 
-/** The header of the file, in this exact order. */
-const CSV_HEADER = ['parent_category', 'subcategory', 'front', 'back', 'is_bidirectional'];
+/** The header without a map, in this exact order. */
+const CSV_HEADER = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
-/** The learning area the file names in parent_category. */
-const EXPECTED_AREA = 'Energie';
-
-/**
- * How many cards each subcategory must contain, and how many in total.
- *
- * This is the contract of this one-off import: it was counted in the file, and a
- * file that does not match it is not imported at all.
- */
-const EXPECTED_CARDS_PER_SUBCATEGORY = [
-    'Strom und Elektrotechnik' => 32,
-    'Energieträger und Stromerzeugung' => 27,
-    'Stromnetz und Übertragungsnetz' => 25,
-    'Strommarkt und Marktkommunikation' => 34,
-    'Systembetrieb, Regelenergie und Redispatch' => 25,
-    'Energiegeschichte, Mobilität und Energiewende' => 18,
-];
+/** The header of a file that also carries a map region. */
+const CSV_HEADER_WITH_REGION = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region'];
 
 /** Longest accepted subcategory name (the column is varchar(100)). */
 const MAX_SUBCATEGORY_LENGTH = 100;
+
+/** Longest accepted card text, the same limit the API enforces. */
+const MAX_CARD_TEXT_LENGTH = 2000;
+
+/** Longest accepted map_region value (the column is varchar(40)). */
+const MAX_REGION_LENGTH = 40;
+
+/**
+ * What a map_region value may look like: the area is one of three names, the
+ * region is a plain identifier (letters, digits, underscore, hyphen).
+ *
+ * Baden__x26__Württemberg is the id of that state in germany.svg, which is why
+ * letters with umlauts are allowed here as well.
+ */
+const REGION_PATTERN = '/^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/u';
 
 exit(import_main($argv, $projectRoot));
 
@@ -96,7 +104,7 @@ function import_main(array $argv, string $projectRoot): int
         return 1;
     }
 
-    echo "Energy flashcards import\n";
+    echo "Flashcard import\n";
     echo 'File : ' . basename($options['file']) . "\n";
     echo 'Mode : ' . ($options['execute']
         ? ($options['wipe'] ? 'EXECUTE with --wipe-subcategories' : 'EXECUTE')
@@ -116,8 +124,8 @@ function import_main(array $argv, string $projectRoot): int
 
     $problems = $csv['errors'];
 
-    /* The numbers this import expects. */
-    foreach (import_count_problems($csv['per_subcategory']) as $problem) {
+    /* The number the operator says the file has. */
+    foreach (import_expectation_problems($csv, $options['expect']) as $problem) {
         $problems[] = ['line' => 0, 'message' => $problem];
     }
 
@@ -145,7 +153,7 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     try {
-        $state = import_read_state($pdo);
+        $state = import_read_state($pdo, $csv['areas']);
     } catch (Throwable $error) {
         echo 'DATABASE ERROR while reading: ' . $error->getMessage() . "\n";
 
@@ -154,9 +162,10 @@ function import_main(array $argv, string $projectRoot): int
 
     /* Exactly one area must match the name in the file. */
     $matches = $state['area_matches'];
+    $wantedArea = $csv['areas'] === [] ? '(none)' : $csv['areas'][0];
 
     if (count($matches) !== 1) {
-        echo "STOP: the learning area \"$options[area]\" from the file is "
+        echo "STOP: the learning area \"$wantedArea\" from the file is "
             . (count($matches) === 0 ? 'not there' : 'ambiguous (' . count($matches) . ' matches)') . "\n";
 
         foreach ($matches as $match) {
@@ -180,7 +189,7 @@ function import_main(array $argv, string $projectRoot): int
         $subcategories[$name] = $csv['per_subcategory'][$name];
     }
 
-    import_print_step_a($state, $subcategories);
+    import_print_step_a($state, $subcategories, $area);
     import_print_step_b($area, $csv, $subcategories, $state);
 
     /* The guard against a second import. */
@@ -231,14 +240,18 @@ function import_main(array $argv, string $projectRoot): int
     /* The proof, read after the commit: the tree really looks like this now. */
     $check = $pdo->prepare(
         'SELECT (SELECT COUNT(*) FROM categories WHERE parent_id = :area_id) AS subcategories,
-                (SELECT COUNT(*) FROM cards k JOIN categories c ON c.id = k.category_id WHERE c.parent_id = :parent_id) AS cards'
+                (SELECT COUNT(*) FROM cards k JOIN categories c ON c.id = k.category_id WHERE c.parent_id = :parent_id) AS cards,
+                (SELECT COUNT(*) FROM cards k JOIN categories c ON c.id = k.category_id
+                  WHERE c.parent_id = :region_id AND k.map_region IS NOT NULL AND k.map_region <> \'\') AS with_region'
     );
     $check->bindValue(':area_id', (int) $area['id'], PDO::PARAM_INT);
     $check->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
+    $check->bindValue(':region_id', (int) $area['id'], PDO::PARAM_INT);
     $check->execute();
     $row = $check->fetch();
 
-    echo '  now under "' . $area['name'] . '": ' . $row['subcategories'] . ' subcategories, ' . $row['cards'] . " cards\n";
+    echo '  now under "' . $area['name'] . '": ' . $row['subcategories'] . ' subcategories, ' . $row['cards'] . ' cards, '
+        . $row['with_region'] . " with a map region\n";
 
     return 0;
 }
@@ -248,20 +261,33 @@ function import_main(array $argv, string $projectRoot): int
    -------------------------------------------------------------------------- */
 
 /**
- * Reads --file, --dry-run, --execute and --wipe-subcategories.
+ * Reads --file, --dry-run, --execute, --wipe-subcategories and --expect.
  *
  * Without a mode the tool only reads.
  *
- * @return array{file: string, execute: bool, wipe: bool, area: string}|null
+ * @return array{file: string, execute: bool, wipe: bool, expect: int|null}|null
  */
 function import_read_arguments(array $argv, string $projectRoot): ?array
 {
-    $file = $projectRoot . '/database/import/energie_karten_import.csv';
+    $file = $projectRoot . '/database/import/energie_gesamt_import.csv';
     $execute = false;
     $wipe = false;
+    $expect = null;
     $modeGiven = false;
 
     foreach (array_slice($argv, 1) as $argument) {
+        if (strpos($argument, '--expect=') === 0) {
+            $value = substr($argument, 9);
+
+            if (ctype_digit($value) && (int) $value > 0) {
+                $expect = (int) $value;
+                continue;
+            }
+
+            echo "The value of --expect must be a positive whole number.\n";
+
+            return null;
+        }
         if (strpos($argument, '--file=') === 0) {
             $candidate = substr($argument, 7);
             $file = preg_match('/^([a-zA-Z]:|[\/\\\\])/', $candidate) === 1
@@ -319,14 +345,21 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
         return null;
     }
 
-    return ['file' => $real, 'execute' => $execute, 'wipe' => $wipe, 'area' => EXPECTED_AREA];
+    return ['file' => $real, 'execute' => $execute, 'wipe' => $wipe, 'expect' => $expect];
 }
 
 function import_print_usage(): void
 {
     echo "Usage:\n";
     echo "  php database/import_energy_cards.php --dry-run\n";
-    echo "  php database/import_energy_cards.php --execute --wipe-subcategories\n";
+    echo "  php database/import_energy_cards.php --file=database/import/geografie_import_final.csv --dry-run\n";
+    echo "  php database/import_energy_cards.php --execute --expect=209 --wipe-subcategories\n";
+    echo "\n";
+    echo "  --file=...              the CSV file (default: database/import/energie_gesamt_import.csv)\n";
+    echo "  --dry-run               read and report, write nothing (default)\n";
+    echo "  --execute               really import, all of it or none of it\n";
+    echo "  --wipe-subcategories    delete the subcategories of the area in the file first\n";
+    echo "  --expect=N              refuse to run when the file does not have N cards\n";
 }
 
 /* --------------------------------------------------------------------------
@@ -337,16 +370,19 @@ function import_print_usage(): void
  * Reads the file and validates every row.
  *
  * @return array{
- *     rows: list<array{line: int, subcategory: string, front: string, back: string, is_bidirectional: int}>,
+ *     rows: list<array{line: int, subcategory: string, front_de: string, back_de: string,
+ *         front_en: string, back_en: string, is_bidirectional: int, map_region: string}>,
  *     errors: list<array{line: int, message: string}>,
  *     per_subcategory: array<string, int>,
  *     order: list<string>,
+ *     areas: list<string>,
+ *     with_region: int,
  *     fatal: string|null
  * }
  */
 function import_read_csv(string $path): array
 {
-    $empty = ['rows' => [], 'errors' => [], 'per_subcategory' => [], 'order' => [], 'fatal' => null];
+    $empty = ['rows' => [], 'errors' => [], 'per_subcategory' => [], 'order' => [], 'areas' => [], 'with_region' => 0, 'fatal' => null];
 
     $handle = fopen($path, 'rb');
 
@@ -376,7 +412,11 @@ function import_read_csv(string $path): array
 
     $header = array_map(static fn ($name): string => trim((string) $name), $header);
 
-    if ($header !== CSV_HEADER) {
+    /* Two shapes are accepted: with and without the map region column. */
+    $hasRegion = in_array('map_region', $header, true);
+    $expected = $hasRegion ? CSV_HEADER_WITH_REGION : CSV_HEADER;
+
+    if ($header !== $expected) {
         fclose($handle);
 
         return [
@@ -384,8 +424,10 @@ function import_read_csv(string $path): array
             'errors' => [],
             'per_subcategory' => [],
             'order' => [],
+            'areas' => [],
+            'with_region' => 0,
             'fatal' => 'the header does not match. Expected: ' . implode(';', CSV_HEADER)
-                . ' - found: ' . implode(';', $header),
+                . ' (map_region is allowed at the end) - found: ' . implode(';', $header),
         ];
     }
 
@@ -393,6 +435,8 @@ function import_read_csv(string $path): array
     $errors = [];
     $perSubcategory = [];
     $order = [];
+    $areas = [];
+    $withRegion = 0;
     $seenFronts = [];
     $lineNumber = 1;
 
@@ -404,21 +448,24 @@ function import_read_csv(string $path): array
             continue;
         }
 
-        if (count($cells) !== 5) {
-            $errors[] = ['line' => $lineNumber, 'message' => 'expected 5 fields, found ' . count($cells)];
+        if (count($cells) !== count($expected)) {
+            $errors[] = ['line' => $lineNumber, 'message' => 'expected ' . count($expected) . ' fields, found ' . count($cells)];
             continue;
         }
 
         $parent = trim((string) $cells[0]);
         $subcategory = (string) $cells[1];
-        $front = (string) $cells[2];
-        $back = (string) $cells[3];
-        $flag = trim((string) $cells[4]);
+        $frontDe = (string) $cells[2];
+        $backDe = (string) $cells[3];
+        $frontEn = (string) $cells[4];
+        $backEn = (string) $cells[5];
+        $flag = trim((string) $cells[6]);
+        $region = $hasRegion ? trim((string) $cells[7]) : '';
 
         if ($parent === '') {
             $errors[] = ['line' => $lineNumber, 'message' => 'parent_category is empty'];
-        } elseif (mb_strtolower($parent) !== mb_strtolower(EXPECTED_AREA)) {
-            $errors[] = ['line' => $lineNumber, 'message' => 'parent_category is "' . $parent . '", this import is about "' . EXPECTED_AREA . '"'];
+        } elseif (!isset($areas[mb_strtolower($parent)])) {
+            $areas[mb_strtolower($parent)] = $parent;
         }
 
         if (trim($subcategory) === '') {
@@ -427,22 +474,40 @@ function import_read_csv(string $path): array
             $errors[] = ['line' => $lineNumber, 'message' => 'subcategory is longer than ' . MAX_SUBCATEGORY_LENGTH . ' characters'];
         }
 
-        if (trim($front) === '') {
-            $errors[] = ['line' => $lineNumber, 'message' => 'front is empty'];
+        /* At least one language has to be complete, and no language may be half. */
+        $germanComplete = trim($frontDe) !== '' && trim($backDe) !== '';
+        $englishComplete = trim($frontEn) !== '' && trim($backEn) !== '';
+
+        foreach (['de' => [$frontDe, $backDe], 'en' => [$frontEn, $backEn]] as $language => [$front, $back]) {
+            $used = trim($front) !== '' || trim($back) !== '';
+
+            if ($used && (trim($front) === '' || trim($back) === '')) {
+                $errors[] = ['line' => $lineNumber, 'message' => 'the ' . $language . ' side is only half filled'];
+            }
         }
 
-        if (trim($back) === '') {
-            $errors[] = ['line' => $lineNumber, 'message' => 'back is empty'];
+        if (!$germanComplete && !$englishComplete) {
+            $errors[] = ['line' => $lineNumber, 'message' => 'neither language is complete (front and back)'];
+        }
+
+        foreach (['front_de' => $frontDe, 'back_de' => $backDe, 'front_en' => $frontEn, 'back_en' => $backEn] as $column => $value) {
+            if (mb_strlen($value) > MAX_CARD_TEXT_LENGTH) {
+                $errors[] = ['line' => $lineNumber, 'message' => $column . ' is longer than ' . MAX_CARD_TEXT_LENGTH . ' characters'];
+            }
         }
 
         if ($flag !== '0' && $flag !== '1') {
             $errors[] = ['line' => $lineNumber, 'message' => 'is_bidirectional must be 0 or 1, found "' . $flag . '"'];
         }
 
+        if ($region !== '' && !import_region_is_valid($region)) {
+            $errors[] = ['line' => $lineNumber, 'message' => 'map_region must look like "DE:Bayern", "EU:FR" or "WORLD:CN" - found "' . $region . '"'];
+        }
+
         /* The same question in the same subcategory twice is not a duplicate card
            to skip here - in this one-off import it means the file is not the one
            this import expects, so it is reported. */
-        $key = trim($subcategory) . "\n" . trim($front);
+        $key = trim($subcategory) . "\n" . mb_strtolower(trim($frontDe === '' ? $frontEn : $frontDe));
 
         if (isset($seenFronts[$key])) {
             $errors[] = ['line' => $lineNumber, 'message' => 'the same front already appears in "' . trim($subcategory) . '" (line ' . $seenFronts[$key] . ')'];
@@ -459,15 +524,22 @@ function import_read_csv(string $path): array
 
         $perSubcategory[$name]++;
 
+        if ($region !== '') {
+            $withRegion++;
+        }
+
         /* The text is stored exactly as the file has it: no shortening, no
            reformatting, no HTML encoding - only the checks above look at a
            trimmed copy. */
         $rows[] = [
             'line' => $lineNumber,
             'subcategory' => $name,
-            'front' => $front,
-            'back' => $back,
+            'front_de' => $frontDe,
+            'back_de' => $backDe,
+            'front_en' => $frontEn,
+            'back_en' => $backEn,
             'is_bidirectional' => $flag === '1' ? 1 : 0,
+            'map_region' => $region,
         ];
     }
 
@@ -478,8 +550,19 @@ function import_read_csv(string $path): array
         'errors' => $errors,
         'per_subcategory' => $perSubcategory,
         'order' => $order,
+        'areas' => array_values($areas),
+        'with_region' => $withRegion,
         'fatal' => null,
     ];
+}
+
+/**
+ * The same pattern the application uses: the area is one of three names and the
+ * region is a plain identifier. Anything else never reaches the database.
+ */
+function import_region_is_valid(string $region): bool
+{
+    return mb_strlen($region) <= MAX_REGION_LENGTH && preg_match(REGION_PATTERN, $region) === 1;
 }
 
 function import_row_is_empty(array $cells): bool
@@ -494,33 +577,27 @@ function import_row_is_empty(array $cells): bool
 }
 
 /**
- * Compares the counts of the file with the numbers this import expects.
+ * Compares the number of cards in the file with the number the operator wrote on
+ * the command line.
  *
- * @param array<string, int> $perSubcategory
+ * @param array<string, mixed> $csv
  * @return list<string>
  */
-function import_count_problems(array $perSubcategory): array
+function import_expectation_problems(array $csv, ?int $expected): array
 {
     $problems = [];
-    $total = array_sum($perSubcategory);
-    $expectedTotal = array_sum(EXPECTED_CARDS_PER_SUBCATEGORY);
+    $total = count($csv['rows']);
 
-    if ($total !== $expectedTotal) {
-        $problems[] = 'the file has ' . $total . ' cards, expected ' . $expectedTotal;
+    if ($expected === null) {
+        return $problems;
     }
 
-    foreach (EXPECTED_CARDS_PER_SUBCATEGORY as $name => $count) {
-        $found = $perSubcategory[$name] ?? 0;
-
-        if ($found !== $count) {
-            $problems[] = '"' . $name . '" has ' . $found . ' cards, expected ' . $count;
-        }
+    if ($total !== $expected) {
+        $problems[] = 'the file has ' . $total . ' cards, --expect says ' . $expected;
     }
 
-    foreach (array_keys($perSubcategory) as $name) {
-        if (!array_key_exists($name, EXPECTED_CARDS_PER_SUBCATEGORY)) {
-            $problems[] = 'the file contains the subcategory "' . $name . '", which this import does not expect';
-        }
+    if (count($csv['areas']) !== 1) {
+        $problems[] = 'the file names ' . count($csv['areas']) . ' learning areas, this import needs exactly one';
     }
 
     return $problems;
@@ -531,22 +608,27 @@ function import_count_problems(array $perSubcategory): array
    -------------------------------------------------------------------------- */
 
 /**
- * Everything the report and the plan need, read in one go.
+ * Reads the areas and everything the report needs.
  *
+ * @param list<string> $wantedAreas The names the file uses in parent_category.
  * @return array<string, mixed>
  */
-function import_read_state(PDO $pdo): array
+function import_read_state(PDO $pdo, array $wantedAreas): array
 {
     $areas = $pdo->query('SELECT id, name, name_en, name_de FROM categories WHERE parent_id IS NULL ORDER BY id')
         ->fetchAll(PDO::FETCH_ASSOC);
 
     /* The area the file names: name, name_de or name_en, without case. */
-    $wanted = mb_strtolower(EXPECTED_AREA);
+    $wanted = array_map(static fn ($name): string => mb_strtolower(trim((string) $name)), $wantedAreas);
     $matches = [];
 
     foreach ($areas as $area) {
         foreach (['name', 'name_de', 'name_en'] as $column) {
-            if (isset($area[$column]) && is_string($area[$column]) && mb_strtolower(trim($area[$column])) === $wanted) {
+            if (!isset($area[$column]) || !is_string($area[$column])) {
+                continue;
+            }
+
+            if (in_array(mb_strtolower(trim($area[$column])), $wanted, true)) {
                 $matches[] = $area;
                 break;
             }
@@ -571,6 +653,30 @@ function import_read_state(PDO $pdo): array
            JOIN categories c ON c.id = k.category_id
           WHERE c.parent_id IS NOT NULL'
     )->fetchColumn();
+
+    /*
+     * Cards and progress rows per learning area. The wipe only touches the area
+     * the file names, so the report has to be able to name its numbers alone.
+     */
+    $cardsPerArea = [];
+    $progressPerArea = [];
+
+    $perArea = $pdo->query(
+        'SELECT p.id AS area_id,
+                COUNT(DISTINCT k.id) AS cards,
+                COUNT(DISTINCT pr.card_id) AS progress
+           FROM categories p
+           LEFT JOIN categories c ON c.parent_id = p.id
+           LEFT JOIN cards k ON k.category_id = c.id
+           LEFT JOIN user_card_progress pr ON pr.card_id = k.id
+          WHERE p.parent_id IS NULL
+          GROUP BY p.id'
+    )->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($perArea as $row) {
+        $cardsPerArea[(int) $row['area_id']] = (int) $row['cards'];
+        $progressPerArea[(int) $row['area_id']] = (int) $row['progress'];
+    }
 
     /* Cards that hang directly on an area: they are kept and only reported. */
     $cardsOnAreas = $pdo->query(
@@ -621,6 +727,8 @@ function import_read_state(PDO $pdo): array
         'progress_in_subcategories' => $progressInSubcategories,
         'cards_on_areas' => $cardsOnAreas,
         'area_subcategory_names' => $areaSubcategoryNames,
+        'cards_per_area' => $cardsPerArea,
+        'progress_per_area' => $progressPerArea,
     ];
 }
 
@@ -634,29 +742,35 @@ function import_read_state(PDO $pdo): array
  * @param array<string, mixed> $state
  * @param array<string, int> $subcategories of the file
  */
-function import_print_step_a(array $state, array $subcategories): void
+function import_print_step_a(array $state, array $subcategories, array $area): void
 {
-    echo "STEP A - delete every subcategory\n";
+    echo "STEP A - delete the subcategories of the target area\n";
+    echo '  only below "' . $area['name'] . '" (id ' . $area['id'] . ') - every other area keeps its subcategories' . "\n";
 
-    if ($state['subcategory_count'] === 0) {
-        echo "  there is no subcategory in the tree at the moment\n";
-    }
-
-    /* Grouped by area, in the order of the areas. */
-    $perArea = [];
+    $areaId = (int) $area['id'];
+    $names = [];
 
     foreach ($state['subcategories'] as $subcategory) {
-        $perArea[$subcategory['area_name']][] = $subcategory['name'];
+        if ((int) $subcategory['area_id'] === $areaId) {
+            $names[] = $subcategory['name'];
+        }
     }
 
-    foreach ($perArea as $areaName => $names) {
-        echo '  ' . str_pad($areaName, 20) . count($names) . ' subcategories: ' . implode(', ', $names) . "\n";
+    if ($names === []) {
+        echo "  there is no subcategory below this area at the moment\n";
+    } else {
+        echo '  ' . count($names) . " subcategories: " . implode(', ', $names) . "\n";
     }
 
-    echo '  deepest level in the tree: ' . $state['deepest_level'] . "\n";
-    echo '  cards to delete          : ' . $state['cards_in_subcategories'] . "\n";
-    echo '  progress rows to delete  : ' . $state['progress_in_subcategories'] . "\n";
-    echo '  subcategories to delete  : ' . $state['subcategory_count'] . "\n";
+    echo '  cards to delete          : ' . ($state['cards_per_area'][$areaId] ?? 0) . "\n";
+    echo '  progress rows to delete  : ' . ($state['progress_per_area'][$areaId] ?? 0) . "\n";
+    echo '  subcategories to delete  : ' . count($names) . "\n";
+
+    $otherAreas = $state['subcategory_count'] - count($names);
+
+    if ($otherAreas > 0) {
+        echo '  left untouched           : ' . $otherAreas . " subcategories in the other areas\n";
+    }
 
     if ($state['cards_on_areas'] !== []) {
         echo "\n  WARNING: " . count($state['cards_on_areas']) . " card(s) hang directly on a learning area.\n";
@@ -691,9 +805,12 @@ function import_print_step_b(array $area, array $csv, array $subcategories, arra
         printf("    %-46s %3d cards%s\n", $name, $count, $exists);
     }
 
-    echo "\n  validation: header ok, " . count($csv['rows']) . " rows with 5 fields, no empty values,\n";
+    echo "\n  validation: header ok, " . count($csv['rows']) . " rows, at least one complete language per row,\n";
     echo "              is_bidirectional only 0 or 1, no duplicate front per subcategory,\n";
-    echo "              counts match the expected numbers (" . array_sum($subcategories) . " cards, " . count($subcategories) . " subcategories)\n";
+    echo '              map_region empty or ' . REGION_PATTERN . "\n";
+    echo '  cards           : ' . count($csv['rows']) . "\n";
+    echo '  with map region : ' . $csv['with_region'] . "\n";
+    echo '  without region  : ' . (count($csv['rows']) - $csv['with_region']) . "\n";
 }
 
 /* --------------------------------------------------------------------------
@@ -719,10 +836,10 @@ function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
     /* ---- STEP A ---------------------------------------------------------- */
 
     if ($wipe) {
-        $deleted = import_delete_subcategories($pdo);
+        $deleted = import_delete_subcategories($pdo, (int) $area['id']);
 
-        /* The proof: nothing below an area is left. */
-        $left = (int) $pdo->query('SELECT COUNT(*) FROM categories WHERE parent_id IS NOT NULL')->fetchColumn();
+        /* The proof: nothing is left below THIS area. */
+        $left = (int) $pdo->query('SELECT COUNT(*) FROM categories WHERE parent_id = ' . (int) $area['id'])->fetchColumn();
 
         if ($left !== 0) {
             throw new RuntimeException('the deletion left ' . $left . ' subcategories behind');
@@ -764,16 +881,32 @@ function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
         $createdCategories++;
     }
 
-    /* The cards go in the order of the file. There is no sort column: the list is
-       ordered by id, so the ids ascending are the order of the file. */
+    /*
+     * The cards go in the order of the file. There is no sort column: the list is
+     * ordered by id, so the ids ascending are the order of the file.
+     *
+     * The two old columns front and back are NOT NULL and still read by older
+     * code, so they carry the German text as well - the same rule the application
+     * uses when a card is saved in the dialog.
+     */
+    $insertCard = $pdo->prepare(
+        'INSERT INTO cards
+            (category_id, front, back, front_de, back_de, front_en, back_en, map_region, is_bidirectional)
+         VALUES
+            (:category_id, :front, :back, :front_de, :back_de, :front_en, :back_en, :map_region, :is_bidirectional)'
+    );
+
     foreach ($csv['rows'] as $row) {
-        create_card(
-            $pdo,
-            $idOf[$row['subcategory']],
-            $row['front'],
-            $row['back'],
-            $row['is_bidirectional'] === 1
-        );
+        $insertCard->bindValue(':category_id', $idOf[$row['subcategory']], PDO::PARAM_INT);
+        $insertCard->bindValue(':front', $row['front_de'], PDO::PARAM_STR);
+        $insertCard->bindValue(':back', $row['back_de'], PDO::PARAM_STR);
+        $insertCard->bindValue(':front_de', $row['front_de'], PDO::PARAM_STR);
+        $insertCard->bindValue(':back_de', $row['back_de'], PDO::PARAM_STR);
+        $insertCard->bindValue(':front_en', $row['front_en'], PDO::PARAM_STR);
+        $insertCard->bindValue(':back_en', $row['back_en'], PDO::PARAM_STR);
+        $insertCard->bindValue(':map_region', $row['map_region'] === '' ? null : $row['map_region'], $row['map_region'] === '' ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $insertCard->bindValue(':is_bidirectional', $row['is_bidirectional'], PDO::PARAM_INT);
+        $insertCard->execute();
 
         $createdCards++;
     }
@@ -795,7 +928,10 @@ function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
 }
 
 /**
- * Deletes every subcategory of the tree.
+ * Deletes every subcategory BELOW one learning area.
+ *
+ * Only the area that the file names is emptied: importing one area can never
+ * take the subcategories of another one with it.
  *
  * The order is the one the foreign keys require and the one the application
  * uses when it deletes a category:
@@ -808,7 +944,7 @@ function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
  *
  * @return array{categories: int, cards: int, progress: int}
  */
-function import_delete_subcategories(PDO $pdo): array
+function import_delete_subcategories(PDO $pdo, int $areaId): array
 {
     $rows = $pdo->query('SELECT id, parent_id FROM categories WHERE parent_id IS NOT NULL')->fetchAll(PDO::FETCH_ASSOC);
 
@@ -822,6 +958,36 @@ function import_delete_subcategories(PDO $pdo): array
     foreach ($rows as $row) {
         $id = (int) $row['id'];
         $parentOf[$id] = (int) $row['parent_id'];
+    }
+
+    /* Only the descendants of this area. */
+    foreach (array_keys($parentOf) as $id) {
+        $cursor = $id;
+        $belongs = false;
+        $guard = 0;
+
+        while ($guard < 20) {
+            $guard++;
+
+            if ($parentOf[$cursor] === $areaId) {
+                $belongs = true;
+                break;
+            }
+
+            if (!isset($parentOf[$parentOf[$cursor]])) {
+                break;
+            }
+
+            $cursor = $parentOf[$cursor];
+        }
+
+        if (!$belongs) {
+            unset($parentOf[$id]);
+        }
+    }
+
+    if ($parentOf === []) {
+        return ['categories' => 0, 'cards' => 0, 'progress' => 0];
     }
 
     foreach (array_keys($parentOf) as $id) {

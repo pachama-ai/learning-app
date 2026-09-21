@@ -84,7 +84,14 @@ if ($method === 'POST') {
             send_json_error('invalid_card_text', 'Fill in a question and an answer in at least one language.', 400);
         }
 
-        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional);
+        /* The map region is optional and may be missing, null or empty. */
+        $mapRegion = optional_input_text($body, 'map_region', CARD_MAP_REGION_MAX_LENGTH, 'invalid_map_region');
+
+        if ($mapRegion !== null && !card_map_region_is_valid($mapRegion)) {
+            send_json_error('invalid_map_region', 'The map region must look like "DE:Bayern", "EU:FR" or "WORLD:CN".', 400);
+        }
+
+        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional, $mapRegion);
 
         send_json_success($card, 201);
     } catch (Throwable $error) {
