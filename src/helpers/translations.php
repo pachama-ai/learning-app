@@ -182,6 +182,8 @@ function learning_app_translations(): array
             'dialog.errorBackRequired' => 'Please enter the back of the card.',
             'dialog.errorBackTooLong' => 'The back may be at most {max} characters long.',
             'dialog.errorConfirmRequired' => 'Type the name to confirm.',
+            'dialog.errorDeleteConflict' => 'Other data still refers to this category, so it could not be deleted.',
+            'dialog.errorAlreadyGone' => 'This entry no longer exists.',
 
             // --- Icon upload ---
             'dialog.icon.uploadTitle' => 'Upload icon',
@@ -364,6 +366,8 @@ function learning_app_translations(): array
             'dialog.errorBackRequired' => 'Bitte die Rückseite eingeben.',
             'dialog.errorBackTooLong' => 'Die Rückseite darf höchstens {max} Zeichen lang sein.',
             'dialog.errorConfirmRequired' => 'Bitte den Namen zur Bestätigung eingeben.',
+            'dialog.errorDeleteConflict' => 'Andere Daten verweisen noch auf dieses Themengebiet, deshalb konnte es nicht gelöscht werden.',
+            'dialog.errorAlreadyGone' => 'Dieser Eintrag existiert nicht mehr.',
 
             // --- Symbol hochladen ---
             'dialog.icon.uploadTitle' => 'Symbol hochladen',

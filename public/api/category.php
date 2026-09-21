@@ -14,7 +14,7 @@ declare(strict_types=1);
  *     "icon_scale": 1.15              // null resets it to 1.00
  *   }
  *
- * DELETE body:
+ * DELETE body (optional):
  *   {"confirm_name": "History"}
  *
  * Deleting removes the category, every subcategory below it and every card in
@@ -22,8 +22,20 @@ declare(strict_types=1);
  * RESTRICT and would otherwise refuse the delete. Everything happens in one
  * transaction, so a half deleted tree can never be left behind.
  *
- * Because that is destructive, the request has to repeat the name of the
- * category. The comparison ignores upper and lower case and spaces around it.
+ * A delete request needs NO body. The name only has to be repeated when
+ * something really depends on the category - subcategories or cards - and the
+ * server decides that from the data, not the browser:
+ *
+ *   - an empty category is deleted with the id alone
+ *   - a category with subcategories or cards needs "confirm_name"
+ *
+ * Any of the three names of the category (the neutral one, the English and the
+ * German wording) confirms it, compared without upper and lower case.
+ *
+ * The answer is
+ *   {"success": true, "data": {"deleted_category_id": 7, ...}}
+ * and the endpoint only answers that after the row is really gone: the service
+ * checks its own delete count and looks the id up once more before it commits.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -39,7 +51,12 @@ if ($method !== 'PATCH' && $method !== 'DELETE') {
 }
 
 $categoryId = require_query_id('id');
-$body = read_json_object();
+
+/*
+ * The body is optional here. A DELETE that needs nothing but an id sends none at
+ * all, and a PATCH sends the fields it wants to change.
+ */
+$body = read_json_object(true);
 
 try {
     $pdo = create_database_connection();
@@ -55,21 +72,60 @@ try {
        --------------------------------------------------------------------- */
 
     if ($method === 'DELETE') {
-        $confirmName = require_confirm_name($body);
+        /*
+         * How much depends on this category decides whether the request has to
+         * repeat the name. That is counted HERE, from the database - a hand
+         * written request cannot skip the confirmation by leaving the field out,
+         * and the browser cannot demand one where none is needed.
+         */
+        $dependents = category_delete_dependents($pdo, $categoryId);
 
-        if (mb_strtolower($confirmName) !== mb_strtolower((string) $current['name'])) {
-            send_json_error(
-                'name_mismatch',
-                'The name does not match this category.',
-                400
-            );
+        if ($dependents['descendants'] > 0 || $dependents['cards'] > 0) {
+            $confirmName = optional_confirm_name($body);
+
+            if ($confirmName === null) {
+                send_json_error(
+                    'confirm_name_required',
+                    'This category has subcategories or cards. Repeat its name to confirm.',
+                    400
+                );
+            }
+
+            if (!category_name_matches($current, $confirmName)) {
+                send_json_error(
+                    'name_mismatch',
+                    'The name does not match this category.',
+                    400
+                );
+            }
         }
 
-        $deleted = delete_category_tree($pdo, $categoryId);
+        try {
+            $deleted = delete_category_tree($pdo, $categoryId);
+        } catch (PDOException $error) {
+            /* A row that still points at this category: a conflict in the data,
+               not a broken server. */
+            if ((string) $error->getCode() === '23000') {
+                send_json_error(
+                    'category_delete_conflict',
+                    'Other data still refers to this category.',
+                    409
+                );
+            }
+
+            throw $error;
+        } catch (RuntimeException $error) {
+            /* The service refused to commit because the row was still there. */
+            error_log('Deleting category ' . $categoryId . ' was refused: ' . $error->getMessage());
+
+            send_json_error('category_delete_failed', 'The category could not be deleted.', 500);
+        }
 
         send_json_success([
+            'deleted_category_id' => $categoryId,
             'deleted_categories' => $deleted['categories'],
             'deleted_cards' => $deleted['cards'],
+            'deleted_progress' => $deleted['progress'],
         ]);
     }
 
@@ -136,6 +192,10 @@ try {
 } catch (Throwable $error) {
     // Details go to the server log only; the browser gets a generic message.
     error_log('Changing a category failed: ' . $error->getMessage());
+
+    if ($method === 'DELETE') {
+        send_json_error('category_delete_failed', 'The category could not be deleted.', 500);
+    }
 
     send_json_error('category_update_failed', 'The category could not be saved.', 500);
 }

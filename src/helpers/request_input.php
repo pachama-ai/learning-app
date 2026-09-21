@@ -236,6 +236,26 @@ function require_confirm_name(array $body): string
 }
 
 /**
+ * The optional confirmation name of a delete request.
+ *
+ * A delete that really needs a confirmation sends the name; one that does not
+ * (an empty category, or a client that never had the field) simply sends
+ * nothing, and null comes back instead of an error.
+ *
+ * @param array<string, mixed> $body
+ */
+function optional_confirm_name(array $body): ?string
+{
+    if (!array_key_exists('confirm_name', $body) || !is_string($body['confirm_name'])) {
+        return null;
+    }
+
+    $value = trim($body['confirm_name']);
+
+    return $value === '' ? null : $value;
+}
+
+/**
  * A required id that arrives in the query string, such as ?id=7.
  *
  * Only digits are accepted, so an array (?id[]=1) or any other text is refused

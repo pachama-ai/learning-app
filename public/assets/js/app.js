@@ -205,6 +205,27 @@
     }
 
     /*
+     * Whether a typed name confirms a category.
+     *
+     * A category can carry three names - the neutral one plus the English and
+     * the German wording - and the page shows the one that belongs to the
+     * language that is switched on. The server accepts all three, so this does
+     * the same: without it the button could say "the name matches" while the
+     * server refused to delete.
+     */
+    function nameMatchesTarget(target, typed) {
+        var wanted = String(typed === undefined || typed === null ? '' : typed).trim().toLowerCase();
+
+        if (wanted === '') {
+            return false;
+        }
+
+        return ['name', 'name_en', 'name_de'].some(function (key) {
+            return typeof target[key] === 'string' && target[key].trim().toLowerCase() === wanted;
+        });
+    }
+
+    /*
      * Everything the page needs to draw one learning area.
      *
      * The drawing comes from the database through api/category_icon.php. Only a
@@ -543,6 +564,22 @@
 
         if (code === 'name_mismatch') {
             return t('dialog.errorConfirmName');
+        }
+
+        if (code === 'confirm_name_required') {
+            return t('dialog.errorConfirmRequired');
+        }
+
+        if (code === 'category_delete_conflict') {
+            return t('dialog.errorDeleteConflict');
+        }
+
+        if (code === 'category_delete_failed' || code === 'category_update_failed') {
+            return t('dialog.errorDelete');
+        }
+
+        if (code === 'category_not_found') {
+            return t('dialog.errorAlreadyGone');
         }
 
         if (code === 'invalid_name' || code === 'invalid_request_body') {
@@ -2572,8 +2609,7 @@
                     labelKey: 'dialog.delete.confirmLabel',
                     maxLength: config.limits.name,
                     onInput: function (control) {
-                        var matches = control.value.trim().toLowerCase() === displayName(target).toLowerCase();
-                        elements.dialogSubmit.disabled = !matches;
+                        elements.dialogSubmit.disabled = !nameMatchesTarget(target, control.value);
                     }
                 });
 
@@ -2641,6 +2677,15 @@
     }
 
     function handleSubmitFailure(result) {
+        /*
+         * A request that never reached the server, or an answer nobody mapped,
+         * still has to name the operation that failed.
+         */
+        if (dialogKind === 'delete' && (result.code === 'network_error' || result.code === 'request_failed')) {
+            setDialogError(t('dialog.errorDelete'));
+            return;
+        }
+
         var field = fieldForErrorCode(result.code);
 
         if (field === null || field === 'icon') {
@@ -2674,7 +2719,7 @@
             if (dialogFields.confirm_name) {
                 var typed = dialogFields.confirm_name.control.value.trim();
 
-                if (typed.toLowerCase() !== displayName(target).toLowerCase()) {
+                if (!nameMatchesTarget(target, typed)) {
                     setFieldError('confirm_name', t('dialog.errorConfirmName'));
                     dialogFields.confirm_name.control.focus();
                     return;
@@ -2682,7 +2727,13 @@
 
                 payload = { confirm_name: typed };
             } else {
-                payload = {};
+                /*
+                 * No body at all: the id in the URL already says what is meant,
+                 * and the server only asks for a name when something depends on
+                 * the category. Sending an empty body would make the request look
+                 * like a confirmation with a missing field.
+                 */
+                payload = undefined;
             }
 
             url = (isCategory ? config.endpoints.category : config.endpoints.card)
@@ -2733,6 +2784,20 @@
             setBusy(false);
 
             if (!result.ok) {
+                /*
+                 * A delete that answers 404 is not a failure of the request: the
+                 * row really is gone (somebody else deleted it, or it was already
+                 * removed). The list is reloaded so the page shows the truth
+                 * instead of a tile that can never be deleted.
+                 */
+                if (isDelete && result.status === 404) {
+                    closeDialog();
+                    responseCache = {};
+                    render();
+                    showFeedback(t('dialog.errorAlreadyGone'));
+                    return;
+                }
+
                 handleSubmitFailure(result);
                 return;
             }

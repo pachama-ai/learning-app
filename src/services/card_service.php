@@ -209,15 +209,56 @@ function card_count_for_category(PDO $pdo, int $categoryId): int
 }
 
 /**
+ * Deletes the learning progress of every card of the given categories.
+ *
+ * This is the first step of deleting a category. The foreign key on
+ * user_card_progress.card_id is ON DELETE CASCADE and would remove these rows by
+ * itself, but the order is written out and executed explicitly: whoever deletes
+ * a category should be able to read the whole order in one place, and a database
+ * without that cascade behaves the same way.
+ *
+ * Runs inside the transaction of the caller. Only the progress rows of the cards
+ * in the given categories are touched - never the progress of another card and
+ * never a user.
+ *
+ * @param list<int> $categoryIds
+ * @return int How many progress rows were removed.
+ */
+function delete_progress_of_categories(PDO $pdo, array $categoryIds): int
+{
+    if ($categoryIds === []) {
+        return 0;
+    }
+
+    $placeholders = [];
+    $ids = [];
+
+    foreach (array_values($categoryIds) as $index => $categoryId) {
+        $placeholders[] = ':id' . $index;
+        $ids[':id' . $index] = (int) $categoryId;
+    }
+
+    /* The subquery names the cards of the subtree, so only their progress rows
+       are part of this statement. */
+    $statement = $pdo->prepare(
+        'DELETE FROM user_card_progress'
+        . ' WHERE card_id IN (SELECT id FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . '))'
+    );
+
+    foreach ($ids as $placeholder => $id) {
+        $statement->bindValue($placeholder, $id, PDO::PARAM_INT);
+    }
+
+    $statement->execute();
+
+    return $statement->rowCount();
+}
+
+/**
  * Deletes every card of the given categories and reports how many were removed.
  *
- * Used while a whole category is deleted. The order is:
- *   1. the learning progress of those cards
- *   2. the cards themselves, because fk_cards_category is ON DELETE RESTRICT
- *
- * The foreign key on the progress rows would remove them by itself, but the
- * order is written out on purpose: whoever deletes a category should be able
- * to read the whole order in one place.
+ * The second step of deleting a category: the cards have to go before the
+ * categories, because fk_cards_category is ON DELETE RESTRICT.
  *
  * @param list<int> $categoryIds
  */
@@ -237,18 +278,6 @@ function delete_cards_of_categories(PDO $pdo, array $categoryIds): int
         $placeholders[] = ':id' . $index;
         $ids[':id' . $index] = (int) $categoryId;
     }
-
-    $deleteProgress = $pdo->prepare(
-        'DELETE FROM user_card_progress WHERE card_id IN ('
-        . 'SELECT id FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . ')'
-        . ')'
-    );
-
-    foreach ($ids as $placeholder => $id) {
-        $deleteProgress->bindValue($placeholder, $id, PDO::PARAM_INT);
-    }
-
-    $deleteProgress->execute();
 
     $statement = $pdo->prepare(
         'DELETE FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . ')'

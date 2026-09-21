@@ -473,26 +473,83 @@ function category_subtree_stats(PDO $pdo, int $categoryId): array
 }
 
 /**
+ * Reports whether one of the names of a category matches what somebody typed.
+ *
+ * A category can carry three names (the neutral one plus the English and the
+ * German wording), and the interface shows the one that belongs to the current
+ * language. Whichever of them was typed, it confirms the same category - so the
+ * check accepts all three and compares without case.
+ *
+ * @param array<string, mixed> $category
+ */
+function category_name_matches(array $category, string $typed): bool
+{
+    $wanted = trim(mb_strtolower($typed));
+
+    if ($wanted === '') {
+        return false;
+    }
+
+    foreach (['name', 'name_en', 'name_de'] as $key) {
+        if (!isset($category[$key]) || !is_string($category[$key])) {
+            continue;
+        }
+
+        if (trim(mb_strtolower($category[$key])) === $wanted) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Reports how much depends on a category: its descendants and their cards.
+ *
+ * The delete endpoint uses this to decide whether a request has to repeat the
+ * name. The decision is made on the server, never in the browser, so a hand
+ * written request cannot skip the confirmation by leaving the field out.
+ *
+ * @return array{categories: int, cards: int, descendants: int}
+ */
+function category_delete_dependents(PDO $pdo, int $categoryId): array
+{
+    $stats = category_subtree_stats($pdo, $categoryId);
+
+    return [
+        /* Everything including the category itself. */
+        'categories' => $stats['categories'],
+        /* The categories below it, which is what a person sees as "depends on it". */
+        'descendants' => max(0, $stats['categories'] - 1),
+        'cards' => $stats['cards'],
+    ];
+}
+
+/**
  * Deletes a category, every subcategory below it and every card in that subtree.
  *
- * The order matters and is fixed by the foreign keys:
- *   1. the cards go first, because fk_cards_category is ON DELETE RESTRICT
- *   2. then the categories from the deepest level upwards, because
+ * The order is fixed by the foreign keys and is written out on purpose:
+ *   1. the learning progress of the affected cards
+ *   2. the cards, because fk_cards_category is ON DELETE RESTRICT
+ *   3. the subcategories from the deepest level upwards, because
  *      fk_categories_parent is ON DELETE RESTRICT as well
- *   3. finally the category itself
+ *   4. finally the selected category itself
  *
  * Everything happens in ONE transaction. Either the whole subtree disappears or
  * nothing does - a half deleted tree is never left behind.
  *
- * The learning progress rows of the deleted cards are removed by the database
- * (fk_progress_card is ON DELETE CASCADE).
+ * The selected category is checked twice before the transaction is allowed to
+ * commit: its own DELETE has to affect exactly one row, and a SELECT has to find
+ * nothing afterwards. A caller can therefore never be told "deleted" while the
+ * row is still there.
  *
- * @return array{categories: int, cards: int} What was really deleted.
+ * @return array{categories: int, cards: int, progress: int} What was really deleted.
+ * @throws RuntimeException when the selected category is still there afterwards.
  */
 function delete_category_tree(PDO $pdo, int $categoryId): array
 {
-    // The cards of the subtree are deleted first and that is done by the card
-    // service, so it is loaded here instead of relying on the caller.
+    // The cards (and their progress) are deleted first and that is done by the
+    // card service, so it is loaded here instead of relying on the caller.
     require_once __DIR__ . '/card_service.php';
 
     /*
@@ -510,27 +567,61 @@ function delete_category_tree(PDO $pdo, int $categoryId): array
     try {
         $ids = category_subtree_ids($pdo, $categoryId);
 
+        // 1. the learning progress of every card in this subtree
+        $deletedProgress = delete_progress_of_categories($pdo, $ids);
+
+        // 2. the cards themselves
         $deletedCards = delete_cards_of_categories($pdo, $ids);
 
         /*
-         * category_subtree_ids() returns a parent before its children, so the
-         * reversed list deletes the deepest level first. A category can
-         * therefore never be removed while something still points at it.
+         * 3. and 4. the categories. category_subtree_ids() returns a parent
+         * before its children, so the reversed list deletes the deepest level
+         * first. A category can therefore never be removed while something still
+         * points at it.
          */
         $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id');
         $deletedCategories = 0;
+        $deletedSelected = 0;
 
         foreach (array_reverse($ids) as $id) {
             $statement->bindValue(':id', $id, PDO::PARAM_INT);
             $statement->execute();
-            $deletedCategories += $statement->rowCount();
+
+            $affected = $statement->rowCount();
+            $deletedCategories += $affected;
+
+            if ($id === $categoryId) {
+                $deletedSelected = $affected;
+            }
+        }
+
+        /*
+         * The proof. "rowCount() === 1" says the row was there and is gone; the
+         * SELECT says the same thing from the other side. If either of them
+         * disagrees, the whole transaction is rolled back and the caller gets an
+         * error instead of a success message about a row that still exists.
+         */
+        if ($deletedSelected !== 1) {
+            throw new RuntimeException('The selected category was not deleted.');
+        }
+
+        $check = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id = :id');
+        $check->bindValue(':id', $categoryId, PDO::PARAM_INT);
+        $check->execute();
+
+        if ((int) $check->fetchColumn() !== 0) {
+            throw new RuntimeException('The selected category still exists.');
         }
 
         if ($ownsTransaction) {
             $pdo->commit();
         }
 
-        return ['categories' => $deletedCategories, 'cards' => $deletedCards];
+        return [
+            'categories' => $deletedCategories,
+            'cards' => $deletedCards,
+            'progress' => $deletedProgress,
+        ];
     } catch (Throwable $error) {
         // Rolling back puts the database exactly where it was before the
         // attempt, including the cards that were already deleted.
