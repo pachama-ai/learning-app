@@ -186,6 +186,7 @@ function learning_app_translations(): array
             'dialog.errorAlreadyGone' => 'This entry no longer exists.',
 
             // --- Icon upload ---
+            'dialog.icon.choose' => 'Choose symbol',
             'dialog.icon.uploadTitle' => 'Upload icon',
             'dialog.icon.uploadHint' => 'Click to choose an SVG, or drag and drop one here.',
             'dialog.icon.drop' => 'Drop the SVG here',
@@ -370,6 +371,7 @@ function learning_app_translations(): array
             'dialog.errorAlreadyGone' => 'Dieser Eintrag existiert nicht mehr.',
 
             // --- Symbol hochladen ---
+            'dialog.icon.choose' => 'Symbol wählen',
             'dialog.icon.uploadTitle' => 'Symbol hochladen',
             'dialog.icon.uploadHint' => 'Klicken, um ein SVG auszuwählen, oder hierher ziehen.',
             'dialog.icon.drop' => 'SVG hier ablegen',

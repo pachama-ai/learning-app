@@ -734,15 +734,14 @@
      * has no drawing of its own. It is upper case, so "mathematics" and
      * "Mathematics" both show an "M", and it follows the language switch because
      * the caller passes the name it already displays.
+     *
+     * Without a name there is no letter and no placeholder character: an empty
+     * circle is honest, a question mark looks like an error.
      */
     function initialLetter(name) {
         var text = String(name === undefined || name === null ? '' : name).trim();
 
-        if (text === '') {
-            return '?';
-        }
-
-        return text.charAt(0).toLocaleUpperCase();
+        return text === '' ? '' : text.charAt(0).toLocaleUpperCase();
     }
 
     /*
@@ -1744,6 +1743,20 @@
     var dialogIcon = null;      // { svg, name, removed, storedUrl, preview }
     var dialogFields = {};      // name -> { control, error, wrap }
 
+    /*
+     * Lets a textarea grow with its content. The height is set from the scroll
+     * height after every change, so nothing is ever cut off and no scrollbar
+     * appears inside the field.
+     */
+    function growTextarea(control) {
+        if (!control || control.offsetParent === null) {
+            return;
+        }
+
+        control.style.height = 'auto';
+        control.style.height = (control.scrollHeight + 2) + 'px';
+    }
+
     /* A tiny element factory: shorter than createElement + className + text. */
     function el(tag, className, text) {
         var node = document.createElement(tag);
@@ -1856,6 +1869,14 @@
         if (kind === 'textarea') {
             control = el('textarea', 'dialog__input dialog__input--area');
             control.rows = settings.rows || 2;
+            /* No native drag handle: the field grows with what is written, so
+               the whole text is always visible without scrolling inside a box. */
+            control.addEventListener('input', function () {
+                growTextarea(control);
+            });
+            window.requestAnimationFrame(function () {
+                growTextarea(control);
+            });
         } else if (kind === 'checkbox') {
             control = el('input', 'dialog__check');
             control.type = 'checkbox';
@@ -2114,9 +2135,14 @@
         }
 
         if (source === null) {
-            var initial = el('span', 'blob__initial');
-            initial.textContent = initialLetter(dialogFields.name ? dialogFields.name.control.value : '');
-            circle.appendChild(initial);
+            var letter = initialLetter(dialogFields.name ? dialogFields.name.control.value : '');
+
+            if (letter !== '') {
+                var initial = el('span', 'blob__initial');
+                initial.textContent = letter;
+                circle.appendChild(initial);
+            }
+
             return;
         }
 
@@ -2126,42 +2152,45 @@
         circle.appendChild(icon);
     }
 
-    function buildIconField(entry) {
+    /*
+     * The symbol row.
+     *
+     * One line: the very circle a tile uses, the name of the chosen file and the
+     * actions that belong to it. No dashed frame, no second explanation - the
+     * circle already shows what the tile will show, and the preview follows the
+     * name while it is typed.
+     */
+    function buildIconField() {
         var wrap = el('div', 'dialog__field');
-        var label = el('label', 'dialog__label', t('dialog.category.iconLabel'));
+        var label = el('span', 'dialog__label', t('dialog.category.iconLabel'));
         label.setAttribute('data-i18n', 'dialog.category.iconLabel');
         wrap.appendChild(label);
 
-        var zone = el('div', 'upload');
-        zone.tabIndex = 0;
-        zone.setAttribute('role', 'button');
+        var row = el('div', 'icon-row');
 
-        var circle = el('span', 'blob');
+        var circle = el('span', 'blob icon-row__circle');
         dialogIcon.preview = circle;
 
-        var textBlock = el('span', 'upload__text');
-        var title = el('span', 'upload__title', t('dialog.icon.uploadTitle'));
-        title.setAttribute('data-i18n', 'dialog.icon.uploadTitle');
-        var hint = el('span', 'upload__hint', t('dialog.icon.uploadHint'));
-        hint.setAttribute('data-i18n', 'dialog.icon.uploadHint');
-        textBlock.appendChild(title);
-        textBlock.appendChild(hint);
+        var text = el('span', 'icon-row__text');
+        var action = el('button', 'icon-row__action', t('dialog.icon.choose'));
+        action.type = 'button';
+        action.setAttribute('data-i18n', 'dialog.icon.choose');
 
-        zone.appendChild(circle);
-        zone.appendChild(textBlock);
-        wrap.appendChild(zone);
+        var fileName = el('span', 'icon-row__name');
+        fileName.hidden = true;
 
-        var actions = el('div', 'upload__actions');
-        var removeButton = el('button', 'dialog__button--text', t('dialog.icon.remove'));
-        removeButton.type = 'button';
-        removeButton.setAttribute('data-i18n', 'dialog.icon.remove');
-        removeButton.hidden = true;
-        actions.appendChild(removeButton);
-        wrap.appendChild(actions);
+        text.appendChild(action);
+        text.appendChild(fileName);
 
-        var note = el('p', 'dialog__hint');
-        note.hidden = true;
-        wrap.appendChild(note);
+        var remove = el('button', 'icon-row__remove', t('dialog.icon.remove'));
+        remove.type = 'button';
+        remove.setAttribute('data-i18n', 'dialog.icon.remove');
+        remove.hidden = true;
+
+        row.appendChild(circle);
+        row.appendChild(text);
+        row.appendChild(remove);
+        wrap.appendChild(row);
 
         var error = el('p', 'dialog__field-error');
         error.hidden = true;
@@ -2171,36 +2200,27 @@
         var file = document.createElement('input');
         file.type = 'file';
         file.accept = 'image/svg+xml,.svg';
-        file.className = 'upload__file';
+        file.className = 'icon-row__file';
         file.hidden = true;
         wrap.appendChild(file);
-
-        function showNote(message) {
-            note.textContent = message === null ? '' : message;
-            note.hidden = message === null;
-        }
 
         function showError(message) {
             error.textContent = message === null ? '' : message;
             error.hidden = message === null;
         }
 
-        /* The hint says what happens next: while a file hovers over the area it
-           invites a drop, at rest it explains the click. */
-        function setHint(text) {
-            hint.textContent = text;
-        }
+        function updateRow() {
+            var staged = !dialogIcon.removed && dialogIcon.svg !== null;
+            var stored = !dialogIcon.removed && dialogIcon.storedUrl !== null;
 
-        function resetHint() {
-            setHint(t('dialog.icon.uploadHint'));
-        }
+            remove.hidden = !staged && !stored;
+            action.textContent = t(staged || stored ? 'dialog.icon.replace' : 'dialog.icon.choose');
+            action.setAttribute('data-i18n', staged || stored ? 'dialog.icon.replace' : 'dialog.icon.choose');
 
-        function updateRemoveButton() {
-            var hasSomething = (!dialogIcon.removed && dialogIcon.svg !== null)
-                || (!dialogIcon.removed && dialogIcon.storedUrl !== null);
+            fileName.textContent = staged && dialogIcon.name !== '' ? dialogIcon.name : '';
+            fileName.hidden = fileName.textContent === '';
 
-            removeButton.hidden = !hasSomething;
-            removeButton.textContent = t('dialog.icon.remove');
+            renderIconPreview();
         }
 
         function acceptFile(selected) {
@@ -2233,9 +2253,7 @@
                     dialogIcon.name = selected.name;
                     dialogIcon.removed = false;
                     dialogUsed = true;
-                    renderIconPreview();
-                    updateRemoveButton();
-                    showNote(t('dialog.icon.normalised'));
+                    updateRow();
                 });
             });
 
@@ -2246,11 +2264,17 @@
             reader.readAsText(selected);
         }
 
-        zone.addEventListener('click', function () {
+        /* The whole row is the target: clicking it, or pressing Enter on it,
+           opens the file picker. */
+        row.addEventListener('click', function (event) {
+            if (event.target === remove) {
+                return;
+            }
+
             file.click();
         });
 
-        zone.addEventListener('keydown', function (event) {
+        row.addEventListener('keydown', function (event) {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 file.click();
@@ -2264,46 +2288,37 @@
         });
 
         ['dragenter', 'dragover'].forEach(function (type) {
-            zone.addEventListener(type, function (event) {
+            row.addEventListener(type, function (event) {
                 event.preventDefault();
-                zone.classList.add('is-dragover');
-                textBlock.querySelector('.upload__hint').textContent = t('dialog.icon.drop');
+                row.classList.add('is-dragover');
             });
         });
 
         ['dragleave', 'dragend'].forEach(function (type) {
-            zone.addEventListener(type, function () {
-                zone.classList.remove('is-dragover');
-                resetHint();
+            row.addEventListener(type, function () {
+                row.classList.remove('is-dragover');
             });
         });
 
-        zone.addEventListener('drop', function (event) {
+        row.addEventListener('drop', function (event) {
             event.preventDefault();
-            zone.classList.remove('is-dragover');
-            resetHint();
+            row.classList.remove('is-dragover');
             acceptFile(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0
                 ? event.dataTransfer.files[0]
                 : null);
         });
 
-        removeButton.addEventListener('click', function () {
+        remove.addEventListener('click', function (event) {
+            event.stopPropagation();
             dialogIcon.svg = null;
             dialogIcon.name = '';
             dialogIcon.removed = true;
             dialogUsed = true;
             showError(null);
-            showNote(t('dialog.icon.fallbackHint'));
-            renderIconPreview();
-            updateRemoveButton();
+            updateRow();
         });
 
-        wrap.iconNote = showNote;
-        wrap.iconError = showError;
-
-        renderIconPreview();
-        updateRemoveButton();
-        showNote(dialogIcon.storedUrl === null && dialogIcon.svg === null ? t('dialog.icon.fallbackHint') : null);
+        updateRow();
 
         elements.dialogFields.appendChild(wrap);
 
@@ -2382,9 +2397,8 @@
         var description = addField('description', 'textarea', {
             labelKey: 'dialog.descriptionLabel',
             placeholderKey: 'dialog.descriptionPlaceholder',
-            hintKey: 'dialog.descriptionHint',
             maxLength: config.limits.description,
-            rows: 3,
+            rows: 2,
             value: descriptionValue,
             onInput: function (control) {
                 renderIconPreview();
@@ -2392,7 +2406,7 @@
         });
 
         addTranslationGroup(isEdit ? entry : null);
-        buildIconField(isEdit ? entry : null);
+        buildIconField();
 
         openDialog();
 
