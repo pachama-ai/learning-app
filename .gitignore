@@ -5,6 +5,10 @@ desktop.ini
 *.swp
 *~
 
+# Windows writes this next to every file that was downloaded; it is not part of
+# the project and must never be committed.
+*:Zone.Identifier
+
 # --- IDE / editor ---
 .idea/
 .vscode/
