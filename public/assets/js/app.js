@@ -19,6 +19,11 @@
      */
     var PLAY_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" focusable="false" aria-hidden="true"><path d="M8 5.2v13.6L18.4 12 8 5.2z"/></svg>';
 
+    /* The arrow that points into the drop zone of the import dialog. Like every
+       other icon of this file it is written with innerHTML, because the string is
+       a constant of this script - a name or a text from the database never is. */
+    var UPLOAD_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 15.5v2A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-2"/></svg>';
+
     var ARROW_SVG = '<svg class="arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
 
     /*
@@ -97,6 +102,13 @@
      * Only one can be waiting at a time - a second one finishes the first.
      */
     var pendingDelete = null;
+
+    /*
+     * The open import dialog: the file that was chosen and everything the server
+     * answered about it. It is null while no import dialog is open.
+     */
+    var importState = null;
+    var importPanel = null;
 
     /* Which entry a new one is created in, and what the empty state offers. */
     var editingParentId = null;
@@ -182,6 +194,7 @@
         cardSearch: document.getElementById('card-search'),
         cardSearchEmpty: document.getElementById('card-search-empty'),
         learnButton: document.getElementById('learn-button'),
+        importButton: document.getElementById('import-button'),
         learnLabel: document.getElementById('learn-button-label'),
         addEntryButton: document.getElementById('add-entry-button'),
 
@@ -2141,6 +2154,8 @@
             dialogOpener = null;
             dialogUsed = false;
             dialogFields = {};
+            importState = null;
+            importPanel = null;
         }, prefersReducedMotion() ? 0 : 200);
     }
 
@@ -3307,6 +3322,15 @@
 
     function submitDialog() {
         clearDialogErrors();
+
+        /*
+         * The import dialog is not a form: the file is uploaded again and the
+         * server writes the rows, so it takes its own path out of here.
+         */
+        if (dialogKind === 'import') {
+            runImport();
+            return;
+        }
 
         var isDelete = dialogKind === 'delete';
         var isCard = dialogKind === 'card';
@@ -4730,6 +4754,424 @@
      *            state already offers the step of adding one, and a second
      *            button for the same thing would be one too many
      */
+    /* ----------------------------------------------------------------------
+       Importing cards from a CSV file
+       ---------------------------------------------------------------------- */
+
+    /*
+     * The import writes into the subcategory that is open, so the button only
+     * exists on a subcategory page. The dialog has two steps:
+     *
+     *   1. choose a file   -> the server reads it and answers with the summary,
+     *                         the first rows and every row it cannot import
+     *   2. press the button -> the same file is uploaded again, the server checks
+     *                         it once more and writes all rows in ONE transaction
+     *
+     * Nothing is stored before step 2. A file with a single bad row is refused as
+     * a whole, and the dialog says so before the button can be pressed at all.
+     */
+    function openImportDialog(categoryId) {
+        dialogKind = 'import';
+        dialogEntry = { categoryId: categoryId };
+        dialogParentId = categoryId;
+        dialogIcon = null;
+        dialogUsed = false;
+        dialogOpener = document.activeElement;
+        dialogFields = {};
+        importState = { categoryId: categoryId, file: null, preview: null, ready: false, busy: false };
+
+        elements.dialogFields.textContent = '';
+        clearDialogErrors();
+        elements.dialogDanger.hidden = true;
+        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
+        elements.dialogSubmit.textContent = t('dialog.import.submit');
+        elements.dialogSubmit.disabled = true;
+        elements.dialogTitle.textContent = t('dialog.import.title');
+        elements.dialogMessage.hidden = true;
+
+        elements.dialogFields.appendChild(buildImportPanel());
+
+        openDialog();
+        importPanel.zone.focus();
+    }
+
+    /*
+     * The dashed area, the format hint and the link to the sample file.
+     *
+     * The area is ONE button: a click, Enter and Space open the file chooser, and
+     * a file can be dropped on it as well. The file input itself is invisible but
+     * real - it is what the browser needs to hand a file over.
+     */
+    function buildImportPanel() {
+        var wrap = el('div', 'import');
+
+        var zone = el('div', 'dropzone');
+        zone.tabIndex = 0;
+        zone.setAttribute('role', 'button');
+        zone.setAttribute('aria-controls', 'import-file');
+
+        var icon = el('span', 'dropzone__icon');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.innerHTML = UPLOAD_SVG;
+
+        var title = el('p', 'dropzone__title', t('dialog.import.dropTitle'));
+        title.setAttribute('data-i18n', 'dialog.import.dropTitle');
+
+        var fileText = el('p', 'dropzone__file');
+        fileText.hidden = true;
+
+        var input = el('input', 'import__input');
+        input.type = 'file';
+        input.id = 'import-file';
+        input.accept = '.csv,text/csv';
+        input.setAttribute('tabindex', '-1');
+
+        zone.appendChild(icon);
+        zone.appendChild(title);
+        zone.appendChild(fileText);
+
+        wrap.appendChild(zone);
+        wrap.appendChild(input);
+
+        zone.addEventListener('click', function () {
+            input.click();
+        });
+
+        zone.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                input.click();
+            }
+        });
+
+        input.addEventListener('change', function () {
+            if (input.files && input.files.length > 0) {
+                dialogUsed = true;
+                chooseImportFile(input.files[0]);
+            }
+        });
+
+        zone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            zone.classList.add('is-dragging');
+        });
+
+        zone.addEventListener('dragleave', function () {
+            zone.classList.remove('is-dragging');
+        });
+
+        zone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            zone.classList.remove('is-dragging');
+
+            if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+                dialogUsed = true;
+                chooseImportFile(event.dataTransfer.files[0]);
+            }
+        });
+
+        var format = el('p', 'import__format', t('dialog.import.format'));
+        format.setAttribute('data-i18n', 'dialog.import.format');
+
+        var columns = el('code', 'import__columns', t('dialog.import.columns'));
+
+        var languages = el('p', 'import__hint', t('dialog.import.languages'));
+        languages.setAttribute('data-i18n', 'dialog.import.languages');
+
+        var limits = el('p', 'import__hint', t('dialog.import.limits', {
+            rows: config.limits.importRows,
+            size: Math.round(config.limits.importBytes / (1024 * 1024))
+        }));
+
+        var sample = el('a', 'import__sample', t('dialog.import.sample'));
+        sample.href = config.sampleCsv;
+        sample.setAttribute('download', '');
+        sample.setAttribute('data-i18n', 'dialog.import.sample');
+
+        /* The answer of the server is put in here: summary, table, error list. */
+        var result = el('div', 'import__result');
+
+        wrap.appendChild(format);
+        wrap.appendChild(columns);
+        wrap.appendChild(languages);
+        wrap.appendChild(limits);
+        wrap.appendChild(sample);
+        wrap.appendChild(result);
+
+        importPanel = {
+            zone: zone,
+            input: input,
+            fileText: fileText,
+            result: result
+        };
+
+        return wrap;
+    }
+
+    /*
+     * A file was chosen. The two obvious things are checked here so the answer is
+     * immediate; everything else is decided by the server.
+     */
+    function chooseImportFile(file) {
+        var name = String(file.name || '');
+        var extension = name.indexOf('.') === -1 ? '' : name.slice(name.lastIndexOf('.') + 1).toLowerCase();
+
+        importPanel.fileText.hidden = false;
+        importPanel.fileText.textContent = name;
+        importPanel.zone.classList.add('has-file');
+        importState.ready = false;
+        elements.dialogSubmit.disabled = true;
+
+        if (extension !== 'csv') {
+            showImportProblem(t('import.error.file_type'));
+            return;
+        }
+
+        if (file.size > config.limits.importBytes) {
+            showImportProblem(t('import.error.file_too_large'));
+            return;
+        }
+
+        checkImportFile(file);
+    }
+
+    /* One sentence above the drop zone, and no preview below it. */
+    function showImportProblem(message) {
+        importPanel.result.textContent = '';
+        setDialogError(message);
+    }
+
+    /* Sends the file for a check and shows what came back. */
+    function checkImportFile(file) {
+        importState.file = file;
+        importState.busy = true;
+        setDialogError(null);
+        importPanel.result.textContent = '';
+        importPanel.result.appendChild(el('p', 'import__checking', t('dialog.import.checking')));
+
+        uploadImport('preview').then(function (result) {
+            importState.busy = false;
+            importPanel.result.textContent = '';
+
+            if (!result.ok) {
+                showImportProblem(importMessage(result.code));
+                return;
+            }
+
+            importState.preview = result.data;
+            renderImportResult(result.data);
+        });
+    }
+
+    /*
+     * The upload itself. The file goes along as a file (multipart), so the server
+     * reads it with fgetcsv() - the browser never has to understand CSV.
+     */
+    function uploadImport(mode) {
+        var body = new FormData();
+        body.append('mode', mode);
+        body.append('category_id', String(importState.categoryId));
+        body.append('file', importState.file, importState.file.name);
+
+        return window.fetch(config.endpoints.importCards, { method: 'POST', body: body })
+            .then(function (response) {
+                return response.json()
+                    .catch(function () {
+                        return null;
+                    })
+                    .then(function (payload) {
+                        if (response.ok && payload && payload.success === true) {
+                            return { ok: true, data: payload.data };
+                        }
+
+                        return {
+                            ok: false,
+                            code: payload && payload.error ? String(payload.error.code) : 'request_failed'
+                        };
+                    });
+            })
+            .catch(function () {
+                /* The request never reached the server. */
+                return { ok: false, code: 'network_error' };
+            });
+    }
+
+    /* The summary, the first rows and every row that cannot be imported. */
+    function renderImportResult(data) {
+        importState.ready = false;
+
+        if (data.fatal !== null && data.fatal !== undefined) {
+            showImportProblem(importMessage(data.fatal.code, data.fatal.params));
+            return;
+        }
+
+        var importable = Number(data.importable) || 0;
+        var duplicates = Number(data.duplicates) || 0;
+        var invalid = Number(data.invalid) || 0;
+
+        importPanel.result.appendChild(el(
+            'p',
+            importable > 0 ? 'import__summary' : 'import__summary import__summary--quiet',
+            importable === 1 ? t('dialog.import.summaryOne') : t('dialog.import.summary', { count: importable })
+        ));
+
+        if (duplicates > 0) {
+            importPanel.result.appendChild(el('p', 'import__skipped', duplicates === 1
+                ? t('dialog.import.duplicatesOne')
+                : t('dialog.import.duplicates', { count: duplicates })));
+        }
+
+        if (invalid > 0) {
+            importPanel.result.appendChild(el('p', 'import__problem', invalid === 1
+                ? t('dialog.import.invalidOne')
+                : t('dialog.import.invalid', { count: invalid })));
+
+            var list = el('ul', 'import__errors');
+
+            data.errors.forEach(function (entry) {
+                list.appendChild(el('li', 'import__error', importRowMessage(entry)));
+            });
+
+            importPanel.result.appendChild(list);
+            importPanel.result.appendChild(el('p', 'import__fix', t('dialog.import.fix')));
+        }
+
+        if (Array.isArray(data.preview) && data.preview.length > 0) {
+            importPanel.result.appendChild(buildImportTable(data.preview, Number(data.hidden) || 0));
+        }
+
+        /*
+         * Only a file without a single bad row and with at least one new card may
+         * be imported - and only the button in the footer starts that.
+         */
+        if (invalid === 0 && importable > 0) {
+            importState.ready = true;
+            elements.dialogSubmit.disabled = false;
+            elements.dialogSubmit.textContent = importable === 1
+                ? t('dialog.import.submitOne')
+                : t('dialog.import.submitMany', { count: importable });
+        }
+    }
+
+    /* One row problem as a sentence, with the line number in front. */
+    function importRowMessage(entry) {
+        var params = entry.params || {};
+        var key = 'import.row.' + String(entry.code || '');
+        var sentence = t(key, {
+            line: entry.line,
+            found: params.found,
+            expected: params.expected,
+            max: params.max,
+            value: params.value,
+            language: cardLanguageName(params.language === 'en' ? 'en' : 'de')
+        });
+
+        /* An unknown code still says something useful. */
+        return sentence === key ? t('dialog.import.fix') : sentence;
+    }
+
+    /* The first rows of the file, exactly as the server read them. */
+    function buildImportTable(rows, hidden) {
+        var wrap = el('div', 'import__table-wrap');
+        var table = el('table', 'import__table');
+        var head = el('thead');
+        var headRow = el('tr');
+
+        [
+            'dialog.import.colLine',
+            'dialog.import.colFrontDe',
+            'dialog.import.colBackDe',
+            'dialog.import.colFrontEn',
+            'dialog.import.colBackEn',
+            'dialog.import.colState'
+        ].forEach(function (key) {
+            var cell = el('th', '', t(key));
+            cell.setAttribute('scope', 'col');
+            cell.setAttribute('data-i18n', key);
+            headRow.appendChild(cell);
+        });
+
+        head.appendChild(headRow);
+        table.appendChild(head);
+
+        var body = el('tbody');
+
+        rows.forEach(function (row) {
+            var state = String(row.state);
+            var tr = el('tr', 'import__row import__row--' + state);
+            var stateKey = state === 'ok'
+                ? 'dialog.import.stateOk'
+                : (state === 'duplicate' ? 'dialog.import.stateDuplicate' : 'dialog.import.stateInvalid');
+
+            tr.appendChild(el('td', 'import__line', String(row.line)));
+            tr.appendChild(el('td', 'import__text', String(row.front_de || '')));
+            tr.appendChild(el('td', 'import__text', String(row.back_de || '')));
+            tr.appendChild(el('td', 'import__text', String(row.front_en || '')));
+            tr.appendChild(el('td', 'import__text', String(row.back_en || '')));
+
+            var stateCell = el('td', 'import__state');
+            var badge = el('span', 'import__badge import__badge--' + state, t(stateKey));
+            badge.setAttribute('data-i18n', stateKey);
+            stateCell.appendChild(badge);
+            tr.appendChild(stateCell);
+
+            body.appendChild(tr);
+        });
+
+        table.appendChild(body);
+        wrap.appendChild(table);
+
+        if (hidden > 0) {
+            wrap.appendChild(el('p', 'import__more', t('dialog.import.andMore', { count: hidden })));
+        }
+
+        return wrap;
+    }
+
+    /* The button: upload the same file again and let the server write it. */
+    function runImport() {
+        if (importState === null || importState.ready !== true || importState.busy === true) {
+            return;
+        }
+
+        importState.busy = true;
+        setDialogError(null);
+        elements.dialogSubmit.dataset.idleLabel = elements.dialogSubmit.textContent;
+        setBusy(true);
+
+        uploadImport('import').then(function (result) {
+            importState.busy = false;
+            setBusy(false);
+
+            if (!result.ok) {
+                showImportProblem(importMessage(result.code));
+                return;
+            }
+
+            var count = Number(result.data.imported) || 0;
+
+            /* Everything the page shows comes from the API again, so the new
+               cards really are in the list. */
+            closeDialog();
+            responseCache = {};
+            render();
+            showFeedback(count === 1 ? t('feedback.importedOne') : t('feedback.imported', { count: count }));
+        });
+    }
+
+    /*
+     * A code from the import endpoint as a sentence. The import has its own texts
+     * (they say more than the shared ones), and a code it does not know falls
+     * back to the sentence every other request uses.
+     */
+    function importMessage(code, params) {
+        var key = 'import.error.' + String(code || '');
+        var sentence = t(key, params || {});
+
+        return sentence === key ? errorMessage(code) : sentence;
+    }
+
     function showHeadActions(level, categoryId, cardCount, hasEntries) {
         var isArea = level === 'area';
         var canStudy = typeof cardCount === 'number' && cardCount > 0;
@@ -4761,6 +5203,16 @@
         elements.addEntryButton.setAttribute('data-i18n', isArea ? 'cards.addSubcategoryShort' : 'cards.addCardShort');
         elements.addEntryButton.dataset.level = level;
         elements.addEntryButton.dataset.categoryId = String(categoryId);
+
+        /*
+         * Importing is a card-list action: a file of cards belongs to a
+         * subcategory, which is the level that owns cards. A learning area only
+         * holds subcategories, so the button stays away there.
+         */
+        elements.importButton.hidden = isArea;
+        elements.importButton.textContent = t('cards.import');
+        elements.importButton.setAttribute('data-i18n', 'cards.import');
+        elements.importButton.dataset.categoryId = String(categoryId);
     }
 
     function wireHeadActions() {
@@ -4772,6 +5224,10 @@
                 Number(elements.learnButton.dataset.categoryId),
                 level === 'area' ? elements.detailHeading.textContent : null
             );
+        });
+
+        elements.importButton.addEventListener('click', function () {
+            openImportDialog(Number(elements.importButton.dataset.categoryId));
         });
 
         elements.addEntryButton.addEventListener('click', function () {

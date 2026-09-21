@@ -4599,3 +4599,326 @@ body.is-learning {
         transform: none;
     }
 }
+
+
+/* ==========================================================================
+   The CSV import: one quiet button, one dashed area, one honest preview
+
+   The import is an addition to the card list of a subcategory. Nothing here
+   changes an existing rule: the button borrows the look of "+ Card", the dialog
+   is the shared one, and the table only exists while a file has been chosen.
+   ========================================================================== */
+
+/*
+ * The red for text on a panel - a row that cannot be imported. A shade deeper
+ * than the filled delete pill, because this is small text and not a button:
+ * #A8443A on the light panel measures 5.9:1, #E08C7F on the dark one 6.5:1.
+ */
+:root {
+    --danger-ink: #A8443A;
+    /* The state badges of the preview table: the text sits on the surface of the
+       table, so both colours have to carry the small label there. Measured on
+       that surface: 5.8:1 and 5.0:1 in the light theme, 6.2:1 and 5.6:1 in the
+       dark one. */
+    --import-ok: #47613F;
+    --import-bad: #A8443A;
+}
+
+[data-theme="dark"] {
+    --danger-ink: #E08C7F;
+    --import-ok: #A8CCA3;
+    --import-bad: #F0A79A;
+}
+
+/* A table needs more room than a form with two fields. */
+.dialog:has(.import) {
+    width: min(780px, calc(100vw - 32px));
+}
+
+.import {
+    display: grid;
+    gap: 12px;
+}
+
+/*
+ * A button that cannot be pressed has to look like it. The import keeps its
+ * button disabled while the file still has an error, and the shared primary
+ * button had no style for that state at all - it looked ready to go. The same
+ * opacity is what the secondary button uses, so the two stay in step.
+ */
+.dialog__button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* --- the dashed area ----------------------------------------------------- */
+
+.dropzone {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 26px 20px;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: 16px;
+    background-color: var(--surface);
+    color: var(--text);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 200ms var(--ease), background-color 200ms var(--ease);
+}
+
+.dropzone:hover,
+.dropzone.is-dragging {
+    border-color: var(--text);
+    background-color: var(--tile-bg-hover);
+}
+
+.dropzone:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+.dropzone__icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background-color: var(--icon-circle);
+    color: var(--muted);
+}
+
+.dropzone__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.dropzone__file {
+    margin: 0;
+    max-width: 100%;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    /* A very long file name is wrapped instead of widening the dialog. */
+    overflow-wrap: anywhere;
+}
+
+/* The file input is invisible but real: it is what opens the file chooser, and
+   it stays in the tab order of the dialog for assistive technology. */
+.import__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+/* --- the format hint and the sample file --------------------------------- */
+
+.import__format,
+.import__hint {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.import__columns {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background-color: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.import__sample {
+    justify-self: start;
+    font-size: 13px;
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.import__sample:hover {
+    text-decoration-thickness: 2px;
+}
+
+/* --- the answer of the server -------------------------------------------- */
+
+.import__result {
+    display: grid;
+    gap: 10px;
+}
+
+.import__checking {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.import__summary {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.import__summary--quiet {
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.import__skipped {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.import__problem {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--danger-ink);
+}
+
+.import__errors {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 4px;
+    max-height: 168px;
+    overflow-y: auto;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.import__fix {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+/* --- the preview table --------------------------------------------------- */
+
+.import__table-wrap {
+    display: grid;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background-color: var(--surface);
+    /* A narrow window scrolls the table sideways instead of squeezing it. */
+    overflow-x: auto;
+}
+
+.import__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.import__table th,
+.import__table td {
+    max-width: 190px;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+    /* Card text can be long; the table shortens it, the list shows it in full. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.import__table th {
+    position: sticky;
+    top: 0;
+    background-color: var(--surface);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    /* The text colour, not the quiet one: 11px uppercase on a light surface
+       measured 4.41:1 with --muted, and a small label wants 4.5:1. */
+    color: var(--text);
+}
+
+.import__table tbody tr + tr td {
+    border-top: 1px solid var(--line);
+}
+
+.import__line {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.import__row--duplicate td {
+    opacity: 0.55;
+}
+
+/*
+ * A row that cannot be imported is marked with a bar on its line number instead
+ * of a coloured background: a wash under the badge would lift the surface and
+ * cost contrast, and the badge is what carries the message.
+ */
+.import__row--invalid .import__line {
+    box-shadow: inset 3px 0 0 var(--import-bad);
+}
+
+/*
+ * The badge of a row sits on the panel, not on a pill: a translucent background
+ * would lift the surface under the small text and pull the contrast down (2.9:1
+ * in the dark theme). The border carries the shape instead - the same idea the
+ * language badge of a row uses.
+ */
+.import__badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--muted);
+}
+
+.import__badge--ok {
+    color: var(--import-ok);
+}
+
+.import__badge--invalid {
+    color: var(--import-bad);
+}
+
+.import__more {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+/* --- small windows ------------------------------------------------------- */
+
+@media (max-width: 639px) {
+    /* Below 640px the shared dialog becomes a bottom sheet. That rule sets the
+       width as well, and the import dialog has to say it again because its own
+       rule is more specific - otherwise the sheet would keep the desktop width. */
+    .dialog:has(.import) {
+        width: 100%;
+    }
+
+    .dropzone {
+        padding: 20px 14px;
+    }
+
+    .import__table th,
+    .import__table td {
+        max-width: 120px;
+    }
+}

@@ -41,7 +41,11 @@ $appConfig = [
         'cards' => 'api/cards.php',
         'card' => 'api/card.php',
         'review' => 'api/review.php',
+        'importCards' => 'api/import_cards.php',
     ],
+
+    // The sample file the import dialog offers, and nothing else.
+    'sampleCsv' => 'assets/samples/cards-import-sample.csv',
     'storageKeys' => [
         'theme' => 'lernkartei.theme',
         'language' => 'lernkartei.language',
@@ -52,6 +56,10 @@ $appConfig = [
         'cardText' => 2000,
         /* Must match SVG_MAX_UPLOAD_BYTES on the server (350 KB). */
         'iconBytes' => 358400,
+        /* Must match CARD_IMPORT_MAX_BYTES and CARD_IMPORT_MAX_ROWS in
+           src/services/card_import_service.php. */
+        'importBytes' => 1048576,
+        'importRows' => 1000,
     ],
     'defaultLocale' => $defaultLocale,
     'supportedLocales' => array_keys($translations),
@@ -274,7 +282,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                                 nobody has to scroll to find them, and app.js fills them
                                 for the page that is open:
 
-                                  a subcategory  -> "Study"      and "+ Card"
+                                  a subcategory  -> "Study", "+ Card" and "Import"
                                   a learning area -> "Study all"  and "+ Subcategory"
 
                                 A button is only shown where it belongs: there is no
@@ -292,6 +300,14 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                                 </button>
 
                                 <button type="button" class="add-entry-button" id="add-entry-button" hidden></button>
+
+                                <!--
+                                    The quiet way in for a whole file. It carries the
+                                    same look as "+ Card" and is only shown on a
+                                    subcategory page: that is the level a card belongs
+                                    to, so it is the level an import can write to.
+                                -->
+                                <button type="button" class="add-entry-button import-button" id="import-button" hidden></button>
                             </div>
                     </div>
 
