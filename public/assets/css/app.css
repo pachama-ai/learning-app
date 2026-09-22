@@ -5104,3 +5104,82 @@ body.is-learning {
 .learn__face:has(.card-map--learn:not([hidden])) .learn__text {
     font-size: clamp(15px, 1.7vw, 22px);
 }
+
+/* ==========================================================================
+   Scrollbars
+   ========================================================================== */
+
+/*
+ * One scrollbar for the whole application.
+ *
+ * The native scrollbar draws an arrow button at each end and is about 15 px wide,
+ * which does not fit a quiet interface. It is replaced everywhere by a thin bar:
+ * no buttons, no track of its own, and a rounded thumb that sits back at rest and
+ * steps forward while the pointer rests on the thumb.
+ *
+ * Two paths, and they have to stay apart:
+ *
+ *   * Chrome, Edge and Safari understand the ::-webkit-scrollbar pseudo elements.
+ *     They are the only way to get a width of exactly 8 px and to switch the arrow
+ *     buttons off, so everything for them sits in the plain rules below.
+ *   * Firefox has neither and knows only scrollbar-width and scrollbar-color. It
+ *     draws the same thin bar with the same colours from those two properties.
+ *
+ * Those two properties sit in an @supports block, and that is not decoration:
+ * Chrome understands them as well since version 121, and as soon as scrollbar-width
+ * is not "auto" Chrome ignores the ::-webkit-scrollbar rules completely - the bar
+ * becomes 10 px wide instead of 8. The block therefore asks for a browser without
+ * the WebKit pseudo elements, which is Firefox and nothing else here.
+ *
+ * A browser that understands neither path keeps its native scrollbar. Nothing
+ * breaks, it only looks different.
+ *
+ * The colours come from the theme tokens, so both themes follow from one set of
+ * rules. Each colour is written twice: first as a plain value for a browser without
+ * color-mix(), then as the token. The second line wins where it is understood.
+ */
+
+/* --- Chrome, Edge, Safari: the pseudo elements ---------------------------- */
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+/* No arrow buttons at either end. */
+*::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* The track stays invisible: the bar draws no line of its own. */
+*::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: rgba(128, 128, 128, 0.4);
+    background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+    transition: background-color 160ms var(--ease);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(128, 128, 128, 0.7);
+    background-color: color-mix(in srgb, var(--text) 70%, transparent);
+}
+
+/* The small square where a horizontal and a vertical bar meet. */
+*::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
+
+/* --- Firefox: the two standard properties --------------------------------- */
+
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        /* thumb, then track */
+        scrollbar-color: rgba(128, 128, 128, 0.4) transparent;
+        scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent) transparent;
+    }
+}
