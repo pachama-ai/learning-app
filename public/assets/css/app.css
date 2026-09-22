@@ -247,10 +247,6 @@
 
     --cat-default: #A9AFC6;
 
-    /*
-     * A category colour that is stored in the database serves both themes: the
-     * rule on .has-cat below mixes the stored value towards the dark sky.
-     */
     --cat-reserve-rose: #B8B0AC;
 
     /* The three light pools, a little stronger than in the light theme. */
@@ -383,8 +379,6 @@ input {
 .crumb,
 .lang-switch__option,
 .lang-switch__separator,
-.stats__value,
-.stats__label,
 .sidebar__link,
 .row__index {
     font-family: var(--font-mono);
@@ -534,7 +528,6 @@ img {
         transform: translate(40px, 28px) rotate(8deg);
     }
 }
-
 
 .main {
     display: flex;
@@ -823,18 +816,9 @@ img {
     min-width: 0;
 }
 
-.stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: clamp(28px, 5vw, 72px);
-    margin-top: 14px;
-}
-
-
 /*
  * Outline pills, the shared look for every statistic and every data badge.
  */
-.stat-pill,
 .data-pill {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
@@ -851,58 +835,6 @@ img {
 .data-pill {
     display: inline-block;
     vertical-align: middle;
-}
-
-/*
- * The statistic pill also needs its inner layout.
- *
- * "row-reverse" is what puts the number first: a definition list has to be
- * written as <dt> then <dd>, and reversing the row shows the value before its
- * label instead of after it.
- */
-.stats__item {
-    display: inline-flex;
-    flex-direction: row-reverse;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-}
-
-/* A 6px dot beside the statistic, in the category colour of the open entry. */
-.stats__dot {
-    display: inline-block;
-    flex: 0 0 auto;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    /* Neutral while the entry has no colour of its own. */
-    background-color: var(--dot-color, var(--cat-default));
-}
-
-/* The open entry has a stored colour, so the dot carries it. */
-.stats__dot.has-cat {
-    background-color: var(--cat);
-}
-
-.stats__value {
-    font-family: var(--font-mono);
-    font-size: clamp(1rem, 1.4vw, 1.2rem);
-    font-weight: 500;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-}
-
-
-.stats__label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text);
 }
 
 /* ==========================================================================
@@ -1416,12 +1348,6 @@ img {
     color: var(--text);
 }
 
-.stats--detail {
-    margin-top: clamp(24px, 3vw, 36px);
-    padding-top: 20px;
-    border-top: 1px solid var(--hairline);
-}
-
 .rows {
     margin-top: clamp(24px, 3vw, 36px);
     border-top: 1px dotted var(--line);
@@ -1676,32 +1602,6 @@ body:has(#view-detail:not([hidden])) .site-footer {
     transform: rotate(90deg);
 }
 
-/*
- * A plain text action (Cancel, "back to the list"). It reads as text, so it
- * uses the interface font, but it keeps a target of at least 40px.
- */
-.text-button {
-    justify-self: end;
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px;
-    padding: 8px 6px;
-    border: 0;
-    border-radius: 10px;
-    background: none;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
-    letter-spacing: 0;
-    cursor: pointer;
-    transition: color 200ms var(--ease), background-color 200ms var(--ease);
-}
-
-.text-button:hover {
-    color: var(--text);
-    background-color: var(--tile-bg-hover);
-}
-
 /* ==========================================================================
    9. Dialog
    ========================================================================== */
@@ -1836,23 +1736,11 @@ body:has(#view-detail:not([hidden])) .site-footer {
     transition: border-color 200ms var(--ease), background-color 200ms var(--ease), color 200ms var(--ease), opacity 200ms var(--ease);
 }
 
-.dialog__button--ghost {
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--muted);
-}
-
-.dialog__button--ghost:hover {
-    border-color: var(--text);
-    color: var(--text);
-}
-
 .dialog__button--primary {
     border: 1px solid var(--text);
     background: transparent;
     color: var(--text);
 }
-
 
 /*
  * Arrow submit button. The arrow is drawn in CSS rather than added as an
@@ -2082,7 +1970,6 @@ html.is-theme-switching::view-transition-new(root) {
    12. Responsive
    ========================================================================== */
 
-
 /* Below this width the sidebar becomes a horizontally scrollable tab bar. */
 @media (max-width: 860px) {
     .view--detail {
@@ -2118,7 +2005,6 @@ html.is-theme-switching::view-transition-new(root) {
         display: none;
     }
 }
-
 
 /* ==========================================================================
    14. Entry rows, action menus, forms and dialogs
@@ -2246,19 +2132,6 @@ html.is-theme-switching::view-transition-new(root) {
     padding-bottom: 8px;
 }
 
-.text-button--icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    /* The footer places these buttons with "justify-self"; in a flex row that
-       value would do nothing, so it is reset here. */
-    justify-self: auto;
-}
-
-.text-button--danger:hover {
-    color: var(--cat-reserve-rose);
-}
-
 /* Cards that sit directly in a learning area. */
 .detail__section {
     margin-top: clamp(32px, 4vw, 48px);
@@ -2341,21 +2214,11 @@ html.is-theme-switching::view-transition-new(root) {
     display: none;
 }
 
-/* --- the wider forms ----------------------------------------------------- */
-
-.dialog--wide {
-    width: min(640px, calc(100vw - 32px));
-}
-
 /* English and German side by side, and both descriptions underneath. */
 .dialog__grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-}
-
-.dialog__field--narrow {
-    max-width: 160px;
 }
 
 .dialog__field--check {
@@ -2391,28 +2254,6 @@ html.is-theme-switching::view-transition-new(root) {
     overflow: hidden;
 }
 
-.dialog__input--file,
-.dialog__input--number,
-.dialog__color {
-    font-size: 0.92rem;
-}
-
-.dialog__color {
-    width: 56px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-control);
-    background: transparent;
-    cursor: pointer;
-}
-
-.dialog__inline {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
 .dialog__link-button {
     padding: 0;
     border: 0;
@@ -2430,14 +2271,6 @@ html.is-theme-switching::view-transition-new(root) {
     color: var(--text);
 }
 
-.dialog__badge {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
 /* "Delete" inside a form sits on the left, away from cancel and save. */
 .dialog__button--danger {
     margin-right: auto;
@@ -2448,17 +2281,6 @@ html.is-theme-switching::view-transition-new(root) {
 
 .dialog__button--danger:hover {
     border-color: var(--cat-reserve-rose);
-}
-
-.dialog__button--danger-solid {
-    border: 1px solid var(--cat-reserve-rose);
-    background: transparent;
-    color: var(--cat-reserve-rose);
-}
-
-.dialog__button--danger-solid:hover:not([disabled]) {
-    background-color: var(--cat-reserve-rose);
-    color: var(--background);
 }
 
 @media (max-width: 639px) {
@@ -2518,7 +2340,6 @@ html.is-theme-switching::view-transition-new(root) {
     .area-grid {
         scroll-behavior: auto;
     }
-
 
     .skeleton__blob,
     .skeleton__line {
@@ -2675,7 +2496,6 @@ html.is-theme-switching::view-transition-new(root) {
         transform: translateY(0);
     }
 }
-
 
 /*
  * --- the dialog ---------------------------------------------------------
@@ -3006,7 +2826,6 @@ html.is-theme-switching::view-transition-new(root) {
     color: var(--text);
 }
 
-
 /*
  * The box the drawing is measured in. It has to be in the document for getBBox
  * to answer, but it must not be visible or take up any space.
@@ -3107,7 +2926,6 @@ html.is-theme-switching::view-transition-new(root) {
     /* A very long name wraps inside the card instead of pushing it apart. */
     overflow-wrap: anywhere;
 }
-
 
 /* The menu next to the heading, in the surface the row menus already use. */
 .detail__menu {
@@ -3381,26 +3199,6 @@ html.is-theme-switching::view-transition-new(root) {
     --status-known: #8FB08A;
 }
 
-/* --- the row button: a real button that still looks like a row ------------- */
-
-.row__open {
-    appearance: none;
-    -webkit-appearance: none;
-    margin: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.row__open:focus-visible {
-    outline: 2px solid var(--line-strong);
-    outline-offset: 2px;
-    border-radius: 10px;
-}
-
 /* --- the header of a card list -------------------------------------------- */
 
 .card-tools {
@@ -3582,12 +3380,6 @@ html.is-theme-switching::view-transition-new(root) {
 .card-preview__text.is-empty {
     color: var(--muted);
     font-style: italic;
-}
-
-.card-preview__divider {
-    height: 1px;
-    margin: 14px 0;
-    background-color: var(--line, rgba(0, 0, 0, 0.1));
 }
 
 .dialog__field--preview .dialog__hint {
@@ -4609,7 +4401,6 @@ body.is-learning {
     }
 }
 
-
 /* ==========================================================================
    The map of a card
 
@@ -5074,7 +4865,6 @@ body.is-learning {
     }
 }
 
-
 /*
  * Hovering a tile: the lift, the brighter surface and the arrow stay, the shadow
  * goes. While the pointer is on a tile it already is the focus of the row, and a
@@ -5084,7 +4874,6 @@ body.is-learning {
 .area-card:focus-visible {
     box-shadow: none;
 }
-
 
 /* ==========================================================================
    Signing in
@@ -5239,7 +5028,6 @@ body.is-learning {
     }
 }
 
-
 /* ==========================================================================
    "Save & next card": the break belongs to the text
 
@@ -5257,7 +5045,6 @@ body.is-learning {
        puts it; the row wraps instead of the label. */
     flex: 0 0 auto;
 }
-
 
 /* ==========================================================================
    The study card with a map

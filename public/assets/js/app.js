@@ -1805,22 +1805,6 @@
      * flashcard". It is a real button with the height of a row, so the list ends
      * with the next step instead of with a dead end.
      */
-    function buildAddRow(labelKey, handler) {
-        var item = document.createElement('li');
-        item.className = 'row-add';
-
-        var button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'add-row';
-        /* The stored labels already start with "+"; the sign is drawn here so
-           the two parts can be spaced by the stylesheet. */
-        button.textContent = '+ ' + t(labelKey).replace(/^\+\s*/, '');
-        button.addEventListener('click', handler);
-
-        item.appendChild(button);
-
-        return item;
-    }
 
     /*
      * The figures of the open entry.
@@ -4412,9 +4396,6 @@
     var learnSession = null;
     var learnTimer = null;
 
-    function learnIsOpen() {
-        return learnSession !== null;
-    }
 
     /* Opens the session for the open subcategory. */
     function startLearning(mode, targetCategoryId, label) {

@@ -301,31 +301,6 @@ function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, ?i
 }
 
 /**
- * Reports whether a top-level category with this name already exists.
- *
- * Kept because api/add_category.php uses it; the newer endpoint uses
- * category_sibling_name_exists(), which can also look at subcategories.
- */
-function category_name_exists(PDO $pdo, string $name): bool
-{
-    return category_sibling_name_exists($pdo, $name, null);
-}
-
-/**
- * Inserts a new top-level learning area from nothing but a name.
- *
- * Kept because api/add_category.php uses it - that older endpoint only knows a
- * name. Everything newer goes through create_category(), which also takes a
- * colour, an icon and the two translations.
- *
- * @return array<string, mixed>
- */
-function create_main_category(PDO $pdo, string $name): array
-{
-    return create_category($pdo, ['parent_id' => null, 'name' => $name]);
-}
-
-/**
  * Inserts a new learning area or subcategory and returns it in the same shape
  * the read functions return, so the browser can use it without a second request.
  *

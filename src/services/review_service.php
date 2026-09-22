@@ -113,49 +113,6 @@ function review_find_progress(PDO $pdo, int $userId, int $cardId): ?array
 }
 
 /**
- * Returns the progress of many cards at once, keyed by card id.
- *
- * One query for the whole list instead of one per card: a subcategory with 200
- * cards would otherwise ask the database 200 times for the same thing.
- *
- * @param list<int> $cardIds
- * @return array<int, array<string, mixed>>
- */
-function review_find_progress_for_cards(PDO $pdo, int $userId, array $cardIds): array
-{
-    $cardIds = array_values(array_unique(array_filter($cardIds, static fn ($id) => (int) $id > 0)));
-
-    if ($cardIds === []) {
-        return [];
-    }
-
-    /* The placeholders are built from the COUNT of the ids, never from the ids
-       themselves, and every value is still bound. */
-    $placeholders = implode(', ', array_fill(0, count($cardIds), '?'));
-    $statement = $pdo->prepare(
-        'SELECT card_id, state, due_at, last_reviewed_at, repetitions, lapses, stability, difficulty
-           FROM user_card_progress
-          WHERE user_id = ? AND card_id IN (' . $placeholders . ')'
-    );
-
-    $statement->bindValue(1, $userId, PDO::PARAM_INT);
-
-    foreach ($cardIds as $index => $cardId) {
-        $statement->bindValue($index + 2, (int) $cardId, PDO::PARAM_INT);
-    }
-
-    $statement->execute();
-
-    $byCard = [];
-
-    foreach ($statement->fetchAll() as $row) {
-        $byCard[(int) $row['card_id']] = $row;
-    }
-
-    return $byCard;
-}
-
-/**
  * The status of one card: "new", "unsure" or "known".
  *
  *   new    - no progress row, or one that never left the state "never learned"
@@ -893,25 +850,4 @@ function review_directions_of(array $card, string $status, bool $isDue): array
     $reverse['back'] = (string) $card['front'];
 
     return [$forward, $reverse];
-}
-
-/**
- * Counts the four ratings as they were given in a session.
- *
- * @param list<int> $ratings
- * @return array<string, int>
- */
-function review_count_ratings(array $ratings): array
-{
-    $counts = ['again' => 0, 'hard' => 0, 'good' => 0, 'easy' => 0];
-
-    foreach ($ratings as $rating) {
-        $rating = (int) $rating;
-
-        if (isset(REVIEW_RATINGS[$rating])) {
-            $counts[REVIEW_RATINGS[$rating]]++;
-        }
-    }
-
-    return $counts;
 }

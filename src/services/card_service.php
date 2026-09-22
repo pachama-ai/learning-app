@@ -70,29 +70,6 @@ function normalize_card_rows(array $rows): array
 }
 
 /**
- * Returns the cards of one category, oldest first.
- *
- * @return list<array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}>
- */
-function find_cards(PDO $pdo, int $categoryId): array
-{
-    // The value travels separately from the SQL text, so it can never be read
-    // as part of the query.
-    // The same column list every other card read uses, so a field that belongs to
-    // a card row (the map region, the language columns) is never missing here.
-    $statement = $pdo->prepare(
-        'SELECT ' . implode(', ', card_read_columns($pdo)) . '
-           FROM cards
-          WHERE category_id = :category_id
-          ORDER BY id ASC'
-    );
-    $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
-    $statement->execute();
-
-    return normalize_card_rows($statement->fetchAll());
-}
-
-/**
  * Returns one card, or null when it does not exist.
  *
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}|null
@@ -110,33 +87,6 @@ function find_card(PDO $pdo, int $cardId): ?array
     $row = $statement->fetch();
 
     return $row === false ? null : normalize_card_row($row);
-}
-
-/**
- * Inserts a card and returns it in the same shape the read functions use.
- *
- * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}
- */
-function create_card(PDO $pdo, int $categoryId, string $front, string $back, bool $isBidirectional): array
-{
-    $statement = $pdo->prepare(
-        'INSERT INTO cards (category_id, front, back, is_bidirectional)
-         VALUES (:category_id, :front, :back, :is_bidirectional)'
-    );
-    $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
-    $statement->bindValue(':front', $front, PDO::PARAM_STR);
-    $statement->bindValue(':back', $back, PDO::PARAM_STR);
-    // The column is a tinyint, so the boolean is written as 1 or 0.
-    $statement->bindValue(':is_bidirectional', $isBidirectional ? 1 : 0, PDO::PARAM_INT);
-    $statement->execute();
-
-    return [
-        'id' => (int) $pdo->lastInsertId(),
-        'category_id' => $categoryId,
-        'front' => $front,
-        'back' => $back,
-        'is_bidirectional' => $isBidirectional,
-    ];
 }
 
 /**
@@ -242,18 +192,6 @@ function delete_card(PDO $pdo, int $cardId): bool
     $statement->execute();
 
     return $statement->rowCount() > 0;
-}
-
-/**
- * How many cards sit directly in this category (not counting its children).
- */
-function card_count_for_category(PDO $pdo, int $categoryId): int
-{
-    $statement = $pdo->prepare('SELECT COUNT(*) FROM cards WHERE category_id = :category_id');
-    $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
-    $statement->execute();
-
-    return (int) $statement->fetchColumn();
 }
 
 /**
