@@ -43,6 +43,14 @@ declare(strict_types=1);
  *           (in the order of first appearance) under the learning area named in
  *           `parent_category`, then every card, in the order of the file.
  *
+ *   --allow-existing-subcategories
+ *           A subcategory of the file that already exists under the target area is
+ *           REUSED: the cards go into it and no second subcategory with the same
+ *           name appears. Without this flag such a file stops with a message
+ *           instead. Even with the flag a run refuses when a card of the file
+ *           already sits in that subcategory, so a real duplicate cannot slip
+ *           through.
+ *
  * Safety
  *
  *   * Everything - the deletion AND the import - happens in ONE transaction.
@@ -50,9 +58,11 @@ declare(strict_types=1);
  *     as it was before or fully imported. Never half.
  *   * The file is validated completely before the first statement runs, and the
  *     counts of the file are compared with the numbers this import expects.
- *   * --execute refuses to run without --wipe-subcategories while a subcategory
- *     of the file already exists under the target area: that is the guard
- *     against importing the same file twice.
+ *   * --execute refuses to run while a subcategory of the file already exists under
+ *     the target area - unless --wipe-subcategories replaces them or
+ *     --allow-existing-subcategories reuses them. The name of a subcategory is the
+ *     guard against importing the same file twice; with the reuse flag that guard
+ *     moves to the cards, which are compared by their front side.
  *   * No area is created, renamed or deleted. Nothing about the table structure
  *     is touched, and no progress row is written.
  *
@@ -205,16 +215,42 @@ function import_main(array $argv, string $projectRoot): int
         return 0;
     }
 
-    if (!$options['wipe'] && $alreadyThere !== []) {
+    if (!$options['wipe'] && $alreadyThere !== [] && !$options['reuse']) {
         echo "\nSTOP: these subcategories of the file are already under \"{$area['name']}\":\n";
 
         foreach ($alreadyThere as $name) {
             echo '  ' . $name . "\n";
         }
 
-        echo "Nothing was changed. Run with --wipe-subcategories to replace them.\n";
+        echo "Nothing was changed. Run with --wipe-subcategories to replace them,\n"
+            . "or with --allow-existing-subcategories to put the new cards into them.\n";
 
         return 1;
+    }
+
+    /*
+     * With the reuse flag the guard moves from the name to the cards: a front side
+     * that is already stored in one of these subcategories would become a
+     * duplicate, so the run stops and names it.
+     */
+    if ($options['reuse'] && $alreadyThere !== []) {
+        $duplicates = import_front_collisions($pdo, $area, $alreadyThere, $csv);
+
+        if ($duplicates !== []) {
+            echo "\nSTOP: these cards of the file are already stored in that subcategory:\n";
+
+            foreach (array_slice($duplicates, 0, 10) as $line) {
+                echo '  ' . $line . "\n";
+            }
+
+            if (count($duplicates) > 10) {
+                echo '  ... and ' . (count($duplicates) - 10) . " more\n";
+            }
+
+            echo "Nothing was changed.\n";
+
+            return 1;
+        }
     }
 
     /* ---------------------------------------------------------------------
@@ -222,7 +258,7 @@ function import_main(array $argv, string $projectRoot): int
        --------------------------------------------------------------------- */
 
     try {
-        $result = import_execute($pdo, $options['wipe'], $area, $csv);
+        $result = import_execute($pdo, $options['wipe'], $options['reuse'], $area, $csv);
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -239,6 +275,7 @@ function import_main(array $argv, string $projectRoot): int
     echo '  cards deleted         : ' . $result['deleted_cards'] . "\n";
     echo '  progress rows deleted : ' . $result['deleted_progress'] . "\n";
     echo '  subcategories created : ' . $result['created_categories'] . "\n";
+    echo '  subcategories reused  : ' . $result['reused_categories'] . "\n";
     echo '  cards imported        : ' . $result['created_cards'] . "\n";
 
     /* The proof, read after the commit: the tree really looks like this now. */
@@ -265,11 +302,12 @@ function import_main(array $argv, string $projectRoot): int
    -------------------------------------------------------------------------- */
 
 /**
- * Reads --file, --dry-run, --execute, --wipe-subcategories and --expect.
+ * Reads --file, --dry-run, --execute, --wipe-subcategories,
+ * --allow-existing-subcategories and --expect.
  *
  * Without a mode the tool only reads.
  *
- * @return array{file: string, execute: bool, wipe: bool, expect: int|null}|null
+ * @return array{file: string, execute: bool, wipe: bool, reuse: bool, expect: int|null}|null
  */
 function import_read_arguments(array $argv, string $projectRoot): ?array
 {
@@ -280,6 +318,7 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
     $file = null;
     $execute = false;
     $wipe = false;
+    $reuse = false;
     $expect = null;
     $modeGiven = false;
 
@@ -333,6 +372,11 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
             continue;
         }
 
+        if ($argument === '--allow-existing-subcategories') {
+            $reuse = true;
+            continue;
+        }
+
         if ($argument === '--help' || $argument === '-h') {
             import_print_usage();
 
@@ -361,7 +405,7 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
         return null;
     }
 
-    return ['file' => $real, 'execute' => $execute, 'wipe' => $wipe, 'expect' => $expect];
+    return ['file' => $real, 'execute' => $execute, 'wipe' => $wipe, 'reuse' => $reuse, 'expect' => $expect];
 }
 
 function import_print_usage(): void
@@ -374,6 +418,8 @@ function import_print_usage(): void
     echo "  --dry-run               read and report, write nothing (default)\n";
     echo "  --execute               really import, all of it or none of it\n";
     echo "  --wipe-subcategories    delete the subcategories of the area in the file first\n";
+    echo "  --allow-existing-subcategories\n";
+    echo "                          put the cards into a subcategory that is already there\n";
     echo "  --expect=N              refuse to run when the file does not have N cards\n";
 }
 
@@ -842,7 +888,67 @@ function import_print_step_b(array $area, array $csv, array $subcategories, arra
  * @param array<string, mixed> $csv
  * @return array<string, int>
  */
-function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
+/**
+ * The cards of the file whose front side is already stored in one of the named
+ * subcategories below the area.
+ *
+ * The comparison is the one the import dialog of the application uses: the front
+ * side, trimmed, in lower case, with runs of whitespace collapsed.
+ *
+ * @param array<string, mixed> $area  the learning area, with its id
+ * @param list<string>         $names the subcategories of the file that exist
+ * @param array<string, mixed> $csv
+ * @return list<string> one line per card, ready to be printed
+ */
+function import_front_collisions(PDO $pdo, array $area, array $names, array $csv): array
+{
+    $key = static function (string $value): string {
+        $flat = preg_replace('/\s+/u', ' ', trim($value));
+
+        return mb_strtolower($flat === null ? '' : $flat, 'UTF-8');
+    };
+
+    $statement = $pdo->prepare(
+        'SELECT k.front_de
+           FROM cards k
+           JOIN categories c ON c.id = k.category_id
+          WHERE c.parent_id = :parent_id AND c.name = :name'
+    );
+
+    $stored = [];
+
+    foreach ($names as $name) {
+        $statement->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
+        $statement->bindValue(':name', $name, PDO::PARAM_STR);
+        $statement->execute();
+
+        foreach ($statement as $row) {
+            $front = $key((string) $row['front_de']);
+
+            if ($front !== '') {
+                $stored[$front] = true;
+            }
+        }
+    }
+
+    $collisions = [];
+
+    foreach ($csv['rows'] as $row) {
+        if (in_array($row['subcategory'], $names, true) === false) {
+            continue;
+        }
+
+        $front = $key((string) $row['front_de']);
+
+        if ($front !== '' && isset($stored[$front])) {
+            $collisions[] = $row['subcategory'] . ' | ' . mb_substr((string) $row['front_de'], 0, 60);
+        }
+    }
+
+    return $collisions;
+}
+
+function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $csv): array
 {
     $pdo->beginTransaction();
 
@@ -886,7 +992,31 @@ function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
             (:parent_id, :name, NULL, :name_de, NULL, NULL, 1.00, NULL, NULL)'
     );
 
+    /*
+     * With --allow-existing-subcategories a subcategory that is already there is
+     * reused: its id is taken over and nothing is inserted. Without the flag the
+     * caller has made sure that no name of the file exists yet.
+     */
+    $reusedCategories = 0;
+    $reusable = [];
+
+    if ($reuse) {
+        $existing = $pdo->prepare('SELECT id, name FROM categories WHERE parent_id = :parent_id');
+        $existing->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
+        $existing->execute();
+
+        foreach ($existing as $row) {
+            $reusable[(string) $row['name']] = (int) $row['id'];
+        }
+    }
+
     foreach ($csv['order'] as $name) {
+        if ($reuse && isset($reusable[$name])) {
+            $idOf[$name] = $reusable[$name];
+            $reusedCategories++;
+            continue;
+        }
+
         $insertCategory->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
         $insertCategory->bindValue(':name', $name, PDO::PARAM_STR);
         $insertCategory->bindValue(':name_de', $name, PDO::PARAM_STR);
@@ -938,6 +1068,7 @@ function import_execute(PDO $pdo, bool $wipe, array $area, array $csv): array
         'deleted_cards' => $deleted['cards'],
         'deleted_progress' => $deleted['progress'],
         'created_categories' => $createdCategories,
+        'reused_categories' => $reusedCategories,
         'created_cards' => $createdCards,
     ];
 }

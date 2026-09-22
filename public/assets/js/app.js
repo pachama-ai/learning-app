@@ -334,11 +334,15 @@
      */
 
     /*
-     * "08 SUBCATEGORIES" / "01 SUBCATEGORY" - a padded counter, used by the rows
-     * of the detail view and by the tooltip. The plural form follows the count.
+     * "0 cards" / "1 card" / "8 cards" - a positive number of cards or
+     * subcategories, then the noun in the right number.
+     *
+     * No pad2 here: this is a count and not a slot in a row of numbers, and
+     * "00 cards" reads like a typo. The rows keep their own padded index ("[01]"),
+     * which is an ordinal and never becomes "00".
      */
     function countedLabel(count, oneKey, otherKey) {
-        return pad2(count) + ' ' + t(count === 1 ? oneKey : otherKey);
+        return String(count) + ' ' + t(count === 1 ? oneKey : otherKey);
     }
 
     /*
@@ -1640,9 +1644,9 @@
         name.textContent = title;
 
         /*
-         * The real number of cards in this subcategory, counted by the API. It
-         * stays "00" while there is nothing to count, because a row of numbers
-         * reads better when it has the same width everywhere.
+         * The real number of cards in this subcategory, counted by the API. An
+         * empty subcategory reads "0 cards": the figure is a count, so it is not
+         * padded to a fixed width.
          */
         var count = document.createElement('span');
         count.className = 'row__count data-pill';
