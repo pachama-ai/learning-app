@@ -2116,6 +2116,21 @@ html.is-theme-switching::view-transition-new(root) {
     color: var(--cat-reserve-rose);
 }
 
+/*
+ * The initials of the signed-in user, as a quiet line above the menu items.
+ * Mono and upper case like every label of this design.
+ */
+.menu__label {
+    margin: 0 0 4px;
+    padding: 6px 10px 8px;
+    border-bottom: 1px solid var(--hairline);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 /* Heading of one entry, with the actions that belong to that entry. */
 .detail__head {
     display: flex;
@@ -4923,19 +4938,35 @@ body.is-learning {
     outline-offset: 2px;
 }
 
-/* Signed in: the initials sit on the same surface the active language tab uses. */
+/*
+ * Signed in: the same fingerprint as the signed-out button, but in the full
+ * text colour, on a stronger border and with a small dot in the upper right
+ * corner, where a status light sits. The initials are text in the menu now, not
+ * the symbol in the circle.
+ */
 .auth-button--user {
-    border-color: transparent;
+    position: relative;
+    border-color: var(--line-strong);
+    background-color: var(--tile-bg);
+    color: var(--text);
+}
+
+.auth-button--user::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
     background-color: var(--text);
-    color: var(--panel);
-    font-size: 0.8rem;
 }
 
 .auth-button--user:hover,
 .auth-button--user[aria-expanded="true"] {
-    border-color: transparent;
-    background-color: var(--text);
-    color: var(--panel);
+    border-color: var(--line-strong);
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
 }
 
 .auth-menu {

@@ -602,7 +602,23 @@
      * from api/auth.php. The token travels back with every request of this block,
      * so another site cannot sign somebody in through the browser.
      */
-    var PERSON_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" focusable="false" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c0-3.7 3.2-6 7.2-6s7.2 2.3 7.2 6"/></svg>';
+    /*
+     * The fingerprint of the user button: the same hand as the four drawings
+     * of the learning areas - a 48 box, one stroke width of 2.6, round caps and
+     * joins, only paths and the colour from currentColor.
+     *
+     * Four ridges: two that follow the fingertip, a core that closes and one
+     * short line at the bottom. The core is what makes it readable as a
+     * fingerprint - an open hook in the middle looks like a head instead.
+     * Drawn at 24 px: measured on a real raster, no two ridges touch there
+     * (the narrowest gap is 1 px, at 34 px it is 2 px).
+     */
+    var FINGERPRINT_SVG = '<svg viewBox="0 0 48 48" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">'
+        + '<path d="M9.6 44C4.8 38 3 28.8 5 20C7.2 10.2 15 4.4 24 4.4C33 4.4 40.8 10.2 43 20C45 28.8 43.2 38 38.4 44"/>'
+        + '<path d="M15.2 45.6C11.4 39.4 10 30.6 11.6 22.6C13.4 14 18.6 10 24 10C29.4 10 34.6 14 36.4 22.6C38 30.6 36.6 39.4 32.8 45.6"/>'
+        + '<path d="M19.4 24.2C19.4 19.6 21.4 16.6 24.2 16.6C27 16.6 29 19.6 29 24.2C29 29.4 28 34.6 25.2 39.4"/>'
+        + '<path d="M16.6 32.4C19.4 33.6 28.8 33.6 31.6 32.4"/>'
+        + '</svg>';
     var EYE_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye__slash" d="M4.4 19.6 19.6 4.4"/></svg>';
 
     var authState = { user: null, ready: false, csrfToken: '' };
@@ -678,7 +694,7 @@
                language it was built in. */
             open.setAttribute('aria-label', t('auth.open'));
             open.setAttribute('data-i18n-label', 'auth.open');
-            open.innerHTML = PERSON_SVG;
+            open.innerHTML = FINGERPRINT_SVG;
             open.addEventListener('click', function () {
                 openAuthDialog('sign_in');
             });
@@ -688,17 +704,24 @@
         }
 
         var wrap = el('span', 'auth-menu');
-        var initials = el('button', 'auth-button auth-button--user');
-        initials.type = 'button';
-        initials.setAttribute('aria-haspopup', 'true');
-        initials.setAttribute('aria-expanded', 'false');
-        initials.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
-        initials.setAttribute('title', authState.user.name);
-        initials.textContent = authState.user.initials;
+        var user = el('button', 'auth-button auth-button--user');
+        user.type = 'button';
+        user.setAttribute('aria-haspopup', 'true');
+        user.setAttribute('aria-expanded', 'false');
+        user.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
+        user.setAttribute('title', authState.user.name);
+        /* The very same drawing as in the signed-out state. Only the colour
+           and the small dot next to it tell the two states apart (see app.css). */
+        user.innerHTML = FINGERPRINT_SVG;
 
         var menu = el('span', 'menu');
         menu.setAttribute('role', 'menu');
         menu.hidden = true;
+
+        /* The initials of the user are text in the menu now, not the symbol in
+           the circle. The button already names the user for screen readers. */
+        var who = el('p', 'menu__label', authState.user.initials);
+        who.setAttribute('aria-hidden', 'true');
 
         var signOutItem = el('button', 'menu__item');
         signOutItem.type = 'button';
@@ -709,16 +732,17 @@
             signOut();
         });
 
+        menu.appendChild(who);
         menu.appendChild(signOutItem);
 
-        initials.addEventListener('click', function (event) {
+        user.addEventListener('click', function (event) {
             /* Without this the document listener would close the menu again at
                once, because the click is still on its way up. */
             event.stopPropagation();
-            toggleMenu(wrap, initials, menu);
+            toggleMenu(wrap, user, menu);
         });
 
-        wrap.appendChild(initials);
+        wrap.appendChild(user);
         wrap.appendChild(menu);
         slot.appendChild(wrap);
     }
