@@ -218,14 +218,26 @@ function user_password_problem(string $password): ?string
  */
 function user_find(PDO $pdo, string $identifier): ?array
 {
-    /* SELECT *: the table may or may not have the columns of the migration yet,
-       and every one of them is wanted here. */
-    $sql = user_column_available(user_columns($pdo), 'email')
-        ? 'SELECT * FROM users WHERE name = :identifier OR (email IS NOT NULL AND email = :identifier) LIMIT 1'
-        : 'SELECT * FROM users WHERE name = :identifier LIMIT 1';
+    /*
+     * SELECT *: the table may or may not have the columns of the migration yet,
+     * and every one of them is wanted here.
+     *
+     * The value is bound twice on purpose - once for the name, once for the
+     * address. PDO with emulated prepares switched off (see the connection in
+     * src/config/database.php) refuses a named placeholder that is used twice in
+     * one statement, so both get their own name.
+     */
+    if (user_column_available(user_columns($pdo), 'email')) {
+        $statement = $pdo->prepare(
+            'SELECT * FROM users WHERE name = :name OR (email IS NOT NULL AND email = :email) LIMIT 1'
+        );
+        $statement->bindValue(':name', $identifier, PDO::PARAM_STR);
+        $statement->bindValue(':email', $identifier, PDO::PARAM_STR);
+    } else {
+        $statement = $pdo->prepare('SELECT * FROM users WHERE name = :name LIMIT 1');
+        $statement->bindValue(':name', $identifier, PDO::PARAM_STR);
+    }
 
-    $statement = $pdo->prepare($sql);
-    $statement->bindValue(':identifier', $identifier, PDO::PARAM_STR);
     $statement->execute();
     $row = $statement->fetch(PDO::FETCH_ASSOC);
 
