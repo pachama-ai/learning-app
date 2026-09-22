@@ -21,8 +21,11 @@ Everything in here was verified against the running project. Where something is
 | Start it | `./start-dev.sh` → <http://127.0.0.1:8081/> (four worker processes) |
 | Language of the code | English, everywhere, including comments and commit messages. Only the text the user sees is translated (German/English). |
 | Interface | Light + dark theme, German + English, persisted in `localStorage` |
-| **Hard blocker** | There is NO login. Nothing calls `session_start()`, `users` is empty, so **no learning progress can be stored yet**. See §10. |
-| Git | `main`, 12+ commits, no remote configured in this checkout |
+| Login | Works. `public/api/auth.php` (sign in / sign out / register) with `src/services/user_service.php`; `users` holds one account with a `password_hash`. Progress is stored per user. |
+| Card images | Optional `cards.map_region` (`DE:…`, `EU:…`, `WORLD:…`). `germany.svg` and `world.svg` are fetched at run time; the Europe map is switched off in the display only - the data and the file stay. |
+| Category icons | The four drawings exist **only** in `categories.icon_svg`. No file in this repository contains them, so they survive only in the database and in the safety copy below. |
+| Safety copy of the database | `/home/user/backups/learning_app_vollstaendig_20260922_162310.sql`, 375 185 bytes, outside the repository and not committed. See §17. |
+| Git | `main`, pushed to `origin` = <https://github.com/pachama-ai/learning-app> |
 
 ---
 
@@ -98,57 +101,65 @@ change. Read that file before editing anything.
 ```
 learning-app/
 ├── start-dev.sh            the development server with four workers
+├── README.md               what the project is and how to run it
 ├── public/                 THE WEB ROOT (DocumentRoot)
 │   ├── index.php           the one front controller: builds the HTML shell
 │   ├── .htaccess           gzip + cache hints, only effective under Apache
 │   ├── api/                one file per endpoint, thin: validate → service → JSON
 │   └── assets/
-│       ├── css/app.css     every style, 4 174 lines
-│       ├── js/app.js       the whole frontend, 4 398 lines, one IIFE
+│       ├── css/app.css     every style
+│       ├── js/app.js       the whole frontend, one IIFE
 │       ├── fonts/          inter-tight-latin-wght-normal.woff2 (the only face)
-│       └── icons/          project/browser SVG icons
+│       ├── icons/          browser_icon.svg - the favicon, the only file here
+│       ├── maps/           germany.svg, world.svg, europe.svg (loaded at run time)
+│       └── samples/        cards-import-sample.csv (the template the import dialog offers)
 ├── src/                    NOT reachable from the browser
 │   ├── config/             database.php (loader) + database.local.php (secret)
 │   ├── helpers/            small, stateless functions
 │   └── services/           business logic and ALL PDO queries
-├── database/               SQL the user runs by hand + the one-off importer
-├── docs/
-│   ├── verification.md     the manual verification procedure
-│   └── project-brief.md    this file
-└── (root)                  ~28 historical scratch scripts, see §10
+├── database/               SQL the user runs by hand + the CLI importer
+├── docs/                   project-brief.md, verification.md, migrations.md
+└── (root)                  only start-dev.sh and README.md - the scratch scripts are gone
 ```
+
+There is no `bin/` and no `database/import/` any more: the one-off importer in
+`bin/` and the card CSV files were removed on 2026-09-22, because their content is
+in the database (see §17).
 
 ### Files and their size (verified)
 
 | File | Lines | Bytes | Role |
 | --- | ---: | ---: | --- |
-| `public/index.php` | 545 | 27 526 | Front controller. Prints all visible strings through `t()`, hands the translations and the endpoint URLs to JavaScript as JSON. Touches no database. |
-| `public/api/add_category.php` | 86 | 2 942 | **Legacy.** Creates a learning area. Nothing calls it any more; two service functions exist only for it. |
-| `public/api/categories.php` | 168 | 6 537 | GET list / GET one (+delete preview) / POST create |
-| `public/api/category.php` | 199 | 7 912 | PATCH edit / DELETE (needs the spoken confirmation flag) |
-| `public/api/cards.php` | 101 | 3 673 | GET the cards of a category with progress / POST create |
-| `public/api/card.php` | 78 | 2 475 | PATCH edit / DELETE a card |
-| `public/api/category_icon.php` | 96 | 3 853 | Serves one stored SVG with ETag + `immutable` caching |
-| `public/api/review.php` | 195 | 7 159 | The learning session: GET queue, POST rate / undo |
-| `public/api/health.php` | 48 | 1 666 | Is the database reachable? |
-| `public/assets/js/app.js` | 4 398 | 160 206 | 134 functions in one IIFE |
-| `public/assets/css/app.css` | 4 174 | 108 816 | 482 rule blocks |
-| `src/helpers/html.php` | 21 | 590 | `escape_html()` |
-| `src/helpers/json_response.php` | 79 | 2 312 | `send_json`, `send_json_success`, `send_json_error` |
-| `src/helpers/request_input.php` | 257 | 7 493 | Reading + validating request bodies and query strings |
-| `src/helpers/svg_sanitizer.php` | 328 | 10 510 | The icon sanitiser (DOMDocument based) |
-| `src/helpers/session_user.php` | 130 | 4 411 | Who is learning (today: nobody, see §10) |
-| `src/helpers/translations.php` | 550 | 29 051 | 201 keys × 2 languages |
-| `src/services/category_service.php` | 739 | 24 956 | 20 functions |
-| `src/services/card_service.php` | 294 | 9 338 | 10 functions |
-| `src/services/review_service.php` | 834 | 30 327 | 18 functions — the card box |
-| `src/services/stats_service.php` | 52 | 1 928 | **Dead code** (see §10) |
-| `src/config/database.php` | 75 | 2 692 | `create_database_connection()` |
-| `src/config/database.local.php` | 25 | 697 | The real credentials. **Not in git.** |
-| `src/config/database.example.php` | 36 | 1 040 | Template for the file above |
-| `docs/verification.md` | 403 | 16 983 | Manual test procedure (partly outdated, see §10) |
-| `database/import_energy_cards.php` | 859 | 30 274 | One-off CLI importer for 161 cards |
-| `database/*.sql` | — | — | Reviewable SQL for the user to run by hand |
+| `public/index.php` | 631 | 32 230 | Front controller. Prints all visible strings through `t()`, hands the translations and the endpoint URLs to JavaScript as JSON. Touches no database. |
+| `public/api/auth.php` | 119 | 4 402 | GET who is signed in (+ CSRF token) / POST sign in, register, sign out |
+| `public/api/categories.php` | 167 | 6 537 | GET list / GET one / POST create |
+| `public/api/category.php` | 198 | 7 912 | PATCH edit / DELETE (needs the spoken confirmation flag) |
+| `public/api/cards.php` | 140 | 5 358 | GET the cards of a category with progress / POST create |
+| `public/api/card.php` | 141 | 4 918 | PATCH edit / DELETE a card |
+| `public/api/category_icon.php` | 95 | 3 853 | Serves one stored SVG with ETag + `immutable` caching |
+| `public/api/import_cards.php` | 167 | 6 304 | Uploads a CSV file from the import dialog |
+| `public/api/review.php` | 203 | 7 470 | The learning session: GET queue, POST rate / undo |
+| `public/api/health.php` | 47 | 1 666 | Is the database reachable? |
+| `public/assets/js/app.js` | 6 167 | 228 978 | The whole frontend in one IIFE |
+| `public/assets/css/app.css` | 5 075 | 134 027 | Every style, including both themes |
+| `src/helpers/html.php` | 20 | 590 | `escape_html()` |
+| `src/helpers/json_response.php` | 78 | 2 312 | `send_json`, `send_json_success`, `send_json_error` |
+| `src/helpers/request_input.php` | 283 | 8 269 | Reading + validating request bodies and query strings |
+| `src/helpers/svg_sanitizer.php` | 327 | 10 510 | The icon sanitiser (DOMDocument based) |
+| `src/helpers/session_user.php` | 129 | 4 411 | Which user is signed in |
+| `src/helpers/translations.php` | 801 | 46 947 | All interface strings, German + English |
+| `src/services/user_service.php` | 461 | 15 788 | Accounts: sign in, register, CSRF, sessions |
+| `src/services/category_service.php` | 713 | 24 152 | Categories: read, create, edit, delete a tree |
+| `src/services/card_service.php` | 646 | 20 521 | Cards: read, create, edit, delete |
+| `src/services/card_import_service.php` | 576 | 19 104 | The CSV import behind the dialog |
+| `src/services/review_service.php` | 853 | 30 491 | The card box: state, interval, due date |
+| `src/config/database.php` | 74 | 2 692 | `create_database_connection()` |
+| `src/config/database.local.php` | 24 | 697 | The real credentials. **Not in git.** |
+| `src/config/database.example.php` | 35 | 1 040 | Template for the file above |
+| `docs/verification.md` | 402 | 16 983 | Manual test procedure |
+| `docs/migrations.md` | – | – | The migration files and what each one did |
+| `database/import_energy_cards.php` | 1 039 | 37 584 | CLI importer for a CSV file; `--file=` is required |
+| `database/*.sql` | – | – | Reviewable SQL for the user to run by hand |
 
 ---
 
@@ -157,15 +168,21 @@ learning-app/
 Database name: **`learning_app`**. Connection: `localhost:3306`, charset
 `utf8mb4`, configured in `src/config/database.local.php`.
 
-### `users` — 0 rows (verified 2026-09-21)
+### `users` — 1 row, with a real password hash (verified 2026-09-22)
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | int unsigned, PK, auto_increment | |
-| `name` | varchar(100) NOT NULL | |
-| `role` | varchar(30) NOT NULL | |
+| `name` | varchar(100) NOT NULL | UNIQUE (`uniq_users_name`) |
+| `email` | varchar(190) NULL | UNIQUE (`uniq_users_email`) |
+| `password_hash` | varchar(255) NULL | `password_hash()`, never the password itself |
+| `created_at` | datetime NOT NULL default CURRENT_TIMESTAMP | |
+| `role` | varchar(30) NOT NULL | the service writes `learner` |
 
-### `categories` — 10 rows
+The three columns after `name` come from `database/add_user_auth.sql`; the signs
+in and out live in `public/api/auth.php` and `src/services/user_service.php`.
+
+### `categories` — 21 rows (verified 2026-09-22)
 
 | Column | Type | Notes |
 | --- | --- | --- |
@@ -178,20 +195,29 @@ Database name: **`learning_app`**. Connection: `localhost:3306`, charset
 | `name_en`, `name_de` | varchar(100) NULL | The names the interface shows |
 | `description_en`, `description_de` | text NULL | **Not read or written any more** (the columns stay, the code ignores them) |
 
-Current data: 4 areas (Mathematics 2, Energy 3, Geography 4, English 5) and 6
-subcategories of Energy (ids 47–52, created by the importer).
+Current data: 4 areas (Mathematics 2, Energy 3, Geography 4, English 5), 6
+subcategories of Energy (53–58), 3 of Geography (59–61) and 8 of Mathematics
+(62–69). All 17 subcategories carry `name_de`; the 13 whose English name was
+missing got one on 2026-09-22 (see §17). The four areas carry a drawing in
+`icon_svg`; the subcategories do not need one.
 
-### `cards` — 161 rows
+### `cards` — 265 rows, all of them bilingual (verified 2026-09-22)
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | int unsigned, PK, auto_increment | |
 | `category_id` | int unsigned NOT NULL | FK `fk_cards_category` → `categories.id`, **ON DELETE RESTRICT**. Indexed. |
-| `front` | text NOT NULL | May hold paragraphs |
-| `back` | text NOT NULL | |
+| `front` | text NOT NULL | The German question, kept in step with `front_de`. |
+| `back` | text NOT NULL | The German answer, kept in step with `back_de`. |
+| `front_de`, `back_de` | text NULL | The German question and answer |
+| `front_en`, `back_en` | text NULL | The English question and answer |
+| `map_region` | varchar(40) NULL | `DE:<id>`, `EU:<code>` or `WORLD:<code>`, or NULL. The region id has to exist in the matching SVG. |
 | `is_bidirectional` | tinyint(1) NOT NULL default 0 | Practise in both directions (there is no `is_two_sided`) |
 
 Max length enforced by the app: `CARD_MAX_TEXT_LENGTH = 2000` characters.
+`front` and `back` stay because they are NOT NULL and the app still reads the
+German language from them; the language columns are what the interface uses.
+34 of the 56 Geography cards carry a `map_region`, the other cards do not.
 
 ### `user_card_progress` — 0 rows
 
@@ -353,18 +379,27 @@ of the direct children). `card_count` is deliberately written as two counted
 reads; an `OR` with a subquery would stop MySQL using the index on
 `cards.category_id` and walk the whole index per row.
 
-### `card_service.php` (10 functions)
-`normalize_card_row`, `normalize_card_rows`, `find_cards`, `find_card`,
-`create_card`, `update_card`, `delete_card`, `card_count_for_category`,
+### `card_service.php`
+`normalize_card_row`, `normalize_card_rows`, `find_card`, `update_card`,
+`delete_card`, `create_card_translated`, `card_read_columns`,
 `delete_progress_of_categories`, `delete_cards_of_categories` (the last two are
 what the category delete and the importer reuse).
+
+`find_cards`, `create_card` and `card_count_for_category` were removed on
+2026-09-22: nothing called them any more (see §17).
 
 ### `review_service.php` (18 functions) — the card box
 See §8. This is the only place that decides state, interval and due date.
 
-### `stats_service.php`
-`get_overview_stats` — the four figures of an endpoint that was removed. Dead
-code, see §10.
+### `stats_service.php` — removed on 2026-09-22
+The file held one function, `get_overview_stats`, whose endpoint no longer
+existed. The figures a page shows today come from `subcategory_count` and
+`card_count` in the answer of `api/categories.php`.
+
+### `user_service.php`
+Accounts and sessions: `user_find`, `user_register`, `user_sign_in`,
+`user_sign_in_session`, `user_sign_out_session`, `user_csrf_token`,
+`user_csrf_valid`, `user_public_data`, `user_initials`.
 
 ### Helpers
 - `html.php` — `escape_html($value)`.
@@ -495,39 +530,43 @@ were answered "Again" or "Hard".
   Those tests lived in `/tmp` and are **not committed**; ask if you want them in
   the repository as `tests/`.
 
-### The blocker: no login
+### The login (solved on 2026-09-22)
 
-- `session_start()` is called nowhere, `$_SESSION` is read nowhere, and `users` is
-  empty. There is no user id to store progress under.
-- `session_user.php` therefore returns `null`, and every write of progress answers
-  `403 no_user_session`. **No default user was invented** and no user row was
-  created.
-- Consequence: the card box is complete and tested, but nothing can be stored yet.
-  The end-of-session summary and "repeat the difficult cards" cannot be *seen* in
-  practice until this is solved.
-- To solve it, one line is enough — everything else is already in place:
+- `public/api/auth.php` answers GET (who is signed in, plus a CSRF token) and
+  POST (`sign_in`, `register`, `sign_out`). `src/services/user_service.php` holds
+  the rules: name 3–100 characters, password at least 8, `password_hash()`,
+  `session_regenerate_id(true)` after signing in, a 400 ms delay after a failed
+  attempt, and one placeholder per value so `EMULATE_PREPARES = false` is happy.
+- `users` holds one account with `email` and `password_hash`.
+- Every POST needs the CSRF token that GET hands out, so a form on another page
+  cannot write through the API.
+- `current_user_id()` verifies that the id in the session really is in `users`, so
+  a stale session cannot break the foreign key.
+- `user_card_progress` is still empty: nobody has studied yet.
 
-  ```php
-  session_start();
-  $_SESSION['user_id'] = $authenticatedUserId;   // the row must exist in `users`
-  ```
+### Dead code and leftovers — cleaned up on 2026-09-22
 
-  `current_user_id()` verifies that the id really is in `users`, so a stale
-  session cannot break the foreign key.
+Everything below was removed after a search for callers that found none (the
+evidence is in §17):
 
-### Dead code and leftovers (all verified)
+- `public/api/add_category.php` (the legacy endpoint) and with it
+  `create_main_category` and `category_name_exists`, which existed only for it
+- `src/services/stats_service.php`
+- `review_find_progress_for_cards`, `review_count_ratings`, `find_cards`,
+  `create_card`, `card_count_for_category`
+- `app.js`: `buildAddRow` and `learnIsOpen`
+- `app.css`: 24 rules whose class names appear nowhere outside the stylesheet,
+  the dead entries `.stats__value`, `.stats__label` and `.stat-pill` in two shared
+  selector lists, and one stale comment about a `.has-cat` rule that does not
+  exist
+
+What is left, deliberately **not** touched:
 
 | What | State |
 | --- | --- |
-| `public/api/stats.php` | already removed; nothing called it |
-| `src/services/stats_service.php` | **no caller left**, waiting for a decision |
-| `public/api/add_category.php` | legacy, called by nothing. `create_main_category` and `category_name_exists` in the category service exist only for it |
-| `public/assets/js/app.js` | `find_cards()` in `card_service.php` also has no caller since the list uses the progress join |
-| ~28 files in the root | historical scratch scripts (`patch_*.php`, `norm*.php`, `_patch*.php`, `check_*.php`, `new_grid.css`, `schema_report.php`). Not loaded by the app; safe to delete, but loud to review |
-| `README.md` | outdated (describes an older state) |
-| `docs/verification.md` | section 0 and the API checks were updated; the rest still describes an older data set (6 areas, `h` and `f`, an empty `cards` table) |
-| `public/assets/fonts/…woff2:Zone.Identifier` | Windows metadata file, harmless |
+| `docs/verification.md` | section 0 is current; the rest still describes an older data set |
 | No card has `is_bidirectional = 1` | the doubling rule is verified by tests, not by real data |
+| `--cat-default`, `--cat-reserve-rose` in the stylesheet | tokens of the category-colour mechanism, which nothing uses any more |
 
 ### Known cosmetic gap
 
@@ -836,7 +875,94 @@ bigger than the change (compare with `git diff --ignore-all-space`).
 4. **All answers through the JSON envelope**, all errors generic to the client.
 5. The **card box** lives in `review_service.php` and nowhere else; the browser
    only shows what it returns.
-6. The **one blocker** is the missing login: `users` is empty, so progress cannot
-   be stored. Say so instead of working around it.
+6. A **login exists** (`api/auth.php`). Still: never invent a default user and
+   never create test data. `user_card_progress` is empty because nobody has
+   studied yet.
 7. Verify on disk after every edit, and prefer a PHP patcher with assertions over
    a direct string replacement.
+
+---
+
+## 17. What changed on 2026-09-22
+
+### The two corrections (data only, no commit)
+
+**1a - the eight Mathematics subcategories were missing.** `initial_categories.sql`
+lists them, but only the four areas had ever been created. They were inserted with
+`parent_id = 2` as ids 62–69:
+
+| id | name (English) | name_de |
+| ---: | --- | --- |
+| 62 | Number systems | Zahlensysteme |
+| 63 | Basic arithmetic | Grundrechenarten |
+| 64 | Fractions and powers | Brüche und Potenzen |
+| 65 | Percentages and interest | Prozent- und Zinsrechnung |
+| 66 | Equations and inequalities | Gleichungen und Ungleichungen |
+| 67 | Geometry and trigonometry | Geometrie und Trigonometrie |
+| 68 | Statistics and probability | Statistik und Wahrscheinlichkeit |
+| 69 | Differential calculus | Differentialrechnung |
+
+`name` and `name_en` carry the English name from the SQL file, `name_de` the
+German one, so both interface languages show their own wording. No card was
+invented for them.
+
+**1b - the nine subcategories without an English name.** In English mode the
+interface had been falling back to `name`, which is German for these rows. Filled
+in with one `UPDATE` per row:
+
+| id | name | name_en |
+| ---: | --- | --- |
+| 53 | Strom und Elektrotechnik | Electricity and Electrical Engineering |
+| 54 | Energieträger und Stromerzeugung | Energy Sources and Power Generation |
+| 55 | Stromnetz und Übertragungsnetz | Power Grid and Transmission Grid |
+| 56 | Strommarkt und Marktkommunikation | Electricity Market and Market Communication |
+| 57 | Systembetrieb, Regelenergie und Redispatch | System Operation, Balancing Energy and Redispatch |
+| 58 | Energiegeschichte, Mobilität und Energiewende | Energy History, Mobility and Energy Transition |
+| 59 | Deutschland | Germany |
+| 60 | Europa | Europe |
+| 61 | Welt | World |
+
+Both changes are rows and values only: no column, index or constraint was touched
+and no card was changed.
+
+### The energy cards were replaced from the CSV (also database only)
+
+The 209 rows of `energie_gesamt_import_final.csv` are in the database, all of them
+bilingual: 40 / 46 / 29 / 44 / 31 / 19 across the six subcategories. The 161 cards
+that were still single-language were deleted and re-inserted inside one
+transaction, after a check proved that `user_card_progress` held no row for them.
+
+### Files removed (commit `0fe2a5c`)
+
+- 29 scratch files in the root (`patch_*.php`, `norm*.php`, `_patch*.php`,
+  `check_*.php`, `fix_eol.php`, `schema_report.php`, `new_grid.css`)
+- `bin/import_flashcards.php` and the then empty `bin/` folder
+- `database/bilingual_cards.sql`, `database/icon_svg_mediumtext.md`,
+  `database/add_category_color.sql` (each documented a step that was already done)
+- `database/import/` with the three card CSV files, once their content was proven
+  to be in the database, plus the `*:Zone.Identifier` Windows leftovers
+- `import_energy_cards.php` now **requires** `--file=`, so it cannot point at a
+  file that no longer exists
+
+### Code with no caller removed (commit `169191f`)
+
+519 lines deleted, none added: `public/api/add_category.php` together with
+`create_main_category()` and `category_name_exists()`, `stats_service.php`,
+`review_find_progress_for_cards()`, `review_count_ratings()`, `find_cards()`,
+`create_card()`, `card_count_for_category()`, `buildAddRow()`, `learnIsOpen()`,
+24 CSS rules and 3 entries in shared selector lists.
+
+The evidence: every project file was searched for each name, and each name
+appeared in exactly one place - its own definition. The two service functions of
+the legacy endpoint had exactly one caller, that endpoint, which itself had none.
+
+### The safety copy
+
+`/home/user/backups/learning_app_vollstaendig_20260922_162310.sql` - a full
+`mysqldump` of `learning_app` (structure **and** data, all four tables, 375 185
+bytes), written before anything was deleted. It sits outside the repository on
+purpose and is not committed. From Windows it is reachable as
+`\\wsl.localhost\Ubuntu\home\user\backups\learning_app_vollstaendig_20260922_162310.sql`.
+
+Besides the database itself, this dump is the only place that still holds the four
+category drawings.
