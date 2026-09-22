@@ -1811,6 +1811,9 @@ body:has(#view-detail:not([hidden])) .site-footer {
     align-items: center;
     justify-content: flex-end;
     gap: 16px;
+    /* On a narrow sheet the buttons may go to a second row instead of squeezing
+       a two line label into a column that is too narrow for it. */
+    flex-wrap: wrap;
 }
 
 /*
@@ -5224,4 +5227,62 @@ body.is-learning {
     .password-eye {
         transition: none;
     }
+}
+
+/* On a narrow screen the card is small (its height follows its width). With a map
+   it may be taller, so that the map stays readable instead of shrinking until
+   nothing is left - and the text still fits without a scrollbar of its own. */
+@media (max-width: 640px) {
+    .learn__card:has(.card-map--learn:not([hidden])) {
+        aspect-ratio: auto;
+        min-height: 330px;
+    }
+}
+
+
+/* ==========================================================================
+   "Save & next card": the break belongs to the text
+
+   The label carries its own line break (see dialog.card.saveNext in
+   src/helpers/translations.php), so where it breaks never depends on how wide the
+   window happens to be. pre-line keeps that break and gives the second line the
+   same air as the first one.
+   ========================================================================== */
+
+#app-dialog-save-next {
+    white-space: pre-line;
+    line-height: 1.3;
+    text-align: center;
+    /* It keeps the width its two lines need, so the break stays where the text
+       puts it; the row wraps instead of the label. */
+    flex: 0 0 auto;
+}
+
+
+/* ==========================================================================
+   The study card with a map
+
+   Text and map have to share the card. The map gives way first, then the text
+   steps back a little - that way no scrollbar of its own appears inside the card.
+   The card may grow a little instead, but never more than the screen can show.
+   ========================================================================== */
+
+/* A card with a map may be a little taller than the usual 70vh / 480px. */
+.learn__card:has(.card-map--learn:not([hidden])) {
+    max-height: min(72vh, 520px);
+}
+
+/*
+ * The map keeps its middle and its ratio, but never takes more than about a third
+ * of the card. The box keeps its full width, and the drawing inside is centred by
+ * the SVG itself (preserveAspectRatio="xMidYMid meet"), so nothing is cut off and
+ * the marked region stays visible.
+ */
+.learn__face .card-map--learn svg {
+    max-height: min(30vh, 210px);
+}
+
+/* With a map the text has less room, so it steps back a little. */
+.learn__face:has(.card-map--learn:not([hidden])) .learn__text {
+    font-size: clamp(15px, 1.7vw, 22px);
 }

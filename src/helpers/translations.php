@@ -257,7 +257,7 @@ function learning_app_translations(): array
 
             // --- The card dialog ---
             'dialog.card.preview' => 'Preview',
-            'dialog.card.saveNext' => 'Save & next card',
+            'dialog.card.saveNext' => "Save\n& next card",
             'dialog.card.frontCount' => '{count} of {max} characters',
             'dialog.card.hintShortcut' => 'Ctrl+Enter saves, Tab goes to the back',
             'dialog.card.previewFront' => 'Front',
@@ -631,7 +631,7 @@ function learning_app_translations(): array
 
             // --- Der Kartendialog ---
             'dialog.card.preview' => 'Vorschau',
-            'dialog.card.saveNext' => 'Speichern & nächste Karte',
+            'dialog.card.saveNext' => "Speichern\n& nächste Karte",
             'dialog.card.frontCount' => '{count} von {max} Zeichen',
             'dialog.card.hintShortcut' => 'Strg+Enter speichert, Tab springt zur Rückseite',
             'dialog.card.previewFront' => 'Vorderseite',
