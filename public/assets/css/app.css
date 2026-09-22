@@ -1699,6 +1699,33 @@ body:has(#view-detail:not([hidden])) .site-footer {
     color: var(--muted);
 }
 
+/*
+ * Chrome and Edge paint a field they filled themselves - a password manager, or
+ * the autofill after a form was sent - with their own pale blue and their own text
+ * colour, and neither can be set back with background-color. Two things are done
+ * about it, because either one alone is not enough:
+ *
+ *   * an inset box-shadow in the colour of the panel the field sits on. A shadow
+ *     is painted over the background, so it hides the blue completely, and because
+ *     it is the colour of the panel the field still looks like an empty, transparent
+ *     one with only its underline.
+ *   * -webkit-text-fill-color, which is the only property that reaches the text of
+ *     an autofilled field.
+ *
+ * The very long transition delay is the second lock: Chrome repaints the field
+ * when it fills it, and a background that never arrives cannot be seen. It keeps
+ * the normal border transition so focusing still moves the line.
+ */
+.dialog__input:-webkit-autofill,
+.dialog__input:-webkit-autofill:hover,
+.dialog__input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 1000px var(--panel) inset;
+    box-shadow: 0 0 0 1000px var(--panel) inset;
+    transition: background-color 100000s ease-in-out 0s, border-color 200ms var(--ease);
+    caret-color: var(--text);
+}
+
 .dialog__error {
     color: var(--text);
     font-size: 0.85rem;
@@ -2269,21 +2296,31 @@ html.is-theme-switching::view-transition-new(root) {
     overflow: hidden;
 }
 
+/*
+ * The switch between signing in and registering reads like a quiet sentence, not
+ * like a shouted label: the interface font, sentence case, the muted colour, and
+ * the underline only appears while the pointer or the keyboard is on it. The words
+ * already say what happens, so the monospace caps are not needed to make it look
+ * like a link.
+ */
 .dialog__link-button {
     padding: 0;
     border: 0;
     background: none;
     color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-decoration: underline;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    text-underline-offset: 3px;
     cursor: pointer;
+    transition: color 160ms var(--ease);
 }
 
-.dialog__link-button:hover {
+.dialog__link-button:hover,
+.dialog__link-button:focus-visible {
     color: var(--text);
+    text-decoration: underline;
 }
 
 /* "Delete" inside a form sits on the left, away from cancel and save. */
@@ -4997,10 +5034,17 @@ body.is-learning {
 
 /* --- the password field of the dialog ------------------------------------ */
 
+/*
+ * The eye sits next to the field, not inside it, so it has to be aligned by hand:
+ * the field carries more padding at the bottom than at the top, which puts the
+ * middle of its box a little below the middle of its text. The row therefore aligns
+ * at the bottom and the eye is lifted by exactly that difference (see margin-bottom
+ * further down), which puts it on the line of the text.
+ */
 .password-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-end;
+    gap: 14px;
 }
 
 .password-row .dialog__input {
@@ -5021,6 +5065,13 @@ body.is-learning {
     background-color: transparent;
     color: var(--muted);
     cursor: pointer;
+    /*
+     * 10 px, and that is a measured number: the field carries 15 px of padding and
+     * a 1 px line under its text, so the middle of the text sits lower than the
+     * middle of the field. At 12 px the eye was still 2 px too high, at 10 px its
+     * middle and the middle of the text are the same line.
+     */
+    margin-bottom: 10px;
     transition: color 160ms var(--ease), background-color 160ms var(--ease);
 }
 
@@ -5045,10 +5096,34 @@ body.is-learning {
     opacity: 1;
 }
 
+/*
+ * The two fields of the signing in form and the link under them.
+ *
+ * Only this dialog is addressed: the first field is found by its id, so the card
+ * and category forms keep the spacing they have - they are the measure this form
+ * is matched to. Underlined fields look crowded when the label, the text and the
+ * line stand close together, so the label moves a little up, the text gets more
+ * room above its line, and the fields and the link stand further apart.
+ */
+.dialog__field:has(#dialog-field-identifier),
+.dialog__field:has(#dialog-field-password) {
+    gap: 14px;
+}
+
+.dialog__field:has(#dialog-field-identifier) .dialog__input,
+.dialog__field:has(#dialog-field-password) .dialog__input {
+    padding: 10px 0 15px;
+}
+
+.dialog__fields:has(#dialog-field-identifier) {
+    gap: 26px;
+}
+
 /* The switch under the two fields. It is there in both modes, so going from
-   signing in to registering never moves the dialog. */
+   signing in to registering never moves the dialog. It takes the gap of the form
+   above instead of pulling itself closer to the password field. */
 .auth-switch {
-    margin-top: -4px;
+    margin-top: 0;
     text-align: center;
 }
 
