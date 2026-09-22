@@ -4082,18 +4082,18 @@
         elements.learnBackText.textContent = entry.back;
 
         /*
-         * The map belongs to the side that carries the ANSWER: on a card that asks
-         * "where is Bavaria?" it is the back, so the person guesses first and then
-         * sees the marked map. A card that is studied the other way round (the
-         * answer is the question) shows it on the front instead.
+         * Both sides of the card carry the map, and only the marking makes the
+         * difference: the question shows the country or the continent pale, so the
+         * answer is not given away, and the answer side marks the region. On a card
+         * that asks "where is Bavaria?" the person therefore sees the outline of
+         * Germany first and the marked state only after turning the card. A card
+         * that is studied the other way round behaves the same, because the front of
+         * the card is the question whichever text stands on it.
+         *
+         * A card without a region passes null, and then both sides stay empty.
          */
-        showMap(elements.learnMapFront, null);
-        showMap(elements.learnMapBack, null);
-        showMap(
-            entry.direction === 'reverse' ? elements.learnMapFront : elements.learnMapBack,
-            entry.map_region,
-            'card-map card-map--learn'
-        );
+        showMap(elements.learnMapFront, entry.map_region, 'card-map card-map--learn', false);
+        showMap(elements.learnMapBack, entry.map_region, 'card-map card-map--learn');
         elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
 
         /* Both faces are written; which one is visible is the flip. */
@@ -5419,16 +5419,18 @@
 
     /*
      * One map for one card: a fresh copy of the file with exactly one region
-     * marked. The copy is needed because an element can only be in one place, and
-     * a list may show the same map several times.
+     * marked - or, with mark = false, the very same map without a marking. The copy
+     * is needed because an element can only be in one place, and a list may show the
+     * same map several times.
      *
      * The returned element stays hidden while there is nothing to show, so a card
      * without a map (or with a region the file does not know) simply shows its
      * text.
      */
-    function buildCardMap(mapRegion, className) {
+    function buildCardMap(mapRegion, className, mark) {
         var parsed = parseMapRegion(mapRegion);
         var wrap = el('div', className || 'card-map');
+        var marked = mark !== false;
         wrap.hidden = true;
 
         if (parsed === null || config.maps[parsed.area] === undefined) {
@@ -5455,18 +5457,28 @@
                 return wrap;
             }
 
-            active.classList.add('is-active');
+            if (marked) {
+                active.classList.add('is-active');
+            }
+
             wrap.appendChild(svg);
             wrap.hidden = false;
             wrap.dataset.region = parsed.value;
-            wrap.setAttribute('title', regionLabel(parsed.value));
+
+            /* Only the marked map names its region. The title is a tooltip, and on
+               the question side it would give the answer away. */
+            if (marked) {
+                wrap.setAttribute('title', regionLabel(parsed.value));
+            }
 
             return wrap;
         });
     }
 
-    /* Puts one map into a container, or leaves the container empty. */
-    function showMap(container, mapRegion, className) {
+    /* Puts one map into a container, or leaves the container empty. mark = false
+       draws the map without a marking, which is what the question side of the study
+       card uses. */
+    function showMap(container, mapRegion, className, mark) {
         if (container === null) {
             return;
         }
@@ -5478,7 +5490,7 @@
             return;
         }
 
-        buildCardMap(mapRegion, className).then(function (map) {
+        buildCardMap(mapRegion, className, mark).then(function (map) {
             if (map.hidden || map.firstChild === null) {
                 return;
             }

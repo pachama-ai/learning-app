@@ -546,10 +546,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         <div class="learn__stage" id="learn-stage">
             <div class="learn__card" id="learn-card" tabindex="0" role="group">
                 <!--
-                    Each face can carry a map. Which one shows it depends on the
-                    direction of the turn: the map belongs to the answer, and on a
-                    card that is studied the other way round the answer is the
-                    question. app.js fills the right side and leaves the other empty.
+                    Both faces can carry the map of the card: the question shows it
+                    without a marking and the answer shows it with the region marked,
+                    so turning the card is what reveals the answer. app.js fills both
+                    sides and leaves them empty for a card without a region.
                 -->
                 <div class="learn__face learn__face--front">
                     <p class="learn__label" id="learn-side-label"><?= $text('learn.question') ?></p>
