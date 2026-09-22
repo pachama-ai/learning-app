@@ -66,9 +66,9 @@ language columns `front_de`/`back_de`/`front_en`/`back_en` are what the interfac
 uses.
 
 The three map files (`public/assets/maps/*.svg`), the favicon and the font are
-loaded by the browser at run time and therefore stay files. The Europe map is
-switched off **in the display only**: the file and every stored `EU:` region are
-untouched, so it can be switched on again at any time.
+loaded by the browser at run time and therefore stay files. All three maps are
+active: a stored `EU:` region is shown exactly like a `DE:` or `WORLD:` one, in the
+list, in the dialog preview and in the study session.
 
 ## Safety copy of the database
 

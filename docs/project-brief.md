@@ -22,7 +22,7 @@ Everything in here was verified against the running project. Where something is
 | Language of the code | English, everywhere, including comments and commit messages. Only the text the user sees is translated (German/English). |
 | Interface | Light + dark theme, German + English, persisted in `localStorage` |
 | Login | Works. `public/api/auth.php` (sign in / sign out / register) with `src/services/user_service.php`; `users` holds one account with a `password_hash`. Progress is stored per user. |
-| Card images | Optional `cards.map_region` (`DE:…`, `EU:…`, `WORLD:…`). `germany.svg` and `world.svg` are fetched at run time; the Europe map is switched off in the display only - the data and the file stay. |
+| Card images | Optional `cards.map_region` (`DE:…`, `EU:…`, `WORLD:…`). All three maps (`germany.svg`, `europe.svg`, `world.svg`) are fetched at run time. Since 2026-09-22 all three are active; the picker offers exactly the areas of `config.maps`. |
 | Category icons | The four drawings exist **only** in `categories.icon_svg`. No file in this repository contains them, so they survive only in the database and in the safety copy below. |
 | Safety copy of the database | `/home/user/backups/learning_app_vollstaendig_20260922_162310.sql`, 375 185 bytes, outside the repository and not committed. See §17. |
 | Git | `main`, pushed to `origin` = <https://github.com/pachama-ai/learning-app> |
@@ -990,3 +990,37 @@ text now name the new path.
 `src/helpers/` and `src/services/` all hold real files, so the placeholders that
 once kept the empty folders in git had done their job. No other `.gitkeep` was
 touched, and no file was deleted besides these nine empty ones.
+
+### The Europe map is active again, and three defects behind it
+
+The Europe map had been switched off in the display only. Bringing it back showed
+that it was not merely hidden - it was broken, and the switch also hid a data-loss
+bug in the card dialog.
+
+**`europe.svg` had no working `viewBox`.** The file wrote the attribute as
+`viewbox` with a lower-case `b`, and SVG attribute names are case sensitive, so the
+browser ignored it and the drawing was not scaled at all: a 1000 x 684 drawing was
+drawn 1:1 into a 92 px wide box and clipped to its top-left corner (measured: the
+content stuck 1556 px out of its frame, while `germany.svg` and `world.svg` were at
+0). One letter was changed in the file; it is the only difference, and the file
+keeps its byte size. `germany.svg` and `world.svg` were always correct.
+
+**The picker could not show a stored region and then threw it away.**
+`dialogMapValue()` returned `null` whenever the two selects could not represent the
+stored value, and `null` means "no map" to the API, so the column was emptied. The
+field now remembers the value the dialog was opened with (`stored`) and whether the
+user changed anything (`touched`): as long as he did not, that value is handed back
+unchanged. The note above the preview also names the kept region instead of looking
+like a card without a map. This protects every area, not just Europe - switching a
+map off can never again delete data.
+
+**The picker no longer keeps its own list of areas.** It is built from
+`config.maps` in `public/index.php`, so an area with a file is always offered and
+an area without a file never is; the two lists can no longer drift apart. That is
+what made the old state possible: the picker offered two areas while the
+configuration had two as well, and the third one silently lost its region.
+
+Along the way `regionsOfArea()` skips a country code that the file holds twice
+(`europe.svg` draws Portugal as the mainland and as the islands). A picker must not
+offer the same value twice. What is still true: marking `PT` highlights the first
+of those two shapes, the mainland.

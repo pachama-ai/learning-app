@@ -69,14 +69,18 @@ $appConfig = [
      * Never a second list of ids somewhere else.
      */
     /*
-     * The map files an area name stands for. "EU" is deliberately missing: the
-     * Europe map is switched off, so a card with a map_region of "EU:..." is
-     * shown as a plain text card - in the list, in the preview and in the study
-     * session. The stored values and the file assets/maps/europe.svg stay as they
-     * are, only the display does not use them.
+     * The map files an area name stands for. The key is the first half of a
+     * map_region, the value is the file the browser fetches for it.
+     *
+     * This list is the single source of truth for the picker in the card dialog:
+     * the picker offers exactly the areas that have a file here. Should an area
+     * ever be taken out, it is simply not offered any more, and a card that still
+     * carries such a region keeps its stored value (see dialogMapValue() in
+     * app.js).
      */
     'maps' => [
         'DE' => 'assets/maps/germany.svg',
+        'EU' => 'assets/maps/europe.svg',
         'WORLD' => 'assets/maps/world.svg',
     ],
     'germanStates' => [

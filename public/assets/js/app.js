@@ -5744,8 +5744,8 @@
      * Nothing here touches the page until the caller puts it somewhere.
      */
     function loadMap(area) {
-        /* An area without a file has nothing to load: see config.maps, where "EU"
-           is switched off. Nothing is fetched and nothing is shown. */
+        /* An area without a file has nothing to load: nothing is fetched and
+           nothing is shown. Which areas have a file is decided in config.maps. */
         if (config.maps[area] === undefined) {
             return Promise.resolve(null);
         }
@@ -5851,7 +5851,16 @@
                  */
                 var name = countryName(node.id);
 
-                if (name !== node.id) {
+                /*
+                 * europe.svg holds Portugal twice, once for the mainland and once
+                 * for the islands. A picker must not offer the same value twice, so
+                 * the first entry of a code wins.
+                 */
+                var known = found.some(function (item) {
+                    return item.id === node.id;
+                });
+
+                if (name !== node.id && known === false) {
                     found.push({ id: node.id, label: name });
                 }
             });
@@ -5953,6 +5962,17 @@
        ---------------------------------------------------------------------- */
 
     /*
+     * The readable name of every area of config.maps. An area whose key is missing
+     * here shows its code instead of a name, so adding a map file cannot break the
+     * picker - it only needs a translation key to get a nice label as well.
+     */
+    var MAP_AREA_LABELS = {
+        DE: 'dialog.card.mapAreaDe',
+        EU: 'dialog.card.mapAreaEu',
+        WORLD: 'dialog.card.mapAreaWorld'
+    };
+
+    /*
      * First the area, then the region - nobody has to know an id by heart. The
      * map below the two selects shows the choice straight away, and "no map" is
      * the default: a region is always optional.
@@ -5970,10 +5990,15 @@
         area.id = 'dialog-field-map-area';
         region.id = 'dialog-field-map-region';
         area.appendChild(new Option(t('dialog.card.mapNone'), ''));
-        area.appendChild(new Option(t('dialog.card.mapAreaDe'), 'DE'));
-        /* No "Europe": that map is switched off (see config.maps), so a region of
-           that area would be a choice nobody could ever see. */
-        area.appendChild(new Option(t('dialog.card.mapAreaWorld'), 'WORLD'));
+
+        /* One entry per map file in config.maps. Never a second list of areas:
+           an area with a file is always offered and an area without a file is
+           never offered, so the picker and the map files cannot drift apart. */
+        Object.keys(config.maps).forEach(function (name) {
+            var key = MAP_AREA_LABELS[name];
+
+            area.appendChild(new Option(key === undefined ? name : t(key), name));
+        });
 
         var note = el('p', 'dialog__hint');
         note.hidden = true;
@@ -5997,7 +6022,18 @@
         /* The field is registered like every other one, so clearDialogErrors()
            and setFieldError() work on it. */
         dialogFields.map_region = { control: region, error: error, wrap: wrap };
-        dialogMapField = { area: area, region: region, note: note, preview: preview };
+        /* `stored` is the value the card had when the dialog was opened, `touched`
+           stays false until the user changes one of the two selects himself.
+           Together they keep a region the picker cannot show - see
+           dialogMapValue(). */
+        dialogMapField = {
+            area: area,
+            region: region,
+            note: note,
+            preview: preview,
+            stored: parsed === null ? null : parsed.value,
+            touched: false
+        };
 
         if (parsed !== null) {
             area.value = parsed.area;
@@ -6007,16 +6043,28 @@
 
         area.addEventListener('change', function () {
             dialogUsed = true;
+            dialogMapField.touched = true;
             fillRegionOptions(null);
         });
 
         region.addEventListener('change', function () {
             dialogUsed = true;
+            dialogMapField.touched = true;
             updateMapPreview();
         });
     }
 
-    /* What the two selects mean together, or null for "no map". */
+    /*
+     * What the two selects mean together, or null for "no map".
+     *
+     * The two selects can only show the areas of config.maps. A stored region of
+     * an area that is not offered (because its map file was taken out of that
+     * list) has no option to appear in, so the picker looks as if the card had no
+     * map at all. As long as the user has not touched either select, the value the
+     * dialog was opened with is therefore handed back unchanged: opening a card
+     * and saving it must never destroy a region that the dialog merely cannot
+     * display. Only a change the user makes himself replaces it.
+     */
     function dialogMapValue() {
         if (dialogMapField === null) {
             return null;
@@ -6026,7 +6074,7 @@
         var region = dialogMapField.region.value;
 
         if (area === '' || dialogMapField.region.hidden || region === '') {
-            return null;
+            return dialogMapField.touched ? null : dialogMapField.stored;
         }
 
         return area + ':' + region;
@@ -6046,7 +6094,12 @@
         field.note.hidden = false;
 
         if (area === '') {
-            field.note.textContent = t('dialog.card.mapChooseArea');
+            /* A stored region whose area is not offered: the picker cannot show it,
+               so it says what happens to it instead of looking like a card without
+               a map. The value itself is kept until the user chooses something. */
+            field.note.textContent = field.stored !== null && field.touched === false
+                ? t('dialog.card.mapKept', { region: regionLabel(field.stored) })
+                : t('dialog.card.mapChooseArea');
             updateMapPreview();
 
             return;
