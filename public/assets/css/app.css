@@ -5081,3 +5081,147 @@ body.is-learning {
 .area-card:focus-visible {
     box-shadow: none;
 }
+
+
+/* ==========================================================================
+   Signing in
+
+   A round button in the header of the same size as the theme switch next to it,
+   and the initials of the person once somebody is signed in. The dialog is the
+   shared one; new here are only the field of a password, its small eye and the
+   link that switches between the two modes.
+   ========================================================================== */
+
+.auth {
+    display: inline-flex;
+    align-items: center;
+}
+
+.auth-button {
+    appearance: none;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background-color: var(--tile-bg);
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
+        color 160ms var(--ease);
+}
+
+.auth-button:hover,
+.auth-button[aria-expanded="true"] {
+    border-color: var(--line-strong);
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
+}
+
+.auth-button:focus-visible {
+    border-color: var(--line-strong);
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+/* Signed in: the initials sit on the same surface the active language tab uses. */
+.auth-button--user {
+    border-color: transparent;
+    background-color: var(--text);
+    color: var(--panel);
+    font-size: 0.8rem;
+}
+
+.auth-button--user:hover,
+.auth-button--user[aria-expanded="true"] {
+    border-color: transparent;
+    background-color: var(--text);
+    color: var(--panel);
+}
+
+.auth-menu {
+    position: relative;
+    display: inline-flex;
+}
+
+/* The small menu under the initials, aligned to the right edge so it stays
+   inside the window on a narrow screen. */
+.auth-menu .menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    left: auto;
+    min-width: 160px;
+    z-index: 30;
+}
+
+/* --- the password field of the dialog ------------------------------------ */
+
+.password-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.password-row .dialog__input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.password-eye {
+    appearance: none;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background-color: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 160ms var(--ease), background-color 160ms var(--ease);
+}
+
+.password-eye:hover,
+.password-eye.is-on {
+    color: var(--text);
+}
+
+.password-eye:focus-visible {
+    color: var(--text);
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+/* The slash over the eye appears only while the password is readable. */
+.password-eye__slash {
+    opacity: 0;
+    transition: opacity 120ms var(--ease);
+}
+
+.password-eye.is-on .password-eye__slash {
+    opacity: 1;
+}
+
+/* The switch under the two fields. It is there in both modes, so going from
+   signing in to registering never moves the dialog. */
+.auth-switch {
+    margin-top: -4px;
+    text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-button,
+    .password-eye {
+        transition: none;
+    }
+}

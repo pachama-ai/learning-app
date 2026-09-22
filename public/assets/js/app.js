@@ -590,6 +590,398 @@
         });
     }
 
+    /* ----------------------------------------------------------------------
+       Signing in
+       ---------------------------------------------------------------------- */
+
+    /*
+     * The app works without an account: whoever wants to can study cards, only
+     * the answer cannot be remembered yet. Signing in is an offer, not a gate.
+     *
+     * The header slot and the dialog are built here; the state and the token come
+     * from api/auth.php. The token travels back with every request of this block,
+     * so another site cannot sign somebody in through the browser.
+     */
+    var PERSON_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" focusable="false" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c0-3.7 3.2-6 7.2-6s7.2 2.3 7.2 6"/></svg>';
+    var EYE_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye__slash" d="M4.4 19.6 19.6 4.4"/></svg>';
+
+    var authState = { user: null, ready: false, csrfToken: '' };
+    var authMode = 'sign_in';
+
+    /* The one request of this block. It answers with the data or with a code. */
+    function authFetch(payload) {
+        return window.fetch(config.endpoints.auth, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (response) {
+            return response.json().then(function (body) {
+                var data = body && body.data ? body.data : null;
+
+                if (response.ok === true && body && body.success === true) {
+                    return { ok: true, code: null, data: data };
+                }
+
+                return {
+                    ok: false,
+                    code: body && body.error ? String(body.error.code) : 'request_failed',
+                    data: data
+                };
+            }).catch(function () {
+                return { ok: false, code: 'request_failed', data: null };
+            });
+        }).catch(function () {
+            /* The request never reached the server. */
+            return { ok: false, code: 'network_error', data: null };
+        });
+    }
+
+    function loadAuthState() {
+        return window.fetch(config.endpoints.auth, { headers: { Accept: 'application/json' } })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (body) {
+                if (body && body.success === true && body.data) {
+                    authState.user = body.data.user ? body.data.user : null;
+                    authState.ready = body.data.ready === true;
+                    authState.csrfToken = String(body.data.csrf_token || '');
+                }
+
+                return authState;
+            })
+            .catch(function () {
+                /* Without an answer the header simply keeps the sign-in button. */
+                return authState;
+            });
+    }
+
+    /*
+     * The header slot: a quiet round button while nobody is signed in, and the
+     * initials with a small menu while somebody is. Both are the same size as the
+     * theme switch next to them.
+     */
+    function renderAuthSlot() {
+        var slot = document.getElementById('auth-slot');
+
+        if (slot === null) {
+            return;
+        }
+
+        slot.textContent = '';
+
+        if (authState.user === null) {
+            var open = el('button', 'auth-button');
+            open.type = 'button';
+            /* Only the accessible name, no title: data-i18n-label is translated
+               again when the language changes, a title set once would keep the
+               language it was built in. */
+            open.setAttribute('aria-label', t('auth.open'));
+            open.setAttribute('data-i18n-label', 'auth.open');
+            open.innerHTML = PERSON_SVG;
+            open.addEventListener('click', function () {
+                openAuthDialog('sign_in');
+            });
+            slot.appendChild(open);
+
+            return;
+        }
+
+        var wrap = el('span', 'auth-menu');
+        var initials = el('button', 'auth-button auth-button--user');
+        initials.type = 'button';
+        initials.setAttribute('aria-haspopup', 'true');
+        initials.setAttribute('aria-expanded', 'false');
+        initials.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
+        initials.setAttribute('title', authState.user.name);
+        initials.textContent = authState.user.initials;
+
+        var menu = el('span', 'menu');
+        menu.setAttribute('role', 'menu');
+        menu.hidden = true;
+
+        var signOutItem = el('button', 'menu__item');
+        signOutItem.type = 'button';
+        signOutItem.setAttribute('role', 'menuitem');
+        signOutItem.textContent = t('auth.signOut');
+        signOutItem.addEventListener('click', function () {
+            closeMenu();
+            signOut();
+        });
+
+        menu.appendChild(signOutItem);
+
+        initials.addEventListener('click', function (event) {
+            /* Without this the document listener would close the menu again at
+               once, because the click is still on its way up. */
+            event.stopPropagation();
+            toggleMenu(wrap, initials, menu);
+        });
+
+        wrap.appendChild(initials);
+        wrap.appendChild(menu);
+        slot.appendChild(wrap);
+    }
+
+    function signOut() {
+        authFetch({ action: 'sign_out', csrf_token: authState.csrfToken }).then(function (result) {
+            if (result.ok !== true) {
+                showFeedback(errorMessage(result.code));
+
+                return;
+            }
+
+            authState.user = null;
+            renderAuthSlot();
+
+            /* A reload lets the running study session notice that the answers can
+               no longer be stored, instead of keeping a hint that is not true
+               any more. */
+            window.setTimeout(function () {
+                window.location.reload();
+            }, 250);
+        });
+    }
+
+    /* The sign-in dialog is the same dialog block as every other form. */
+    function openAuthDialog(mode) {
+        dialogKind = 'auth';
+        dialogEntry = null;
+        dialogParentId = null;
+        dialogIcon = null;
+        dialogMapField = null;
+        dialogUsed = false;
+        dialogOpener = document.activeElement;
+        dialogFields = {};
+
+        renderAuthDialog(mode);
+        openDialog();
+
+        if (dialogFields.identifier) {
+            var first = dialogFields.identifier.control;
+            window.setTimeout(function () {
+                first.focus();
+            }, prefersReducedMotion() ? 0 : 200);
+        }
+    }
+
+    /*
+     * Fills the dialog for one of the two modes. Switching between them only
+     * rewrites the fields, so the box keeps its size and its place: both modes
+     * carry exactly two fields and one link.
+     */
+    function renderAuthDialog(mode) {
+        authMode = mode === 'register' ? 'register' : 'sign_in';
+
+        var registering = authMode === 'register';
+
+        elements.dialogTitle.textContent = t(registering ? 'auth.registerTitle' : 'auth.title');
+        elements.dialogMessage.hidden = true;
+        elements.dialogFields.textContent = '';
+        clearDialogErrors();
+        dialogFields = {};
+        elements.dialogDanger.hidden = true;
+        elements.dialogSaveNext.hidden = true;
+        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogSubmit.textContent = t(registering ? 'auth.register' : 'auth.signIn');
+        /* setBusy() writes its own word while the request runs and puts this one
+           back afterwards, so it has to know it. */
+        elements.dialogSubmit.dataset.idleLabel = elements.dialogSubmit.textContent;
+        elements.dialogSubmit.disabled = false;
+
+        addAuthFields();
+    }
+
+    /* Two underlined fields, the eye in the password field and the link below. */
+    function addAuthFields() {
+        var registering = authMode === 'register';
+
+        var identifierWrap = el('div', 'dialog__field');
+        var identifierLabel = el('p', 'dialog__label');
+        var identifierInput = el('input', 'dialog__input');
+
+        identifierLabel.textContent = t('auth.identifier');
+        identifierLabel.setAttribute('data-i18n', 'auth.identifier');
+        identifierInput.type = 'text';
+        identifierInput.id = 'dialog-field-identifier';
+        identifierInput.autocomplete = 'username';
+        identifierInput.setAttribute('placeholder', t('auth.identifierPlaceholder'));
+
+        var identifierError = el('p', 'dialog__field-error');
+        identifierError.hidden = true;
+        identifierError.setAttribute('role', 'alert');
+
+        identifierWrap.appendChild(identifierLabel);
+        identifierWrap.appendChild(identifierInput);
+        identifierWrap.appendChild(identifierError);
+        elements.dialogFields.appendChild(identifierWrap);
+        dialogFields.identifier = { control: identifierInput, error: identifierError, wrap: identifierWrap };
+
+        var passwordWrap = el('div', 'dialog__field');
+        var passwordLabel = el('p', 'dialog__label');
+        var passwordRow = el('div', 'password-row');
+        var passwordInput = el('input', 'dialog__input');
+        var eye = el('button', 'password-eye');
+
+        passwordLabel.textContent = t('auth.password');
+        passwordLabel.setAttribute('data-i18n', 'auth.password');
+        passwordInput.type = 'password';
+        passwordInput.id = 'dialog-field-password';
+        /* The browser's own password manager should offer to make a new password
+           while registering and the known one while signing in. */
+        passwordInput.autocomplete = registering ? 'new-password' : 'current-password';
+        passwordInput.setAttribute('placeholder', t('auth.passwordPlaceholder'));
+
+        eye.type = 'button';
+        eye.innerHTML = EYE_SVG;
+        setEyeState(eye, false);
+        eye.addEventListener('click', function () {
+            var visible = passwordInput.type === 'text';
+            passwordInput.type = visible ? 'password' : 'text';
+            setEyeState(eye, visible !== true);
+            passwordInput.focus();
+        });
+
+        passwordRow.appendChild(passwordInput);
+        passwordRow.appendChild(eye);
+
+        var passwordError = el('p', 'dialog__field-error');
+        passwordError.hidden = true;
+        passwordError.setAttribute('role', 'alert');
+
+        passwordWrap.appendChild(passwordLabel);
+        passwordWrap.appendChild(passwordRow);
+        passwordWrap.appendChild(passwordError);
+        elements.dialogFields.appendChild(passwordWrap);
+        dialogFields.password = { control: passwordInput, error: passwordError, wrap: passwordWrap };
+
+        var switchWrap = el('p', 'auth-switch');
+        var switchButton = el('button', 'dialog__link-button');
+
+        switchButton.type = 'button';
+        switchButton.textContent = t(registering ? 'auth.toSignIn' : 'auth.toRegister');
+        switchButton.addEventListener('click', function () {
+            /*
+             * The other mode, with what was typed so far kept: switching is a
+             * change of the words, not a new dialog.
+             */
+            var typed = dialogFields.identifier ? dialogFields.identifier.control.value : '';
+            var typedPassword = dialogFields.password ? dialogFields.password.control.value : '';
+
+            renderAuthDialog(authMode === 'register' ? 'sign_in' : 'register');
+
+            if (dialogFields.identifier) { dialogFields.identifier.control.value = typed; }
+            if (dialogFields.password) { dialogFields.password.control.value = typedPassword; }
+        });
+
+        switchWrap.appendChild(switchButton);
+        elements.dialogFields.appendChild(switchWrap);
+    }
+
+    /* One button, two drawings: the slash over the eye only appears when the
+       password is readable. */
+    function setEyeState(button, visible) {
+        var label = t(visible ? 'auth.hidePassword' : 'auth.showPassword');
+
+        button.classList.toggle('is-on', visible === true);
+        button.setAttribute('aria-pressed', visible === true ? 'true' : 'false');
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+    }
+
+    /*
+     * One sign-in or one registration. The browser checks only what it can see
+     * (an empty field, a short password) so the answer comes at once; the server
+     * checks everything again and is the only authority.
+     */
+    function runAuthSubmit() {
+        var identifier = dialogFields.identifier ? dialogFields.identifier.control.value.trim() : '';
+        var password = dialogFields.password ? dialogFields.password.control.value : '';
+
+        if (identifier === '') {
+            setFieldError('identifier', t('auth.errorIdentifierRequired'));
+            dialogFields.identifier.control.focus();
+
+            return;
+        }
+
+        if (password === '') {
+            setFieldError('password', t('auth.errorPasswordRequired'));
+            dialogFields.password.control.focus();
+
+            return;
+        }
+
+        if (authMode === 'register' && password.length < 8) {
+            setFieldError('password', t('auth.errorPasswordTooShort', { min: 8 }));
+            dialogFields.password.control.focus();
+
+            return;
+        }
+
+        setBusy(true);
+
+        authFetch({
+            action: authMode,
+            identifier: identifier,
+            password: password,
+            csrf_token: authState.csrfToken
+        }).then(function (result) {
+            setBusy(false);
+
+            if (result.ok !== true) {
+                authFailure(result.code);
+
+                return;
+            }
+
+            authState.user = result.data && result.data.user ? result.data.user : null;
+            authState.ready = true;
+            renderAuthSlot();
+            closeDialog();
+
+            /* The study session and the hint about the missing user are built
+               from the state at load time, so a reload is the shortest way to
+               make the whole page tell the truth. */
+            window.setTimeout(function () {
+                window.location.reload();
+            }, 300);
+        });
+    }
+
+    /* Which field an answer of the server belongs to. */
+    function authFailure(code) {
+        var message = errorMessage(code);
+        var passwordCodes = ['credentials', 'password_required', 'password_too_short', 'password_too_long'];
+        var identifierCodes = ['identifier_required', 'invalid_email', 'email_too_long', 'name_too_short',
+            'name_too_long', 'name_exists', 'email_exists'];
+
+        if (passwordCodes.indexOf(code) !== -1 && dialogFields.password) {
+            setFieldError('password', message);
+            dialogFields.password.control.focus();
+
+            return;
+        }
+
+        if (identifierCodes.indexOf(code) !== -1 && dialogFields.identifier) {
+            setFieldError('identifier', message);
+            dialogFields.identifier.control.focus();
+
+            return;
+        }
+
+        setDialogError(message);
+    }
+
+    /* The header button appears as soon as the page is there. */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            loadAuthState().then(renderAuthSlot);
+        });
+    } else {
+        loadAuthState().then(renderAuthSlot);
+    }
+
     /* Turns a code from the API into a sentence in the current language. */
     function errorMessage(code) {
         if (code === 'category_exists') {
@@ -657,6 +1049,51 @@
 
         if (code === 'undo_conflict') {
             return t('learn.undoFailed');
+        }
+
+        /* Signing in. The server uses the codes the form already knows. */
+        if (code === 'sign_in_not_ready') {
+            return t('auth.errorNotReady');
+        }
+
+        if (code === 'credentials') {
+            return t('auth.errorCredentials');
+        }
+
+        if (code === 'identifier_required') {
+            return t('auth.errorIdentifierRequired');
+        }
+
+        if (code === 'invalid_email' || code === 'email_too_long') {
+            return t('auth.errorEmail');
+        }
+
+        if (code === 'name_too_short') {
+            return t('auth.errorNameTooShort', { min: 3 });
+        }
+
+        if (code === 'name_too_long') {
+            return t('auth.errorNameTooLong', { max: 100 });
+        }
+
+        if (code === 'name_exists') {
+            return t('auth.errorNameExists');
+        }
+
+        if (code === 'email_exists') {
+            return t('auth.errorEmailExists');
+        }
+
+        if (code === 'password_required') {
+            return t('auth.errorPasswordRequired');
+        }
+
+        if (code === 'password_too_short') {
+            return t('auth.errorPasswordTooShort', { min: 8 });
+        }
+
+        if (code === 'invalid_token') {
+            return t('auth.errorToken');
         }
 
         return t('dialog.errorServer');
@@ -3342,6 +3779,12 @@
          */
         if (dialogKind === 'import') {
             runImport();
+            return;
+        }
+
+        /* Signing in is not a form of a row either: it has its own request. */
+        if (dialogKind === 'auth') {
+            runAuthSubmit();
             return;
         }
 

@@ -42,6 +42,7 @@ $appConfig = [
         'card' => 'api/card.php',
         'review' => 'api/review.php',
         'importCards' => 'api/import_cards.php',
+        'auth' => 'api/auth.php',
     ],
 
     // The sample file the import dialog offers, and nothing else.
@@ -216,6 +217,15 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     <button type="button" class="lang-switch__option" data-locale="de" data-i18n="language.de"><?= $text('language.de') ?></button>
                     <span class="lang-switch__underline" id="lang-underline" aria-hidden="true"></span>
                 </div>
+
+                <!--
+                    The sign-in slot. It is empty here on purpose: this file never
+                    talks to the database, and app.js fills the slot from
+                    api/auth.php - the same way every other row on this page comes
+                    from the API. Signed in it carries the initials of the person
+                    and the menu with "sign out".
+                -->
+                <div class="auth" id="auth-slot"></div>
             </div>
         </header>
 
