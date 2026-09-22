@@ -5739,6 +5739,12 @@
      * Nothing here touches the page until the caller puts it somewhere.
      */
     function loadMap(area) {
+        /* An area without a file has nothing to load: see config.maps, where "EU"
+           is switched off. Nothing is fetched and nothing is shown. */
+        if (config.maps[area] === undefined) {
+            return Promise.resolve(null);
+        }
+
         if (mapDocuments[area] !== undefined) {
             return Promise.resolve(mapDocuments[area]);
         }
@@ -5960,7 +5966,8 @@
         region.id = 'dialog-field-map-region';
         area.appendChild(new Option(t('dialog.card.mapNone'), ''));
         area.appendChild(new Option(t('dialog.card.mapAreaDe'), 'DE'));
-        area.appendChild(new Option(t('dialog.card.mapAreaEu'), 'EU'));
+        /* No "Europe": that map is switched off (see config.maps), so a region of
+           that area would be a choice nobody could ever see. */
         area.appendChild(new Option(t('dialog.card.mapAreaWorld'), 'WORLD'));
 
         var note = el('p', 'dialog__hint');

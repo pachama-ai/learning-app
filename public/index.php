@@ -68,9 +68,15 @@ $appConfig = [
      * translation key, so the picker can offer a readable name in both languages.
      * Never a second list of ids somewhere else.
      */
+    /*
+     * The map files an area name stands for. "EU" is deliberately missing: the
+     * Europe map is switched off, so a card with a map_region of "EU:..." is
+     * shown as a plain text card - in the list, in the preview and in the study
+     * session. The stored values and the file assets/maps/europe.svg stay as they
+     * are, only the display does not use them.
+     */
     'maps' => [
         'DE' => 'assets/maps/germany.svg',
-        'EU' => 'assets/maps/europe.svg',
         'WORLD' => 'assets/maps/world.svg',
     ],
     'germanStates' => [
