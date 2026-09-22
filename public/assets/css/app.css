@@ -1353,32 +1353,13 @@ img {
     transform: translateX(6px);
 }
 
-/* Small monospace tooltip, shown for the hovered tile. */
-.area-card__tooltip {
-    position: absolute;
-    top: -6px;
-    left: 0;
-    z-index: 2;
-    padding: 4px 8px;
-    border: 1px solid var(--hairline);
-    background-color: var(--background);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    opacity: 0;
-    transform: translateY(-100%);
-    pointer-events: none;
-    transition: opacity 150ms var(--ease);
-}
-
-.area-card:hover .area-card__tooltip,
-.area-card:focus-visible .area-card__tooltip,
-.area-card.is-linked .area-card__tooltip {
-    opacity: 1;
-}
+/*
+ * There is no label above a tile. It used to be a small box carrying the name and
+ * the count, and it could not be read anyway: a tile row clips everything that
+ * leaves it, so only the lower edge of that box stayed visible on hover - a short
+ * line that explained nothing. The same information stands on the tile itself, in
+ * the stat line under the title (see buildAreaTile in app.js).
+ */
 
 /*
  * Linked hover: the hovered tile keeps full strength while the other tiles fade
@@ -1447,22 +1428,32 @@ img {
 }
 
 /*
- * One row is a link plus a menu button.
+ * One row is a link, the button that starts a session and the menu button.
  *
  * The link carries the grid that used to sit on the row itself, so a row still
- * reads as "index | name | count | track | arrow" - and the menu button stays
+ * reads as "index | name | count | track | arrow" - and both buttons stay
  * OUTSIDE the link. A button inside a link cannot be clicked reliably, and a
  * link that contains another control is not valid markup.
+ *
+ * All three columns are named here on purpose: with only two columns the third
+ * child silently dropped into a second grid row, which made the row twice as
+ * tall and put the menu button underneath the link.
  */
 .row {
     position: relative;
     display: grid;
-    /* the link | the menu button */
-    grid-template-columns: minmax(0, 1fr) auto;
+    /* the link | the study button | the menu button */
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 12px;
     padding: 18px 0;
     border-bottom: 1px dotted var(--line);
+}
+
+/* The wrapper around the "…" button: nothing but its place in the row. */
+.row__menu {
+    display: inline-flex;
+    align-items: center;
 }
 
 .row__link {
@@ -2548,11 +2539,7 @@ html.is-theme-switching::view-transition-new(root) {
         transform: none !important;
     }
 
-    /* The tooltip does not travel, it only fades. */
-    .area-card__tooltip {
-        transition: opacity 150ms var(--ease) !important;
-    }
-
+    /* The tile row keeps its distance from the study session above it. */
     .area-card.is-linked .arrow {
         transform: none !important;
     }
@@ -4349,6 +4336,16 @@ body.is-learning {
 
 /* --- the direct way into a session, from the subcategory row -------------- */
 
+/*
+ * This is the one control of a row that does something other than opening it, so
+ * it must not look like the arrow beside it. It is a circle of its own: a quiet
+ * ring and a faint surface at rest, filled and lifted when the row or the button
+ * itself is under the pointer. The arrow next to it stays a plain thin arrow in
+ * the muted text colour (see .row__arrow).
+ *
+ * The distance to that arrow is part of the rule: the two must never read as one
+ * pair of arrows again.
+ */
 .row__play {
     appearance: none;
     display: inline-flex;
@@ -4357,38 +4354,36 @@ body.is-learning {
     flex: 0 0 auto;
     width: 34px;
     height: 34px;
-    margin-left: 4px;
-    border: 1px solid transparent;
+    margin-left: 12px;
+    border: 1px solid var(--hairline);
     border-radius: 50%;
-    background-color: transparent;
+    background-color: var(--tile-bg);
     color: var(--muted);
     cursor: pointer;
-    opacity: 0;
-    transition: opacity 160ms var(--ease), background-color 160ms var(--ease), color 160ms var(--ease);
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
+        color 160ms var(--ease), transform 160ms var(--ease);
 }
 
-/* It appears with the row, so the list stays calm until a row is meant. A touch
-   device has no hover and keeps it visible in a quiet form. */
+/* Under the pointer of the row the control says clearly that it is a button. */
 .row:hover .row__play,
-.row:focus-within .row__play {
-    opacity: 1;
-}
-
 .row__play:hover {
+    border-color: var(--line-strong);
     background-color: var(--tile-bg-hover);
     color: var(--text);
 }
 
-.row__play:focus-visible {
-    opacity: 1;
-    outline: 2px solid var(--line-strong);
-    outline-offset: 2px;
+/* Hovering the button itself lifts it a little on top of that. */
+.row__play:hover {
+    transform: translateY(-1px);
 }
 
-@media (hover: none), (pointer: coarse) {
-    .row__play {
-        opacity: 0.7;
-    }
+/* The keyboard reaches the button on its own, so it has to show it. */
+.row__play:focus-visible {
+    border-color: var(--line-strong);
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
 }
 
 /* --- the footer: back on the left, plus in the middle, on on the right ---- */
@@ -4602,6 +4597,11 @@ body.is-learning {
 
     .area-card:hover .arrow,
     .area-card:focus-visible .arrow {
+        transform: none;
+    }
+
+    /* The study button still gets its brighter surface, it just does not move. */
+    .row__play:hover {
         transform: none;
     }
 }

@@ -366,14 +366,6 @@
         return line;
     }
 
-    /* The tooltip is shorter: "MATHEMATICS · 24 CARDS". */
-    function tileTooltip(area, meta) {
-        return t('tile.tooltip', {
-            name: meta.title,
-            cards: countedLabel(area.card_count, 'tile.cards.one', 'tile.cards.other')
-        });
-    }
-
     /* ----------------------------------------------------------------------
        Translation
        ---------------------------------------------------------------------- */
@@ -946,14 +938,15 @@
         bottom.appendChild(name);
         bottom.appendChild(foot);
 
-        var tooltip = document.createElement('span');
-        tooltip.className = 'area-card__tooltip';
-        tooltip.setAttribute('aria-hidden', 'true');
-        tooltip.textContent = tileTooltip(area, meta);
-
+        /*
+         * No label above the tile any more. There used to be a small box with the
+         * name and the count, and because a tile row clips everything that leaves
+         * it, only the lower edge of that box stayed visible on hover: a short line
+         * that explained nothing. The same information is already written on the
+         * tile itself, in the stat line under the title.
+         */
         link.appendChild(head);
         link.appendChild(bottom);
-        link.appendChild(tooltip);
 
         slot.appendChild(link);
 
