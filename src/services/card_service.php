@@ -78,8 +78,10 @@ function find_cards(PDO $pdo, int $categoryId): array
 {
     // The value travels separately from the SQL text, so it can never be read
     // as part of the query.
+    // The same column list every other card read uses, so a field that belongs to
+    // a card row (the map region, the language columns) is never missing here.
     $statement = $pdo->prepare(
-        'SELECT id, category_id, front, back, is_bidirectional
+        'SELECT ' . implode(', ', card_read_columns($pdo)) . '
            FROM cards
           WHERE category_id = :category_id
           ORDER BY id ASC'

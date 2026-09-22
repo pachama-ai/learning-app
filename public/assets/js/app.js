@@ -5236,14 +5236,19 @@
      *   * a file is fetched once per session and reused from memory afterwards,
      *     because the world map alone is about 1.2 MB.
      */
-    var MAP_PATTERN = /^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/;
+    /* Spelled exactly like CARD_MAP_REGION_PATTERN and CARD_MAP_REGION_MAX_LENGTH
+       in src/services/card_service.php. The length cap is there because the
+       column holds 40 characters: a longer value is not a key this app stored. */
+    var MAP_PATTERN = /^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/u;
+    var MAP_MAX_LENGTH = 40;
     var mapDocuments = {};
     var mapRequests = {};
     var dialogMapField = null;
 
     /* "DE:Bayern" -> { area, region, value }, or null when it is not a valid key. */
     function parseMapRegion(value) {
-        if (typeof value !== 'string' || MAP_PATTERN.test(value) !== true) {
+        if (typeof value !== 'string' || value.length > MAP_MAX_LENGTH
+            || MAP_PATTERN.test(value) !== true) {
             return null;
         }
 
@@ -5385,8 +5390,22 @@
             var selector = area === 'WORLD' ? 'g[id]' : 'path[id], g[id]';
 
             Array.prototype.forEach.call(root.querySelectorAll(selector), function (node) {
-                if (/^[A-Z]{2}$/.test(node.id)) {
-                    found.push({ id: node.id, label: countryName(node.id) });
+                if (!/^[A-Z]{2}$/.test(node.id)) {
+                    return;
+                }
+
+                /*
+                 * The files carry a few extra groups whose id is not a country
+                 * code at all (world.svg has "XD" and "XL"). countryName() hands
+                 * back the code itself when the browser knows no name for it, and
+                 * an entry that can only offer a code is no help in a picker, so
+                 * it stays out of the list. Values that are already stored are not
+                 * affected: they are still shown on the card.
+                 */
+                var name = countryName(node.id);
+
+                if (name !== node.id) {
+                    found.push({ id: node.id, label: name });
                 }
             });
 
