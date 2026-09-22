@@ -5,8 +5,8 @@ declare(strict_types=1);
 /**
  * Command line import of flashcards from a CSV file.
  *
- *   php database/import_energy_cards.php --file=<path> --dry-run
- *   php database/import_energy_cards.php --file=<path> \
+ *   php bin/import_energy_cards.php --file=<path> --dry-run
+ *   php bin/import_energy_cards.php --file=<path> \
  *        --execute --wipe-subcategories --expect=209
  *
  * The file has to be named with --file=: there is no default file any more,
@@ -367,8 +367,8 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
 function import_print_usage(): void
 {
     echo "Usage:\n";
-    echo "  php database/import_energy_cards.php --file=<path> --dry-run\n";
-    echo "  php database/import_energy_cards.php --file=<path> --execute --expect=209 --wipe-subcategories\n";
+    echo "  php bin/import_energy_cards.php --file=<path> --dry-run\n";
+    echo "  php bin/import_energy_cards.php --file=<path> --execute --expect=209 --wipe-subcategories\n";
     echo "\n";
     echo "  --file=...              the CSV file, required (there is no default file)\n";
     echo "  --dry-run               read and report, write nothing (default)\n";

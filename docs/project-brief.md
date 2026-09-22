@@ -117,14 +117,17 @@ learning-app/
 │   ├── config/             database.php (loader) + database.local.php (secret)
 │   ├── helpers/            small, stateless functions
 │   └── services/           business logic and ALL PDO queries
-├── database/               SQL the user runs by hand + the CLI importer
+├── bin/                    command line tools, NOT reachable from the browser
+│   └── import_energy_cards.php   the CSV importer (CLI only, `--file=` required)
+├── database/               SQL the user runs by hand - nothing else
 ├── docs/                   project-brief.md, verification.md, migrations.md
 └── (root)                  only start-dev.sh and README.md - the scratch scripts are gone
 ```
 
-There is no `bin/` and no `database/import/` any more: the one-off importer in
-`bin/` and the card CSV files were removed on 2026-09-22, because their content is
-in the database (see §17).
+There is no `database/import/` any more: the card CSV files were removed on
+2026-09-22, because their content is in the database (see §17). The CLI importer
+that used to sit next to them now lives in `bin/`, so `database/` holds nothing
+but SQL files for the user to run by hand (see §17 as well).
 
 ### Files and their size (verified)
 
@@ -158,8 +161,8 @@ in the database (see §17).
 | `src/config/database.example.php` | 35 | 1 040 | Template for the file above |
 | `docs/verification.md` | 402 | 16 983 | Manual test procedure |
 | `docs/migrations.md` | – | – | The migration files and what each one did |
-| `database/import_energy_cards.php` | 1 039 | 37 584 | CLI importer for a CSV file; `--file=` is required |
-| `database/*.sql` | – | – | Reviewable SQL for the user to run by hand |
+| `bin/import_energy_cards.php` | 1 039 | 37 564 | CLI importer for a CSV file; `--file=` is required. Outside the web root, no URL, `PHP_SAPI` guard. |
+| `database/*.sql` | – | – | Reviewable SQL for the user to run by hand. The application never runs them itself. |
 
 ---
 
@@ -966,3 +969,24 @@ purpose and is not committed. From Windows it is reachable as
 
 Besides the database itself, this dump is the only place that still holds the four
 category drawings.
+
+### Two leftovers of the clean-up
+
+This is the one commit of this list whose hash is **not** written down here, for a
+simple reason: writing it down would change it. It is the newest commit, titled
+*Move the CLI importer to `bin/` and drop the empty-folder placeholders*;
+`git log --oneline` shows it.
+
+**The importer moved from `database/` to `bin/`.** It was the only program in a
+folder whose purpose is "SQL for the user to run by hand", so it now sits in
+`bin/`, which was recreated for it. The script itself needed no change: it finds
+the project root with `dirname(__DIR__)`, and from `bin/` that is the repository
+root exactly as it was from `database/`. The two `require`s and every relative
+`--file=` path therefore keep working unchanged. Only its docblock and its usage
+text now name the new path.
+
+**Nine `.gitkeep` files were removed.** `.github/`, `database/`, `docs/`,
+`public/api/`, `public/assets/fonts/`, `public/assets/icons/`, `src/config/`,
+`src/helpers/` and `src/services/` all hold real files, so the placeholders that
+once kept the empty folders in git had done their job. No other `.gitkeep` was
+touched, and no file was deleted besides these nine empty ones.

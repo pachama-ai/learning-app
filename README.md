@@ -44,7 +44,9 @@ src/          application code, not reachable from the browser
   config/       connection settings and credentials
   helpers/      small, stateless functions
   services/     business logic and ALL PDO queries
-database/     SQL the user runs by hand + the command line importer
+bin/          command line tools, never reachable from the browser
+  import_energy_cards.php   imports a card CSV; needs --file=<path>
+database/     SQL for the user to run by hand in phpMyAdmin, nothing else
 docs/         project-brief.md, verification.md, migrations.md
 ```
 
