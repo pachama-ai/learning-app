@@ -5,9 +5,13 @@ declare(strict_types=1);
 /**
  * Command line import of flashcards from a CSV file.
  *
- *   php database/import_energy_cards.php --dry-run
- *   php database/import_energy_cards.php --file=database/import/energie_gesamt_import.csv \
+ *   php database/import_energy_cards.php --file=<path> --dry-run
+ *   php database/import_energy_cards.php --file=<path> \
  *        --execute --wipe-subcategories --expect=209
+ *
+ * The file has to be named with --file=: there is no default file any more,
+ * because the CSV files that once lived in database/import/ are gone (their
+ * content is in the database).
  *
  * The file is UTF-8 and separated by semicolons. Two headers are accepted:
  *
@@ -269,7 +273,11 @@ function import_main(array $argv, string $projectRoot): int
  */
 function import_read_arguments(array $argv, string $projectRoot): ?array
 {
-    $file = $projectRoot . '/database/import/energie_gesamt_import.csv';
+    /* No default file: the CSV files that once lived in database/import/ are
+       deleted, because their content is in the database. A run without
+       --file= stops with a clear message instead of pointing at a file that
+       does not exist any more. */
+    $file = null;
     $execute = false;
     $wipe = false;
     $expect = null;
@@ -337,6 +345,14 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
         return null;
     }
 
+    if ($file === null) {
+        echo "No CSV file given. Pass --file=<path>; there is no default file any more.\n\n";
+
+        import_print_usage();
+
+        return null;
+    }
+
     $real = realpath($file);
 
     if ($real === false || !is_file($real)) {
@@ -351,11 +367,10 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
 function import_print_usage(): void
 {
     echo "Usage:\n";
-    echo "  php database/import_energy_cards.php --dry-run\n";
-    echo "  php database/import_energy_cards.php --file=database/import/geografie_import_final.csv --dry-run\n";
-    echo "  php database/import_energy_cards.php --execute --expect=209 --wipe-subcategories\n";
+    echo "  php database/import_energy_cards.php --file=<path> --dry-run\n";
+    echo "  php database/import_energy_cards.php --file=<path> --execute --expect=209 --wipe-subcategories\n";
     echo "\n";
-    echo "  --file=...              the CSV file (default: database/import/energie_gesamt_import.csv)\n";
+    echo "  --file=...              the CSV file, required (there is no default file)\n";
     echo "  --dry-run               read and report, write nothing (default)\n";
     echo "  --execute               really import, all of it or none of it\n";
     echo "  --wipe-subcategories    delete the subcategories of the area in the file first\n";
