@@ -213,21 +213,32 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     -->
     <div class="boot" id="boot-overlay" role="status" aria-live="polite" hidden>
         <div class="boot__art boot__pulse" aria-hidden="true">
-            <svg viewBox="0 0 132 70" fill="none" stroke="currentColor" stroke-width="1.5"
+            <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="1.8"
                  stroke-linecap="round" stroke-linejoin="round">
-                <!-- The socket on the wall: a bracket and the earth contact. -->
-                <path d="M124 8 h-10 v54 h10"></path>
-                <path d="M114 35 h-6"></path>
+                <!--
+                    A wind turbine: a mast that stands still and a rotor that turns.
+                    The mast is not decoration - it is what makes the turning blades
+                    read as a turning rotor instead of a spinning picture.
+                -->
+                <path d="M48 26 V 88"></path>
+                <path d="M38 88 H 58"></path>
 
-                <!-- The plug and its two pins, moving together. -->
-                <g class="boot__plug">
-                    <rect x="14" y="20" width="46" height="30" rx="8"></rect>
-                    <path d="M60 28 h16"></path>
-                    <path d="M60 42 h16"></path>
+                <!--
+                    Three slim, gently curved blades, each the same shape, turned a
+                    third of the circle from the next one. The turning happens in CSS
+                    (see boot.css) around exactly the hub: 48/26 in this coordinate
+                    system.
+                -->
+                <g class="boot__rotor">
+                    <path d="M48 26 C 44.5 18 44.5 9 47.5 2 C 50.5 9 51.5 18 48 26 Z"></path>
+                    <path d="M48 26 C 44.5 18 44.5 9 47.5 2 C 50.5 9 51.5 18 48 26 Z"
+                          transform="rotate(120 48 26)"></path>
+                    <path d="M48 26 C 44.5 18 44.5 9 47.5 2 C 50.5 9 51.5 18 48 26 Z"
+                          transform="rotate(240 48 26)"></path>
                 </g>
 
-                <!-- The spark in the moment the plug is home. -->
-                <path class="boot__spark" d="M86 10 l-6 12 h6 l-5 12"></path>
+                <!-- The hub: the one filled mark, so the three blades have a centre. -->
+                <circle cx="48" cy="26" r="1.8" fill="currentColor" stroke="none"></circle>
             </svg>
         </div>
 
@@ -717,8 +728,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <p class="dialog__message" id="app-dialog-message" hidden></p>
             <div class="dialog__fields" id="app-dialog-fields"></div>
             <p class="dialog__error" id="app-dialog-error" role="alert" hidden></p>
+            <!--
+                Cancel and save, and nothing else. Deleting an entry has its place in
+                the three-dots menu of its tile or its row and deliberately not in this
+                form: one way to an action instead of two that can drift apart.
+            -->
             <div class="dialog__actions">
-                <button type="button" class="dialog__button dialog__button--danger" id="app-dialog-danger" hidden></button>
                 <button type="button" class="dialog__button--text" id="app-dialog-cancel"></button>
                 <button type="button" class="dialog__button dialog__button--secondary" id="app-dialog-save-next" hidden></button>
                 <button type="submit" class="dialog__button dialog__button--primary" id="app-dialog-submit"></button>

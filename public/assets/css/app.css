@@ -1201,10 +1201,15 @@ img {
 }
 
 /*
- * The four subject drawings do not share one aspect ratio, so a plain 30px box
- * makes some of them look noticeably smaller than others. --icon-scale
- * normalises the visible size per subject; the blob is larger than the icon, so
- * the small overflow is harmless.
+ * The four subject drawings do not share one aspect ratio: a thin arrow and a
+ * wide map shape cover very different parts of their square viewBox, so a plain
+ * box makes the thin one look noticeably smaller although it is drawn "as big".
+ *
+ * --icon-scale is therefore not a taste but a measurement: app.js reads the
+ * drawing once, measures the bounds of the shapes that are really visible in it
+ * (getBBox, not the viewBox) and sets the factor so that every drawing covers the
+ * same area in the circle. The blob is larger than the icon, so the small
+ * overflow is harmless.
  */
 .blob__icon {
     /* 34px keeps the same drawing-to-circle ratio the 40px icon had in an 88px
@@ -1662,7 +1667,8 @@ body:has(#view-detail:not([hidden])) .site-footer {
 .dialog__field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    /* The distance between a label and its field. */
+    gap: 10px;
 }
 
 /*
@@ -2625,13 +2631,15 @@ html.is-theme-switching::view-transition-new(root) {
 .dialog__fields {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    /* The distance between two field groups. */
+    gap: 26px;
 }
 
 .dialog__field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    /* The distance between a label and its field. */
+    gap: 10px;
 }
 
 .dialog__field.is-invalid .dialog__input {
@@ -2660,7 +2668,9 @@ html.is-theme-switching::view-transition-new(root) {
  * the heading the same way.
  */
 .dialog__group {
-    padding-top: 0;
+    /* A little air above the summary, so the group does not sit on the field
+       above it while the rest of the form breathes. */
+    padding-top: 4px;
 }
 
 .dialog__summary {
@@ -2674,7 +2684,7 @@ html.is-theme-switching::view-transition-new(root) {
     cursor: pointer;
     list-style: none;
     /* A comfortable target, also with a finger. */
-    min-height: 40px;
+    min-height: 44px;
 }
 
 /* The browser triangle is replaced by an arrow that belongs to the design. */
@@ -2711,7 +2721,7 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .dialog__group[open] .dialog__grid {
-    margin-top: 16px;
+    margin-top: 18px;
 }
 
 /*
@@ -2780,22 +2790,20 @@ html.is-theme-switching::view-transition-new(root) {
     gap: 18px;
 }
 
-/* The delete button of the form sits on the left, away from cancel and save. */
-.dialog__actions .dialog__button--danger {
-    margin-right: auto;
-    min-height: 44px;
-    padding: 11px 20px;
-    border: 1px solid var(--line-strong);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--cat-reserve-rose);
-    font-family: var(--font-sans);
-    font-size: 0.98rem;
+/*
+ * Cancel (text) and save (the one obvious action), both at the right edge.
+ * There is no third button on the left any more: deleting an entry belongs to
+ * the three-dots menu of its tile or its row, never to this form.
+ */
+.dialog__actions {
+    justify-content: flex-end;
 }
 
-.dialog__actions .dialog__button--danger:hover {
-    border-color: var(--cat-reserve-rose);
-}
+/*
+ * The red text and the red border of a delete button still exist for the one
+ * question that really deletes something - the danger pill of the confirmation
+ * dialog further down this sheet.
+ */
 
 /*
  * --- the symbol row -----------------------------------------------------
@@ -2807,10 +2815,12 @@ html.is-theme-switching::view-transition-new(root) {
 .icon-row {
     display: flex;
     align-items: center;
-    gap: 14px;
-    min-height: 64px;
-    padding: 10px 12px;
-    border-radius: 16px;
+    /* Room for the three parts: the circle, the two lines of text and the way
+       out. The wider gap is what keeps them from reading as one crowded block. */
+    gap: 18px;
+    min-height: 78px;
+    padding: 16px 18px;
+    border-radius: 18px;
     background-color: var(--tile-bg);
     cursor: pointer;
     transition: background-color 200ms var(--ease);
@@ -2859,10 +2869,19 @@ html.is-theme-switching::view-transition-new(root) {
     text-overflow: ellipsis;
 }
 
+/*
+ * The way out sits at the far end and is held apart by a hairline, so nobody
+ * reaches it while aiming at the circle. The line is the quiet one of the
+ * interface (--line), not a border of its own colour.
+ */
 .icon-row__remove {
     margin-left: auto;
+    padding-left: 22px;
+    border-left: 1px solid var(--line);
     min-height: 40px;
-    padding: 8px 14px;
+    padding-top: 8px;
+    padding-right: 14px;
+    padding-bottom: 8px;
     border: 0;
     border-radius: 999px;
     background: none;

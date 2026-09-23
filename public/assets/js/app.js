@@ -172,7 +172,6 @@
         dialogMessage: document.getElementById('app-dialog-message'),
         dialogFields: document.getElementById('app-dialog-fields'),
         dialogError: document.getElementById('app-dialog-error'),
-        dialogDanger: document.getElementById('app-dialog-danger'),
         dialogCancel: document.getElementById('app-dialog-cancel'),
         dialogSubmit: document.getElementById('app-dialog-submit'),
 
@@ -800,7 +799,6 @@
         elements.dialogFields.textContent = '';
         clearDialogErrors();
         dialogFields = {};
-        elements.dialogDanger.hidden = true;
         elements.dialogSaveNext.hidden = true;
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.textContent = t(registering ? 'auth.register' : 'auth.signIn');
@@ -1347,6 +1345,96 @@
         icon.setAttribute('decoding', 'async');
         icon.style.setProperty('--icon-scale', String(meta.iconScale));
         circle.appendChild(icon);
+
+        /* Which share of the circle the drawing covers is measured, not guessed. */
+        useMeasuredIconScale(icon, meta.icon);
+    }
+
+    /*
+     * The four drawings of the learning areas do not share one shape: a thin arrow
+     * and a wide map cover very different parts of their square viewBox, so the
+     * same box makes one of them look smaller although both are drawn "as big".
+     *
+     * The visible bounds are therefore measured once per drawing and turned into a
+     * factor (--icon-scale, see the stylesheet). Measured, never written back into
+     * the database: how a drawing is shown is a question of the interface, and the
+     * stored drawing stays exactly what somebody drew.
+     *
+     * The drawing is asked for over the same address the <img> uses, so the second
+     * request is answered from the browser cache - and because that address carries
+     * the fingerprint of the drawing, a new icon is a new address: a remembered
+     * value can never belong to a different drawing.
+     */
+    var ICON_BASE_SIZE = 34;      // the size .blob__icon is drawn at, in pixels
+    var ICON_TARGET_MEAN = 30.56; // the geometric mean every drawing is scaled to
+    var iconScaleMemory = {};
+
+    function useMeasuredIconScale(icon, url) {
+        if (typeof url !== 'string' || url === '') {
+            return;
+        }
+
+        if (iconScaleMemory[url] !== undefined) {
+            icon.style.setProperty('--icon-scale', String(iconScaleMemory[url]));
+
+            return;
+        }
+
+        measureIconScale(url).then(function (factor) {
+            iconScaleMemory[url] = factor;
+            icon.style.setProperty('--icon-scale', String(factor));
+        }).catch(function () {
+            /* Nothing measured, nothing changed: 1 is the honest fallback. */
+        });
+    }
+
+    function measureIconScale(url) {
+        return window.fetch(url, { credentials: 'same-origin' })
+            .then(function (response) {
+                return response.ok ? response.text() : null;
+            })
+            .then(function (markup) {
+                if (markup === null) {
+                    return 1;
+                }
+
+                /*
+                 * The drawing goes into the measuring box the upload uses
+                 * (.icon-measure in the stylesheet): in the document, so getBBox()
+                 * answers, but out of sight and without taking any space.
+                 */
+                var box = el('div', 'icon-measure');
+                box.innerHTML = markup;
+                document.body.appendChild(box);
+
+                var factor = 1;
+                var svg = box.querySelector('svg');
+
+                if (svg !== null && typeof svg.getBBox === 'function') {
+                    var view = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+
+                    if (view.length === 4 && view[2] > 0 && view[3] > 0) {
+                        var bounds = svg.getBBox();
+                        var mean = Math.sqrt(bounds.width * bounds.height);
+
+                        /*
+                         * getBBox() answers in the coordinate system of the drawing,
+                         * so the share the drawing covers follows from the ratio of
+                         * the two. Everything is worked out in the units of the
+                         * viewBox and only at the end turned into pixels, which keeps
+                         * the factor independent of the size the icon is shown at.
+                         */
+                        if (mean > 0) {
+                            factor = (ICON_TARGET_MEAN * view[2]) / mean / ICON_BASE_SIZE;
+                        }
+                    }
+                }
+
+                box.remove();
+
+                /* A drawing without shapes, or one nobody can measure, keeps its 1. */
+                return Math.max(0.65, Math.min(1.55, factor));
+            });
     }
 
     function buildAreaTile(area, index) {
@@ -3223,8 +3311,6 @@
         elements.dialogMessage.hidden = true;
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogDanger.textContent = t('action.delete');
-        elements.dialogDanger.hidden = !isEdit;
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
@@ -3323,7 +3409,6 @@
         elements.dialogMessage.hidden = true;
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogDanger.hidden = true;
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
@@ -3824,7 +3909,6 @@
 
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogDanger.hidden = true;
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.textContent = t('dialog.delete.submit');
@@ -3843,15 +3927,6 @@
 
         openDialog();
         elements.dialogCancel.focus();
-    }
-
-    /* "Delete" inside the edit form: close it, then take the same path. */
-    function askDeleteAfterEdit(entry) {
-        closeDialog();
-
-        window.setTimeout(function () {
-            requestDelete('category', entry, null);
-        }, prefersReducedMotion() ? 0 : 220);
     }
 
     /* ----------------------------------------------------------------------
@@ -4152,12 +4227,6 @@
 
         elements.dialogCancel.addEventListener('click', function () {
             closeDialog();
-        });
-
-        elements.dialogDanger.addEventListener('click', function () {
-            if (dialogKind === 'category' && dialogEntry !== null) {
-                askDeleteAfterEdit(dialogEntry);
-            }
         });
 
         /*
@@ -5421,7 +5490,6 @@
 
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogDanger.hidden = true;
         elements.dialogCancel.textContent = t('dialog.cancel');
         elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
         elements.dialogSubmit.textContent = t('dialog.import.submit');
