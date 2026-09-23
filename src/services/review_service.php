@@ -248,10 +248,9 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
      * renamed here, so they cannot be mistaken for a column of `cards` - and
      * normalize_card_row() turns them into the task that is shown.
      */
-    if (card_exercise_table_available($pdo)) {
+    if (card_exercise_table_available($pdo) && card_exercise_params_available($pdo)) {
         $selected[] = 'card_exercises.exercise_type AS exercise_type';
-        $selected[] = 'card_exercises.range_min AS exercise_range_min';
-        $selected[] = 'card_exercises.range_max AS exercise_range_max';
+        $selected[] = 'card_exercises.exercise_params AS exercise_params';
     }
 
     foreach (card_language_columns($columns) as $pair) {

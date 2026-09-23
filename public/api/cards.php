@@ -82,14 +82,18 @@ if ($method === 'POST') {
             send_json_error('invalid_exercise_type', 'This kind of task does not exist.', 400);
         }
 
-        if ($exerciseRequest['error'] === 'invalid_exercise_range') {
-            send_json_error('invalid_exercise_range', 'The number range does not fit this kind of task.', 400);
+        if ($exerciseRequest['error'] === 'invalid_exercise_params') {
+            send_json_error('invalid_exercise_params', 'The numbers do not fit this kind of task.', 400);
         }
 
         $exercise = $exerciseRequest['exercise'];
 
-        if ($exercise !== null && !card_exercise_table_available($pdo)) {
-            send_json_error('exercise_unavailable', 'This installation has no table for exercise cards yet.', 400);
+        if ($exercise !== null && (!card_exercise_table_available($pdo) || !card_exercise_params_available($pdo))) {
+            send_json_error(
+                'exercise_unavailable',
+                'Exercise cards need the migration database/add_exercise_params.sql first.',
+                400
+            );
         }
 
         $complete = false;

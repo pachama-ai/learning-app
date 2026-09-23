@@ -3,142 +3,234 @@
 declare(strict_types=1);
 
 /**
- * Exercise cards: the kinds of task this application can build, and the code that
- * builds one.
+ * Generated exercises: which kinds of task this application can build, what each
+ * of them may be given, and how a task is put together.
  *
- * A fixed card shows text that somebody wrote into `cards.front` and
- * `cards.back`. An exercise card shows a task that is put together at the moment
- * the card is displayed, with numbers that are drawn again on every display.
- *
- * The database only says WHICH kind of task a card is and between which numbers
- * that task lives (the table `card_exercises`: `exercise_type`, `range_min`,
- * `range_max`). The task itself - "34 + 58", the answer "92", all of it - is
- * built here, and only here.
+ * A fixed card shows text somebody wrote. A generated card shows a task that is
+ * built at the moment the card is displayed, with numbers that are drawn again on
+ * every display. The database stores only WHICH kind of task a card is and the
+ * numbers it may use (the table `card_exercises`: `exercise_type` and
+ * `exercise_params` as JSON). Everything else happens here and in
+ * exercise_tasks.php.
  *
  * There is no formula anywhere: not in the database, not in a request, not in
- * this file as text that is worked out later. Every kind of task is one branch of
- * the switch below that draws its numbers and computes its answer in the same
- * step, with plain PHP arithmetic on whole numbers. Nothing is ever "evaluated",
- * and an unknown key in the database is not an error: the card simply falls back
- * to being shown as a fixed card. A new kind of task therefore only comes into
- * being by writing new code here.
+ * this file as text that is worked out later. The keys in `exercise_params` are
+ * looked up in exercise_catalog() below; a key that is not in that list is
+ * refused, and a value outside its limits is pulled into them. Every kind of task
+ * is one function in exercise_tasks.php that draws its numbers and computes its
+ * answer in the same step. A new kind of task therefore only comes into being by
+ * writing new code - never by data.
  *
- * All numbers are whole numbers, also for the fractions and the decimals: a
- * decimal is carried as tenths, a fraction as numerator and denominator. That
- * keeps every answer exact (no floating point rounding) and makes it easy to
- * check.
+ * The catalogue is also the single source of truth for the interface:
+ * public/index.php hands it to the browser as config.exerciseTypes, so the card
+ * dialog offers exactly the kinds of task that exist here, with exactly the
+ * fields each of them needs.
  */
 
-/*
- * The sizes that are drawn from a fixed list rather than from the range of the
- * card, because only familiar ones make sense: a percentage of 37 would be
- * arithmetic, not mental arithmetic.
- */
-const EXERCISE_PERCENTAGES = [5, 10, 20, 25, 50, 75];
+require_once __DIR__ . '/exercise_tasks.php';
+require_once __DIR__ . '/exercise_tasks_energy.php';
+require_once __DIR__ . '/../helpers/translations.php';
 
 /** The denominators a fraction task may use. */
 const EXERCISE_FRACTION_DENOMINATORS = [2, 3, 4, 5, 6, 8, 10, 12];
 
-/** How many decimal places a decimal task uses (tenths, so one). */
-const EXERCISE_DECIMAL_PLACES = 1;
+/** The percentages a percentage task may use: familiar ones only. */
+const EXERCISE_PERCENTAGES = [5, 10, 15, 20, 25, 40, 50, 60, 75];
+
+/** How many decimals a rounded answer gets unless its kind says otherwise. */
+const EXERCISE_DECIMALS = 2;
 
 /**
- * Every kind of task this application knows, in the order the dialog lists them.
+ * Every kind of task, with everything it may be given.
  *
- *   label        translation key of the name of this kind, NOT a sentence: like
- *                every other text of this interface it is looked up per language
- *   hint         translation key of the one line that explains, in the dialog,
- *                where the numbers of this kind of task come from
- *   lowest       smallest number the range of a card may start at
- *   highest      largest number the range of a card may end at
- *   default_min  what the dialog fills in for a new card
- *   default_max
+ *   label   translation key of the name of the kind of task
+ *   hint    translation key of the sentence that explains it in the dialog
+ *   params  what a card of this kind may be told, as a small schema that the
+ *           server and the card dialog both read:
  *
- * The limits keep a card from being given numbers that produce unreadable tasks
- * (a square of 10000 or a sum of two million numbers).
+ *             kind     'int'    a whole number between lowest and highest
+ *                      'select' exactly one of options
+ *                      'multi'  any number of options
+ *                      'flag'   yes or no
+ *             default  what a new card gets
+ *             lowest   the limits of an 'int'
+ *             highest
+ *             options  the allowed values of 'select' and 'multi'
  *
- * @return array<string, array<string, int|string>>
+ * A parameter is shown under exercise.param.<name> and an option under
+ * exercise.option.<value>, so no label has to be repeated per kind of task.
+ *
+ * @return array<string, array<string, mixed>>
  */
 function exercise_catalog(): array
 {
+    $numbers = static function (int $min, int $max, int $lowest, int $highest): array {
+        return [
+            'min' => ['kind' => 'int', 'default' => $min, 'lowest' => $lowest, 'highest' => $highest],
+            'max' => ['kind' => 'int', 'default' => $max, 'lowest' => $lowest, 'highest' => $highest],
+        ];
+    };
+
+    $choice = static function (array $options, $default, string $kind = 'select'): array {
+        return ['kind' => $kind, 'default' => $default, 'options' => $options];
+    };
+
     return [
-        'add' => [
-            'label' => 'exercise.type.add',
-            'hint' => 'exercise.hint.add',
-            'lowest' => 1,
-            'highest' => 10000,
-            'default_min' => 1,
-            'default_max' => 100,
+        'times_table' => [
+            'label' => 'exercise.type.times_table',
+            'hint' => 'exercise.hint.times_table',
+            'params' => $numbers(2, 20, 1, 1000),
         ],
-        'subtract' => [
-            'label' => 'exercise.type.subtract',
-            'hint' => 'exercise.hint.subtract',
-            'lowest' => 1,
-            'highest' => 10000,
-            'default_min' => 1,
-            'default_max' => 100,
-        ],
-        'multiply' => [
-            'label' => 'exercise.type.multiply',
-            'hint' => 'exercise.hint.multiply',
-            'lowest' => 1,
-            'highest' => 1000,
-            'default_min' => 1,
-            'default_max' => 10,
-        ],
-        'divide' => [
-            'label' => 'exercise.type.divide',
-            'hint' => 'exercise.hint.divide',
-            'lowest' => 1,
-            'highest' => 1000,
-            'default_min' => 1,
-            'default_max' => 10,
-        ],
-        'missing_addend' => [
-            'label' => 'exercise.type.missing_addend',
-            'hint' => 'exercise.hint.missing_addend',
-            'lowest' => 1,
-            'highest' => 10000,
-            'default_min' => 1,
-            'default_max' => 100,
-        ],
-        'percent_of' => [
-            'label' => 'exercise.type.percent_of',
-            'hint' => 'exercise.hint.percent_of',
-            'lowest' => 1,
-            'highest' => 100000,
-            'default_min' => 10,
-            'default_max' => 1000,
-        ],
-        'square' => [
-            'label' => 'exercise.type.square',
-            'hint' => 'exercise.hint.square',
-            'lowest' => 1,
-            'highest' => 1000,
-            'default_min' => 1,
-            'default_max' => 20,
+        'division_inverse' => [
+            'label' => 'exercise.type.division_inverse',
+            'hint' => 'exercise.hint.division_inverse',
+            'params' => $numbers(2, 20, 2, 1000) + [
+                'ask' => $choice(['result', 'divisor'], 'result'),
+                'remainder' => ['kind' => 'flag', 'default' => false],
+            ],
         ],
         'fraction' => [
             'label' => 'exercise.type.fraction',
             'hint' => 'exercise.hint.fraction',
-            'lowest' => 1,
-            'highest' => 99,
-            'default_min' => 1,
-            'default_max' => 9,
+            'params' => $numbers(1, 9, 1, 99) + [
+                'operations' => $choice(['add', 'subtract', 'multiply', 'divide'], 'add', 'multi'),
+            ],
         ],
-        'decimal' => [
-            'label' => 'exercise.type.decimal',
-            'hint' => 'exercise.hint.decimal',
-            'lowest' => 1,
-            'highest' => 10000,
-            'default_min' => 1,
-            'default_max' => 20,
+        'negative_parens' => [
+            'label' => 'exercise.type.negative_parens',
+            'hint' => 'exercise.hint.negative_parens',
+            'params' => $numbers(1, 12, 1, 50) + [
+                'patterns' => $choice(
+                    ['plus_minus', 'minus_minus', 'negative_product', 'negative_factor'],
+                    'plus_minus',
+                    'multi'
+                ),
+            ],
+        ],
+        'powers_scientific' => [
+            'label' => 'exercise.type.powers_scientific',
+            'hint' => 'exercise.hint.powers_scientific',
+            'params' => $numbers(1, 9, 1, 9) + [
+                'variants' => $choice(['power_of_ten', 'to_scientific', 'from_scientific'], 'power_of_ten', 'multi'),
+            ],
+        ],
+        'linear_equation' => [
+            'label' => 'exercise.type.linear_equation',
+            'hint' => 'exercise.hint.linear_equation',
+            'params' => $numbers(1, 12, 1, 100) + [
+                'variants' => $choice(['equation', 'formula'], 'equation', 'multi'),
+            ],
+        ],
+        'pythagoras' => [
+            'label' => 'exercise.type.pythagoras',
+            'hint' => 'exercise.hint.pythagoras',
+            'params' => $numbers(1, 20, 1, 200) + [
+                'variants' => $choice(['hypotenuse', 'leg'], 'hypotenuse', 'multi'),
+            ],
+        ],
+        'percent' => [
+            'label' => 'exercise.type.percent',
+            'hint' => 'exercise.hint.percent',
+            'params' => $numbers(10, 1000, 1, 100000) + [
+                'ask' => $choice(['value', 'rate', 'base'], 'value'),
+            ],
+        ],
+        'percent_energy' => [
+            'label' => 'exercise.type.percent_energy',
+            'hint' => 'exercise.hint.percent_energy',
+            'params' => [
+                'variants' => $choice(
+                    ['mix', 'pv_ratio', 'self_consumption', 'storage_level', 'grid_losses', 'price_change'],
+                    'mix',
+                    'multi'
+                ),
+            ],
+        ],
+        'rule_of_three' => [
+            'label' => 'exercise.type.rule_of_three',
+            'hint' => 'exercise.hint.rule_of_three',
+            'params' => $numbers(1, 20, 1, 500) + [
+                'variants' => $choice(['quantity_cost', 'quantity_power'], 'quantity_cost', 'multi'),
+            ],
+        ],
+        'unit_conversion' => [
+            'label' => 'exercise.type.unit_conversion',
+            'hint' => 'exercise.hint.unit_conversion',
+            'params' => $numbers(1, 1000, 1, 100000) + [
+                'families' => $choice(['v', 'w', 'wh', 'volume'], 'v', 'multi'),
+            ],
+        ],
+        'energy_formula' => [
+            'label' => 'exercise.type.energy_formula',
+            'hint' => 'exercise.hint.energy_formula',
+            'params' => $numbers(1, 1000, 1, 100000) + [
+                'formulas' => $choice(['power', 'energy'], 'power', 'multi'),
+            ],
+        ],
+        'efficiency' => [
+            'label' => 'exercise.type.efficiency',
+            'hint' => 'exercise.hint.efficiency',
+            'params' => $numbers(100, 5000, 1, 100000) + [
+                'ask' => $choice(['efficiency', 'useful', 'input'], 'efficiency'),
+            ],
+        ],
+        'utilisation' => [
+            'label' => 'exercise.type.utilisation',
+            'hint' => 'exercise.hint.utilisation',
+            'params' => $numbers(100, 5000, 1, 1000000) + [
+                'ask' => $choice(['utilisation', 'actual', 'maximum'], 'utilisation'),
+            ],
+        ],
+        'full_load_hours' => [
+            'label' => 'exercise.type.full_load_hours',
+            'hint' => 'exercise.hint.full_load_hours',
+            'params' => $numbers(1, 100, 1, 2000) + [
+                'ask' => $choice(['hours', 'capacity_factor'], 'hours'),
+            ],
+        ],
+        'quarter_hours' => [
+            'label' => 'exercise.type.quarter_hours',
+            'hint' => 'exercise.hint.quarter_hours',
+            'params' => $numbers(4, 60, 1, 10000) + [
+                'count' => ['kind' => 'int', 'default' => 4, 'lowest' => 4, 'highest' => 8],
+                'ask' => $choice(['energy', 'average'], 'energy'),
+            ],
+        ],
+        'statistics_spread' => [
+            'label' => 'exercise.type.statistics_spread',
+            'hint' => 'exercise.hint.statistics_spread',
+            'params' => $numbers(1, 50, 1, 10000) + [
+                'count' => ['kind' => 'int', 'default' => 7, 'lowest' => 5, 'highest' => 9],
+                'ask' => $choice(['median', 'minimum', 'maximum', 'range'], 'median'),
+            ],
+        ],
+        'mean_value' => [
+            'label' => 'exercise.type.mean_value',
+            'hint' => 'exercise.hint.mean_value',
+            'params' => $numbers(1, 50, 1, 10000) + [
+                'count' => ['kind' => 'int', 'default' => 4, 'lowest' => 3, 'highest' => 5],
+            ],
+        ],
+        'standard_deviation' => [
+            'label' => 'exercise.type.standard_deviation',
+            'hint' => 'exercise.hint.standard_deviation',
+            'params' => $numbers(1, 20, 1, 1000) + [
+                'count' => ['kind' => 'int', 'default' => 6, 'lowest' => 5, 'highest' => 8],
+            ],
+        ],
+        'data_table' => [
+            'label' => 'exercise.type.data_table',
+            'hint' => 'exercise.hint.data_table',
+            'params' => $numbers(5, 50, 1, 10000) + [
+                'count' => ['kind' => 'int', 'default' => 5, 'lowest' => 4, 'highest' => 6],
+                'ask' => $choice(['largest', 'difference', 'share'], 'largest'),
+            ],
         ],
     ];
 }
 
 /**
- * The keys of every kind of task, in the order of the catalog.
+ * The keys of every kind of task, in the order of the catalogue.
  *
  * @return list<string>
  */
@@ -147,47 +239,122 @@ function exercise_type_keys(): array
     return array_keys(exercise_catalog());
 }
 
-/**
- * Whether this key is one of the kinds of task that are written down here.
- */
+/** Whether this key is one of the kinds of task that live here. */
 function exercise_type_is_known(string $type): bool
 {
     return array_key_exists($type, exercise_catalog());
 }
 
-/**
- * The translation key that names this kind of task, or null when the key is not
- * one of ours.
- */
+/** The translation key that names this kind of task, or null. */
 function exercise_type_label(string $type): ?string
 {
-    return exercise_catalog()[$type]['label'] ?? null;
+    $entry = exercise_catalog()[$type] ?? null;
+
+    return $entry === null ? null : (string) $entry['label'];
+}
+
+/** The translation key that explains this kind of task, or null. */
+function exercise_type_hint(string $type): ?string
+{
+    $entry = exercise_catalog()[$type] ?? null;
+
+    return $entry === null ? null : (string) $entry['hint'];
 }
 
 /**
- * The number range the dialog suggests for this kind of task.
+ * The parameters a card of this kind starts with in the dialog.
  *
- * @return array{min: int, max: int}
+ * @return array<string, mixed>
  */
-function exercise_type_default_range(string $type): array
+function exercise_type_default_params(string $type): array
 {
     $entry = exercise_catalog()[$type] ?? null;
 
     if ($entry === null) {
-        return ['min' => 1, 'max' => 10];
+        return [];
     }
 
-    return ['min' => (int) $entry['default_min'], 'max' => (int) $entry['default_max']];
+    $params = [];
+
+    foreach ($entry['params'] as $name => $schema) {
+        $params[$name] = $schema['default'];
+    }
+
+    return $params;
 }
 
 /**
- * Whether a range a person typed is one this kind of task can work with.
+ * The schema of one parameter, or null.
  *
- * The limits are the ones in the catalog: a range that lies outside them is
- * refused when a card is saved, instead of being stored and quietly corrected on
- * every display.
+ * @return array<string, mixed>|null
  */
-function exercise_range_is_valid(string $type, int $rangeMin, int $rangeMax): bool
+function exercise_param_schema(string $type, string $name): ?array
+{
+    return exercise_catalog()[$type]['params'][$name] ?? null;
+}
+
+/**
+ * Brings a stored or sent set of parameters into the shape this kind of task
+ * expects: only known keys, every value inside its limits, every missing value
+ * filled with its default.
+ *
+ * This is what makes a card that was edited by hand, or a kind of task whose
+ * schema gained a parameter later, still show a sensible task instead of none. It
+ * is also what stops anything unknown from travelling further: a key that is not
+ * in the schema is dropped, not stored and not looked up anywhere.
+ *
+ * @param array<string, mixed> $params
+ * @return array<string, mixed>
+ */
+function exercise_normalise_params(string $type, array $params): array
+{
+    $entry = exercise_catalog()[$type] ?? null;
+
+    if ($entry === null) {
+        return [];
+    }
+
+    $clean = [];
+
+    foreach ($entry['params'] as $name => $schema) {
+        $value = $params[$name] ?? $schema['default'];
+
+        switch ($schema['kind']) {
+            case 'int':
+                $number = is_numeric($value) ? (int) $value : (int) $schema['default'];
+                $clean[$name] = max((int) $schema['lowest'], min($number, (int) $schema['highest']));
+                break;
+
+            case 'select':
+                $clean[$name] = in_array($value, $schema['options'], true) ? $value : $schema['default'];
+                break;
+
+            case 'multi':
+                $kept = is_array($value) ? array_values(array_intersect($schema['options'], $value)) : [];
+                /* A list that allows nothing could not build a task: fall back. */
+                $clean[$name] = $kept === [] ? $schema['options'] : $kept;
+                break;
+
+            case 'flag':
+                $clean[$name] = is_bool($value) ? $value : (bool) $schema['default'];
+                break;
+        }
+    }
+
+    return $clean;
+}
+
+/**
+ * Whether a set of parameters from a request may be stored as it is.
+ *
+ * The strict counterpart of exercise_normalise_params(): a name nobody knows, a
+ * value outside its limits or an empty list is refused here, so what is stored is
+ * always exactly what was meant - and never quietly corrected only when the card
+ * is shown.
+ *
+ * @param array<string, mixed> $params
+ */
+function exercise_params_are_valid(string $type, array $params): bool
 {
     $entry = exercise_catalog()[$type] ?? null;
 
@@ -195,218 +362,154 @@ function exercise_range_is_valid(string $type, int $rangeMin, int $rangeMax): bo
         return false;
     }
 
-    return $rangeMin >= (int) $entry['lowest']
-        && $rangeMax <= (int) $entry['highest']
-        && $rangeMin <= $rangeMax;
+    foreach ($params as $name => $value) {
+        $schema = $entry['params'][$name] ?? null;
+
+        if ($schema === null) {
+            return false;
+        }
+
+        switch ($schema['kind']) {
+            case 'int':
+                if (!is_int($value) || $value < (int) $schema['lowest'] || $value > (int) $schema['highest']) {
+                    return false;
+                }
+
+                break;
+
+            case 'select':
+                if (!is_string($value) || !in_array($value, $schema['options'], true)) {
+                    return false;
+                }
+
+                break;
+
+            case 'multi':
+                if (!is_array($value) || $value === []) {
+                    return false;
+                }
+
+                foreach ($value as $single) {
+                    if (!is_string($single) || !in_array($single, $schema['options'], true)) {
+                        return false;
+                    }
+                }
+
+                break;
+
+            case 'flag':
+                if (!is_bool($value)) {
+                    return false;
+                }
+
+                break;
+        }
+    }
+
+    return true;
 }
 
 /**
- * Brings a stored range into the limits of its kind of task.
+ * The limits of the number fields of one kind of task, for the message the dialog
+ * shows when somebody types something outside them.
  *
- * Stored values are trusted to have been checked when they were saved, but a row
- * can be older than the limits or be edited by hand. Drawing numbers is never
- * refused because of that: the range is quietly pulled into the allowed limits so
- * the card still shows a task.
- *
- * @return array{0: int, 1: int}
+ * @return array{lowest: int, highest: int}
  */
-function exercise_normalise_range(string $type, int $rangeMin, int $rangeMax): array
+function exercise_number_limits(string $type): array
 {
     $entry = exercise_catalog()[$type] ?? null;
 
     if ($entry === null) {
-        return [1, 10];
+        return ['lowest' => 1, 'highest' => 1];
     }
 
-    $lowest = (int) $entry['lowest'];
-    $highest = (int) $entry['highest'];
-    $low = max($lowest, min($rangeMin, $highest));
-    $high = max($low, min($rangeMax, $highest));
+    $lowest = 1;
+    $highest = 1;
 
-    return [$low, $high];
+    foreach ($entry['params'] as $schema) {
+        if ($schema['kind'] !== 'int') {
+            continue;
+        }
+
+        $lowest = min($lowest, (int) $schema['lowest']);
+        $highest = max($highest, (int) $schema['highest']);
+    }
+
+    return ['lowest' => $lowest, 'highest' => $highest];
+}
+
+/* -------------------------------------------------------------------------
+   Building one task
+   ------------------------------------------------------------------------- */
+
+/**
+ * The kinds of task that really have a builder.
+ *
+ * A key that is in the catalogue but has no builder is not usable:
+ * exercise_build_task() returns null for it and the card is shown as a fixed
+ * card, which is the safety net for a half-written kind of task.
+ *
+ * @return array<string, string>
+ */
+function exercise_task_builders(): array
+{
+    $builders = [];
+
+    foreach (exercise_type_keys() as $type) {
+        $function = 'exercise_task_' . $type;
+
+        if (function_exists($function)) {
+            $builders[$type] = $function;
+        }
+    }
+
+    return $builders;
 }
 
 /**
- * Builds one task of this kind, with everything the interface needs to show it.
+ * Builds one task of this kind from these numbers.
  *
  * The answer belongs to the numbers that were drawn in this very call: question
  * and answer are made together, so they always belong to each other, while a
  * later call draws new numbers.
  *
- * Both languages travel along, because one of the nine kinds of task is written
- * differently in each of them (a decimal has a comma in German and a full stop in
- * English). For the other eight the two are the same string - they are only
- * numbers and signs, which need no translation.
+ * Both languages travel along. Tasks that are numbers and arithmetic signs only
+ * read the same in both languages; the ones that carry a sentence are built from
+ * translation keys, so only the wording differs.
  *
- * Returns null when the key is not one of ours. The caller then shows the card as
- * a fixed card.
+ * Returns null when the kind of task cannot be built.
  *
+ * @param array<string, mixed> $params
  * @return array{type: string, label: string, question: array<string, string>, answer: array<string, string>}|null
  */
-function exercise_build_task(string $type, int $rangeMin, int $rangeMax): ?array
+function exercise_build_task(string $type, array $params): ?array
 {
     $label = exercise_type_label($type);
+    $builders = exercise_task_builders();
 
-    if ($label === null) {
+    if ($label === null || !isset($builders[$type])) {
         return null;
     }
 
-    [$low, $high] = exercise_normalise_range($type, $rangeMin, $rangeMax);
+    $task = ($builders[$type])(exercise_normalise_params($type, $params));
 
-    $question = null;
-    $answer = null;
-
-    switch ($type) {
-        case 'add':
-            $first = exercise_draw($low, $high);
-            $second = exercise_draw($low, $high);
-            $question = exercise_same_in_both_languages($first . ' + ' . $second);
-            $answer = exercise_same_in_both_languages((string) ($first + $second));
-            break;
-
-        case 'subtract':
-            /* The larger number comes first, so the answer is never negative. */
-            $first = exercise_draw($low, $high);
-            $second = exercise_draw($low, $high);
-
-            if ($second > $first) {
-                [$first, $second] = [$second, $first];
-            }
-
-            $question = exercise_same_in_both_languages($first . ' − ' . $second);
-            $answer = exercise_same_in_both_languages((string) ($first - $second));
-            break;
-
-        case 'multiply':
-            $first = exercise_draw($low, $high);
-            $second = exercise_draw($low, $high);
-            $question = exercise_same_in_both_languages($first . ' · ' . $second);
-            $answer = exercise_same_in_both_languages((string) ($first * $second));
-            break;
-
-        case 'divide':
-            /*
-             * The divisor and the answer are drawn and the number that is divided
-             * is their product. So the division always comes out even, which is
-             * the point of this kind of task.
-             */
-            $divisor = exercise_draw($low, $high);
-            $result = exercise_draw($low, $high);
-            $question = exercise_same_in_both_languages(($divisor * $result) . ' ÷ ' . $divisor);
-            $answer = exercise_same_in_both_languages((string) $result);
-            break;
-
-        case 'missing_addend':
-            /*
-             * "34 + ? = 92": the number that is asked for is the second addend.
-             * The sum is shown, the addend is the answer.
-             */
-            $first = exercise_draw($low, $high);
-            $second = exercise_draw($low, $high);
-            $question = exercise_same_in_both_languages($first . ' + ? = ' . ($first + $second));
-            $answer = exercise_same_in_both_languages((string) $second);
-            break;
-
-        case 'percent_of':
-            $percent = exercise_pick(EXERCISE_PERCENTAGES);
-            $base = exercise_percent_base($low, $high, $percent);
-            $question = exercise_same_in_both_languages($base . ' × ' . $percent . ' %');
-            /* Whole by construction: the base is a multiple of 100/gcd(percent,100). */
-            $answer = exercise_same_in_both_languages((string) intdiv($base * $percent, 100));
-            break;
-
-        case 'square':
-            $number = exercise_draw($low, $high);
-            $question = exercise_same_in_both_languages($number . '²');
-            $answer = exercise_same_in_both_languages((string) ($number * $number));
-            break;
-
-        case 'fraction':
-            /*
-             * Same denominator, so the task stays mental arithmetic. The
-             * numerators come from the range of the card, but never reach the
-             * denominator: otherwise the fraction would be a whole number in
-             * disguise. The answer is always written as the smallest fraction
-             * that has the same value.
-             */
-            $denominator = exercise_pick(EXERCISE_FRACTION_DENOMINATORS);
-            $numeratorLow = max(1, min($low, $denominator - 1));
-            $numeratorHigh = max($numeratorLow, min($high, $denominator - 1));
-
-            $first = exercise_draw($numeratorLow, $numeratorHigh);
-            $second = exercise_draw($numeratorLow, $numeratorHigh);
-
-            if (random_int(0, 1) === 1) {
-                $question = exercise_same_in_both_languages(
-                    $first . '/' . $denominator . ' + ' . $second . '/' . $denominator
-                );
-                $top = $first + $second;
-            } else {
-                if ($second > $first) {
-                    [$first, $second] = [$second, $first];
-                }
-
-                $question = exercise_same_in_both_languages(
-                    $first . '/' . $denominator . ' − ' . $second . '/' . $denominator
-                );
-                $top = $first - $second;
-            }
-
-            $answer = exercise_same_in_both_languages(exercise_fraction_text($top, $denominator));
-            break;
-
-        case 'decimal':
-            /*
-             * A decimal is carried as tenths, so nothing is ever rounded. Whole
-             * part from the range, one decimal place from 1 to 9 (so a task never
-             * shows a useless ",0").
-             */
-            $first = exercise_draw_decimal($low, $high);
-            $second = exercise_draw_decimal($low, $high);
-
-            if (random_int(0, 1) === 1) {
-                $sum = $first + $second;
-                $sign = ' + ';
-            } else {
-                if ($second > $first) {
-                    [$first, $second] = [$second, $first];
-                }
-
-                $sum = $first - $second;
-                $sign = ' − ';
-            }
-
-            /* The only kind of task that is written differently per language. */
-            $question = [
-                'de' => exercise_tenths_text($first, 'de') . $sign . exercise_tenths_text($second, 'de'),
-                'en' => exercise_tenths_text($first, 'en') . $sign . exercise_tenths_text($second, 'en'),
-            ];
-            $answer = [
-                'de' => exercise_tenths_text($sum, 'de'),
-                'en' => exercise_tenths_text($sum, 'en'),
-            ];
-            break;
-    }
-
-    if ($question === null || $answer === null) {
+    if ($task === null) {
         return null;
     }
 
     return [
         'type' => $type,
         'label' => $label,
-        'question' => $question,
-        'answer' => $answer,
+        'question' => $task['question'],
+        'answer' => $task['answer'],
     ];
 }
 
-/**
- * A whole number from low to high, both included.
- *
- * random_int() is the one random source in PHP that is meant to be used for
- * anything that has to be unpredictable. For a task the numbers do not have to be
- * unguessable, but using the same function everywhere keeps the code simple.
- */
+/* -------------------------------------------------------------------------
+   Drawing numbers and writing them down
+   ------------------------------------------------------------------------- */
+
+/** A whole number from low to high, both included. */
 function exercise_draw(int $low, int $high): int
 {
     if ($high <= $low) {
@@ -419,94 +522,119 @@ function exercise_draw(int $low, int $high): int
 /**
  * One entry of a fixed list, drawn by chance.
  *
- * @param list<int> $values
+ * @param list<mixed> $values
+ * @return mixed
  */
-function exercise_pick(array $values): int
+function exercise_pick(array $values)
 {
     return $values[random_int(0, count($values) - 1)];
 }
 
 /**
- * The two texts of a task that reads the same in German and in English.
+ * Writes a number in the two languages of this interface.
  *
- * Eight of the nine kinds of task consist of numbers and arithmetic signs only,
- * so there is nothing to translate. Sending the same text twice keeps the shape
- * of the answer the same for every kind of task, which is easier for whoever
- * reads the reply.
+ * The only difference between them is the decimal separator: German writes 1,5
+ * and English 1.5. Thousands are separated by a space in both, because that is
+ * readable and means the same in either of them.
+ */
+function exercise_number(float $value, int $decimals = 0): array
+{
+    return [
+        'de' => exercise_decimal($value, $decimals, 'de'),
+        'en' => exercise_decimal($value, $decimals, 'en'),
+    ];
+}
+
+/** A number in one language, without useless trailing zeros. */
+function exercise_decimal(float $value, int $decimals, string $language): string
+{
+    $separator = $language === 'en' ? '.' : ',';
+    $text = number_format($value, $decimals, $separator, ' ');
+
+    if ($decimals > 0 && str_contains($text, $separator)) {
+        $text = rtrim(rtrim($text, '0'), $separator);
+    }
+
+    return $text;
+}
+
+/**
+ * A number that had to be rounded, with the sign that says so.
+ *
+ * "≈ 5,83" instead of "5,83": whoever reads the card should see that the exact
+ * value is not a short one. The sign is the same in both languages.
+ */
+function exercise_rounded(float $value, int $decimals = EXERCISE_DECIMALS): array
+{
+    return [
+        'de' => '≈ ' . exercise_decimal($value, $decimals, 'de'),
+        'en' => '≈ ' . exercise_decimal($value, $decimals, 'en'),
+    ];
+}
+
+/**
+ * The two texts of something that reads the same in German and in English.
  *
  * @return array{de: string, en: string}
  */
-function exercise_same_in_both_languages(string $text): array
+function exercise_same(string $text): array
 {
     return ['de' => $text, 'en' => $text];
 }
 
 /**
- * A base number that this percentage can be taken from without a remainder.
+ * The two texts of a sentence that has to be translated.
  *
- * "20 % von 150" is 30, but "20 % von 151" is 30.2 - not a task for a card. The
- * base therefore has to be a multiple of 100/gcd(percent, 100): for 20 that is
- * every fifth number, for 25 every fourth, for 50 every second. The base is drawn
- * from the multiples inside the range of the card. When the range is so narrow
- * that it holds none, the next multiple above it is used - a task is then shown
- * with a base just outside the range instead of no task at all.
+ * @param array<string, string|int|float> $params
+ * @return array{de: string, en: string}
  */
-function exercise_percent_base(int $low, int $high, int $percent): int
+function exercise_sentence(string $key, array $params = []): array
 {
-    $step = intdiv(100, exercise_greatest_common_divisor($percent, 100));
-    $first = intdiv($low + $step - 1, $step) * $step;
-    $last = intdiv($high, $step) * $step;
+    return [
+        'de' => t_fill('de', $key, $params),
+        'en' => t_fill('en', $key, $params),
+    ];
+}
 
-    if ($first > $last) {
-        return $first;
+/** A whole number written with a superscript exponent: 10³, 10⁶. */
+function exercise_superscript(int $exponent): string
+{
+    $digits = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+    $text = '';
+
+    foreach (str_split((string) abs($exponent)) as $digit) {
+        $text .= $digits[(int) $digit];
     }
 
-    return $first + $step * random_int(0, intdiv($last - $first, $step));
+    return $exponent < 0 ? '⁻' . $text : $text;
 }
 
 /**
- * A decimal from the range, carried as tenths.
+ * A fraction written as small as it can be: 6/8 becomes 3/4, 8/8 becomes 1.
  *
- * The whole part lies in low..high and gets one decimal place, so a task never
- * shows "7,0" but always something like "7,4".
- */
-function exercise_draw_decimal(int $low, int $high): int
-{
-    $whole = exercise_draw($low, $high);
-    $tenths = random_int(1, 9);
-
-    return $whole * 10 + $tenths;
-}
-
-/**
- * Writes tenths as a decimal number in one language.
- *
- * German puts a comma between the whole part and the decimals, English a full
- * stop. A number whose decimals are zero is written without them: "2" instead of
- * "2,0".
- */
-function exercise_tenths_text(int $tenths, string $language): string
-{
-    $sign = $tenths < 0 ? '−' : '';
-    $value = abs($tenths);
-    $whole = intdiv($value, 10);
-    $rest = $value % 10;
-    $separator = $language === 'en' ? '.' : ',';
-
-    if ($rest === 0) {
-        return $sign . $whole;
-    }
-
-    return $sign . $whole . $separator . $rest;
-}
-
-/**
- * Writes a fraction as small as it can be: 6/8 becomes 3/4, 8/8 becomes 1.
+ * The arithmetic behind it is exact; only the look is decided here. A minus sign
+ * is put in front of the fraction, the way it is written down by hand.
  */
 function exercise_fraction_text(int $numerator, int $denominator): string
 {
+    if ($denominator === 0) {
+        return (string) $numerator;
+    }
+
     if ($numerator === 0) {
         return '0';
+    }
+
+    $sign = '';
+
+    if ($numerator < 0) {
+        $sign = '−';
+        $numerator = -$numerator;
+    }
+
+    if ($denominator < 0) {
+        $sign = $sign === '−' ? '' : '−';
+        $denominator = -$denominator;
     }
 
     $divisor = exercise_greatest_common_divisor($numerator, $denominator);
@@ -514,19 +642,13 @@ function exercise_fraction_text(int $numerator, int $denominator): string
     $bottom = intdiv($denominator, $divisor);
 
     if ($bottom === 1) {
-        return (string) $top;
+        return $sign . $top;
     }
 
-    return $top . '/' . $bottom;
+    return $sign . $top . '/' . $bottom;
 }
 
-/**
- * The largest number that divides both numbers without a remainder (Euclid).
- *
- * Only whole numbers and only a loop that always gets smaller: nothing here can
- * run long, and there is no division by zero because the loop stops when the
- * second number is 0.
- */
+/** The largest number that divides both numbers without a remainder (Euclid). */
 function exercise_greatest_common_divisor(int $first, int $second): int
 {
     $first = abs($first);
@@ -539,4 +661,89 @@ function exercise_greatest_common_divisor(int $first, int $second): int
     }
 
     return max(1, $first);
+}
+
+/** The smallest number that both numbers divide without a remainder. */
+function exercise_least_common_multiple(int $first, int $second): int
+{
+    if ($first === 0 || $second === 0) {
+        return 0;
+    }
+
+    return abs(intdiv($first * $second, exercise_greatest_common_divisor($first, $second)));
+}
+
+/**
+ * A number between low and high that is a multiple of step.
+ *
+ * Used where a task has to come out exactly: a base a percentage divides evenly,
+ * a list whose mean is a whole number, a series whose sum is a multiple of four.
+ * The next multiple above the range is used when the range holds none, so that a
+ * narrow range still shows a task instead of none.
+ */
+function exercise_draw_multiple(int $low, int $high, int $step): int
+{
+    $step = max(1, abs($step));
+    $first = (int) (ceil($low / $step) * $step);
+    $last = (int) (floor($high / $step) * $step);
+
+    if ($first > $last) {
+        return $first;
+    }
+
+    return $first + $step * random_int(0, intdiv($last - $first, $step));
+}
+
+/**
+ * A list of whole numbers, one after the other, from low to high.
+ *
+ * @return list<int>
+ */
+function exercise_draw_series(int $count, int $low, int $high): array
+{
+    $values = [];
+
+    for ($index = 0; $index < $count; $index++) {
+        $values[] = exercise_draw($low, $high);
+    }
+
+    return $values;
+}
+
+/**
+ * A list of numbers written down the way it is shown on a card: "3, 7, 11".
+ *
+ * @param list<int> $values
+ */
+function exercise_series_text(array $values): string
+{
+    return implode(', ', $values);
+}
+
+/* -------------------------------------------------------------------------
+   The fixed lists of units
+   ------------------------------------------------------------------------- */
+
+/**
+ * The units a conversion task may use, grouped by what they measure.
+ *
+ * Each entry is a list from the smallest unit upwards, together with how many of
+ * the smallest unit one of them is. The factor between two units of a family is
+ * the quotient of those numbers, which is always a power of ten - that is why
+ * every conversion in these families comes out exactly.
+ *
+ * @return array<string, array<string, int>>
+ */
+function exercise_unit_families(): array
+{
+    return [
+        /* Volt. */
+        'v' => ['V' => 1, 'kV' => 1000],
+        /* Watt. */
+        'w' => ['W' => 1, 'kW' => 1000, 'MW' => 1000000],
+        /* Wattstunden: what a counter counts and a bill is written for. */
+        'wh' => ['Wh' => 1, 'kWh' => 1000, 'MWh' => 1000000, 'GWh' => 1000000000],
+        /* Volume. The litre is the exact thousandth of a cubic metre. */
+        'volume' => ['l' => 1, 'm³' => 1000],
+    ];
 }

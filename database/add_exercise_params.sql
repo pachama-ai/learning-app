@@ -1,0 +1,74 @@
+-- ==========================================================================
+-- Generated exercises: the numbers a task is built from
+-- ==========================================================================
+--
+-- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
+-- Nothing in the application runs this file, and Copilot never executes a
+-- structural change on its own.
+--
+-- Command line:
+--   mysql -u <user> -p learning_app < database/add_exercise_params.sql
+--
+-- Why one more column
+--   An exercise card is built when it is shown, so the card has to say WHICH kind
+--   of task it is and WHICH numbers that task may use. The kind of task is already
+--   stored (card_exercises.exercise_type). What is still missing is the second
+--   half: the numbers, and for some kinds of task a choice between variants.
+--
+--   That is what exercise_params holds, as JSON. For a multiplication it is
+--
+--     {"min": 2, "max": 20}
+--
+--   for a percentage task
+--
+--     {"min": 10, "max": 1000, "ask": "rate"}
+--
+--   and for the energy percentages the list of contexts that may be shown
+--
+--     {"variants": ["mix", "pv_ratio", "storage_level"]}
+--
+--   Which keys are allowed, what they may contain and what they mean is written
+--   down in ONE place: exercise_catalog() in src/services/exercise_service.php.
+--   A key that is not in that list, or a value outside its limits, is refused
+--   when the card is saved and ignored (the task falls back to the defaults of
+--   its kind) when it is read. A key can therefore never smuggle a formula into
+--   the application: nothing here is ever worked out as text, only looked up.
+--
+--   NULL means "use the defaults of this kind of task", which is what every row
+--   that exists today gets.
+--
+-- What it does
+--   Adds exactly one NULL-able column to `card_exercises`. Nothing else.
+--
+-- What it does NOT do
+--   * it does not touch `cards`: no new column, no changed column, no removed
+--     column. A card without a row in `card_exercises` stays a fixed card, and
+--     all 745 cards that exist are exactly that
+--   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE of existing values
+--   * no other table is touched: `users`, `categories`, `cards` and
+--     `user_card_progress` are left exactly as they are
+--   * it does not mention `card_kind`: whether a card is generated is already
+--     answered by whether it has a row in `card_exercises`. A second column
+--     saying the same thing could disagree with the first one, so there is none
+--
+-- Safety
+--   "ADD COLUMN IF NOT EXISTS" is supported by MariaDB 10.0+, so running this
+--   file twice changes nothing the second time. The column is NULL-able and the
+--   table is empty (0 rows), so no existing value can be affected either way.
+--
+-- Rollback (only if you ever want the old state back)
+--   ALTER TABLE `card_exercises` DROP COLUMN `exercise_params`;
+--
+-- Two columns from the first step stay untouched
+--   `range_min` and `range_max` came with the first version of this table and are
+--   empty. The numbers now live in `exercise_params`, so those two are no longer
+--   written. They are left in place because removing a column is not something
+--   this file should decide; if you want them gone, this is the line:
+--
+--     ALTER TABLE `card_exercises` DROP COLUMN `range_min`, DROP COLUMN `range_max`;
+-- ==========================================================================
+
+ALTER TABLE `card_exercises`
+    ADD COLUMN IF NOT EXISTS `exercise_params` JSON NULL
+        COMMENT 'The numbers this task is built from, as JSON; which keys are allowed is written down in exercise_catalog()'
+        AFTER `exercise_type`;

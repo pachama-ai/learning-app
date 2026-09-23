@@ -347,6 +347,33 @@ function card_exercise_table_available(PDO $pdo): bool
 }
 
 /**
+ * Whether the column that holds the numbers of a task exists.
+ *
+ * The numbers came later than the table: an installation that has run
+ * database/add_card_exercises.sql but not database/add_exercise_params.sql can
+ * still read its cards (a card then shows its task with the default numbers), but
+ * it cannot store an exercise. Asked once per request, like the table itself.
+ */
+function card_exercise_params_available(PDO $pdo): bool
+{
+    static $available = null;
+
+    if ($available === null) {
+        $statement = $pdo->prepare(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND COLUMN_NAME = :column'
+        );
+        $statement->bindValue(':table', 'card_exercises', PDO::PARAM_STR);
+        $statement->bindValue(':column', 'exercise_params', PDO::PARAM_STR);
+        $statement->execute();
+
+        $available = (int) $statement->fetchColumn() > 0;
+    }
+
+    return $available;
+}
+
+/**
  * The join that brings the exercise of a card into a query.
  *
  * An empty string when the table is not there, so one query text works with and
@@ -381,24 +408,42 @@ function card_exercise_from_row(array $row): ?array
     }
 
     /*
-     * The range that is in use, not the raw column: a range that was edited by
-     * hand or that is older than the limits of its kind of task is pulled into
-     * them, and the interface shows the numbers the task really works with.
+     * The numbers in use, not the raw column: a value that was edited by hand or
+     * that is older than the limits of its kind of task is pulled into them, and
+     * the interface shows what the task really works with.
      */
-    [$rangeMin, $rangeMax] = exercise_normalise_range(
-        $type,
-        isset($row['exercise_range_min']) ? (int) $row['exercise_range_min'] : 0,
-        isset($row['exercise_range_max']) ? (int) $row['exercise_range_max'] : 0
-    );
+    $params = exercise_normalise_params($type, card_exercise_params_from_row($row));
 
     return [
         'type' => $type,
         'label' => exercise_type_label($type),
-        'range_min' => $rangeMin,
-        'range_max' => $rangeMax,
+        'params' => $params,
         /* Built here and now, so the numbers are new on every read. */
-        'task' => exercise_build_task($type, $rangeMin, $rangeMax),
+        'task' => exercise_build_task($type, $params),
     ];
+}
+
+/**
+ * The numbers of an exercise row, as they were stored.
+ *
+ * Anything that is not a JSON object is treated as "nothing stored": the defaults
+ * of that kind of task then apply, which is what a row from before the migration
+ * looks like.
+ *
+ * @param array<string, mixed> $row
+ * @return array<string, mixed>
+ */
+function card_exercise_params_from_row(array $row): array
+{
+    $raw = $row['exercise_params'] ?? null;
+
+    if (!is_string($raw) || $raw === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+
+    return is_array($decoded) ? $decoded : [];
 }
 
 /**
@@ -437,20 +482,22 @@ function save_card_exercise(PDO $pdo, int $cardId, ?array $exercise): void
         return;
     }
 
-    [$rangeMin, $rangeMax] = exercise_normalise_range(
+    if (!card_exercise_params_available($pdo)) {
+        throw new RuntimeException('The column card_exercises.exercise_params does not exist yet.');
+    }
+
+    $params = exercise_normalise_params(
         $type,
-        (int) ($exercise['range_min'] ?? 0),
-        (int) ($exercise['range_max'] ?? 0)
+        is_array($exercise['params'] ?? null) ? $exercise['params'] : []
     );
 
     $statement = $pdo->prepare(
-        'INSERT INTO card_exercises (card_id, exercise_type, range_min, range_max)
-         VALUES (:card_id, :exercise_type, :range_min, :range_max)'
+        'INSERT INTO card_exercises (card_id, exercise_type, exercise_params)
+         VALUES (:card_id, :exercise_type, :exercise_params)'
     );
     $statement->bindValue(':card_id', $cardId, PDO::PARAM_INT);
     $statement->bindValue(':exercise_type', $type, PDO::PARAM_STR);
-    $statement->bindValue(':range_min', $rangeMin, PDO::PARAM_INT);
-    $statement->bindValue(':range_max', $rangeMax, PDO::PARAM_INT);
+    $statement->bindValue(':exercise_params', json_encode($params, JSON_UNESCAPED_UNICODE), PDO::PARAM_STR);
     $statement->execute();
 }
 
@@ -513,15 +560,23 @@ function card_exercise_from_request(array $body): array
         return ['exercise' => null, 'error' => 'invalid_exercise_type'];
     }
 
-    $rangeMin = isset($body['exercise_range_min']) ? (int) $body['exercise_range_min'] : 0;
-    $rangeMax = isset($body['exercise_range_max']) ? (int) $body['exercise_range_max'] : 0;
+    /*
+     * The numbers of the task. Saying nothing about them is allowed: the defaults
+     * of that kind of task then apply. Saying something that is not an object of
+     * known names and allowed values is not.
+     */
+    $params = $body['exercise_params'] ?? null;
 
-    if (!exercise_range_is_valid($type, $rangeMin, $rangeMax)) {
-        return ['exercise' => null, 'error' => 'invalid_exercise_range'];
+    if ($params === null) {
+        $params = exercise_type_default_params($type);
+    }
+
+    if (!is_array($params) || array_is_list($params) || !exercise_params_are_valid($type, $params)) {
+        return ['exercise' => null, 'error' => 'invalid_exercise_params'];
     }
 
     return [
-        'exercise' => ['type' => $type, 'range_min' => $rangeMin, 'range_max' => $rangeMax],
+        'exercise' => ['type' => $type, 'params' => exercise_normalise_params($type, $params)],
         'error' => null,
     ];
 }
@@ -671,10 +726,9 @@ function card_read_columns(PDO $pdo): array
      * travel along when that table exists. They are renamed here: in a joined
      * query the plain names could be read twice.
      */
-    if (card_exercise_table_available($pdo)) {
+    if (card_exercise_table_available($pdo) && card_exercise_params_available($pdo)) {
         $columns[] = 'card_exercises.exercise_type AS exercise_type';
-        $columns[] = 'card_exercises.range_min AS exercise_range_min';
-        $columns[] = 'card_exercises.range_max AS exercise_range_max';
+        $columns[] = 'card_exercises.exercise_params AS exercise_params';
     }
 
     foreach (card_language_columns(card_columns($pdo)) as $pair) {
