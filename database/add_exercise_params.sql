@@ -52,9 +52,17 @@
 --     saying the same thing could disagree with the first one, so there is none
 --
 -- Safety
---   "ADD COLUMN IF NOT EXISTS" is supported by MariaDB 10.0+, so running this
---   file twice changes nothing the second time. The column is NULL-able and the
---   table is empty (0 rows), so no existing value can be affected either way.
+--   Running this file twice is harmless in effect, but the second run answers
+--   with "#1060 - Duplicate column name". That is not a problem: it means the
+--   column is already there and there is nothing left to do.
+--
+--   The statement is deliberately written the plain way, without
+--   "IF NOT EXISTS": that spelling exists in MariaDB but NOT in MySQL, and this
+--   server is MySQL 8.4. The first version of this file used it and MySQL refused
+--   it with "#1064". Plain "ADD COLUMN" is understood by both.
+--
+--   The column is NULL-able and the table is empty (0 rows), so no existing value
+--   can be affected either way.
 --
 -- Rollback (only if you ever want the old state back)
 --   ALTER TABLE `card_exercises` DROP COLUMN `exercise_params`;
@@ -69,6 +77,6 @@
 -- ==========================================================================
 
 ALTER TABLE `card_exercises`
-    ADD COLUMN IF NOT EXISTS `exercise_params` JSON NULL
+    ADD COLUMN `exercise_params` JSON NULL
         COMMENT 'The numbers this task is built from, as JSON; which keys are allowed is written down in exercise_catalog()'
         AFTER `exercise_type`;
