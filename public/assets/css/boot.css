@@ -1,0 +1,181 @@
+/*
+ * The overlay that covers the very first load - and only that.
+ *
+ * It is transparent on purpose: the page colour, the gradient, the grain and the
+ * three light pools stay visible behind it, exactly as they are. Nothing here
+ * carries a shadow, a glow or a second colour: the drawing is thin lines in
+ * currentColor, like every other icon of the application.
+ *
+ * It is shown by a few lines of JavaScript in index.php and not by app.js, so a
+ * failed application script still ends in the message with the retry button
+ * instead of an animation that never stops.
+ */
+
+.boot {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    /* No background: the pools, the grain and the gradient stay visible. */
+    background: none;
+    opacity: 0;
+    transition: opacity 240ms var(--ease);
+    pointer-events: none;
+}
+
+/* While the overlay is fading in it may not swallow clicks. */
+.boot.is-shown {
+    opacity: 1;
+}
+
+/* When something went wrong it has to be clickable. */
+.boot.is-failed {
+    pointer-events: auto;
+}
+
+.boot__art {
+    width: 132px;
+    height: 70px;
+    color: var(--muted);
+}
+
+.boot__art svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    display: block;
+}
+
+/*
+ * The plug slides into the socket, a spark jumps when it is all the way in, and
+ * then it slides back out. One round takes 1,8 seconds, and both movements share
+ * that clock - the spark only lights up in the moment the plug is home.
+ */
+.boot__plug {
+    animation: boot-plug 1800ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+.boot__spark {
+    opacity: 0;
+    animation: boot-spark 1800ms cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+@keyframes boot-plug {
+    0%,
+    6% {
+        transform: translateX(-26px);
+    }
+
+    44%,
+    56% {
+        transform: translateX(0);
+    }
+
+    94%,
+    100% {
+        transform: translateX(-26px);
+    }
+}
+
+@keyframes boot-spark {
+    0%,
+    42% {
+        opacity: 0;
+    }
+
+    47% {
+        opacity: 1;
+    }
+
+    58%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.boot__text {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+}
+
+.boot__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 34rem;
+    padding: 0 24px;
+    text-align: center;
+}
+
+.boot__error[hidden] {
+    display: none;
+}
+
+.boot__retry {
+    padding: 9px 18px;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--text);
+    background: var(--tile-bg, transparent);
+    border: 1px solid var(--line-strong, currentColor);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.boot__retry:hover,
+.boot__retry:focus-visible {
+    background: var(--tile-bg-strong, var(--tile-bg, transparent));
+}
+
+/* A slow connection may show it for a while: the art keeps the rhythm. */
+.boot.is-failed .boot__art {
+    color: var(--line-strong, var(--muted));
+}
+
+/*
+ * Nobody who asked for less movement gets a moving plug. What stays is the
+ * spark, breathing in and out - a still picture that still says "something is
+ * happening".
+ */
+@media (prefers-reduced-motion: reduce) {
+    .boot__plug {
+        animation: none;
+        transform: translateX(0);
+    }
+
+    .boot__spark {
+        animation: none;
+        opacity: 1;
+    }
+
+    .boot__pulse {
+        animation: boot-pulse 2400ms ease-in-out infinite;
+    }
+
+    @keyframes boot-pulse {
+        0%,
+        100% {
+            opacity: 0.45;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+}
+
+/* Nothing to see on paper, and nothing that needs the overlay. */
+@media print {
+    .boot {
+        display: none !important;
+    }
+}

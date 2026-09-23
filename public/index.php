@@ -127,6 +127,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     <!-- The browser tab icon. It is the browser icon file, not a category icon. -->
     <link rel="icon" href="assets/icons/browser_icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="assets/css/app.css">
+    <!-- The overlay for the very first load; it owns no other rule. -->
+    <link rel="stylesheet" href="assets/css/boot.css">
 
     <!--
         Preloaded so the heading face is already there when the first paint
@@ -191,6 +193,193 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         <span class="bg-blob bg-blob--b"></span>
         <span class="bg-blob bg-blob--c"></span>
     </div>
+
+    <!--
+        The overlay for the very first load. It is shown only when the first view
+        takes a moment to appear (see the few lines at its end), and it is hidden
+        again as soon as the view is really there.
+
+        It is transparent: the page colour, the gradient, the grain and the three
+        light pools stay visible. The drawing is thin lines in currentColor, like
+        every other icon of the application, and it carries no shadow.
+
+        The texts are handed to the browser as data attributes instead of being
+        written into the script, so the translation stays in one place - the same
+        keys the rest of the interface uses.
+    -->
+    <div class="boot" id="boot-overlay" role="status" aria-live="polite" hidden>
+        <div class="boot__art boot__pulse" aria-hidden="true">
+            <svg viewBox="0 0 132 70" fill="none" stroke="currentColor" stroke-width="1.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <!-- The socket on the wall: a bracket and the earth contact. -->
+                <path d="M124 8 h-10 v54 h10"></path>
+                <path d="M114 35 h-6"></path>
+
+                <!-- The plug and its two pins, moving together. -->
+                <g class="boot__plug">
+                    <rect x="14" y="20" width="46" height="30" rx="8"></rect>
+                    <path d="M60 28 h16"></path>
+                    <path d="M60 42 h16"></path>
+                </g>
+
+                <!-- The spark in the moment the plug is home. -->
+                <path class="boot__spark" d="M86 10 l-6 12 h6 l-5 12"></path>
+            </svg>
+        </div>
+
+        <p class="boot__text" id="boot-text"
+           data-text-de="Wird geladen …" data-text-en="Loading …">Loading …</p>
+
+        <div class="boot__error" id="boot-error" hidden>
+            <p class="boot__text" id="boot-error-text"
+               data-text-de="Das dauert länger als erwartet. Bitte noch einmal versuchen."
+               data-text-en="This takes longer than expected. Please try again.">This takes longer than expected. Please try again.</p>
+            <button type="button" class="boot__retry" id="boot-retry"
+                    data-text-de="Erneut versuchen" data-text-en="Try again">Try again</button>
+        </div>
+    </div>
+
+    <script>
+        /*
+         * Shows and hides the overlay above. Deliberately its own little script
+         * and not a part of app.js: a broken application script must still end in
+         * the message with the retry button, never in an animation that runs
+         * forever.
+         *
+         * Rules, all of them cheap:
+         *   - the overlay only appears when the first view takes longer than
+         *     150 ms, so a fast load never flickers
+         *   - it disappears as soon as real content is there, in a 240 ms fade
+         *   - nothing after 8 seconds means: something is wrong, so the message
+         *     with the retry button appears instead
+         *   - if any of this fails, the page simply stays as it is: the overlay
+         *     is never shown and nothing is blocked
+         */
+        (function () {
+            var overlay = document.getElementById('boot-overlay');
+            var art = overlay === null ? null : overlay.querySelector('.boot__art');
+
+            if (overlay === null) {
+                return;
+            }
+
+            /* The texts follow the saved language, like the theme further up. */
+            var language = 'en';
+
+            try {
+                language = window.localStorage.getItem('lernkartei.language') === 'de' ? 'de' : 'en';
+            } catch (error) {
+                /* Private mode can block localStorage; English is the default. */
+            }
+
+            Array.prototype.forEach.call(document.querySelectorAll('[data-text-' + language + ']'), function (node) {
+                node.textContent = node.getAttribute('data-text-' + language);
+            });
+
+            var done = false;
+            var shownAt = 0;
+            var appearTimer = null;
+            var failTimer = null;
+
+            function isReady() {
+                if (document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null) {
+                    return true;
+                }
+
+                /* Last resort: the view has content and the page is loaded. */
+                var main = document.querySelector('main');
+
+                return document.readyState === 'complete' && main !== null && main.children.length > 0;
+            }
+
+            function show() {
+                if (done || !overlay.hidden) {
+                    return;
+                }
+
+                overlay.hidden = false;
+                shownAt = Date.now();
+                art.classList.add('boot__pulse');
+                window.requestAnimationFrame(function () {
+                    overlay.classList.add('is-shown');
+                });
+            }
+
+            function hide() {
+                overlay.classList.remove('is-shown');
+
+                window.setTimeout(function () {
+                    overlay.hidden = true;
+                }, 260);
+            }
+
+            function finish() {
+                if (done) {
+                    return;
+                }
+
+                done = true;
+                window.clearTimeout(appearTimer);
+                window.clearTimeout(failTimer);
+                observer.disconnect();
+
+                if (overlay.hidden) {
+                    return;
+                }
+
+                /* Never a flash: it stays long enough to be seen as a fade. */
+                var seenFor = Date.now() - shownAt;
+                window.setTimeout(hide, Math.max(0, 220 - seenFor));
+            }
+
+            function fail() {
+                if (done) {
+                    return;
+                }
+
+                done = true;
+                window.clearTimeout(appearTimer);
+                observer.disconnect();
+                overlay.classList.add('is-failed');
+                document.getElementById('boot-text').hidden = true;
+                document.getElementById('boot-error').hidden = false;
+                document.getElementById('boot-retry').focus();
+            }
+
+            var observer = new MutationObserver(function () {
+                if (isReady()) {
+                    finish();
+                }
+            });
+
+            try {
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+            } catch (error) {
+                /* No observer: the load event below still ends the overlay. */
+            }
+
+            appearTimer = window.setTimeout(show, 150);
+
+            window.addEventListener('load', function () {
+                window.setTimeout(function () {
+                    if (isReady()) {
+                        finish();
+                    }
+                }, 40);
+            });
+
+            document.getElementById('boot-retry').addEventListener('click', function () {
+                window.location.reload();
+            });
+
+            failTimer = window.setTimeout(function () {
+                if (!isReady()) {
+                    show();
+                    fail();
+                }
+            }, 8000);
+        })();
+    </script>
 
     <div class="page">
         <header class="site-header">
