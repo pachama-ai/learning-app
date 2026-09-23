@@ -1381,6 +1381,31 @@ img {
     border-bottom: 1px dotted var(--line);
 }
 
+/*
+ * --- one hover for everything that behaves like a row ----------------
+ *
+ * A flashcard in a list, the subcategory above it and the tiles of a learning
+ * area answer the pointer the same way: the surface takes one step of the same
+ * wash (--tile-bg-hover), nothing casts a shadow, and all of them move on the
+ * same clock. A tile keeps its own colour and is therefore mixed a few percent
+ * towards the text colour instead of taking the wash as it is - a wash would
+ * replace its colour instead of deepening it.
+ *
+ * The row hover only became visible in the last pass: the arrow and the study
+ * button of a row reacted, the row itself did not, which is why the same list
+ * felt different from one row to the next.
+ */
+.row,
+.area-card {
+    transition: background-color 200ms var(--ease), border-color 200ms var(--ease),
+        transform 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+
+.row:hover,
+.row:focus-within {
+    background-color: var(--tile-bg-hover);
+}
+
 /* The wrapper around the "…" button: nothing but its place in the row. */
 .row__menu {
     display: inline-flex;
@@ -4051,19 +4076,21 @@ body.is-learning {
 
 .area-card {
     cursor: pointer;
-    transition: transform 180ms var(--ease), box-shadow 180ms var(--ease),
-        background-color 180ms var(--ease);
+    /* The same clock as a row: see "one hover" above. */
+    transition: transform 200ms var(--ease), box-shadow 200ms var(--ease),
+        background-color 200ms var(--ease);
 }
 
 /*
- * The tile under the pointer is the click target: it rises a little, casts a
- * soft, wider shadow and its surface shifts by a few percent - darker in the
- * light theme, lighter in the dark one.
+ * The tile under the pointer is the click target: it rises a little and its
+ * surface shifts by a few percent - darker in the light theme, lighter in the
+ * dark one. It casts no shadow, in either theme: the surface carries the answer
+ * on its own, and a shadow on a tile only made the row around it look busy.
  */
 .area-card:hover,
 .area-card:focus-visible {
     transform: translateY(-3px);
-    box-shadow: 0 16px 34px rgba(28, 24, 20, 0.20);
+    box-shadow: none;
 }
 
 [data-theme="light"] .area-card:hover,
@@ -4072,11 +4099,11 @@ body.is-learning {
 }
 
 /*
- * The dark theme keeps the lift, the brighter surface and the arrow, but it casts
- * the shadow the rest of the interface casts: a heavy near black shadow (it was
- * 0.55 through a 40 px blur, the strongest shadow of the whole app) reads as a
- * halo around the tile on the dark page and pulls the eye away from the row.
- * --panel-shadow is what the menus and the dialog already use.
+ * The dark theme keeps the lift, the brighter surface and the arrow - and the
+ * same surface-only answer the light theme gives. It used to cast
+ * --panel-shadow here while the light theme cast nothing, so the same movement
+ * looked like two different effects depending on the theme (and on a dark page a
+ * shadow like that reads as a hard black halo around the tile).
  *
  * The focus ring is not touched: it is the outline in the rule below and stays as
  * visible as before.
@@ -4084,7 +4111,7 @@ body.is-learning {
 [data-theme="dark"] .area-card:hover,
 [data-theme="dark"] .area-card:focus-visible {
     background-color: color-mix(in srgb, var(--tile-bg-hover) 70%, #FFFFFF 14%);
-    box-shadow: var(--panel-shadow);
+    box-shadow: none;
 }
 
 /* The keyboard must see where it is. */

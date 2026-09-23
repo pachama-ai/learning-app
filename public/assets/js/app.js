@@ -6606,7 +6606,7 @@
         var settings = exerciseTypeSettings(type);
 
         if (settings === null) {
-            return { error: { name: 'exercise_type', message: t('dialog.errorExerciseType') } };
+            return { error: { kind: 'broken', name: 'exercise_type', message: t('dialog.errorExerciseType') } };
         }
 
         var schema = settings.params || {};
@@ -6623,7 +6623,7 @@
             var entry = dialogFields[fieldName];
 
             if (entry === undefined) {
-                wrong = { name: fieldName, message: t('dialog.errorExerciseParams') };
+                wrong = { kind: 'broken', name: fieldName, message: t('dialog.errorExerciseParams') };
 
                 return;
             }
@@ -6634,7 +6634,14 @@
                 var whole = raw !== '' && isFinite(number) && Math.floor(number) === number;
 
                 if (!whole || number < field.lowest || number > field.highest) {
+                    /*
+                     * Two different situations, and the difference matters to
+                     * whoever is looking at the empty example: a field that was
+                     * left empty has to be filled in, a number outside its limits
+                     * has to be corrected. Both used to end in the same sentence.
+                     */
                     wrong = {
+                        kind: raw === '' ? 'empty' : 'range',
                         name: fieldName,
                         message: t('dialog.errorExerciseRange', { min: field.lowest, max: field.highest })
                     };
@@ -6661,7 +6668,7 @@
                 });
 
                 if (picked.length === 0) {
-                    wrong = { name: fieldName, message: t('dialog.errorExerciseChoices') };
+                    wrong = { kind: 'choices', name: fieldName, message: t('dialog.errorExerciseChoices') };
 
                     return;
                 }
@@ -6681,7 +6688,13 @@
         /* A range that runs backwards cannot build a task. The server would put it
            the right way round, but nobody writes it that way on purpose. */
         if (params.min !== undefined && params.max !== undefined && params.min > params.max) {
-            return { error: { name: exerciseParamFieldName('max'), message: t('dialog.errorExerciseOrder') } };
+            return {
+                error: {
+                    kind: 'order',
+                    name: exerciseParamFieldName('max'),
+                    message: t('dialog.errorExerciseOrder')
+                }
+            };
         }
 
         return { params: params };
@@ -6714,10 +6727,17 @@
         var read = readExerciseParams(dialogExerciseField.select.value);
 
         if (read.params === undefined) {
-            /* While a field is empty there is nothing to build a task from. The
-               example of the moment before is dropped instead of staying on
-               screen, because it would not belong to these numbers. */
-            showExerciseExample(null, 'dialog.exercise.previewIncomplete');
+            /*
+             * Something in the fields cannot be used, so the example of the moment
+             * before is dropped instead of staying on screen - it would not belong
+             * to these numbers. What is said instead is the reason: an empty field
+             * is not the same thing as a number outside its limits, and until now
+             * both ended in "fill in the fields above", which made a working
+             * example look as if it had stopped working altogether.
+             */
+            showExerciseExample(null, read.error.kind === 'empty'
+                ? t('dialog.exercise.previewIncomplete')
+                : read.error.message);
 
             return;
         }
@@ -6739,7 +6759,7 @@
             }
 
             if (result.ok !== true || !result.data || !result.data.task) {
-                showExerciseExample(null, 'dialog.exercise.previewFailed');
+                showExerciseExample(null, t('dialog.exercise.previewFailed'));
 
                 return;
             }
@@ -6748,8 +6768,12 @@
         });
     }
 
-    /* Writes one example into the block, or the reason there is none. */
-    function showExerciseExample(task, noteKey) {
+    /*
+     * Writes one example into the block, or the sentence that says why there is
+     * none. The sentence arrives ready to be read: the caller knows whether it is
+     * about an empty field, a number outside its limits or a request that failed.
+     */
+    function showExerciseExample(task, note) {
         if (dialogExerciseField === null) {
             return;
         }
@@ -6770,7 +6794,7 @@
 
         preview.question.textContent = '';
         preview.answer.textContent = '';
-        preview.note.textContent = noteKey === null ? '' : t(noteKey);
+        preview.note.textContent = note === null || note === undefined ? '' : note;
     }
     function addMapField(value) {
         var parsed = parseMapRegion(value);
