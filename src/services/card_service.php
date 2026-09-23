@@ -796,15 +796,28 @@ function card_localized_text(array $row, array $columns, string $language): arra
      * with one language can never answer a request for the other one, and saying
      * so is what makes the interface show "German only".
      */
+    /*
+     * An exercise card stores no answer: its answer is built at the moment the
+     * card is displayed. "Complete" therefore means "carries a title" for that
+     * kind of card, and a card whose answer column is empty must not be marked as
+     * being in the wrong language - nothing about it is missing.
+     */
+    $isExercise = trim((string) ($row['exercise_type'] ?? '')) !== '';
+    $filled = static function (string $code) use ($texts, $columns, $isExercise): bool {
+        return $isExercise
+            ? card_language_has_question($texts, $code, $columns)
+            : card_language_is_complete($texts, $code, $columns);
+    };
+
     $asked = in_array($language, $languages, true) ? $language : null;
     $shown = $asked ?? $languages[0];
     $missing = $asked === null;
 
-    if (!card_language_is_complete($texts, $shown, $columns)) {
+    if (!$filled($shown)) {
         $other = null;
 
         foreach ($languages as $code) {
-            if ($code !== $shown && card_language_is_complete($texts, $code, $columns)) {
+            if ($code !== $shown && $filled($code)) {
                 $other = $code;
                 break;
             }

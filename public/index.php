@@ -44,6 +44,10 @@ $appConfig = [
         'review' => 'api/review.php',
         'importCards' => 'api/import_cards.php',
         'auth' => 'api/auth.php',
+        /* The one example the card dialog shows while a kind of task is being
+           chosen. It is built on the server, so the dialog and the card never
+           draw their numbers from two different generators. */
+        'exercisePreview' => 'api/exercise_preview.php',
     ],
 
     // The sample file the import dialog offers, and nothing else.

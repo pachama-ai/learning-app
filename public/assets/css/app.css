@@ -5268,3 +5268,103 @@ body.is-learning {
         scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent) transparent;
     }
 }
+
+
+/*
+ * --- the parameters of a generated exercise ------------------------------
+ *
+ * An exercise card does not store an answer, it stores the numbers its task may
+ * use. The fields for them are built by app.js from the schema of the chosen kind
+ * of task (exercise_catalog() on the server), so a kind of task with two numbers
+ * gets two number fields and a kind with a choice of variants gets one box per
+ * variant. Nothing here knows the name of a single parameter.
+ */
+
+/* The fields of the chosen kind, as one group under the type selector. */
+.dialog__params {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* A kind of task that needs no numbers leaves no gap behind. */
+.dialog__params:empty {
+    display: none;
+}
+
+/*
+ * A group of boxes. Its name is a <p> and not a <label>, because it names the
+ * whole group: the boxes carry the labels, and a label that belongs to seven
+ * inputs at once would say the wrong thing to a screen reader.
+ */
+.dialog__field--checks .dialog__label {
+    cursor: default;
+}
+
+.dialog__checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.dialog__check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.dialog__check-text {
+    line-height: 1.4;
+}
+
+/*
+ * --- the example under the fields ---------------------------------------
+ *
+ * One task exactly as the card will show it: the question, an arrow, the answer.
+ * The numbers are rolled on the server for the parameters that are in the fields
+ * right now, so this is a real example of this card and not a placeholder shape.
+ */
+
+.dialog__field--example {
+    border-top: 1px solid var(--hairline);
+    padding-top: 16px;
+}
+
+.dialog__example-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0;
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Numbers of the same task sit under each other instead of jittering. */
+.dialog__example-text {
+    font-variant-numeric: tabular-nums;
+}
+
+.dialog__example-arrow {
+    color: var(--muted);
+}
+
+.dialog__example-text--answer {
+    color: var(--muted);
+}
+
+/*
+ * --- the badge of a generated exercise in the card list ------------------
+ *
+ * Quieter than the status and louder than the language marker: it is the one
+ * thing that says "this answer is different every time", so it sits next to the
+ * task it belongs to.
+ */
+.row__badge--exercise {
+    color: var(--text);
+    border-color: var(--line-strong, var(--line));
+}

@@ -1030,8 +1030,8 @@
             return t('dialog.errorExerciseType');
         }
 
-        if (code === 'invalid_exercise_range') {
-            return t('dialog.errorExerciseRange');
+        if (code === 'invalid_exercise_params') {
+            return t('dialog.errorExerciseParams');
         }
 
         if (code === 'exercise_unavailable') {
@@ -1797,6 +1797,20 @@
         languageBadge.hidden = card.missing_language !== true;
 
         /*
+         * A generated exercise says so: its numbers are new on every display, so
+         * the answer cannot be learned by heart from this line. The badge follows
+         * the task and not the type, so a kind of task without a builder is still
+         * shown as the fixed card it really is.
+         */
+        var exerciseBadge = null;
+
+        if (task !== null) {
+            exerciseBadge = document.createElement('span');
+            exerciseBadge.className = 'row__badge row__badge--exercise';
+            exerciseBadge.textContent = t('cards.exerciseBadge');
+        }
+
+        /*
          * The status: a dot and the word for it, always both. The colour alone
          * would say nothing to a person who cannot tell the three colours apart,
          * and the title carries the longer sentence.
@@ -1819,6 +1833,11 @@
         body.appendChild(number);
         body.appendChild(stack);
         body.appendChild(badge);
+
+        if (exerciseBadge !== null) {
+            body.appendChild(exerciseBadge);
+        }
+
         body.appendChild(languageBadge);
         body.appendChild(status);
 
@@ -2547,6 +2566,7 @@
     var dialogUsed = false;     // true as soon as a field was touched
     var dialogIcon = null;      // { svg, name, removed, storedUrl, preview }
     var dialogFields = {};      // name -> { control, error, wrap }
+    var dialogRound = 0;        // which dialogue is the open one, see closeDialog()
 
     /*
      * Lets a textarea grow with its content. The height is set from the scroll
@@ -2579,6 +2599,10 @@
 
     /* Opens the shared dialog and lets it animate in. */
     function openDialog() {
+        /* A new dialogue: the clean-up of the previous one must not run any
+           more, whatever it was still waiting for. */
+        dialogRound++;
+
         if (typeof elements.dialog.showModal === 'function') {
             elements.dialog.showModal();
         } else {
@@ -2600,7 +2624,16 @@
         elements.dialog.classList.remove('is-open');
         elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
 
+        /* Which dialogue this clean-up belongs to. */
+        var round = dialogRound;
+
         window.setTimeout(function () {
+            /* A newer dialogue is open: this one is long gone and must leave
+               the fields, the focus and the exercise of the new one alone. */
+            if (round !== dialogRound) {
+                return;
+            }
+
             if (typeof elements.dialog.close === 'function' && elements.dialog.open) {
                 elements.dialog.close();
             } else {
@@ -2624,6 +2657,10 @@
             dialogOpener = null;
             dialogUsed = false;
             dialogFields = {};
+            /* The waiting example: with the fields gone there is nothing left
+               to build it from, and an answer that arrives later would write
+               into a dialog that is already closed. */
+            dialogExerciseField = null;
             importState = null;
             importPanel = null;
         }, prefersReducedMotion() ? 0 : 200);
@@ -3396,46 +3433,37 @@
         };
 
         /*
-         * An exercise card sends the kind of task and the numbers it may use; an
-         * empty exercise_type is how the dialog says "this is not an exercise",
-         * which is also how an exercise is taken away again.
+         * An exercise card sends the kind of task and the numbers its task may
+         * use; an empty exercise_type is how the dialog says "this is not an
+         * exercise", which is also how an exercise is taken away again.
          */
         var exercise = cardKindValue() === 'exercise';
+
         payload.exercise_type = exercise ? dialogFields.exercise_type.control.value : '';
-        payload.exercise_range_min = exercise ? dialogFields.exercise_range_min.control.value : '';
-        payload.exercise_range_max = exercise ? dialogFields.exercise_range_max.control.value : '';
 
-        /*
-         * The quick check in the browser, for the answer that comes while typing.
-         * The server checks the same thing again and is the one that counts.
-         */
         if (exercise) {
-            var settings = exerciseTypeSettings(payload.exercise_type);
-            var isWholeNumber = function (value) {
-                return String(value).trim() !== '' && isFinite(value) && Math.floor(value) === value;
-            };
+            /*
+             * The quick check in the browser, so the answer does not have to wait
+             * for a request. The server checks the same thing again and is the one
+             * that counts.
+             */
+            var read = readExerciseParams(payload.exercise_type);
 
-            if (settings === null) {
-                setFieldError('exercise_type', t('dialog.errorExerciseType'));
-                dialogFields.exercise_type.control.focus();
+            if (read.error !== undefined) {
+                setFieldError(read.error.name, read.error.message);
 
-                return null;
-            }
+                var wrongField = dialogFields[read.error.name];
 
-            var from = Number(payload.exercise_range_min);
-            var to = Number(payload.exercise_range_max);
-            var fromIsWrong = !isWholeNumber(from) || from < settings.lowest || from > to;
-            var toIsWrong = !isWholeNumber(to) || to > settings.highest || to < from;
-
-            if (fromIsWrong || toIsWrong) {
-                var wrong = fromIsWrong ? 'exercise_range_min' : 'exercise_range_max';
-                setFieldError(wrong, t('dialog.errorExerciseRange', { min: settings.lowest, max: settings.highest }));
-                dialogFields[wrong].control.focus();
+                /* A group of boxes has no single input to focus. */
+                if (wrongField !== undefined && wrongField.boxes === undefined) {
+                    wrongField.control.focus();
+                }
 
                 return null;
             }
+
+            payload.exercise_params = read.params;
         }
-
         var complete = 0;
         var half = [];
 
@@ -6145,19 +6173,25 @@
             return null;
         }
 
-        var question = task.question === undefined || task.question === null ? {} : task.question;
-        var answer = task.answer === undefined || task.answer === null ? {} : task.answer;
-
         return {
             type: card.exercise.type,
             label: card.exercise.label,
-            rangeMin: card.exercise.range_min,
-            rangeMax: card.exercise.range_max,
-            question: typeof question[locale] === 'string' ? question[locale] : question.de,
-            answer: typeof answer[locale] === 'string' ? answer[locale] : answer.de
+            params: card.exercise.params,
+            question: exerciseText(task.question),
+            answer: exerciseText(task.answer)
         };
     }
 
+    /* One side of a task - question or answer - in the language of the interface.
+       Both languages travel with the task, so switching the language switches the
+       sentence without another request. */
+    function exerciseText(side) {
+        if (side === null || typeof side !== 'object') {
+            return '';
+        }
+
+        return typeof side[locale] === 'string' ? side[locale] : side.de;
+    }
     /*
      * Shows the fields that belong to the chosen kind of card and hides the rest.
      *
@@ -6186,8 +6220,14 @@
             dialogExerciseField.wrap.hidden = !exercise;
         }
 
-        ['front', 'back', 'exercise_range_min', 'exercise_range_max'].forEach(function (name) {
-            if (dialogFields[name] !== undefined) {
+        ['front', 'back'].forEach(function (name) {
+            clearFieldError(name);
+        });
+
+        /* Every parameter of the kind of task that is open, whatever it is
+           called: the list of names comes from the schema, not from here. */
+        Object.keys(dialogFields).forEach(function (name) {
+            if (name === 'exercise_type' || name.indexOf('exercise_param_') === 0) {
                 clearFieldError(name);
             }
         });
@@ -6196,10 +6236,11 @@
     /*
      * The kind of task and the numbers it may use, built once per dialog.
      *
-     * The list of kinds comes from config.exerciseTypes, which index.php builds
-     * from exercise_catalog(): the dialog can therefore never offer a kind of task
-     * that the generator does not know, and a kind added on the server appears
-     * here without a second list to keep in step.
+     * Both the list of kinds and the fields of each kind come from
+     * config.exerciseTypes, which index.php builds from exercise_catalog(): the
+     * dialog can therefore never offer a kind of task or a parameter that the
+     * generator does not know, and a kind whose schema gains a field on the server
+     * appears here with that field, without a second list to keep in step.
      */
     function addExerciseFields(exercise) {
         var types = config.exerciseTypes || {};
@@ -6207,12 +6248,12 @@
 
         if (keys.length === 0) {
             dialogExerciseField = null;
+
             return;
         }
 
         var known = exercise !== null && exercise !== undefined && types[exercise.type] !== undefined;
         var chosen = known ? exercise.type : keys[0];
-        var settings = exerciseTypeSettings(chosen);
 
         var wrap = el('div', 'dialog__field dialog__field--exercise');
 
@@ -6234,68 +6275,435 @@
         error.hidden = true;
         error.setAttribute('role', 'alert');
 
+        /* The sentence that explains the chosen kind of task. */
+        var hint = el('p', 'dialog__hint');
+
+        /*
+         * The fields of the chosen kind live in a container of their own, so
+         * switching the kind replaces them completely. A field left over from
+         * another kind would otherwise travel with the card, although the task it
+         * belongs to is not the one being saved.
+         */
+        var params = el('div', 'dialog__params');
+
+        var preview = buildExercisePreview();
+
         wrap.appendChild(label);
         wrap.appendChild(select);
         wrap.appendChild(error);
+        wrap.appendChild(hint);
+        wrap.appendChild(params);
+        wrap.appendChild(preview.wrap);
+
         elements.dialogFields.appendChild(wrap);
 
         /* Registered like every other field, so the error helpers work on it. */
         dialogFields.exercise_type = { control: select, error: error, wrap: wrap };
 
-        var from = known ? exercise.range_min : settings.default_min;
-        var to = known ? exercise.range_max : settings.default_max;
-
-        addField('exercise_range_min', 'number', {
-            labelKey: 'dialog.card.rangeFromLabel',
-            value: String(from),
-            min: settings.lowest,
-            max: settings.highest,
-            container: wrap
-        });
-
-        addField('exercise_range_max', 'number', {
-            labelKey: 'dialog.card.rangeToLabel',
-            value: String(to),
-            min: settings.lowest,
-            max: settings.highest,
-            container: wrap
-        });
-
-        var hint = el('p', 'dialog__hint');
-        wrap.appendChild(hint);
-
-        var showHint = function () {
-            var current = exerciseTypeSettings(select.value);
-
-            hint.textContent = current === null ? '' : t(current.hint);
-            hint.hidden = current === null;
+        dialogExerciseField = {
+            wrap: wrap,
+            select: select,
+            hint: hint,
+            params: params,
+            preview: preview,
+            /* The waiting timer and the number of the newest request. */
+            pending: null,
+            answer: 0
         };
 
+        showExerciseHint();
+        buildExerciseParamFields(known ? exercise.params : null);
+        scheduleExercisePreview();
+
         select.addEventListener('change', function () {
-            var current = exerciseTypeSettings(select.value);
-
-            /* A number range that the chosen task cannot work with is replaced by
-               the one it suggests; a range that fits is left as it is. */
-            if (current !== null) {
-                var low = Number(dialogFields.exercise_range_min.control.value);
-                var high = Number(dialogFields.exercise_range_max.control.value);
-
-                if (!isFinite(low) || low < current.lowest || high > current.highest || low > high) {
-                    dialogFields.exercise_range_min.control.value = String(current.default_min);
-                    dialogFields.exercise_range_max.control.value = String(current.default_max);
-                }
-            }
-
-            clearFieldError('exercise_range_min');
-            clearFieldError('exercise_range_max');
-            showHint();
+            clearFieldError('exercise_type');
+            showExerciseHint();
+            /* The fields of the kind that was open are replaced, not hidden: the
+               numbers of a task that is not the chosen one must not be sent. */
+            buildExerciseParamFields(null);
+            scheduleExercisePreview();
         });
-
-        showHint();
-
-        dialogExerciseField = { wrap: wrap, select: select, hint: hint };
     }
 
+    /* The sentence under the type selector. */
+    function showExerciseHint() {
+        var settings = exerciseTypeSettings(dialogExerciseField.select.value);
+        var key = settings === null ? null : settings.hint;
+
+        dialogExerciseField.hint.textContent = key === null ? '' : t(key);
+        dialogExerciseField.hint.hidden = key === null;
+    }
+
+    /* The name a parameter of the open kind of task is registered under. */
+    function exerciseParamFieldName(name) {
+        return 'exercise_param_' + name;
+    }
+
+    /* Forgets the fields of the kind of task that was open before. */
+    function clearExerciseParamFields() {
+        var wrap = dialogExerciseField.params;
+
+        Object.keys(dialogFields).forEach(function (name) {
+            if (name.indexOf('exercise_param_') === 0) {
+                delete dialogFields[name];
+            }
+        });
+
+        while (wrap.firstChild !== null) {
+            wrap.removeChild(wrap.firstChild);
+        }
+    }
+
+    /*
+     * One field per parameter of the chosen kind of task, built from its schema.
+     *
+     * "values" are the numbers of the card that is being edited, or null for a
+     * card that does not exist yet. A value the schema does not allow is replaced
+     * by the default of that field, so the form always shows numbers the generator
+     * can work with.
+     */
+    function buildExerciseParamFields(values) {
+        var settings = exerciseTypeSettings(dialogExerciseField.select.value);
+
+        clearExerciseParamFields();
+
+        if (settings === null) {
+            return;
+        }
+
+        var schema = settings.params || {};
+        var stored = values !== null && values !== undefined && typeof values === 'object' ? values : {};
+
+        Object.keys(schema).forEach(function (name) {
+            var field = schema[name];
+            var value = stored[name] === undefined ? field.default : stored[name];
+
+            if (field.kind === 'int') {
+                addField(exerciseParamFieldName(name), 'number', {
+                    labelKey: 'exercise.param.' + name,
+                    value: String(wholeNumberInRange(value, field)),
+                    min: field.lowest,
+                    max: field.highest,
+                    container: dialogExerciseField.params,
+                    onInput: scheduleExercisePreview
+                });
+
+                return;
+            }
+
+            if (field.kind === 'select') {
+                addField(exerciseParamFieldName(name), 'select', {
+                    labelKey: 'exercise.param.' + name,
+                    value: field.options.indexOf(value) === -1 ? field.default : value,
+                    options: field.options.map(function (option) {
+                        return { value: option, label: t('exercise.option.' + option) };
+                    }),
+                    container: dialogExerciseField.params,
+                    onInput: scheduleExercisePreview
+                });
+
+                return;
+            }
+
+            if (field.kind === 'multi') {
+                addExerciseChoiceField(name, field, value);
+
+                return;
+            }
+
+            /* The remaining kind is a yes/no parameter. */
+            addField(exerciseParamFieldName(name), 'checkbox', {
+                labelKey: 'exercise.param.' + name,
+                checked: value === true,
+                container: dialogExerciseField.params,
+                onInput: scheduleExercisePreview
+            });
+        });
+    }
+
+    /* A whole number inside the limits of its field. */
+    function wholeNumberInRange(value, field) {
+        var number = Number(value);
+
+        if (!isFinite(number) || Math.floor(number) !== number) {
+            return field.default;
+        }
+
+        return Math.min(Math.max(number, field.lowest), field.highest);
+    }
+
+    /*
+     * A parameter that allows any number of options at once: one box per option.
+     *
+     * The boxes share one entry in dialogFields, so a message about the whole
+     * choice has somewhere to appear and the group as a whole can be marked.
+     */
+    function addExerciseChoiceField(name, field, value) {
+        var chosen = Array.isArray(value) ? value : [field.default];
+        var fieldName = exerciseParamFieldName(name);
+
+        var wrap = el('div', 'dialog__field dialog__field--checks');
+        var label = el('p', 'dialog__label', t('exercise.param.' + name));
+        label.id = 'dialog-field-' + fieldName + '-label';
+        label.setAttribute('data-i18n', 'exercise.param.' + name);
+
+        var list = el('div', 'dialog__checks');
+        list.setAttribute('role', 'group');
+        list.setAttribute('aria-labelledby', label.id);
+
+        var boxes = [];
+
+        field.options.forEach(function (option) {
+            var row = el('label', 'dialog__check-row');
+
+            var box = el('input', 'dialog__check');
+            box.type = 'checkbox';
+            box.value = option;
+            box.setAttribute('value', option);
+            box.checked = chosen.indexOf(option) !== -1;
+
+            var text = el('span', 'dialog__check-text', t('exercise.option.' + option));
+            text.setAttribute('data-i18n', 'exercise.option.' + option);
+
+            row.appendChild(box);
+            row.appendChild(text);
+            list.appendChild(row);
+            boxes.push(box);
+
+            box.addEventListener('input', function () {
+                dialogUsed = true;
+                clearFieldError(fieldName);
+                scheduleExercisePreview();
+            });
+
+            box.addEventListener('change', function () {
+                dialogUsed = true;
+            });
+        });
+
+        var error = el('p', 'dialog__field-error');
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+
+        wrap.appendChild(label);
+        wrap.appendChild(list);
+        wrap.appendChild(error);
+        dialogExerciseField.params.appendChild(wrap);
+
+        dialogFields[fieldName] = { control: list, error: error, wrap: wrap, boxes: boxes };
+    }
+
+    /*
+     * The example under the fields: one task built on the server from the numbers
+     * that are in the fields right now.
+     *
+     * It is never built here. The numbers the card will really show are drawn in
+     * exercise_service.php, and the example has to come from that same place, or
+     * it could promise something the card does not keep.
+     */
+    function buildExercisePreview() {
+        var wrap = el('div', 'dialog__field dialog__field--example');
+
+        var label = el('p', 'dialog__label', t('dialog.exercise.previewLabel'));
+        label.setAttribute('data-i18n', 'dialog.exercise.previewLabel');
+
+        var question = el('span', 'dialog__example-text', '');
+        var arrow = el('span', 'dialog__example-arrow', '→');
+        arrow.setAttribute('aria-hidden', 'true');
+        var answer = el('span', 'dialog__example-text dialog__example-text--answer', '');
+
+        var line = el('p', 'dialog__example-line');
+        line.appendChild(question);
+        line.appendChild(arrow);
+        line.appendChild(answer);
+
+        var note = el('p', 'dialog__hint', '');
+
+        wrap.appendChild(label);
+        wrap.appendChild(line);
+        wrap.appendChild(note);
+
+        return { wrap: wrap, line: line, question: question, answer: answer, note: note };
+    }
+
+    /*
+     * Reads the numbers out of the fields of the open dialog.
+     *
+     * Returns {params: {...}} when every field holds something the schema allows,
+     * and {error: {name, message}} when one of them does not. The server checks the
+     * same thing again before it stores anything and is the one that counts; this
+     * check only exists so the answer does not have to wait for a request.
+     */
+    function readExerciseParams(type) {
+        var settings = exerciseTypeSettings(type);
+
+        if (settings === null) {
+            return { error: { name: 'exercise_type', message: t('dialog.errorExerciseType') } };
+        }
+
+        var schema = settings.params || {};
+        var params = {};
+        var wrong = null;
+
+        Object.keys(schema).forEach(function (name) {
+            if (wrong !== null) {
+                return;
+            }
+
+            var field = schema[name];
+            var fieldName = exerciseParamFieldName(name);
+            var entry = dialogFields[fieldName];
+
+            if (entry === undefined) {
+                wrong = { name: fieldName, message: t('dialog.errorExerciseParams') };
+
+                return;
+            }
+
+            if (field.kind === 'int') {
+                var raw = String(entry.control.value).trim();
+                var number = Number(raw);
+                var whole = raw !== '' && isFinite(number) && Math.floor(number) === number;
+
+                if (!whole || number < field.lowest || number > field.highest) {
+                    wrong = {
+                        name: fieldName,
+                        message: t('dialog.errorExerciseRange', { min: field.lowest, max: field.highest })
+                    };
+
+                    return;
+                }
+
+                params[name] = number;
+
+                return;
+            }
+
+            if (field.kind === 'select') {
+                params[name] = entry.control.value;
+
+                return;
+            }
+
+            if (field.kind === 'multi') {
+                var picked = entry.boxes.filter(function (box) {
+                    return box.checked === true;
+                }).map(function (box) {
+                    return box.value;
+                });
+
+                if (picked.length === 0) {
+                    wrong = { name: fieldName, message: t('dialog.errorExerciseChoices') };
+
+                    return;
+                }
+
+                params[name] = picked;
+
+                return;
+            }
+
+            params[name] = entry.control.checked === true;
+        });
+
+        if (wrong !== null) {
+            return { error: wrong };
+        }
+
+        /* A range that runs backwards cannot build a task. The server would put it
+           the right way round, but nobody writes it that way on purpose. */
+        if (params.min !== undefined && params.max !== undefined && params.min > params.max) {
+            return { error: { name: exerciseParamFieldName('max'), message: t('dialog.errorExerciseOrder') } };
+        }
+
+        return { params: params };
+    }
+
+    /*
+     * Typing is not a reason to ask: the request waits until the typing stops. A
+     * second change while the first request is still on its way only lets the
+     * newest answer through (the counter in dialogExerciseField).
+     */
+    function scheduleExercisePreview() {
+        if (dialogExerciseField === null) {
+            return;
+        }
+
+        if (dialogExerciseField.pending !== null) {
+            window.clearTimeout(dialogExerciseField.pending);
+        }
+
+        dialogExerciseField.pending = window.setTimeout(refreshExercisePreview, 300);
+    }
+
+    function refreshExercisePreview() {
+        if (dialogExerciseField === null) {
+            return;
+        }
+
+        dialogExerciseField.pending = null;
+
+        var read = readExerciseParams(dialogExerciseField.select.value);
+
+        if (read.params === undefined) {
+            /* While a field is empty there is nothing to build a task from. The
+               example of the moment before is dropped instead of staying on
+               screen, because it would not belong to these numbers. */
+            showExerciseExample(null, 'dialog.exercise.previewIncomplete');
+
+            return;
+        }
+
+        var field = dialogExerciseField;
+
+        field.answer++;
+        var wanted = field.answer;
+
+        apiRequest(config.endpoints.exercisePreview, 'POST', {
+            exercise_type: field.select.value,
+            exercise_params: read.params
+        }).then(function (result) {
+            /* The answer belongs to the fields it was asked for. A dialogue
+               that was closed or reopened in the meantime has other fields
+               now, and this answer must not be written into them. */
+            if (field !== dialogExerciseField || wanted !== field.answer) {
+                return;
+            }
+
+            if (result.ok !== true || !result.data || !result.data.task) {
+                showExerciseExample(null, 'dialog.exercise.previewFailed');
+
+                return;
+            }
+
+            showExerciseExample(result.data.task, null);
+        });
+    }
+
+    /* Writes one example into the block, or the reason there is none. */
+    function showExerciseExample(task, noteKey) {
+        if (dialogExerciseField === null) {
+            return;
+        }
+
+        var preview = dialogExerciseField.preview;
+        var ready = task !== null && task !== undefined;
+
+        preview.line.hidden = !ready;
+        preview.note.hidden = ready;
+
+        if (ready) {
+            preview.question.textContent = exerciseText(task.question);
+            preview.answer.textContent = exerciseText(task.answer);
+            preview.note.textContent = '';
+
+            return;
+        }
+
+        preview.question.textContent = '';
+        preview.answer.textContent = '';
+        preview.note.textContent = noteKey === null ? '' : t(noteKey);
+    }
     function addMapField(value) {
         var parsed = parseMapRegion(value);
         var wrap = el('div', 'dialog__field dialog__field--map');

@@ -13,7 +13,29 @@ declare(strict_types=1);
  * because the CSV files that once lived in database/import/ are gone (their
  * content is in the database).
  *
- * The file is UTF-8 and separated by semicolons. Two headers are accepted:
+ * The file is UTF-8 and separated by semicolons. Two headers are accepted, and two
+ * optional columns may follow the required ones:
+ *
+ *   ...;is_bidirectional[;map_region][;exercise]
+ *
+ * The --exercise column names a generated task instead of a fixed card:
+ *
+ *   <kind of task>                          the defaults of that kind
+ *   <kind of task>:<name>=<value>,<name>=<value>
+ *
+ * Examples:
+ *
+ *   times_table:min=2,max=20
+ *   percent:min=10,max=1000,ask=rate
+ *   percent_energy:variants=mix|storage_level
+ *   division_inverse:min=2,max=20,remainder=yes
+ *
+ * A parameter that allows several options at once is written with a pipe, a
+ * yes/no parameter takes yes or no. A card with an exercise needs a title, not an
+ * answer: the answer is built when the card is shown. An empty cell means a fixed
+ * card, so every file written so far keeps working unchanged. Which kinds of task
+ * exist and which numbers each of them takes is written down in exactly one place:
+ * exercise_catalog() in src/services/exercise_service.php.
  *
  *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional
  *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional;map_region
@@ -86,6 +108,18 @@ const CSV_HEADER = ['parent_category', 'subcategory', 'front_de', 'back_de', 'fr
 
 /** The header of a file that also carries a map region. */
 const CSV_HEADER_WITH_REGION = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region'];
+
+/**
+ * The header of a file whose last column names a generated exercise.
+ *
+ * The column is optional and may also follow the map_region column. An empty
+ * cell means a fixed card, which is what every file written so far says, so an
+ * older file keeps working unchanged.
+ */
+const CSV_HEADER_WITH_EXERCISE = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'exercise'];
+
+/** The header of a file with both optional columns, in this order. */
+const CSV_HEADER_WITH_REGION_AND_EXERCISE = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region', 'exercise'];
 
 /** Longest accepted subcategory name (the column is varchar(100)). */
 const MAX_SUBCATEGORY_LENGTH = 100;
@@ -473,9 +507,22 @@ function import_read_csv(string $path): array
 
     $header = array_map(static fn ($name): string => trim((string) $name), $header);
 
-    /* Two shapes are accepted: with and without the map region column. */
+    /*
+     * Four shapes are accepted: with and without the map region column, and with
+     * and without the exercise column. Both optional columns stand at the end.
+     */
     $hasRegion = in_array('map_region', $header, true);
-    $expected = $hasRegion ? CSV_HEADER_WITH_REGION : CSV_HEADER;
+    $hasExercise = in_array('exercise', $header, true);
+
+    if ($hasRegion && $hasExercise) {
+        $expected = CSV_HEADER_WITH_REGION_AND_EXERCISE;
+    } elseif ($hasRegion) {
+        $expected = CSV_HEADER_WITH_REGION;
+    } elseif ($hasExercise) {
+        $expected = CSV_HEADER_WITH_EXERCISE;
+    } else {
+        $expected = CSV_HEADER;
+    }
 
     if ($header !== $expected) {
         fclose($handle);
@@ -488,7 +535,8 @@ function import_read_csv(string $path): array
             'areas' => [],
             'with_region' => 0,
             'fatal' => 'the header does not match. Expected: ' . implode(';', CSV_HEADER)
-                . ' (map_region is allowed at the end) - found: ' . implode(';', $header),
+                . ' (map_region and exercise are allowed at the end, in this order) - found: '
+                . implode(';', $header),
         ];
     }
 
@@ -523,6 +571,20 @@ function import_read_csv(string $path): array
         $flag = trim((string) $cells[6]);
         $region = $hasRegion ? trim((string) $cells[7]) : '';
 
+        /* The exercise column, wherever it sits. */
+        $exerciseCell = '';
+
+        if ($hasExercise) {
+            $exerciseCell = trim((string) $cells[count($expected) - 1]);
+        }
+
+        $parsedExercise = import_parse_exercise($exerciseCell);
+        $exercise = $parsedExercise['exercise'];
+
+        if ($parsedExercise['error'] !== null) {
+            $errors[] = ['line' => $lineNumber, 'message' => $parsedExercise['error']];
+        }
+
         if ($parent === '') {
             $errors[] = ['line' => $lineNumber, 'message' => 'parent_category is empty'];
         } elseif (!isset($areas[mb_strtolower($parent)])) {
@@ -535,20 +597,31 @@ function import_read_csv(string $path): array
             $errors[] = ['line' => $lineNumber, 'message' => 'subcategory is longer than ' . MAX_SUBCATEGORY_LENGTH . ' characters'];
         }
 
-        /* At least one language has to be complete, and no language may be half. */
-        $germanComplete = trim($frontDe) !== '' && trim($backDe) !== '';
-        $englishComplete = trim($frontEn) !== '' && trim($backEn) !== '';
-
-        foreach (['de' => [$frontDe, $backDe], 'en' => [$frontEn, $backEn]] as $language => [$front, $back]) {
-            $used = trim($front) !== '' || trim($back) !== '';
-
-            if ($used && (trim($front) === '' || trim($back) === '')) {
-                $errors[] = ['line' => $lineNumber, 'message' => 'the ' . $language . ' side is only half filled'];
+        /*
+         * An exercise card carries a title instead of an answer: its answer is built
+         * when the card is shown. The same rule the application uses, so a file and
+         * the card dialog ask for the same thing.
+         */
+        if ($exerciseCell !== '') {
+            if (trim($frontDe) === '' && trim($frontEn) === '') {
+                $errors[] = ['line' => $lineNumber, 'message' => 'an exercise card needs a title in at least one language (front_de or front_en)'];
             }
-        }
+        } else {
+            /* At least one language has to be complete, and no language may be half. */
+            $germanComplete = trim($frontDe) !== '' && trim($backDe) !== '';
+            $englishComplete = trim($frontEn) !== '' && trim($backEn) !== '';
 
-        if (!$germanComplete && !$englishComplete) {
-            $errors[] = ['line' => $lineNumber, 'message' => 'neither language is complete (front and back)'];
+            foreach (['de' => [$frontDe, $backDe], 'en' => [$frontEn, $backEn]] as $language => [$front, $back]) {
+                $used = trim($front) !== '' || trim($back) !== '';
+
+                if ($used && (trim($front) === '' || trim($back) === '')) {
+                    $errors[] = ['line' => $lineNumber, 'message' => 'the ' . $language . ' side is only half filled'];
+                }
+            }
+
+            if (!$germanComplete && !$englishComplete) {
+                $errors[] = ['line' => $lineNumber, 'message' => 'neither language is complete (front and back)'];
+            }
         }
 
         foreach (['front_de' => $frontDe, 'back_de' => $backDe, 'front_en' => $frontEn, 'back_en' => $backEn] as $column => $value) {
@@ -601,6 +674,7 @@ function import_read_csv(string $path): array
             'back_en' => $backEn,
             'is_bidirectional' => $flag === '1' ? 1 : 0,
             'map_region' => $region,
+            'exercise' => $exercise,
         ];
     }
 
@@ -617,6 +691,116 @@ function import_read_csv(string $path): array
     ];
 }
 
+
+/**
+ * Reads one exercise cell of the file.
+ *
+ *   "<type>"                                  the defaults of that kind of task
+ *   "<type>:<name>=<value>,<name>=<value>"    with numbers of its own
+ *
+ * A parameter that allows several options at once is written with a pipe, for
+ * example variants=mix|storage_level, and a yes/no parameter takes yes or no.
+ * Everything is checked with the same rules the card dialog is checked with, so a
+ * file can never store numbers that no task can be built from.
+ *
+ * @return array{exercise: array{type: string, params: array<string, mixed>}|null, error: string|null}
+ */
+function import_parse_exercise(string $cell): array
+{
+    $cell = trim($cell);
+
+    /* An empty cell means a fixed card. */
+    if ($cell === '') {
+        return ['exercise' => null, 'error' => null];
+    }
+
+    $parts = explode(':', $cell, 2);
+    $type = trim($parts[0]);
+    $written = isset($parts[1]) ? trim($parts[1]) : '';
+
+    if (!exercise_type_is_known($type)) {
+        return ['exercise' => null, 'error' => 'unknown kind of task "' . $type . '" in the exercise column'];
+    }
+
+    if ($written === '') {
+        return [
+            'exercise' => ['type' => $type, 'params' => exercise_type_default_params($type)],
+            'error' => null,
+        ];
+    }
+
+    $catalogue = exercise_catalog()[$type]['params'];
+    $params = [];
+
+    foreach (explode(',', $written) as $pair) {
+        $pair = trim($pair);
+
+        if ($pair === '') {
+            continue;
+        }
+
+        $halves = explode('=', $pair, 2);
+
+        if (count($halves) !== 2) {
+            return ['exercise' => null, 'error' => 'the exercise column expects name=value, found "' . $pair . '"'];
+        }
+
+        $name = trim($halves[0]);
+        $value = trim($halves[1]);
+        $schema = $catalogue[$name] ?? null;
+
+        if ($schema === null) {
+            return ['exercise' => null, 'error' => '"' . $name . '" is not a parameter of ' . $type];
+        }
+
+        if ($schema['kind'] === 'int') {
+            if (!ctype_digit($value)) {
+                return ['exercise' => null, 'error' => '"' . $name . '" must be a whole number, found "' . $value . '"'];
+            }
+
+            $params[$name] = (int) $value;
+
+            continue;
+        }
+
+        if ($schema['kind'] === 'select') {
+            $params[$name] = $value;
+
+            continue;
+        }
+
+        if ($schema['kind'] === 'multi') {
+            $params[$name] = array_values(array_filter(
+                array_map('trim', explode('|', $value)),
+                static fn (string $one): bool => $one !== ''
+            ));
+
+            continue;
+        }
+
+        /* The remaining kind is a yes/no parameter. */
+        $lower = mb_strtolower($value);
+
+        if (!in_array($lower, ['yes', 'no', 'ja', 'nein', '1', '0', 'true', 'false'], true)) {
+            return ['exercise' => null, 'error' => '"' . $name . '" must be yes or no, found "' . $value . '"'];
+        }
+
+        $params[$name] = in_array($lower, ['yes', 'ja', '1', 'true'], true);
+    }
+
+    /*
+     * A number outside its limits is pulled into them, the same way a stored card
+     * is treated when it is read: the file is written by hand, so it may be a
+     * little off without failing the whole import.
+     */
+    $params = exercise_normalise_params($type, $params);
+
+    if (!exercise_params_are_valid($type, $params)) {
+        return ['exercise' => null, 'error' => 'the numbers of "' . $type . '" do not fit this kind of task'];
+    }
+
+    return ['exercise' => ['type' => $type, 'params' => $params], 'error' => null];
+}
 /**
  * The same pattern the application uses: the area is one of three names and the
  * region is a plain identifier. Anything else never reaches the database.
@@ -1041,6 +1225,8 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
             (:category_id, :front, :back, :front_de, :back_de, :front_en, :back_en, :map_region, :is_bidirectional)'
     );
 
+    $createdExercises = 0;
+
     foreach ($csv['rows'] as $row) {
         $insertCard->bindValue(':category_id', $idOf[$row['subcategory']], PDO::PARAM_INT);
         $insertCard->bindValue(':front', $row['front_de'], PDO::PARAM_STR);
@@ -1053,7 +1239,22 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
         $insertCard->bindValue(':is_bidirectional', $row['is_bidirectional'], PDO::PARAM_INT);
         $insertCard->execute();
 
+        /*
+         * An exercise card gets its row in card_exercises right away, in the same
+         * transaction: the numbers of the task belong to the card. save_card_exercise()
+         * is the same function the card endpoints use, and it refuses to write when
+         * the migration for the column is missing.
+         */
+        if ($row['exercise'] !== null) {
+            save_card_exercise($pdo, (int) $pdo->lastInsertId(), $row['exercise']);
+            $createdExercises++;
+        }
+
         $createdCards++;
+    }
+
+    if ($createdExercises > 0) {
+        echo 'exercise cards: ' . $createdExercises . "\n";
     }
 
     /* Every subcategory must have its cards, and the total must be right. */

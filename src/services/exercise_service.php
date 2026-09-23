@@ -341,6 +341,18 @@ function exercise_normalise_params(string $type, array $params): array
         }
     }
 
+    /*
+     * A range that runs backwards cannot build a task: every draw would return
+     * the same number for ever. Numbers that arrived from anywhere - an older
+     * form, a request written by hand, a card edited in phpMyAdmin - are put the
+     * right way round here, so a card can never end up stuck on one number.
+     */
+    if (isset($clean['min'], $clean['max']) && (int) $clean['min'] > (int) $clean['max']) {
+        $swap = $clean['min'];
+        $clean['min'] = $clean['max'];
+        $clean['max'] = $swap;
+    }
+
     return $clean;
 }
 
