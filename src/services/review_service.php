@@ -243,6 +243,17 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
         $selected[] = 'k.map_region';
     }
 
+    /*
+     * The exercise of a card, when the table for it exists. The three values are
+     * renamed here, so they cannot be mistaken for a column of `cards` - and
+     * normalize_card_row() turns them into the task that is shown.
+     */
+    if (card_exercise_table_available($pdo)) {
+        $selected[] = 'card_exercises.exercise_type AS exercise_type';
+        $selected[] = 'card_exercises.range_min AS exercise_range_min';
+        $selected[] = 'card_exercises.range_max AS exercise_range_max';
+    }
+
     foreach (card_language_columns($columns) as $pair) {
         foreach ($pair as $column) {
             $selected[] = 'k.' . $column;
@@ -270,7 +281,7 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
         'SELECT ' . $selection . ',
                 p.state, p.due_at, p.last_reviewed_at, p.repetitions, p.lapses,
                 p.stability, p.difficulty
-           FROM cards AS k
+           FROM cards AS k' . card_exercise_join($pdo, 'k') . '
            LEFT JOIN user_card_progress AS p
                   ON p.card_id = k.id AND p.user_id = :user_id
           WHERE k.category_id IN (' . implode(', ', $placeholders) . ')

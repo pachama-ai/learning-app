@@ -22,7 +22,14 @@ declare(strict_types=1);
  * user_card_progress references a card with ON DELETE CASCADE, so the learning
  * progress of a card disappears together with the card. That rule is part of
  * the existing structure and was not changed.
+ *
+ * A card may also be an exercise card: instead of a question and an answer that
+ * somebody wrote, it shows a task that is built when the card is displayed, with
+ * numbers that are drawn again every time. That belongs to the table
+ * `card_exercises`, which is read and written below.
  */
+
+require_once __DIR__ . '/exercise_service.php';
 
 /** Longest text accepted for the front or the back of a card. */
 const CARD_MAX_TEXT_LENGTH = 2000;
@@ -51,6 +58,14 @@ function normalize_card_row(array $row): array
         'map_region' => isset($row['map_region']) && card_map_region_is_valid((string) $row['map_region'])
             ? (string) $row['map_region']
             : null,
+        /*
+         * An exercise, or nothing at all. The task itself is stored nowhere: it is
+         * built here from the kind of task and the range, so its numbers are new
+         * on every read. A row whose exercise_type is not one of the kinds of task
+         * this application knows (an older row, or one edited by hand) is a card
+         * without an exercise and is simply shown as a fixed card.
+         */
+        'exercise' => card_exercise_from_row($row),
     ];
 }
 
@@ -78,7 +93,7 @@ function find_card(PDO $pdo, int $cardId): ?array
 {
     $statement = $pdo->prepare(
         'SELECT ' . implode(', ', card_read_columns($pdo)) . '
-           FROM cards
+           FROM cards' . card_exercise_join($pdo) . '
           WHERE id = :id'
     );
     $statement->bindValue(':id', $cardId, PDO::PARAM_INT);
@@ -96,7 +111,9 @@ function find_card(PDO $pdo, int $cardId): ?array
  * request body can never become part of the SQL text. An empty list of changes
  * simply returns the card unchanged.
  *
- * @param array<string, mixed> $changes Values keyed by column name.
+ * @param array<string, mixed> $changes Values keyed by column name. The key
+ *        "exercise" is the one exception: it is not a column of this table but
+ *        the exercise that belongs to the card.
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}|null
  */
 function update_card(PDO $pdo, int $cardId, array $changes): ?array
@@ -145,39 +162,79 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
         }
     }
 
-    if ($assignments === []) {
+    /*
+     * An exercise is not a column of this table, so it never appears in the
+     * assignment list. A card whose exercise is the only thing that changes must
+     * not be skipped here.
+     */
+    $exerciseChange = array_key_exists('exercise', $changes);
+
+    if ($assignments === [] && !$exerciseChange) {
         return find_card($pdo, $cardId);
     }
 
-    $statement = $pdo->prepare(
-        'UPDATE cards SET ' . implode(', ', $assignments) . ' WHERE id = :id'
-    );
-    $statement->bindValue(':id', $cardId, PDO::PARAM_INT);
 
-    foreach ($values as $column => [$value, $type]) {
-        if ($column === 'is_bidirectional') {
-            $statement->bindValue(':' . $column, $value ? 1 : 0, $type);
-            continue;
-        }
+    /*
+     * The columns and the exercise are written together or not at all: a change
+     * that half succeeded would leave a card that shows neither the old nor the
+     * new. A transaction the caller has already started is left alone.
+     */
+    $ownsTransaction = !$pdo->inTransaction();
 
-        /* An empty map_region means "no map" and has to be NULL, not "". */
-        if ($column === 'map_region') {
-            if ($value === null || $value === '' || !card_map_region_is_valid((string) $value)) {
-                $statement->bindValue(':' . $column, null, PDO::PARAM_NULL);
-            } else {
-                $statement->bindValue(':' . $column, (string) $value, PDO::PARAM_STR);
-            }
-
-            continue;
-        }
-
-        $statement->bindValue(':' . $column, (string) $value, $type);
+    if ($ownsTransaction) {
+        $pdo->beginTransaction();
     }
 
-    $statement->execute();
+    try {
+        if ($assignments !== []) {
+            $statement = $pdo->prepare(
+                'UPDATE cards SET ' . implode(', ', $assignments) . ' WHERE id = :id'
+            );
+            $statement->bindValue(':id', $cardId, PDO::PARAM_INT);
 
-    return find_card($pdo, $cardId);
+            foreach ($values as $column => [$value, $type]) {
+                if ($column === 'is_bidirectional') {
+                    $statement->bindValue(':' . $column, $value ? 1 : 0, $type);
+                    continue;
+                }
+
+                /* An empty map_region means "no map" and has to be NULL, not "". */
+                if ($column === 'map_region') {
+                    if ($value === null || $value === '' || !card_map_region_is_valid((string) $value)) {
+                        $statement->bindValue(':' . $column, null, PDO::PARAM_NULL);
+                    } else {
+                        $statement->bindValue(':' . $column, (string) $value, PDO::PARAM_STR);
+                    }
+
+                    continue;
+                }
+
+                $statement->bindValue(':' . $column, (string) $value, $type);
+            }
+
+            $statement->execute();
+        }
+
+        if ($exerciseChange) {
+            save_card_exercise($pdo, $cardId, $changes['exercise']);
+        }
+
+        $updated = find_card($pdo, $cardId);
+    } catch (Throwable $error) {
+        if ($ownsTransaction) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+
+    if ($ownsTransaction) {
+        $pdo->commit();
+    }
+
+    return $updated;
 }
+
 
 /**
  * Deletes one card. Returns false when there was nothing to delete.
@@ -248,6 +305,226 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds): int
  *
  * @param list<int> $categoryIds
  */
+
+/* -------------------------------------------------------------------------
+   The exercise of a card
+   ------------------------------------------------------------------------- */
+
+/*
+ * A card may carry an exercise instead of a question and an answer that somebody
+ * wrote. Which kind of task it is and between which numbers it lives sit in the
+ * table `card_exercises`: one row per card at most, because card_id is the
+ * primary key of that table.
+ *
+ * The table is optional in this sense: an installation that has not run
+ * database/add_card_exercises.sql yet works exactly as before. That is why it is
+ * looked for once per request, and why the read queries only join it when it is
+ * really there.
+ */
+
+/**
+ * Whether the table `card_exercises` exists in this database.
+ *
+ * Asked once per request and then remembered, like the optional columns of
+ * `cards` and `categories`.
+ */
+function card_exercise_table_available(PDO $pdo): bool
+{
+    static $available = null;
+
+    if ($available === null) {
+        $statement = $pdo->prepare(
+            'SELECT COUNT(*) FROM information_schema.TABLES
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table'
+        );
+        $statement->bindValue(':table', 'card_exercises', PDO::PARAM_STR);
+        $statement->execute();
+
+        $available = (int) $statement->fetchColumn() > 0;
+    }
+
+    return $available;
+}
+
+/**
+ * The join that brings the exercise of a card into a query.
+ *
+ * An empty string when the table is not there, so one query text works with and
+ * without the migration. The name of the card table is checked against the two
+ * spellings this application uses, so nothing that comes from a request can ever
+ * reach the query text.
+ */
+function card_exercise_join(PDO $pdo, string $cardTable = 'cards'): string
+{
+    if (!card_exercise_table_available($pdo)) {
+        return '';
+    }
+
+    $alias = in_array($cardTable, ['cards', 'k'], true) ? $cardTable : 'cards';
+
+    return ' LEFT JOIN card_exercises ON card_exercises.card_id = ' . $alias . '.id';
+}
+
+/**
+ * The exercise of one card row, or null when the card is a fixed card.
+ *
+ * @param array<string, mixed> $row
+ * @return array<string, mixed>|null
+ */
+function card_exercise_from_row(array $row): ?array
+{
+    $type = isset($row['exercise_type']) ? (string) $row['exercise_type'] : '';
+
+    /* An unknown key is not an error: the card is shown as a fixed card. */
+    if ($type === '' || !exercise_type_is_known($type)) {
+        return null;
+    }
+
+    /*
+     * The range that is in use, not the raw column: a range that was edited by
+     * hand or that is older than the limits of its kind of task is pulled into
+     * them, and the interface shows the numbers the task really works with.
+     */
+    [$rangeMin, $rangeMax] = exercise_normalise_range(
+        $type,
+        isset($row['exercise_range_min']) ? (int) $row['exercise_range_min'] : 0,
+        isset($row['exercise_range_max']) ? (int) $row['exercise_range_max'] : 0
+    );
+
+    return [
+        'type' => $type,
+        'label' => exercise_type_label($type),
+        'range_min' => $rangeMin,
+        'range_max' => $rangeMax,
+        /* Built here and now, so the numbers are new on every read. */
+        'task' => exercise_build_task($type, $rangeMin, $rangeMax),
+    ];
+}
+
+/**
+ * Writes, replaces or removes the exercise of one card.
+ *
+ * An exercise is not a column of `cards`, so it needs its own statement. Deleting
+ * and inserting instead of an "insert or update" is one statement more, but it
+ * always ends with exactly one row and cannot leave half of an old exercise
+ * behind - and it means the same thing in every database.
+ *
+ * A kind of task this application does not know is never stored, whatever the
+ * caller sends: the key in that column can only ever be one of the keys in
+ * exercise_service.php.
+ *
+ * Runs inside the transaction of the caller.
+ *
+ * @param array<string, mixed>|null $exercise null means "no exercise"
+ */
+function save_card_exercise(PDO $pdo, int $cardId, ?array $exercise): void
+{
+    if (!card_exercise_table_available($pdo)) {
+        return;
+    }
+
+    $statement = $pdo->prepare('DELETE FROM card_exercises WHERE card_id = :card_id');
+    $statement->bindValue(':card_id', $cardId, PDO::PARAM_INT);
+    $statement->execute();
+
+    if ($exercise === null) {
+        return;
+    }
+
+    $type = (string) ($exercise['type'] ?? '');
+
+    if (!exercise_type_is_known($type)) {
+        return;
+    }
+
+    [$rangeMin, $rangeMax] = exercise_normalise_range(
+        $type,
+        (int) ($exercise['range_min'] ?? 0),
+        (int) ($exercise['range_max'] ?? 0)
+    );
+
+    $statement = $pdo->prepare(
+        'INSERT INTO card_exercises (card_id, exercise_type, range_min, range_max)
+         VALUES (:card_id, :exercise_type, :range_min, :range_max)'
+    );
+    $statement->bindValue(':card_id', $cardId, PDO::PARAM_INT);
+    $statement->bindValue(':exercise_type', $type, PDO::PARAM_STR);
+    $statement->bindValue(':range_min', $rangeMin, PDO::PARAM_INT);
+    $statement->bindValue(':range_max', $rangeMax, PDO::PARAM_INT);
+    $statement->execute();
+}
+
+/**
+ * Whether one language of a card carries a question.
+ *
+ * A fixed card needs both sides. An exercise card does not: its answer comes from
+ * the generator, so only the question side has to be filled - and that is where
+ * the title of the exercise stands.
+ *
+ * @param array<string, mixed> $texts
+ * @param list<string> $columns
+ */
+function card_language_has_question(array $texts, string $language, array $columns = []): bool
+{
+    $pair = card_language_columns($columns)[$language] ?? null;
+
+    if ($pair === null) {
+        return false;
+    }
+
+    return trim((string) ($texts[$pair[0]] ?? '')) !== '';
+}
+
+/**
+ * Reads the exercise out of a request body and checks it.
+ *
+ * Three cases, and they are told apart on purpose:
+ *
+ *   - the body says nothing about an exercise  -> null, no error
+ *   - the body says "no exercise" (an empty or null exercise_type) -> null
+ *   - the body names a kind of task -> that exercise, after checking its range
+ *
+ * The answer is a pair of "what" and "what went wrong", so the endpoint can
+ * answer with the right error code: a kind of task this application does not know
+ * gives "invalid_exercise_type", a range that does not fit it gives
+ * "invalid_exercise_range".
+ *
+ * Nothing that arrives here is ever worked out as a formula: the type only has to
+ * be one of the keys in exercise_service.php, and the numbers only have to be
+ * whole numbers inside the limits of that kind of task.
+ *
+ * @param array<string, mixed> $body
+ * @return array{exercise: array<string, int|string>|null, error: string|null}
+ */
+function card_exercise_from_request(array $body): array
+{
+    if (!array_key_exists('exercise_type', $body)) {
+        return ['exercise' => null, 'error' => null];
+    }
+
+    $type = $body['exercise_type'] === null ? '' : trim((string) $body['exercise_type']);
+
+    /* An empty type is how the dialog says "this is not an exercise card". */
+    if ($type === '') {
+        return ['exercise' => null, 'error' => null];
+    }
+
+    if (!exercise_type_is_known($type)) {
+        return ['exercise' => null, 'error' => 'invalid_exercise_type'];
+    }
+
+    $rangeMin = isset($body['exercise_range_min']) ? (int) $body['exercise_range_min'] : 0;
+    $rangeMax = isset($body['exercise_range_max']) ? (int) $body['exercise_range_max'] : 0;
+
+    if (!exercise_range_is_valid($type, $rangeMin, $rangeMax)) {
+        return ['exercise' => null, 'error' => 'invalid_exercise_range'];
+    }
+
+    return [
+        'exercise' => ['type' => $type, 'range_min' => $rangeMin, 'range_max' => $rangeMax],
+        'error' => null,
+    ];
+}
 
 /* -------------------------------------------------------------------------
    The two languages of a card
@@ -387,6 +664,17 @@ function card_read_columns(PDO $pdo): array
     /* The map region only travels along when the table really has the column. */
     if (card_column_available(card_columns($pdo), 'map_region')) {
         $columns[] = 'map_region';
+    }
+
+    /*
+     * The exercise of a card sits in a table of its own, so its three values only
+     * travel along when that table exists. They are renamed here: in a joined
+     * query the plain names could be read twice.
+     */
+    if (card_exercise_table_available($pdo)) {
+        $columns[] = 'card_exercises.exercise_type AS exercise_type';
+        $columns[] = 'card_exercises.range_min AS exercise_range_min';
+        $columns[] = 'card_exercises.range_max AS exercise_range_max';
     }
 
     foreach (card_language_columns(card_columns($pdo)) as $pair) {
@@ -540,7 +828,8 @@ function create_card_translated(
     array $texts,
     array $columns,
     bool $isBidirectional,
-    ?string $mapRegion = null
+    ?string $mapRegion = null,
+    ?array $exercise = null
 ): array {
     $pairs = card_language_columns($columns);
     $names = ['category_id', 'is_bidirectional'];
@@ -579,6 +868,17 @@ function create_card_translated(
         $values[] = ':' . $column;
     }
 
+    /*
+     * The card and its exercise are written together or not at all. A transaction
+     * that the caller has already started is not touched: the import writes many
+     * cards inside one.
+     */
+    $ownsTransaction = !$pdo->inTransaction();
+
+    if ($ownsTransaction) {
+        $pdo->beginTransaction();
+    }
+
     $statement = $pdo->prepare(
         'INSERT INTO cards (' . implode(', ', $names) . ')
          VALUES (' . implode(', ', $values) . ')'
@@ -605,12 +905,28 @@ function create_card_translated(
         $statement->bindValue(':' . $column, $text, PDO::PARAM_STR);
     }
 
-    $statement->execute();
+    try {
+        $statement->execute();
 
-    $created = find_card($pdo, (int) $pdo->lastInsertId());
+        $cardId = (int) $pdo->lastInsertId();
 
-    if ($created === null) {
-        throw new RuntimeException('The card was inserted but cannot be read back.');
+        save_card_exercise($pdo, $cardId, $exercise);
+
+        $created = find_card($pdo, $cardId);
+
+        if ($created === null) {
+            throw new RuntimeException('The card was inserted but cannot be read back.');
+        }
+    } catch (Throwable $error) {
+        if ($ownsTransaction) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+
+    if ($ownsTransaction) {
+        $pdo->commit();
     }
 
     return $created;

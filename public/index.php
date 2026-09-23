@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/helpers/html.php';
 require_once __DIR__ . '/../src/helpers/translations.php';
+require_once __DIR__ . '/../src/services/exercise_service.php';
 
 $translations = learning_app_translations();
 $defaultLocale = 'en';
@@ -83,6 +84,13 @@ $appConfig = [
         'EU' => 'assets/maps/europe.svg',
         'WORLD' => 'assets/maps/world.svg',
     ],
+    /*
+     * The kinds of task an exercise card can show, straight from
+     * exercise_catalog(): the card dialog may only offer what the generator really
+     * knows. The names are translation keys, like every other text of this
+     * interface.
+     */
+    'exerciseTypes' => exercise_catalog(),
     'germanStates' => [
         ['id' => 'Baden__x26__Württemberg', 'label' => 'map.state.bw'],
         ['id' => 'Bayern', 'label' => 'map.state.by'],

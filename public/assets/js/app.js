@@ -1026,6 +1026,18 @@
             return t('dialog.errorFront');
         }
 
+        if (code === 'invalid_exercise_type') {
+            return t('dialog.errorExerciseType');
+        }
+
+        if (code === 'invalid_exercise_range') {
+            return t('dialog.errorExerciseRange');
+        }
+
+        if (code === 'exercise_unavailable') {
+            return t('dialog.errorExerciseUnavailable');
+        }
+
         if (code === 'invalid_map_region') {
             return t('dialog.errorMapRegion');
         }
@@ -1740,14 +1752,24 @@
         var stack = document.createElement('span');
         stack.className = 'row__stack';
 
+        /*
+         * An exercise card shows the task that was rolled for this page: new
+         * numbers on every load. The first line carries the title - or the name of
+         * the kind of task when the card has none - and the second one the task
+         * with its answer, the same way a fixed card shows both of its sides.
+         */
+        var task = exerciseTask(card);
+
         var front = document.createElement('span');
         front.className = 'row__name';
         /* textContent, never innerHTML: both sides come from the database. */
-        front.textContent = card.front;
+        front.textContent = task === null
+            ? card.front
+            : (card.front !== '' ? card.front : t(task.label));
 
         var back = document.createElement('span');
         back.className = 'row__back';
-        back.textContent = card.back;
+        back.textContent = task === null ? card.back : task.question + ' → ' + task.answer;
 
         /* A card with a map region shows the map above its text: the question
            stays the first thing that is read. */
@@ -2666,6 +2688,26 @@
         } else if (kind === 'checkbox') {
             control = el('input', 'dialog__check');
             control.type = 'checkbox';
+        } else if (kind === 'select') {
+            control = el('select', 'dialog__select');
+
+            (settings.options || []).forEach(function (option) {
+                control.appendChild(new Option(option.label, option.value));
+            });
+        } else if (kind === 'number') {
+            control = el('input', 'dialog__input dialog__input--number');
+            control.type = 'number';
+            /* A phone shows a keypad for a number field, and the browser refuses
+               anything that is not a number - so the field is a real one. */
+            control.setAttribute('inputmode', 'numeric');
+
+            if (settings.min !== undefined) {
+                control.min = String(settings.min);
+            }
+
+            if (settings.max !== undefined) {
+                control.max = String(settings.max);
+            }
         } else {
             control = el('input', 'dialog__input');
             control.type = 'text';
@@ -3232,6 +3274,7 @@
     function openCardForm(card, categoryId) {
         dialogKind = 'card';
         dialogMapField = null;
+        dialogExerciseField = null;
         dialogEntry = card;
         dialogParentId = categoryId;
         dialogIcon = null;
@@ -3272,6 +3315,24 @@
             elements.dialogFields.appendChild(buildLanguageTabs());
         }
 
+        /*
+         * The kind of card comes first: it decides what the rest of the form asks
+         * for, and the two kinds are the same card in the same table.
+         */
+        addField('card_kind', 'select', {
+            labelKey: 'dialog.card.kindLabel',
+            options: [
+                { value: 'fixed', label: t('dialog.card.kindFixed') },
+                { value: 'exercise', label: t('dialog.card.kindExercise') }
+            ]
+        });
+
+        dialogFields.card_kind.control.id = 'dialog-field-card_kind';
+        dialogFields.card_kind.control.value = card !== null && card.exercise ? 'exercise' : 'fixed';
+        dialogFields.card_kind.control.addEventListener('change', function () {
+            setCardKind(dialogFields.card_kind.control.value);
+        });
+
         addField('front', 'textarea', {
             labelKey: 'dialog.card.frontLabel',
             placeholderKey: 'dialog.card.frontPlaceholder',
@@ -3279,6 +3340,8 @@
             rows: 2,
             value: cardDraft[cardTab].front
         });
+
+        addExerciseFields(card !== null ? card.exercise : null);
 
         addField('back', 'textarea', {
             labelKey: 'dialog.card.backLabel',
@@ -3309,6 +3372,9 @@
         elements.dialogSaveNext.textContent = t('dialog.card.saveNext');
         elements.dialogSaveNext.disabled = false;
 
+        /* Which fields are visible follows from the kind that was just set. */
+        setCardKind(dialogFields.card_kind.control.value);
+
         wireCardDialogShortcuts();
 
         openDialog();
@@ -3328,6 +3394,48 @@
             /* null means "no map": the column is empty then. */
             map_region: dialogMapValue()
         };
+
+        /*
+         * An exercise card sends the kind of task and the numbers it may use; an
+         * empty exercise_type is how the dialog says "this is not an exercise",
+         * which is also how an exercise is taken away again.
+         */
+        var exercise = cardKindValue() === 'exercise';
+        payload.exercise_type = exercise ? dialogFields.exercise_type.control.value : '';
+        payload.exercise_range_min = exercise ? dialogFields.exercise_range_min.control.value : '';
+        payload.exercise_range_max = exercise ? dialogFields.exercise_range_max.control.value : '';
+
+        /*
+         * The quick check in the browser, for the answer that comes while typing.
+         * The server checks the same thing again and is the one that counts.
+         */
+        if (exercise) {
+            var settings = exerciseTypeSettings(payload.exercise_type);
+            var isWholeNumber = function (value) {
+                return String(value).trim() !== '' && isFinite(value) && Math.floor(value) === value;
+            };
+
+            if (settings === null) {
+                setFieldError('exercise_type', t('dialog.errorExerciseType'));
+                dialogFields.exercise_type.control.focus();
+
+                return null;
+            }
+
+            var from = Number(payload.exercise_range_min);
+            var to = Number(payload.exercise_range_max);
+            var fromIsWrong = !isWholeNumber(from) || from < settings.lowest || from > to;
+            var toIsWrong = !isWholeNumber(to) || to > settings.highest || to < from;
+
+            if (fromIsWrong || toIsWrong) {
+                var wrong = fromIsWrong ? 'exercise_range_min' : 'exercise_range_max';
+                setFieldError(wrong, t('dialog.errorExerciseRange', { min: settings.lowest, max: settings.highest }));
+                dialogFields[wrong].control.focus();
+
+                return null;
+            }
+        }
+
         var complete = 0;
         var half = [];
 
@@ -3338,11 +3446,14 @@
             payload['front_' + code] = front;
             payload['back_' + code] = back;
 
-            if (front !== '' && back !== '') {
+            /* An exercise card needs a title, not an answer. */
+            var filled = exercise ? front !== '' : front !== '' && back !== '';
+
+            if (filled) {
                 complete++;
             }
 
-            if ((front === '') !== (back === '')) {
+            if (!exercise && (front === '') !== (back === '')) {
                 half.push(code);
             }
         });
@@ -3378,7 +3489,7 @@
         }
 
         if (complete === 0) {
-            setDialogError(t('dialog.card.keepOneLanguage'));
+            setDialogError(t(exercise ? 'dialog.card.keepExerciseTitle' : 'dialog.card.keepOneLanguage'));
             dialogFields.front.control.focus();
 
             return null;
@@ -4515,8 +4626,15 @@
         elements.learnProgress.setAttribute('aria-valuenow', String(percent));
         elements.learnProgress.setAttribute('aria-valuetext', t('learn.progress', { percent: percent }));
 
-        elements.learnFrontText.textContent = entry.front;
-        elements.learnBackText.textContent = entry.back;
+        /*
+         * An exercise card shows the task that was rolled for this session. Both
+         * sides come from the same card, so the answer belongs to the numbers on
+         * the other side - and the next session draws new ones.
+         */
+        var task = exerciseTask(entry);
+
+        elements.learnFrontText.textContent = task === null ? entry.front : task.question;
+        elements.learnBackText.textContent = task === null ? entry.back : task.answer;
 
         /*
          * Both sides of the card carry the map, and only the marking makes the
@@ -4531,13 +4649,24 @@
          */
         showMap(elements.learnMapFront, entry.map_region, 'card-map card-map--learn', false);
         showMap(elements.learnMapBack, entry.map_region, 'card-map card-map--learn');
-        elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
+        elements.learnCard.setAttribute('aria-label', task === null
+            ? (learnSession.flipped ? entry.back : entry.front)
+            : (learnSession.flipped ? task.answer : task.question));
 
         /* Both faces are written; which one is visible is the flip. */
         elements.learnCard.classList.toggle('is-flipped', learnSession.flipped);
         elements.learnStage.classList.toggle('is-flipped', learnSession.flipped);
-        elements.learnSideLabel.textContent = t(learnSession.flipped ? 'learn.answer' : 'learn.question');
-        elements.learnSideLabel.setAttribute('data-i18n', learnSession.flipped ? 'learn.answer' : 'learn.question');
+        var sideKey = learnSession.flipped ? 'learn.answer' : 'learn.question';
+
+        if (task === null) {
+            elements.learnSideLabel.textContent = t(sideKey);
+            elements.learnSideLabel.setAttribute('data-i18n', sideKey);
+        } else {
+            /* A title is data, not a translation key: switching the language must
+               not overwrite it. */
+            elements.learnSideLabel.textContent = entry.front !== '' ? entry.front : t(task.label);
+            elements.learnSideLabel.removeAttribute('data-i18n');
+        }
         elements.learnHint.hidden = learnSession.flipped;
 
         buildLearnButtons(entry);
@@ -5973,6 +6102,200 @@
      * map below the two selects shows the choice straight away, and "no map" is
      * the default: a region is always optional.
      */
+    /* The exercise part of the card dialog, or null while it is not built. */
+    var dialogExerciseField = null;
+
+    /* Which kind of card the dialog is showing right now. */
+    function cardKindValue() {
+        if (dialogFields.card_kind === undefined) {
+            return 'fixed';
+        }
+
+        return dialogFields.card_kind.control.value === 'exercise' ? 'exercise' : 'fixed';
+    }
+
+    /* What config.exerciseTypes says about one kind of task, or null. */
+    function exerciseTypeSettings(type) {
+        var types = config.exerciseTypes || {};
+
+        return types[type] === undefined ? null : types[type];
+    }
+
+    /*
+     * The generated task of a card, in the language of the interface - or null
+     * when the card is a fixed card.
+     *
+     * The numbers are NOT drawn here. They are drawn on the server, in
+     * exercise_service.php, and travel with the card: question and answer belong
+     * to the same draw, which is what makes them match. A second generator in the
+     * browser would be a second truth to keep in step, so there is none.
+     */
+    function exerciseTask(card) {
+        if (card === null || typeof card !== 'object') {
+            return null;
+        }
+
+        if (card.exercise === null || typeof card.exercise !== 'object') {
+            return null;
+        }
+
+        var task = card.exercise.task;
+
+        if (task === null || typeof task !== 'object') {
+            return null;
+        }
+
+        var question = task.question === undefined || task.question === null ? {} : task.question;
+        var answer = task.answer === undefined || task.answer === null ? {} : task.answer;
+
+        return {
+            type: card.exercise.type,
+            label: card.exercise.label,
+            rangeMin: card.exercise.range_min,
+            rangeMax: card.exercise.range_max,
+            question: typeof question[locale] === 'string' ? question[locale] : question.de,
+            answer: typeof answer[locale] === 'string' ? answer[locale] : answer.de
+        };
+    }
+
+    /*
+     * Shows the fields that belong to the chosen kind of card and hides the rest.
+     *
+     * A fixed card asks for a question and an answer. An exercise card asks for a
+     * title and for the numbers its task may use - the answer is generated, so an
+     * answer field would be a field nobody may fill in.
+     */
+    function setCardKind(kind) {
+        var exercise = kind === 'exercise';
+        var label = dialogFields.front.wrap.querySelector('.dialog__label');
+
+        if (label !== null) {
+            var labelKey = exercise ? 'dialog.card.titleLabel' : 'dialog.card.frontLabel';
+            label.textContent = t(labelKey);
+            label.setAttribute('data-i18n', labelKey);
+        }
+
+        var placeholderKey = exercise ? 'dialog.card.titlePlaceholder' : 'dialog.card.frontPlaceholder';
+        dialogFields.front.control.setAttribute('placeholder', t(placeholderKey));
+        dialogFields.front.control.setAttribute('data-i18n-placeholder', placeholderKey);
+
+        /* The answer of an exercise is generated, so it is not asked for. */
+        dialogFields.back.wrap.hidden = exercise;
+
+        if (dialogExerciseField !== null) {
+            dialogExerciseField.wrap.hidden = !exercise;
+        }
+
+        ['front', 'back', 'exercise_range_min', 'exercise_range_max'].forEach(function (name) {
+            if (dialogFields[name] !== undefined) {
+                clearFieldError(name);
+            }
+        });
+    }
+
+    /*
+     * The kind of task and the numbers it may use, built once per dialog.
+     *
+     * The list of kinds comes from config.exerciseTypes, which index.php builds
+     * from exercise_catalog(): the dialog can therefore never offer a kind of task
+     * that the generator does not know, and a kind added on the server appears
+     * here without a second list to keep in step.
+     */
+    function addExerciseFields(exercise) {
+        var types = config.exerciseTypes || {};
+        var keys = Object.keys(types);
+
+        if (keys.length === 0) {
+            dialogExerciseField = null;
+            return;
+        }
+
+        var known = exercise !== null && exercise !== undefined && types[exercise.type] !== undefined;
+        var chosen = known ? exercise.type : keys[0];
+        var settings = exerciseTypeSettings(chosen);
+
+        var wrap = el('div', 'dialog__field dialog__field--exercise');
+
+        var label = el('label', 'dialog__label', t('dialog.card.exerciseTypeLabel'));
+        label.setAttribute('for', 'dialog-field-exercise_type');
+        label.setAttribute('data-i18n', 'dialog.card.exerciseTypeLabel');
+
+        var select = el('select', 'dialog__select');
+        select.id = 'dialog-field-exercise_type';
+        select.name = 'exercise_type';
+
+        keys.forEach(function (key) {
+            select.appendChild(new Option(t(types[key].label), key));
+        });
+
+        select.value = chosen;
+
+        var error = el('p', 'dialog__field-error');
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+
+        wrap.appendChild(label);
+        wrap.appendChild(select);
+        wrap.appendChild(error);
+        elements.dialogFields.appendChild(wrap);
+
+        /* Registered like every other field, so the error helpers work on it. */
+        dialogFields.exercise_type = { control: select, error: error, wrap: wrap };
+
+        var from = known ? exercise.range_min : settings.default_min;
+        var to = known ? exercise.range_max : settings.default_max;
+
+        addField('exercise_range_min', 'number', {
+            labelKey: 'dialog.card.rangeFromLabel',
+            value: String(from),
+            min: settings.lowest,
+            max: settings.highest,
+            container: wrap
+        });
+
+        addField('exercise_range_max', 'number', {
+            labelKey: 'dialog.card.rangeToLabel',
+            value: String(to),
+            min: settings.lowest,
+            max: settings.highest,
+            container: wrap
+        });
+
+        var hint = el('p', 'dialog__hint');
+        wrap.appendChild(hint);
+
+        var showHint = function () {
+            var current = exerciseTypeSettings(select.value);
+
+            hint.textContent = current === null ? '' : t(current.hint);
+            hint.hidden = current === null;
+        };
+
+        select.addEventListener('change', function () {
+            var current = exerciseTypeSettings(select.value);
+
+            /* A number range that the chosen task cannot work with is replaced by
+               the one it suggests; a range that fits is left as it is. */
+            if (current !== null) {
+                var low = Number(dialogFields.exercise_range_min.control.value);
+                var high = Number(dialogFields.exercise_range_max.control.value);
+
+                if (!isFinite(low) || low < current.lowest || high > current.highest || low > high) {
+                    dialogFields.exercise_range_min.control.value = String(current.default_min);
+                    dialogFields.exercise_range_max.control.value = String(current.default_max);
+                }
+            }
+
+            clearFieldError('exercise_range_min');
+            clearFieldError('exercise_range_max');
+            showHint();
+        });
+
+        showHint();
+
+        dialogExerciseField = { wrap: wrap, select: select, hint: hint };
+    }
+
     function addMapField(value) {
         var parsed = parseMapRegion(value);
         var wrap = el('div', 'dialog__field dialog__field--map');

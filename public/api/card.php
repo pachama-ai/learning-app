@@ -82,6 +82,29 @@ try {
     }
 
     /*
+     * The exercise comes first: it decides whether this card needs a question and
+     * an answer or only a title. A body without "exercise_type" at all leaves the
+     * exercise as it is; an empty or null value takes it away.
+     */
+    if (array_key_exists('exercise_type', $body)) {
+        $exerciseRequest = card_exercise_from_request($body);
+
+        if ($exerciseRequest['error'] === 'invalid_exercise_type') {
+            send_json_error('invalid_exercise_type', 'This kind of task does not exist.', 400);
+        }
+
+        if ($exerciseRequest['error'] === 'invalid_exercise_range') {
+            send_json_error('invalid_exercise_range', 'The number range does not fit this kind of task.', 400);
+        }
+
+        if ($exerciseRequest['exercise'] !== null && !card_exercise_table_available($pdo)) {
+            send_json_error('exercise_unavailable', 'This installation has no table for exercise cards yet.', 400);
+        }
+
+        $changes['exercise'] = $exerciseRequest['exercise'];
+    }
+
+    /*
      * At least one language has to be complete afterwards. The card as it would
      * be is the change on top of what is stored now.
      */
@@ -93,18 +116,36 @@ try {
         }
     }
 
+    /*
+     * An exercise card keeps its exercise unless the change takes it away, so the
+     * rule to apply is the one of the card as it will be.
+     */
+    $keepsExercise = array_key_exists('exercise', $changes)
+        ? $changes['exercise'] !== null
+        : ($current['exercise'] ?? null) !== null;
+
     if (array_intersect(array_keys($changes), $languageColumns) !== []) {
         $after = array_merge($current, $changes);
         $complete = false;
 
         foreach ($languages as $language) {
-            if (card_language_is_complete($after, $language, $columns)) {
+            $filled = $keepsExercise
+                ? card_language_has_question($after, $language, $columns)
+                : card_language_is_complete($after, $language, $columns);
+
+            if ($filled) {
                 $complete = true;
             }
         }
 
         if (!$complete) {
-            send_json_error('invalid_card_text', 'Fill in a question and an answer in at least one language.', 400);
+            send_json_error(
+                'invalid_card_text',
+                $keepsExercise
+                    ? 'Give the exercise a title in at least one language.'
+                    : 'Fill in a question and an answer in at least one language.',
+                400
+            );
         }
     }
 

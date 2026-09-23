@@ -71,17 +71,47 @@ if ($method === 'POST') {
             }
         }
 
-        /* At least one language has to be complete: a question AND an answer. */
+        /*
+         * The exercise is read before the text is judged, because it decides which
+         * rule applies: a fixed card needs a question and an answer, an exercise
+         * card only needs a title - its answer comes from the generator.
+         */
+        $exerciseRequest = card_exercise_from_request($body);
+
+        if ($exerciseRequest['error'] === 'invalid_exercise_type') {
+            send_json_error('invalid_exercise_type', 'This kind of task does not exist.', 400);
+        }
+
+        if ($exerciseRequest['error'] === 'invalid_exercise_range') {
+            send_json_error('invalid_exercise_range', 'The number range does not fit this kind of task.', 400);
+        }
+
+        $exercise = $exerciseRequest['exercise'];
+
+        if ($exercise !== null && !card_exercise_table_available($pdo)) {
+            send_json_error('exercise_unavailable', 'This installation has no table for exercise cards yet.', 400);
+        }
+
         $complete = false;
 
         foreach ($languages as $language) {
-            if (card_language_is_complete($texts, $language, $columns)) {
+            $filled = $exercise === null
+                ? card_language_is_complete($texts, $language, $columns)
+                : card_language_has_question($texts, $language, $columns);
+
+            if ($filled) {
                 $complete = true;
             }
         }
 
         if (!$complete) {
-            send_json_error('invalid_card_text', 'Fill in a question and an answer in at least one language.', 400);
+            send_json_error(
+                'invalid_card_text',
+                $exercise === null
+                    ? 'Fill in a question and an answer in at least one language.'
+                    : 'Give the exercise a title in at least one language.',
+                400
+            );
         }
 
         /* The map region is optional and may be missing, null or empty. */
@@ -91,7 +121,7 @@ if ($method === 'POST') {
             send_json_error('invalid_map_region', 'The map region must look like "DE:Bayern", "EU:FR" or "WORLD:CN".', 400);
         }
 
-        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional, $mapRegion);
+        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional, $mapRegion, $exercise);
 
         send_json_success($card, 201);
     } catch (Throwable $error) {
