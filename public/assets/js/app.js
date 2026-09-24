@@ -1562,6 +1562,15 @@
 
         if (persist) {
             writeStorage(config.storageKeys.language, next);
+
+            /*
+             * The store holds card texts and category names in ONE language, so it
+             * cannot serve the other one. It is dropped and asked for again - in
+             * the language that was just chosen, and without loading the page
+             * again.
+             */
+            bootstrapDropAll();
+            loadBootstrap();
         }
 
         function swap() {
@@ -4671,15 +4680,26 @@
         window.addEventListener('resize', updateLanguageUnderline);
     }
 
+    /*
+     * The language this person chose, or the language that is on screen now.
+     *
+     * It is read before anything is asked for: the first answer carries the card
+     * texts and the names of the areas in ONE language, and it must be the right
+     * one. Reading it here instead of inside init() was the reason a German
+     * interface showed English cards: the first answer was already on its way
+     * when init() learned about the choice.
+     */
+    function storedLocale() {
+        var saved = readStorage(config.storageKeys.language);
+
+        return typeof translations[saved] === 'object' ? saved : locale;
+    }
+
     function init() {
         /* The boot script in the head already applied the theme. */
         theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 
-        var savedLocale = readStorage(config.storageKeys.language);
-
-        if (typeof translations[savedLocale] === 'object') {
-            locale = savedLocale;
-        }
+        locale = storedLocale();
 
         /* Running order for the two static blocks above the grid. */
         applyRevealOrder(document.querySelectorAll('.view--start .reveal'), 0);
@@ -7483,9 +7503,12 @@
     wireHeadActions();
 
     /*
-     * The first answer is asked for before the first view is built: the view then
-     * finds the data in the store instead of loading the same thing twice.
+     * The chosen language first, then the first answer - and both before the
+     * first view is built. The view then finds the data in the store instead of
+     * loading the same thing twice, and the answer is in the language of the
+     * person looking at it.
      */
+    locale = storedLocale();
     loadBootstrap();
 
     init();

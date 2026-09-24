@@ -30,14 +30,18 @@
      */
     background-color: var(--bg);
     background-image: var(--bg-image, none);
-    opacity: 0;
+    /*
+     * Visible from the first painted line on: there is nothing to fade in any
+     * more. Only going away is a fade, and while it happens the screen may not
+     * swallow clicks.
+     */
+    opacity: 1;
     transition: opacity 240ms var(--ease);
     pointer-events: none;
 }
 
-/* While the overlay is fading in it may not swallow clicks. */
-.boot.is-shown {
-    opacity: 1;
+.boot.is-hiding {
+    opacity: 0;
 }
 
 /* When something went wrong it has to be clickable. */

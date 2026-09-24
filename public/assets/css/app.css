@@ -4575,9 +4575,15 @@ body.is-learning {
 }
 
 /* On a face of the study card: as large as the text column allows. */
+/*
+ * In the learning session the map may use the room the card really has: the
+ * text above it is one line, the card is 720 x 480 on a desktop, so a map of
+ * about 430 pixels leaves plenty of air and still fits with its text. The
+ * height limit below keeps it inside the card on a flat window.
+ */
 .card-map--learn {
-    width: min(300px, 70%);
-    margin: 14px auto 0;
+    width: min(430px, 80%);
+    margin: 16px auto 0;
 }
 
 /* In the card dialog, under the two selects. */
@@ -4635,7 +4641,7 @@ body.is-learning {
     }
 
     .card-map--learn {
-        width: min(240px, 80%);
+        width: min(320px, 88%);
     }
 
     .card-map--dialog {
@@ -5244,7 +5250,7 @@ body.is-learning {
  * the marked region stays visible.
  */
 .learn__face .card-map--learn svg {
-    max-height: min(30vh, 210px);
+    max-height: min(44vh, 300px);
 }
 
 /* With a map the text has less room, so it steps back a little. */

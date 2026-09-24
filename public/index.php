@@ -125,7 +125,13 @@ $appConfig = [
 $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 ?>
 <!DOCTYPE html>
-<html lang="<?= escape_html($defaultLocale) ?>">
+<!--
+    "is-booting" steht von der ersten Zeile an im HTML und NICHT in einem Skript:
+    nur so kann das Blatt im Kopf den Seiteninhalt verdecken, bevor der Browser
+    ihn zum ersten Mal zeichnet. Ohne JavaScript bliebe der Inhalt verdeckt -
+    dafuer sorgt der notnagel weiter unten.
+-->
+<html lang="<?= escape_html($defaultLocale) ?>" class="is-booting">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -135,6 +141,39 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     <link rel="stylesheet" href="assets/css/app.css">
     <!-- The overlay for the very first load; it owns no other rule. -->
     <link rel="stylesheet" href="assets/css/boot.css">
+
+    <!--
+        The one rule that must be there before anything is painted: while the
+        loading screen is on, the page underneath stays invisible. It is written
+        here and not in a stylesheet because every stylesheet needs a request of
+        its own - and in that gap the browser would draw the page, which is the
+        flash this is about.
+
+        visibility (not display) on purpose: the layout is complete from the
+        first moment, so nothing jumps when the loading screen goes away.
+    -->
+    <style>
+        html.is-booting .site-header,
+        html.is-booting .main,
+        html.is-booting .site-footer {
+            visibility: hidden;
+        }
+    </style>
+    <noscript>
+        <!-- Without JavaScript no script can take the loading screen away, so
+             it is not shown and the page stands open right away. -->
+        <style>
+            .boot {
+                display: none;
+            }
+
+            html.is-booting .site-header,
+            html.is-booting .main,
+            html.is-booting .site-footer {
+                visibility: visible;
+            }
+        </style>
+    </noscript>
 
     <!--
         Preloaded so the heading face is already there when the first paint
@@ -213,7 +252,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         written into the script, so the translation stays in one place - the same
         keys the rest of the interface uses.
     -->
-    <div class="boot" id="boot-overlay" role="status" aria-live="polite" hidden>
+    <div class="boot" id="boot-overlay" role="status" aria-live="polite">
         <!--
             The background of the overlay: the very same pools the page itself
             paints (see .bg-layer in the stylesheet). The overlay is opaque, so
@@ -366,24 +405,22 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null;
             }
 
-            function show() {
-                if (done || !overlay.hidden) {
-                    return;
-                }
-
-                overlay.hidden = false;
-                shownAt = Date.now();
-                art.classList.add('boot__pulse');
-                window.requestAnimationFrame(function () {
-                    overlay.classList.add('is-shown');
-                });
-            }
+            /*
+             * The loading screen stands there from the first painted line - it does
+             * not have to be shown any more, only its moment has to be remembered,
+             * because the minimum time is counted from it.
+             */
+            shownAt = Date.now();
+            art.classList.add('boot__pulse');
 
             function hide() {
-                overlay.classList.remove('is-shown');
+                overlay.classList.add('is-hiding');
 
                 window.setTimeout(function () {
                     overlay.hidden = true;
+
+                    /* And now the page underneath may be seen. */
+                    document.documentElement.classList.remove('is-booting');
                 }, 260);
             }
 
@@ -437,8 +474,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 /* No observer: the load event below still ends the overlay. */
             }
 
-            appearTimer = window.setTimeout(show, 150);
-
+            /*
+             * No timer that would show it later: it is already there. The window
+             * behind it is filled in the meantime, so the page is complete by the
+             * time it fades away.
+             */
             window.addEventListener('load', function () {
                 window.setTimeout(function () {
                     if (isReady()) {
@@ -452,8 +492,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             });
 
             failTimer = window.setTimeout(function () {
-                if (!isReady()) {
-                    show();
+                /*
+                 * Only while it is still on screen: if the page underneath has been
+                 * shown in the meantime - app.js does that at 3.5 seconds - a message
+                 * inside a hidden overlay would help nobody.
+                 */
+                if (!overlay.hidden && !isReady()) {
                     fail();
                 }
             }, 8000);
