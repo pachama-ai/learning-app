@@ -265,65 +265,15 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <span class="bg-blob bg-blob--c"></span>
         </div>
 
-        <!--
-            Two clouds that drift through the little sky behind the rotor. Each
-            one is a single closed outline of three overlapping arcs: the two
-            outer ones small, the middle one wide, all three resting on the same
-            straight bottom edge. That is the shape everybody reads as a cloud at
-            the first glance, and it is drawn in the very same thin line as the
-            turbine - a barely visible fill only lifts it off the air.
+                <!--
+            One simple circle, and nothing else. It is the whole drawing of this
+            screen: it grows for four seconds, holds its size for seven and
+            shrinks again for eight - three times in a row, and then the overlay
+            fades away and the page appears (boot.css carries the drawing).
         -->
-        <div class="boot__sky" aria-hidden="true">
-            <svg class="boot__cloud boot__cloud--one" viewBox="0 0 88 52" aria-hidden="true">
-                <path d="M18 44 L70 44 A11 11 0 1 0 62.99 24.53 A19 19 0 0 0 25.01 24.53 A11 11 0 1 0 18 44 Z"
-                      fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-width="1.7"
-                      stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+        <div class="boot__circle boot__pulse" aria-hidden="true"></div>
 
-            <!--
-                The same drawing, a good bit smaller. Its stroke is thicker in
-                this coordinate system on purpose: the cloud is scaled down, and
-                without that the smaller one would not carry the line weight of
-                the bigger one - and neither would look like the turbine.
-            -->
-            <svg class="boot__cloud boot__cloud--two" viewBox="0 0 88 52" aria-hidden="true">
-                <path d="M18 44 L70 44 A11 11 0 1 0 62.99 24.53 A19 19 0 0 0 25.01 24.53 A11 11 0 1 0 18 44 Z"
-                      fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-width="2.45"
-                      stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-
-        <div class="boot__art boot__pulse" aria-hidden="true">
-            <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="1.8"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <!--
-                    A wind turbine: a mast that stands still and a rotor that turns.
-                    The mast is not decoration - it is what makes the turning blades
-                    read as a turning rotor instead of a spinning picture.
-                -->
-                <path d="M48 26 V 88"></path>
-                <path d="M38 88 H 58"></path>
-
-                <!--
-                    Three slim, gently curved blades, each the same shape, turned a
-                    third of the circle from the next one. The turning happens in CSS
-                    (see boot.css) around exactly the hub: 48/26 in this coordinate
-                    system.
-                -->
-                <g class="boot__rotor">
-                    <path d="M48 26 C 44.5 18 44.5 9 47.5 2 C 50.5 9 51.5 18 48 26 Z"></path>
-                    <path d="M48 26 C 44.5 18 44.5 9 47.5 2 C 50.5 9 51.5 18 48 26 Z"
-                          transform="rotate(120 48 26)"></path>
-                    <path d="M48 26 C 44.5 18 44.5 9 47.5 2 C 50.5 9 51.5 18 48 26 Z"
-                          transform="rotate(240 48 26)"></path>
-                </g>
-
-                <!-- The hub: the one filled mark, so the three blades have a centre. -->
-                <circle cx="48" cy="26" r="1.8" fill="currentColor" stroke="none"></circle>
-            </svg>
-        </div>
-
-        <p class="boot__text" id="boot-text"
+<p class="boot__text" id="boot-text"
            data-text-de="Wird geladen …" data-text-en="Loading …">Loading …</p>
 
         <div class="boot__error" id="boot-error" hidden>
@@ -353,8 +303,18 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
          *     is never shown and nothing is blocked
          */
         (function () {
+            /*
+             * The loading screen of the first load, and nothing else: a click
+             * inside the application never shows it again, because the page is not
+             * loaded again.
+             *
+             * The rhythm in here and the rhythm of the circle in boot.css are the
+             * same three numbers. This script only waits for the end of the third
+             * pass and then decides: the page appears, or - if there is still
+             * nothing to show - the message with the retry button takes over. A
+             * load that succeeds after that message still ends the overlay.
+             */
             var overlay = document.getElementById('boot-overlay');
-            var art = overlay === null ? null : overlay.querySelector('.boot__art');
 
             if (overlay === null) {
                 return;
@@ -381,54 +341,41 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
              */
             document.documentElement.setAttribute('lang', language);
 
-            var done = false;
-            /*
-             * Set while the message with the retry button is on screen. It only
-             * says "the message has been shown" and not "this is over": a load
-             * that succeeds afterwards still ends the overlay.
-             */
+            /* The rhythm of the circle: four seconds growing, seven holding,
+               eight shrinking - nineteen per pass, three passes. */
+            var PASS_MS = 19000;
+            var SHOW_FOR_MS = PASS_MS * 3;
+
+            /* Set while the message with the retry button is on screen. It only
+               says "the message has been shown" and not "this is over": a load
+               that succeeds afterwards still ends the overlay. */
             var failed = false;
-            var shownAt = 0;
-            var appearTimer = null;
-            var failTimer = null;
+            var decided = false;
+            var finished = false;
+            var shownAt = Date.now();
 
             /*
-             * app.js says when the first answer of api/bootstrap.php is in and the
-             * first view has been built from it. That is exactly the moment this
-             * overlay belongs to: it is the loading screen of the FIRST load, not of
-             * a request later on - a click inside the application never shows it
-             * again, because the page is not loaded again.
+             * Ready means: the first view really stands there - a tile, a row, a
+             * subcategory or the empty state. "The document has finished loading"
+             * is NOT enough: all files can be there while the first answer of
+             * api/bootstrap.php is still on its way, and the static markup of the
+             * page is there from the first moment anyway.
              *
-             * Everything below stays as a safety net for the case that the
-             * application script never gets that far.
-             */
-            document.addEventListener('lernkartei:ready', finish);
-
-            /*
-             * Ready means: the first view really stands there - a tile, a row, the
-             * learning stage or the empty state. "The document has finished
-             * loading" is NOT enough: all files can be there while the first answer
-             * of api/bootstrap.php is still on its way, and the static markup of the
-             * page is there from the first moment anyway. With that as the measure,
-             * the overlay counted a half built page as done and could disappear
-             * before it had even appeared.
-             *
-             * The case "the application script never gets that far" is still covered:
-             * the message with the retry button after eight seconds.
+             * The case "the application script never gets that far" stays covered:
+             * the message with the retry button once the three passes are over and
+             * nothing is there to show.
              */
             function isReady() {
                 return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null;
             }
 
-            /*
-             * The loading screen stands there from the first painted line - it does
-             * not have to be shown any more, only its moment has to be remembered,
-             * because the minimum time is counted from it.
-             */
-            shownAt = Date.now();
-            art.classList.add('boot__pulse');
-
             function hide() {
+                if (finished) {
+                    return;
+                }
+
+                finished = true;
+
                 /*
                  * A fading overlay may not swallow clicks and it is not failed any
                  * more either - it is going away.
@@ -444,55 +391,53 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 }, 260);
             }
 
-            function finish() {
-                if (done) {
-                    return;
-                }
-
-                done = true;
-                window.clearTimeout(appearTimer);
-                window.clearTimeout(failTimer);
-                observer.disconnect();
-
-                if (overlay.hidden) {
-                    return;
-                }
-
-                /*
-                 * Never a flash: the loading screen stays for at least four seconds,
-                 * counted from the moment it really appeared - even when every answer
-                 * is already there. The clock starts in show(), so this minimum only
-                 * ever applies to an overlay somebody has actually seen.
-                 */
-                var seenFor = Date.now() - shownAt;
-                window.setTimeout(hide, Math.max(0, 4000 - seenFor));
-            }
-
             function fail() {
-                if (done || failed) {
+                if (failed || finished) {
                     return;
                 }
 
-                /*
-                 * Deliberately NOT done: with done set here every later ready
-                 * signal was ignored, and a page that finished loading after the
-                 * message stayed hidden behind it for good. Found in the browser,
-                 * not in the code.
-                 */
                 failed = true;
-                window.clearTimeout(appearTimer);
-                window.clearTimeout(failTimer);
                 overlay.classList.add('is-failed');
                 document.getElementById('boot-text').hidden = true;
                 document.getElementById('boot-error').hidden = false;
                 document.getElementById('boot-retry').focus();
             }
 
-            var observer = new MutationObserver(function () {
-                if (isReady()) {
-                    finish();
+            /*
+             * Every "the first view is there" signal ends here. The overlay does not
+             * go away before the three passes of the circle are over, however fast
+             * the answers arrive - the rhythm IS this screen, and a screen that
+             * disappeared after half a second would never show it.
+             */
+            function onReadySignal() {
+                if (!isReady()) {
+                    return;
                 }
-            });
+
+                /* The answer arrived after the message: the page is shown now. */
+                if (failed) {
+                    hide();
+
+                    return;
+                }
+
+                if (decided) {
+                    return;
+                }
+
+                decided = true;
+                observer.disconnect();
+
+                window.setTimeout(function () {
+                    if (isReady()) {
+                        hide();
+                    } else {
+                        fail();
+                    }
+                }, Math.max(0, SHOW_FOR_MS - (Date.now() - shownAt)));
+            }
+
+            var observer = new MutationObserver(onReadySignal);
 
             try {
                 observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -501,32 +446,18 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             }
 
             /*
-             * No timer that would show it later: it is already there. The window
-             * behind it is filled in the meantime, so the page is complete by the
-             * time it fades away.
+             * app.js says when the first answer of api/bootstrap.php is in and the
+             * first view has been built from it.
              */
+            document.addEventListener('lernkartei:ready', onReadySignal);
+
             window.addEventListener('load', function () {
-                window.setTimeout(function () {
-                    if (isReady()) {
-                        finish();
-                    }
-                }, 40);
+                window.setTimeout(onReadySignal, 40);
             });
 
             document.getElementById('boot-retry').addEventListener('click', function () {
                 window.location.reload();
             });
-
-            failTimer = window.setTimeout(function () {
-                /*
-                 * Only while it is still on screen: if the page underneath has been
-                 * shown in the meantime - app.js does that at 3.5 seconds - a message
-                 * inside a hidden overlay would help nobody.
-                 */
-                if (!overlay.hidden && !isReady()) {
-                    fail();
-                }
-            }, 8000);
         })();
     </script>
 

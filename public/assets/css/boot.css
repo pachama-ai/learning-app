@@ -49,44 +49,58 @@
     pointer-events: auto;
 }
 
-.boot__art {
-    width: 108px;
-    height: 108px;
+/*
+ * The circle of the loading screen, and the whole rhythm of it:
+ *
+ *    0s -  4s   it grows
+ *    4s - 11s   it holds its size
+ *   11s - 19s   it shrinks again
+ *
+ * Three passes of that, and then the overlay fades away. The clock for that runs
+ * in public/index.php with the very same numbers, so the drawing and the moment
+ * it disappears cannot drift apart. The percentages below are those seconds out
+ * of one 19 second pass: 4/19 and 11/19.
+ *
+ * The ring sits in a box that is as large as it can ever grow, so growing and
+ * shrinking never push the line of text underneath it up and down.
+ */
+.boot__circle {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 200px;
+    height: 200px;
     color: var(--muted);
 }
 
-.boot__art svg {
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    display: block;
+.boot__circle::before {
+    content: "";
+    width: 128px;
+    height: 128px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    animation: boot-circle 19s linear 3 both;
 }
 
-/*
- * The rotor turns around its hub, once every 1,7 seconds, at a constant speed -
- * a wind turbine does not hurry, and an uneven clock would read as a wobble.
- *
- * transform-box makes the percentages and lengths of transform-origin mean the
- * coordinate system of the drawing itself (the viewBox), so the centre below is
- * exactly the hub: 48 across, 26 down. Without it the origin would be the middle
- * of the CSS box, and the rotor would visibly circle around the mast instead of
- * turning on it.
- */
-.boot__rotor {
-    transform-box: view-box;
-    transform-origin: 48px 26px;
-    animation: boot-turn 1700ms linear infinite;
-}
-
-@keyframes boot-turn {
-    from {
-        transform: rotate(0deg);
+@keyframes boot-circle {
+    0% {
+        transform: scale(0.45);
     }
 
-    to {
-        transform: rotate(360deg);
+    21.0526% {
+        transform: scale(1.45);
+    }
+
+    57.8947% {
+        transform: scale(1.45);
+    }
+
+    100% {
+        transform: scale(0.45);
     }
 }
+
 
 .boot__text {
     margin: 0;
@@ -137,76 +151,8 @@
 }
 
 /* The sky the clouds travel through: behind the rotor, above the pools. */
-/*
- * The sky of the overlay is a band around the turbine and not the whole window.
- * The clouds belong to the drawing, so they may not drift far away from it: a
- * cloud at the other edge of the screen reads as a second, unrelated picture.
- *
- * The band is centred on the same point the turbine is centred on. The overlay
- * stacks drawing, sky and text in one centred column, and that column sits a
- * little above the middle of the window - the small upward offset below puts
- * the band on exactly that middle, so the rotor has the clouds at its own
- * height instead of somewhere underneath them.
- */
-.boot__sky {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: min(620px, 84vw);
-    height: 300px;
-    transform: translate(-50%, calc(-50% - 24px));
-    overflow: clip;
-    z-index: 1;
-    pointer-events: none;
-}
-
-/*
- * One cloud: three overlapping arcs in the same thin line as the turbine, a
- * barely visible fill in the muted text colour, and nothing else.
- *
- * It sits at the height of the rotor and crosses the band in half a minute -
- * much slower than the rotor turns, which is what keeps it in the background
- * and out of the way of the drawing.
- *
- * Both values that matter are written in percent of the band: the travel of the
- * animation and the height of the cloud. That way the cloud always passes the
- * middle of the band - and with it the rotor - no matter how wide the window
- * is.
- */
-.boot__cloud {
-    position: absolute;
-    top: 22%;
-    left: -20%;
-    width: 104px;
-    height: auto;
-    color: var(--muted);
-    opacity: 0.6;
-    animation: boot-drift 30s linear infinite;
-}
-
-/* The second one is smaller, a little lower and needs a tick longer for the
-   same way, so the two never sit on top of each other. */
-.boot__cloud--two {
-    top: 46%;
-    width: 72px;
-    opacity: 0.42;
-    animation-duration: 38s;
-    animation-delay: -13s;
-}
-
-/* From just outside one edge of the band to just outside the other, evenly. */
-@keyframes boot-drift {
-    from {
-        left: -20%;
-    }
-
-    to {
-        left: 104%;
-    }
-}
-
-/* The rotor and the words stand in front of the clouds. */
-.boot__art,
+/* The circle and the words. */
+.boot__circle,
 .boot__text,
 .boot__error {
     position: relative;
@@ -214,7 +160,7 @@
 }
 
 /* A slow connection may show it for a while: the drawing steps back. */
-.boot.is-failed .boot__art {
+.boot.is-failed .boot__circle {
     color: var(--line-strong, var(--muted));
 }
 
@@ -224,23 +170,15 @@
  * "something is happening".
  */
 @media (prefers-reduced-motion: reduce) {
-    .boot__rotor {
+    /*
+     * Nobody who asked for less movement gets a circle that grows and shrinks
+     * for a whole minute: it stands at one size and the drawing breathes instead.
+     * It stands there for the same 57 seconds - the screen before the first page
+     * behaves the same way for everybody.
+     */
+    .boot__circle::before {
         animation: none;
-        transform: rotate(0deg);
-    }
-
-    /* Nobody who asked for less movement gets drifting clouds either: they stand
-       where they are, one on each side of the rotor. */
-    .boot__cloud {
-        animation: none;
-    }
-
-    .boot__cloud--one {
-        left: 14%;
-    }
-
-    .boot__cloud--two {
-        left: 56%;
+        transform: scale(1);
     }
 
     /*
