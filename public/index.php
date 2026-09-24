@@ -350,15 +350,20 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
              */
             document.addEventListener('lernkartei:ready', finish);
 
+            /*
+             * Ready means: the first view really stands there - a tile, a row, the
+             * learning stage or the empty state. "The document has finished
+             * loading" is NOT enough: all files can be there while the first answer
+             * of api/bootstrap.php is still on its way, and the static markup of the
+             * page is there from the first moment anyway. With that as the measure,
+             * the overlay counted a half built page as done and could disappear
+             * before it had even appeared.
+             *
+             * The case "the application script never gets that far" is still covered:
+             * the message with the retry button after eight seconds.
+             */
             function isReady() {
-                if (document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null) {
-                    return true;
-                }
-
-                /* Last resort: the view has content and the page is loaded. */
-                var main = document.querySelector('main');
-
-                return document.readyState === 'complete' && main !== null && main.children.length > 0;
+                return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null;
             }
 
             function show() {
@@ -396,9 +401,14 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     return;
                 }
 
-                /* Never a flash: it stays long enough to be seen as a fade. */
+                /*
+                 * Never a flash: the loading screen stays for at least four seconds,
+                 * counted from the moment it really appeared - even when every answer
+                 * is already there. The clock starts in show(), so this minimum only
+                 * ever applies to an overlay somebody has actually seen.
+                 */
                 var seenFor = Date.now() - shownAt;
-                window.setTimeout(hide, Math.max(0, 220 - seenFor));
+                window.setTimeout(hide, Math.max(0, 4000 - seenFor));
             }
 
             function fail() {

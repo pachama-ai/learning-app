@@ -144,8 +144,8 @@
 /*
  * One flat cloud, drawn in the same thin line as the turbine, with a fill that
  * is barely there. It crosses the whole overlay once per pass at a constant
- * speed - about eight seconds, which is quiet enough to stay in the background
- * and slow enough not to pull the eye away from the rotor.
+ * speed - about fourteen seconds, which is quiet enough to stay in the
+ * background and slow enough not to pull the eye away from the rotor.
  */
 .boot__cloud {
     position: absolute;
@@ -154,7 +154,7 @@
     height: auto;
     color: var(--muted);
     opacity: 0.55;
-    animation: boot-drift 8s linear infinite;
+    animation: boot-drift 14s linear infinite;
 }
 
 .boot__cloud--one {
@@ -167,8 +167,8 @@
     top: 64%;
     width: 92px;
     opacity: 0.32;
-    animation-duration: 9.5s;
-    animation-delay: -4.5s;
+    animation-duration: 17s;
+    animation-delay: -6s;
 }
 
 /* From just outside the left edge to just outside the right one, evenly. */
