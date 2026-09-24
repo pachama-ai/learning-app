@@ -1659,7 +1659,6 @@
 
         var icon = document.createElement('img');
         icon.className = 'blob__icon';
-        icon.src = meta.icon;
         /* The whole tile is one link with an accessible name, so describing the
            drawing again would only repeat it. */
         icon.alt = '';
@@ -1669,6 +1668,15 @@
         icon.setAttribute('decoding', 'async');
         icon.style.setProperty('--icon-scale', String(meta.iconScale));
         circle.appendChild(icon);
+
+        /*
+         * The address is given LAST, when the element is already in the
+         * document. An <img> that learns its address while it is still detached
+         * is fetched a second time the moment it is attached, and that was the
+         * double request every area drawing cost: eight requests for four tiles,
+         * the second four with 0 bytes straight from the cache.
+         */
+        icon.src = meta.icon;
 
         /* Which share of the circle the drawing covers is measured, not guessed. */
         useMeasuredIconScale(icon, meta.icon);
@@ -1787,7 +1795,13 @@
 
         var blob = document.createElement('span');
         blob.className = 'blob';
-        fillIconCircle(blob, meta);
+        /*
+         * The drawing is filled in later, when this tile is in the document - see
+         * the note in renderHome. An <img> that is given its address while it is
+         * still detached is fetched a SECOND time the moment it is attached; that
+         * was the duplicate the area drawings cost (measured: eight requests for
+         * four tiles, the second four with 0 bytes straight from the cache).
+         */
 
         head.appendChild(blob);
 
@@ -1902,6 +1916,15 @@
             areas.forEach(function (area, index) {
                 var tile = buildAreaTile(area, index);
                 elements.grid.appendChild(tile);
+
+                /*
+                 * Now that the tile is in the document, the drawing of the area
+                 * goes into its circle. Filled in before that, the <img> would be
+                 * fetched once while detached and once again when it is attached -
+                 * one request per tile that nobody asked for.
+                 */
+                fillIconCircle(tile.querySelector('.blob'), categoryMeta(area));
+
                 linkedTiles.push(tile);
 
                 if (newAreaId !== null && area.id === newAreaId) {

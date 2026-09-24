@@ -33,6 +33,15 @@ require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
 
+/*
+ * The drawing is SVG, and SVG is text: it travels gzipped. Apache does that by
+ * itself (see deploy/apache/), the development server of PHP does not - so the
+ * two behave the same. Measured on a 110 KB drawing: 28 KB with gzip.
+ */
+if (!ini_get('zlib.output_compression') && !headers_sent()) {
+    ini_set('zlib.output_compression', '6');
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method !== 'GET' && $method !== 'HEAD') {
