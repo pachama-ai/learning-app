@@ -43,6 +43,19 @@ require_once __DIR__ . '/../helpers/request_input.php';
  */
 const CARD_IMPORT_HEADER = ['front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
+/**
+ * Columns that may stand in the header without being required.
+ *
+ * "exercise" names a generated task instead of a fixed card: the kind of task
+ * and, after a colon, the numbers it may use. The syntax is read by
+ * exercise_parse_cell() in src/services/exercise_service.php, the same function
+ * the command line importer uses. A file without the column keeps working
+ * unchanged.
+ *
+ * @var list<string>
+ */
+const CARD_IMPORT_OPTIONAL = ['exercise'];
+
 /** The file must not be bigger than this. Must match the value in index.php. */
 const CARD_IMPORT_MAX_BYTES = 1048576;
 
@@ -67,6 +80,7 @@ const CARD_IMPORT_ALIASES = [
     'front_en' => ['front_en', 'vorderseite_en'],
     'back_en' => ['back_en', 'rueckseite_en', 'rückseite_en'],
     'is_bidirectional' => ['is_bidirectional', 'auch_umgekehrt', 'umgekehrt', 'bidirectional'],
+    'exercise' => ['exercise', 'aufgabe', 'uebung', 'übung'],
 ];
 
 /** Values that mean "yes" and "no" in the optional 0/1 column. */
@@ -184,7 +198,9 @@ function card_import_read_file(string $path): array
 
         $values = [];
 
-        foreach (CARD_IMPORT_HEADER as $column) {
+        /* The required columns first, then the optional ones: a file without the
+           exercise column simply fills that entry with an empty text. */
+        foreach (array_merge(CARD_IMPORT_HEADER, CARD_IMPORT_OPTIONAL) as $column) {
             $index = $map[$column] ?? null;
             /* A trailing carriage return of a CRLF file belongs to the line
                ending, not to the text. */
@@ -284,7 +300,12 @@ function card_import_fatal(array $result, string $code, array $params = []): arr
  *     invalid: int
  * }
  */
-function card_import_validate(array $read, array $existingFronts, array $tableColumns): array
+function card_import_validate(
+    array $read,
+    array $existingFronts,
+    array $tableColumns,
+    bool $exerciseAvailable = true
+): array
 {
     $pairs = card_language_columns($tableColumns);
     $cards = [];
@@ -296,7 +317,7 @@ function card_import_validate(array $read, array $existingFronts, array $tableCo
     foreach ($read['rows'] as $row) {
         $values = $row['values'];
         $line = $row['line'];
-        $problem = card_import_row_problem($row, $read['columns'], $pairs);
+        $problem = card_import_row_problem($row, $read['columns'], $pairs, $exerciseAvailable);
 
         if ($problem !== null) {
             $errors[] = ['line' => $line, 'code' => $problem['code'], 'params' => $problem['params']];
@@ -343,7 +364,7 @@ function card_import_validate(array $read, array $existingFronts, array $tableCo
  * @param array<string, list<string>> $pairs The language columns of the table.
  * @return array{code: string, params: array<string, string|int>}|null
  */
-function card_import_row_problem(array $row, array $columns, array $pairs): ?array
+function card_import_row_problem(array $row, array $columns, array $pairs, bool $exerciseAvailable = true): ?array
 {
     if ($row['fields'] !== count($columns)) {
         return ['code' => 'fields_count', 'params' => ['found' => $row['fields'], 'expected' => count($columns)]];
@@ -361,6 +382,44 @@ function card_import_row_problem(array $row, array $columns, array $pairs): ?arr
         if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', $value) === 1) {
             return ['code' => 'control_characters', 'params' => []];
         }
+    }
+
+    /*
+     * The optional exercise column. Its syntax is read by the very function the
+     * command line importer and the card dialog use, so all three understand the
+     * same thing - and a row with an unusable cell is refused here instead of
+     * quietly becoming a fixed card.
+     */
+    $exerciseCell = trim((string) ($row['values']['exercise'] ?? ''));
+    $parsedExercise = exercise_parse_cell($exerciseCell);
+
+    if ($exerciseCell !== '' && !$exerciseAvailable) {
+        return ['code' => 'exercise_unavailable', 'params' => []];
+    }
+
+    if ($parsedExercise['error'] !== null) {
+        return [
+            'code' => $parsedExercise['code'] === 'unknown_type'
+                ? 'exercise_unknown_type'
+                : 'exercise_invalid',
+            'params' => ['value' => $exerciseCell]
+        ];
+    }
+
+    /*
+     * An exercise card carries a title instead of an answer: the answer is built
+     * when the task is shown. One title in one language is enough - the same rule
+     * the card dialog and the card endpoint follow.
+     */
+    if ($exerciseCell !== '') {
+        $germanTitle = trim((string) $row['values']['front_de']);
+        $englishTitle = trim((string) $row['values']['front_en']);
+
+        if ($germanTitle === '' && $englishTitle === '') {
+            return ['code' => 'exercise_no_title', 'params' => []];
+        }
+
+        return null;
     }
 
     $flag = trim((string) $row['values']['is_bidirectional']);
@@ -456,6 +515,8 @@ function card_import_card_from_row(array $values): array
         'front_en' => $values['front_en'],
         'back_en' => $values['back_en'],
         'is_bidirectional' => in_array($flag, CARD_IMPORT_TRUE_VALUES, true),
+        /* null means: a fixed card, exactly as before this column existed. */
+        'exercise' => exercise_parse_cell(trim((string) ($values['exercise'] ?? '')))['exercise'],
     ];
 }
 
@@ -474,6 +535,8 @@ function card_import_preview_row(int $line, array $values, bool $imports, string
         'front_en' => $values['front_en'],
         'back_en' => $values['back_en'],
         'is_bidirectional' => in_array(mb_strtolower(trim($values['is_bidirectional'])), CARD_IMPORT_TRUE_VALUES, true),
+        /* What stands in the exercise column, so the preview can show it. */
+        'exercise' => trim((string) ($values['exercise'] ?? '')),
         'state' => $state,
         'imports' => $imports,
     ];
@@ -555,7 +618,19 @@ function card_import_insert(PDO $pdo, int $categoryId, array $cards): int
                 $texts[$pairs[$language][1]] = (string) $card['back_' . $language];
             }
 
-            create_card_translated($pdo, $categoryId, $texts, $columns, $card['is_bidirectional'] === true);
+            /*
+             * The exercise travels the same way a card written in the dialog does:
+             * one transaction, and the numbers in the same shape the dialog sends.
+             */
+            create_card_translated(
+                $pdo,
+                $categoryId,
+                $texts,
+                $columns,
+                $card['is_bidirectional'] === true,
+                null,
+                $card['exercise'] ?? null
+            );
             $written++;
         }
 

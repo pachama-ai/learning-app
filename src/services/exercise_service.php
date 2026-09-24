@@ -759,3 +759,129 @@ function exercise_unit_families(): array
         'volume' => ['l' => 1, 'm³' => 1000],
     ];
 }
+
+/* -------------------------------------------------------------------------
+   Reading a cell of an imported file
+   ------------------------------------------------------------------------- */
+
+/**
+ * Reads one exercise cell, the way an imported file writes it:
+ *
+ *   "<kind of task>"                          the defaults of that kind of task
+ *   "<kind of task>:<name>=<value>,<name>=<value>"   with numbers of its own
+ *
+ * A parameter that allows several options at once is written with a pipe
+ * (variants=mix|storage_level), a yes/no parameter takes yes or no. Everything is
+ * checked with the same rules the card dialog is checked with, so a file can
+ * never store numbers that no task can be built from.
+ *
+ * The syntax is here and nowhere else: the command line importer, the import in
+ * the browser and the card dialog all end up in this function, so the same cell
+ * means the same thing everywhere.
+ *
+ * "code" tells the caller WHICH mistake it was, so each interface can say it in
+ * its own language; "error" is the English sentence the command line prints.
+ *
+ * @return array{exercise: array{type: string, params: array<string, mixed>}|null, error: string|null, code: string|null}
+ */
+function exercise_parse_cell(string $cell): array
+{
+    $cell = trim($cell);
+
+    /* An empty cell means a fixed card. */
+    if ($cell === '') {
+        return ['exercise' => null, 'error' => null, 'code' => null];
+    }
+
+    $parts = explode(':', $cell, 2);
+    $type = trim($parts[0]);
+    $written = isset($parts[1]) ? trim($parts[1]) : '';
+
+    if (!exercise_type_is_known($type)) {
+        return [
+            'exercise' => null,
+            'error' => 'unknown kind of task "' . $type . '"',
+            'code' => 'unknown_type',
+        ];
+    }
+
+    if ($written === '') {
+        return [
+            'exercise' => ['type' => $type, 'params' => exercise_type_default_params($type)],
+            'error' => null,
+            'code' => null,
+        ];
+    }
+
+    $catalogue = exercise_catalog()[$type]['params'];
+    $params = [];
+
+    foreach (explode(',', $written) as $pair) {
+        $pair = trim($pair);
+
+        if ($pair === '') {
+            continue;
+        }
+
+        $halves = explode('=', $pair, 2);
+
+        if (count($halves) !== 2) {
+            return ['exercise' => null, 'error' => 'expected name=value, found "' . $pair . '"', 'code' => 'format'];
+        }
+
+        $name = trim($halves[0]);
+        $value = trim($halves[1]);
+        $schema = $catalogue[$name] ?? null;
+
+        if ($schema === null) {
+            return ['exercise' => null, 'error' => '"' . $name . '" is not a parameter of ' . $type, 'code' => 'unknown_param'];
+        }
+
+        if ($schema['kind'] === 'int') {
+            if (!ctype_digit($value)) {
+                return ['exercise' => null, 'error' => '"' . $name . '" must be a whole number, found "' . $value . '"', 'code' => 'number'];
+            }
+
+            $params[$name] = (int) $value;
+
+            continue;
+        }
+
+        if ($schema['kind'] === 'select') {
+            $params[$name] = $value;
+
+            continue;
+        }
+
+        if ($schema['kind'] === 'multi') {
+            $params[$name] = array_values(array_filter(
+                array_map('trim', explode('|', $value)),
+                static fn (string $one): bool => $one !== ''
+            ));
+
+            continue;
+        }
+
+        /* The remaining kind is a yes/no parameter. */
+        $lower = mb_strtolower($value);
+
+        if (!in_array($lower, ['yes', 'no', 'ja', 'nein', '1', '0', 'true', 'false'], true)) {
+            return ['exercise' => null, 'error' => '"' . $name . '" must be yes or no, found "' . $value . '"', 'code' => 'number'];
+        }
+
+        $params[$name] = in_array($lower, ['yes', 'ja', '1', 'true'], true);
+    }
+
+    /*
+     * A number outside its limits is pulled into them, the same way a stored card
+     * is treated when it is read: a file is written by hand, so it may be a little
+     * off without failing the whole import.
+     */
+    $params = exercise_normalise_params($type, $params);
+
+    if (!exercise_params_are_valid($type, $params)) {
+        return ['exercise' => null, 'error' => 'the numbers do not fit "' . $type . '"', 'code' => 'numbers'];
+    }
+
+    return ['exercise' => ['type' => $type, 'params' => $params], 'error' => null, 'code' => null];
+}

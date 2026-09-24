@@ -15,6 +15,12 @@ declare(strict_types=1);
  * with the summary, the error list and the first rows - that is what the dialog
  * shows before anything is stored.
  *
+ * The header may carry one more, optional column besides the five required ones:
+ * "exercise" names a generated task instead of a fixed card, for example
+ * "times_table:min=2,max=20". It is checked with exercise_parse_cell() from
+ * src/services/exercise_service.php, the same function the command line importer
+ * and the card dialog use. A file without that column behaves exactly as before.
+ *
  * Import mode repeats the whole check on the server (the preview in the browser
  * is only comfort) and then writes all rows in ONE transaction. A file with a
  * single bad row is refused completely, so there is no such thing as half an
@@ -114,7 +120,12 @@ try {
     $fatal = $read['fatal'];
 
     if ($fatal === null) {
-        $checked = card_import_validate($read, card_import_existing_fronts($pdo, $categoryId), $tableColumns);
+        /*
+         * Whether this installation can store exercises at all - a database that
+         * never ran database/add_exercise_params.sql can still import fixed cards.
+         */
+        $exercisesPossible = card_exercise_table_available($pdo) && card_exercise_params_available($pdo);
+        $checked = card_import_validate($read, card_import_existing_fronts($pdo, $categoryId), $tableColumns, $exercisesPossible);
         $preview = array_slice($checked['preview'], 0, CARD_IMPORT_PREVIEW_ROWS);
     } else {
         $checked = ['cards' => [], 'errors' => [], 'preview' => [], 'importable' => 0, 'duplicates' => 0, 'invalid' => 0];
@@ -126,6 +137,7 @@ try {
             'file' => $name,
             'columns' => $read['columns'],
             'expected_columns' => CARD_IMPORT_HEADER,
+            'optional_columns' => CARD_IMPORT_OPTIONAL,
             'row_count' => $read['data_rows'],
             'importable' => $checked['importable'],
             'duplicates' => $checked['duplicates'],

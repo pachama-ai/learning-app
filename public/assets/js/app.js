@@ -5601,6 +5601,16 @@
 
         wrap.appendChild(format);
         wrap.appendChild(columns);
+
+        /* The optional sixth column: without it a file behaves exactly as before. */
+        var columnsOptional = el('code', 'import__columns import__columns--optional', t('dialog.import.columnsOptional'));
+        columnsOptional.setAttribute('data-i18n', 'dialog.import.columnsOptional');
+        wrap.appendChild(columnsOptional);
+
+        var exerciseHint = el('p', 'import__hint', t('dialog.import.exerciseHint'));
+        exerciseHint.setAttribute('data-i18n', 'dialog.import.exerciseHint');
+        wrap.appendChild(exerciseHint);
+
         wrap.appendChild(languages);
         wrap.appendChild(limits);
         wrap.appendChild(sample);
@@ -5791,6 +5801,7 @@
             'dialog.import.colBackDe',
             'dialog.import.colFrontEn',
             'dialog.import.colBackEn',
+            'dialog.import.colExercise',
             'dialog.import.colState'
         ].forEach(function (key) {
             var cell = el('th', '', t(key));
@@ -5816,6 +5827,9 @@
             tr.appendChild(el('td', 'import__text', String(row.back_de || '')));
             tr.appendChild(el('td', 'import__text', String(row.front_en || '')));
             tr.appendChild(el('td', 'import__text', String(row.back_en || '')));
+
+            /* The exercise column: what the file says, or nothing. */
+            tr.appendChild(el('td', 'import__text import__text--exercise', String(row.exercise || '')));
 
             var stateCell = el('td', 'import__state');
             var badge = el('span', 'import__badge import__badge--' + state, t(stateKey));
