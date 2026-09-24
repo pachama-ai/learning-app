@@ -848,6 +848,13 @@ function review_directions_of(array $card, string $status, bool $isDue): array
         'map_region' => isset($card['map_region']) && card_map_region_is_valid((string) $card['map_region'])
             ? (string) $card['map_region']
             : null,
+        /*
+         * The exercise of the card, when it is one. Its task is not a column: it is
+         * rolled again every time the card is read, so every session gets new
+         * numbers. Without this the session would only receive the title and an
+         * empty answer, and the learn card would show exactly that.
+         */
+        'exercise' => $card['exercise'] ?? null,
     ];
 
     if (($card['is_bidirectional'] ?? false) !== true) {
@@ -858,6 +865,19 @@ function review_directions_of(array $card, string $status, bool $isDue): array
     $reverse['direction'] = 'reverse';
     $reverse['front'] = (string) $card['back'];
     $reverse['back'] = (string) $card['front'];
+
+    /*
+     * The other way round asks for the answer and shows the task: question and
+     * answer change places, everything else stays as it is.
+     */
+    if (is_array($reverse['exercise']) && isset($reverse['exercise']['task'])) {
+        $task = $reverse['exercise']['task'];
+        $reverse['exercise']['task'] = [
+            'type' => $task['type'] ?? $reverse['exercise']['type'] ?? '',
+            'question' => $task['answer'] ?? null,
+            'answer' => $task['question'] ?? null,
+        ];
+    }
 
     return [$forward, $reverse];
 }

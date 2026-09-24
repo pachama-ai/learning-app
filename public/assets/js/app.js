@@ -4913,6 +4913,15 @@
             card_id: entry.card_id,
             rating: rating
         }).then(function (result) {
+            /*
+             * The session can be closed while the answer is on its way - with
+             * Escape, for example. Then there is nothing left to update, and
+             * touching it would throw instead of simply doing nothing.
+             */
+            if (learnSession === null) {
+                return;
+            }
+
             learnSession.busy = false;
             setLearnButtonsDisabled(false);
 
