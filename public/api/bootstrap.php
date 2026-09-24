@@ -44,6 +44,17 @@ require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
 require_once __DIR__ . '/../../src/services/review_service.php';
 
+/*
+ * This is the biggest single answer the application sends (~750 KB of JSON), and
+ * JSON of card texts compresses very well. Every browser asks for gzip, so the
+ * first view transfers a fraction of that. The setting has to be made before
+ * anything is written, which is why it stands here and not further down.
+ */
+if (!headers_sent() && extension_loaded('zlib')) {
+    @ini_set('zlib.output_compression', '1');
+    @ini_set('zlib.output_compression_level', '6');
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method !== 'GET') {

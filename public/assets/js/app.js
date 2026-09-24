@@ -7492,13 +7492,9 @@
     wireNavigation();
 
     /*
-     * The first view is drawn out of the bootstrap as soon as it is here; whatever
-     * init() has already put on the screen stays visible until then. When the
-     * bootstrap does not arrive, everything keeps working the way it did before.
+     * No render() of its own here: the first view is built by init(), and it waits
+     * for this answer anyway (see fetchCategories), so it is drawn exactly once -
+     * with the data from the store. Drawing it a second time would only fetch the
+     * icons and the drawings again, which is what the store is there to avoid.
      */
-    loadBootstrap().then(function (data) {
-        if (data !== null) {
-            render();
-        }
-    });
 })();
