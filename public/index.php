@@ -343,11 +343,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
          * forever.
          *
          * Rules, all of them cheap:
-         *   - the overlay only appears when the first view takes longer than
-         *     150 ms, so a fast load never flickers
+         *   - it stands there from the very first painted line, so the page is
+         *     never seen uncovered - not even for one frame
          *   - it disappears as soon as real content is there, in a 240 ms fade
          *   - nothing after 8 seconds means: something is wrong, so the message
-         *     with the retry button appears instead
+         *     with the retry button appears instead - and if the answer arrives
+         *     anyway, later, the overlay goes away as usual
          *   - if any of this fails, the page simply stays as it is: the overlay
          *     is never shown and nothing is blocked
          */
@@ -381,6 +382,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             document.documentElement.setAttribute('lang', language);
 
             var done = false;
+            /*
+             * Set while the message with the retry button is on screen. It only
+             * says "the message has been shown" and not "this is over": a load
+             * that succeeds afterwards still ends the overlay.
+             */
+            var failed = false;
             var shownAt = 0;
             var appearTimer = null;
             var failTimer = null;
@@ -422,6 +429,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             art.classList.add('boot__pulse');
 
             function hide() {
+                /*
+                 * A fading overlay may not swallow clicks and it is not failed any
+                 * more either - it is going away.
+                 */
+                overlay.classList.remove('is-failed');
                 overlay.classList.add('is-hiding');
 
                 window.setTimeout(function () {
@@ -457,13 +469,19 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             }
 
             function fail() {
-                if (done) {
+                if (done || failed) {
                     return;
                 }
 
-                done = true;
+                /*
+                 * Deliberately NOT done: with done set here every later ready
+                 * signal was ignored, and a page that finished loading after the
+                 * message stayed hidden behind it for good. Found in the browser,
+                 * not in the code.
+                 */
+                failed = true;
                 window.clearTimeout(appearTimer);
-                observer.disconnect();
+                window.clearTimeout(failTimer);
                 overlay.classList.add('is-failed');
                 document.getElementById('boot-text').hidden = true;
                 document.getElementById('boot-error').hidden = false;

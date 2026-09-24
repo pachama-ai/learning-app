@@ -71,8 +71,19 @@ function exercise_catalog(): array
         ];
     };
 
+    /*
+     * A parameter of kind "multi" may carry several of its options at once, so its
+     * value is always a LIST - including the default. With a bare string there the
+     * check in exercise_params_are_valid() refused every card that wanted to use
+     * the default, and a new exercise card of those kinds could not be saved at
+     * all. (Found while creating exercise cards, not in the code.)
+     */
     $choice = static function (array $options, $default, string $kind = 'select'): array {
-        return ['kind' => $kind, 'default' => $default, 'options' => $options];
+        return [
+            'kind' => $kind,
+            'default' => $kind === 'multi' && !is_array($default) ? [$default] : $default,
+            'options' => $options,
+        ];
     };
 
     return [

@@ -1573,16 +1573,24 @@
 
     function applyLocale(nextLocale, persist) {
         var next = typeof translations[nextLocale] === 'object' ? nextLocale : config.defaultLocale;
+        var changed = locale !== next;
 
         if (persist) {
             writeStorage(config.storageKeys.language, next);
 
             /*
              * The store holds card texts and category names in ONE language, so it
-             * cannot serve the other one. It is dropped and asked for again - in
-             * the language that was just chosen, and without loading the page
-             * again.
+             * cannot serve the other one. It is dropped and asked for again,
+             * without loading the page again.
+             *
+             * The new language has to be in place BEFORE the store is asked
+             * again: the request takes the language from `locale`. With the old
+             * value still in it, the fresh answer came back in the language that
+             * was just left - every list was exactly one switch behind. (This was
+             * found in the browser; the request log showed two "language=de"
+             * calls right after a switch to English.)
              */
+            locale = next;
             bootstrapDropAll();
             loadBootstrap();
         }
@@ -1596,7 +1604,7 @@
             render();
         }
 
-        if (locale === next || prefersReducedMotion()) {
+        if (!changed || prefersReducedMotion()) {
             swap();
             return;
         }
