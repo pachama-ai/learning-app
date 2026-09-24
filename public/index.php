@@ -266,21 +266,29 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         </div>
 
         <!--
-            Two flat clouds that drift across the sky behind the rotor: the same
-            thin line as the drawing, closed and with a barely visible fill. They
-            need no JavaScript - CSS moves them for as long as the overlay is on
-            screen.
+            Two clouds that drift through the little sky behind the rotor. Each
+            one is a single closed outline of three overlapping arcs: the two
+            outer ones small, the middle one wide, all three resting on the same
+            straight bottom edge. That is the shape everybody reads as a cloud at
+            the first glance, and it is drawn in the very same thin line as the
+            turbine - a barely visible fill only lifts it off the air.
         -->
         <div class="boot__sky" aria-hidden="true">
-            <svg class="boot__cloud boot__cloud--one" viewBox="0 0 120 44" aria-hidden="true">
-                <path d="M24 38c-8.8 0-16-6.6-16-14.8C8 15.9 14.6 9.6 23 8.6 26.3 3.5 32.4 0 39.4 0c10.2 0 18.6 7.7 19.3 17.6C65 18.9 70 24 70 30.2 70 34.4 66.3 38 61.7 38H24z"
-                      fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.6"
+            <svg class="boot__cloud boot__cloud--one" viewBox="0 0 88 52" aria-hidden="true">
+                <path d="M18 44 L70 44 A11 11 0 1 0 62.99 24.53 A19 19 0 0 0 25.01 24.53 A11 11 0 1 0 18 44 Z"
+                      fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-width="1.7"
                       stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
 
-            <svg class="boot__cloud boot__cloud--two" viewBox="0 0 120 44" aria-hidden="true">
-                <path d="M24 38c-8.8 0-16-6.6-16-14.8C8 15.9 14.6 9.6 23 8.6 26.3 3.5 32.4 0 39.4 0c10.2 0 18.6 7.7 19.3 17.6C65 18.9 70 24 70 30.2 70 34.4 66.3 38 61.7 38H24z"
-                      fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.6"
+            <!--
+                The same drawing, a good bit smaller. Its stroke is thicker in
+                this coordinate system on purpose: the cloud is scaled down, and
+                without that the smaller one would not carry the line weight of
+                the bigger one - and neither would look like the turbine.
+            -->
+            <svg class="boot__cloud boot__cloud--two" viewBox="0 0 88 52" aria-hidden="true">
+                <path d="M18 44 L70 44 A11 11 0 1 0 62.99 24.53 A19 19 0 0 0 25.01 24.53 A11 11 0 1 0 18 44 Z"
+                      fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-width="2.45"
                       stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>

@@ -5055,9 +5055,19 @@ body.is-learning {
 
 /*
  * Signed in: the same fingerprint as the signed-out button, but in the full
- * text colour, on a stronger border and with a small dot in the upper right
- * corner, where a status light sits. The initials are text in the menu now, not
- * the symbol in the circle.
+ * text colour and inside a fine ring in the accent colour of the application -
+ * the same colour the plus button and the other main actions carry (--accent).
+ *
+ * The ring sits exactly on the edge of the circle and is not a second frame
+ * inside it, so there is one line and one signal - and it keeps its distance to
+ * the drawing, because the button is 34px wide while the symbol inside is 18px.
+ * The small dot of the earlier version is gone: the ring is the only thing that
+ * says "signed in".
+ *
+ * It is 2px wide on purpose. A border of 1.5px is rounded down to 1px by the
+ * browser, and a ring that thin stops reading as a ring.
+ *
+ * No glow, no shadow, no movement of its own: this is a state, not an effect.
  */
 .auth-button--user {
     position: relative;
@@ -5069,12 +5079,36 @@ body.is-learning {
 .auth-button--user::after {
     content: "";
     position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 5px;
-    height: 5px;
+    inset: 0;
+    border: 2px solid var(--accent);
     border-radius: 50%;
-    background-color: var(--text);
+    opacity: 1;
+    pointer-events: none;
+    /* The ring arrives in a short fade instead of a hard switch. The animation
+       deliberately carries no fill mode: with one, its final value would win
+       over the opacity below for good and the ring could never fade out. */
+    animation: auth-ring-in 240ms var(--ease);
+    transition: opacity 240ms var(--ease);
+}
+
+/*
+ * On the way out the ring fades away first and the circle is replaced by the
+ * signed-out one afterwards - app.js waits exactly these 240ms before it builds
+ * the other state. Without the wait the ring would be gone in the same frame
+ * the state changes.
+ */
+.auth-button--user.is-signing-out::after {
+    opacity: 0;
+}
+
+@keyframes auth-ring-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .auth-button--user:hover,

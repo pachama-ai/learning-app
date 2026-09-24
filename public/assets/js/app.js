@@ -899,7 +899,7 @@
      * mark inside the 34 px circle.
      *
      * The signed-in state is not told by the drawing but by its colour and by the
-     * small dot next to it, and the initials live in the menu (see app.css).
+     * fine ring around the circle, and the initials live in the menu (see app.css).
      */
     var PERSON_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" focusable="false" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c0-3.7 3.2-6 7.2-6s7.2 2.3 7.2 6"/></svg>';
     var EYE_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye__slash" d="M4.4 19.6 19.6 4.4"/></svg>';
@@ -993,8 +993,8 @@
         user.setAttribute('aria-expanded', 'false');
         user.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
         user.setAttribute('title', authState.user.name);
-        /* The very same drawing as in the signed-out state. Only the colour
-           and the small dot next to it tell the two states apart (see app.css). */
+        /* The very same drawing as in the signed-out state. Only the colour and
+           the fine ring around the circle tell the two states apart (app.css). */
         user.innerHTML = PERSON_SVG;
 
         var menu = el('span', 'menu');
@@ -1039,7 +1039,21 @@
             }
 
             authState.user = null;
-            renderAuthSlot();
+
+            /*
+             * The ring fades out before the circle becomes the signed-out one:
+             * the same 240ms the stylesheet needs for that fade (see
+             * .auth-button--user.is-signing-out). Without the wait the two
+             * states would swap inside a single frame.
+             */
+            var signedInButton = document.querySelector('.auth-button--user');
+
+            if (signedInButton === null) {
+                renderAuthSlot();
+            } else {
+                signedInButton.classList.add('is-signing-out');
+                window.setTimeout(renderAuthSlot, 240);
+            }
 
             /* A reload lets the running study session notice that the answers can
                no longer be stored, instead of keeping a hint that is not true
