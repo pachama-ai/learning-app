@@ -7492,6 +7492,20 @@
     wireNavigation();
 
     /*
+     * Tell the loading screen in index.php that the first answer is in and the
+     * first view has been built from it. Two frames later, so what it fades away
+     * from is a drawn view and not a half built one. If this never happens - a
+     * failed request, for example - the overlay keeps its own safety net.
+     */
+    loadBootstrap().then(function () {
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+                document.dispatchEvent(new CustomEvent('lernkartei:ready'));
+            });
+        });
+    });
+
+    /*
      * No render() of its own here: the first view is built by init(), and it waits
      * for this answer anyway (see fetchCategories), so it is drawn exactly once -
      * with the data from the store. Drawing it a second time would only fetch the

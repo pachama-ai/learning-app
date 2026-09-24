@@ -214,6 +214,38 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         keys the rest of the interface uses.
     -->
     <div class="boot" id="boot-overlay" role="status" aria-live="polite" hidden>
+        <!--
+            The background of the overlay: the very same pools the page itself
+            paints (see .bg-layer in the stylesheet). The overlay is opaque, so
+            they have to be painted again here - and taking the classes of the
+            page means there is only one definition of how they look.
+        -->
+        <div class="bg-layer boot__bg" aria-hidden="true">
+            <span class="bg-blob bg-blob--a"></span>
+            <span class="bg-blob bg-blob--b"></span>
+            <span class="bg-blob bg-blob--c"></span>
+        </div>
+
+        <!--
+            Two flat clouds that drift across the sky behind the rotor: the same
+            thin line as the drawing, closed and with a barely visible fill. They
+            need no JavaScript - CSS moves them for as long as the overlay is on
+            screen.
+        -->
+        <div class="boot__sky" aria-hidden="true">
+            <svg class="boot__cloud boot__cloud--one" viewBox="0 0 120 44" aria-hidden="true">
+                <path d="M24 38c-8.8 0-16-6.6-16-14.8C8 15.9 14.6 9.6 23 8.6 26.3 3.5 32.4 0 39.4 0c10.2 0 18.6 7.7 19.3 17.6C65 18.9 70 24 70 30.2 70 34.4 66.3 38 61.7 38H24z"
+                      fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.6"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+            <svg class="boot__cloud boot__cloud--two" viewBox="0 0 120 44" aria-hidden="true">
+                <path d="M24 38c-8.8 0-16-6.6-16-14.8C8 15.9 14.6 9.6 23 8.6 26.3 3.5 32.4 0 39.4 0c10.2 0 18.6 7.7 19.3 17.6C65 18.9 70 24 70 30.2 70 34.4 66.3 38 61.7 38H24z"
+                      fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.6"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
         <div class="boot__art boot__pulse" aria-hidden="true">
             <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="1.8"
                  stroke-linecap="round" stroke-linejoin="round">
@@ -293,10 +325,30 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 node.textContent = node.getAttribute('data-text-' + language);
             });
 
+            /*
+             * The document carries the language of the page from PHP, which is the
+             * default and not the choice of this person. app.js corrects it later -
+             * this overlay is on screen before that happens, so it says it itself:
+             * a German loading line belongs in a German document.
+             */
+            document.documentElement.setAttribute('lang', language);
+
             var done = false;
             var shownAt = 0;
             var appearTimer = null;
             var failTimer = null;
+
+            /*
+             * app.js says when the first answer of api/bootstrap.php is in and the
+             * first view has been built from it. That is exactly the moment this
+             * overlay belongs to: it is the loading screen of the FIRST load, not of
+             * a request later on - a click inside the application never shows it
+             * again, because the page is not loaded again.
+             *
+             * Everything below stays as a safety net for the case that the
+             * application script never gets that far.
+             */
+            document.addEventListener('lernkartei:ready', finish);
 
             function isReady() {
                 if (document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null) {
