@@ -37,3 +37,8 @@ cache/
 
 # --- User uploads ---
 /public/uploads/
+
+# Laufzeitdaten der Apache-Instanz: Sitzungen des Anmeldestatus und Protokolle
+# gehoeren niemals ins Repository.
+deploy/apache/sessions/
+deploy/apache/logs/
