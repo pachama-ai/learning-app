@@ -58,6 +58,271 @@
        send the same request again. Emptied after a new area is created. */
     var responseCache = {};
 
+    /* ----------------------------------------------------------------------
+       The first load: the whole application in one answer
+       ---------------------------------------------------------------------- */
+
+    /*
+     * api/bootstrap.php sends the learning areas, their subcategories and every
+     * card in one answer. It is kept here, and the views are drawn out of it - so
+     * walking through the application costs no further request.
+     *
+     * What is NOT in here, on purpose: the generated task of an exercise card (its
+     * numbers have to be new on every display) and the drawings of the categories
+     * and maps (they have their own fetch and their own cache). Both are fetched
+     * when they are really needed.
+     */
+    var bootstrapCache = {
+        promise: null,       // die erste Abfrage
+        pending: false,      // laeuft sie gerade?
+        known: {},           // welche Kategorien der Bootstrap abdeckt
+        areas: null,         // dieselbe Form wie GET /api/categories.php
+        children: {},        // "2" -> Liste der Unterkategorien
+        cards: {},           // "85" -> Liste der Karten
+        summaries: {},       // "85" -> Zaehlung (total/due/known/unsure)
+        contentLanguages: [],
+        hasUser: false
+    };
+
+    /*
+     * Loads the bootstrap once per page view. A failure is not a problem: the
+     * promise is dropped, and every view loads its own data exactly as before.
+     */
+    function loadBootstrap() {
+        if (bootstrapCache.promise !== null) {
+            return bootstrapCache.promise;
+        }
+
+        bootstrapCache.pending = true;
+
+        bootstrapCache.promise = fetchJson(config.endpoints.bootstrap + '?language=' + encodeURIComponent(locale))
+            .then(function (data) {
+                bootstrapCache.pending = false;
+                bootstrapCache.areas = Array.isArray(data.areas) ? data.areas : [];
+                bootstrapCache.children = data.children && typeof data.children === 'object' ? data.children : {};
+                bootstrapCache.cards = data.cards && typeof data.cards === 'object' ? data.cards : {};
+                bootstrapCache.summaries = data.summaries && typeof data.summaries === 'object' ? data.summaries : {};
+                bootstrapCache.contentLanguages = Array.isArray(data.content_languages) ? data.content_languages : [];
+                bootstrapCache.hasUser = data.has_user === true;
+
+                /*
+                 * Which categories this answer really covers - including the ones
+                 * without cards of their own. The card query behind this answer had
+                 * no filter, so a category that is missing from the card list really
+                 * has no cards: the empty list is the answer, not a request.
+                 */
+                bootstrapCache.known = {};
+
+                bootstrapCache.areas.forEach(function (area) {
+                    bootstrapCache.known[String(area.id)] = true;
+                });
+
+                Object.keys(bootstrapCache.children).forEach(function (parentId) {
+                    bootstrapCache.children[parentId].forEach(function (child) {
+                        bootstrapCache.known[String(child.id)] = true;
+                    });
+                });
+
+                /* The places that already load categories find their answer in the
+                   store: no second request for what is already here. */
+                responseCache[''] = bootstrapCache.areas;
+
+                Object.keys(bootstrapCache.children).forEach(function (parentId) {
+                    responseCache['?parent_id=' + parentId] = bootstrapCache.children[parentId];
+                });
+
+                return bootstrapCache;
+            })
+            .catch(function () {
+                bootstrapCache.pending = false;
+                bootstrapCache.promise = null;
+
+                return null;
+            });
+
+        return bootstrapCache.promise;
+    }
+
+    /* One category out of the bootstrap. Only an id that is not in there (an
+       address that does not exist) is fetched on its own. */
+    function fetchCategoryOne(categoryId) {
+        if (bootstrapCache.pending) {
+            return bootstrapCache.promise.then(function () {
+                return fetchCategoryOne(categoryId);
+            });
+        }
+
+        var cached = findCachedCategory(categoryId);
+
+        if (cached !== null) {
+            return Promise.resolve({ ok: true, status: 200, data: cached });
+        }
+
+        return apiRequest(config.endpoints.categories + '?id=' + encodeURIComponent(categoryId), 'GET');
+    }
+
+    function findCachedCategory(categoryId) {
+        var wanted = Number(categoryId);
+        var lists = [bootstrapCache.areas === null ? [] : bootstrapCache.areas];
+
+        Object.keys(bootstrapCache.children).forEach(function (parentId) {
+            lists.push(bootstrapCache.children[parentId]);
+        });
+
+        for (var i = 0; i < lists.length; i++) {
+            for (var j = 0; j < lists[i].length; j++) {
+                if (Number(lists[i][j].id) === wanted) {
+                    return lists[i][j];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /*
+     * The cards of one category, in the shape api/cards.php answers with.
+     *
+     * A list that comes out of the bootstrap has exercise cards without a task:
+     * those numbers are drawn when the card is read, so they must not sit in a
+     * store. They are fetched in ONE small request before the list is drawn.
+     */
+    function fetchCards(categoryId) {
+        if (bootstrapCache.pending) {
+            return bootstrapCache.promise.then(function () {
+                return fetchCards(categoryId);
+            });
+        }
+
+        var cached = bootstrapCache.cards[String(categoryId)];
+
+        /* A category the first answer covered but that has no cards of its own: an
+           area, for example. Then the empty list is the answer, not a request. */
+        if (cached === undefined && bootstrapCache.known[String(categoryId)] === true) {
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                data: {
+                    cards: [],
+                    summary: null,
+                    has_user: bootstrapCache.hasUser,
+                    content_languages: bootstrapCache.contentLanguages,
+                    language: locale
+                }
+            });
+        }
+
+        if (cached === undefined) {
+            return apiRequest(config.endpoints.cards + '?category_id=' + encodeURIComponent(categoryId)
+                + '&language=' + encodeURIComponent(locale), 'GET');
+        }
+
+        var withoutTask = cached.filter(function (card) {
+            return card.exercise !== null && typeof card.exercise === 'object' && card.exercise.task === undefined;
+        });
+
+        var ready = withoutTask.length === 0
+            ? Promise.resolve(true)
+            : fetchExerciseTasks(withoutTask);
+
+        return ready.then(function () {
+            return {
+                ok: true,
+                status: 200,
+                data: {
+                    cards: cached,
+                    summary: bootstrapCache.summaries[String(categoryId)] || null,
+                    has_user: bootstrapCache.hasUser,
+                    content_languages: bootstrapCache.contentLanguages,
+                    language: locale
+                }
+            };
+        });
+    }
+
+    /* Fresh numbers for the exercise cards of one list, in one request. */
+    function fetchExerciseTasks(cards) {
+        var items = cards.slice(0, 50).map(function (card) {
+            return {
+                exercise_type: card.exercise.type,
+                exercise_params: card.exercise.params
+            };
+        });
+
+        return apiRequest(config.endpoints.exercisePreview, 'POST', { items: items })
+            .then(function (result) {
+                var tasks = result.ok && result.data && Array.isArray(result.data.tasks) ? result.data.tasks : null;
+
+                if (tasks === null) {
+                    return false;
+                }
+
+                cards.forEach(function (card, index) {
+                    if (index < tasks.length && tasks[index] !== null && typeof tasks[index] === 'object') {
+                        card.exercise.task = tasks[index];
+                    }
+                });
+
+                return true;
+            });
+    }
+
+    /* ----------------------------------------------------------------------
+       What a write takes out of the store - and what it leaves in it
+       ---------------------------------------------------------------------- */
+
+    /*
+     * A write changes at most two things: the cards of one category and the
+     * counters of the category tree. Everything else stays in the store, so the
+     * next view is still drawn without a request.
+     */
+    function bootstrapDropCards(categoryId) {
+        if (categoryId === null || categoryId === undefined) {
+            return;
+        }
+
+        delete bootstrapCache.cards[String(categoryId)];
+        delete bootstrapCache.summaries[String(categoryId)];
+        delete bootstrapCache.known[String(categoryId)];
+    }
+
+    function bootstrapDropCategories() {
+        /*
+         * A parent that had subcategories in the answer becomes unknown again: only
+         * a parent that never had any may answer with an empty list without asking.
+         */
+        Object.keys(bootstrapCache.children).forEach(function (parentId) {
+            delete bootstrapCache.known[parentId];
+        });
+
+        bootstrapCache.areas = null;
+        bootstrapCache.children = {};
+
+        Object.keys(responseCache).forEach(function (key) {
+            if (key === '' || key.indexOf('?parent_id=') === 0) {
+                delete responseCache[key];
+            }
+        });
+    }
+
+    /*
+     * For changes that touch many rows at once (an import) or whose outcome is
+     * unclear (a row that was already gone somewhere else). Then nothing may be
+     * taken for granted, and the next view loads what it needs again.
+     */
+    function bootstrapDropAll() {
+        responseCache = {};
+        bootstrapCache.areas = null;
+        bootstrapCache.children = {};
+        bootstrapCache.cards = {};
+        bootstrapCache.summaries = {};
+        bootstrapCache.known = {};
+
+        /* The promise stays: the bootstrap itself is not asked again for every
+           single write. The next full page load starts with a fresh one. */
+        bootstrapCache.promise = null;
+    }
+
     /* Set when a new area was just created, so its tile can be animated in. */
     var newAreaId = null;
 
@@ -539,6 +804,29 @@
     function fetchCategories(query) {
         if (responseCache[query]) {
             return Promise.resolve(responseCache[query]);
+        }
+
+        /* While the first answer is still on its way, this waits for it: asking
+           now would load exactly what is about to be in the store anyway. */
+        if (bootstrapCache.pending) {
+            return bootstrapCache.promise.then(function () {
+                return fetchCategories(query);
+            });
+        }
+
+        /*
+         * A category the first answer covered and that never had subcategories: the
+         * empty list is the answer. A category whose subcategories were dropped after
+         * a write is not in "known" any more, so it is loaded again.
+         */
+        var parentMatch = /^\?parent_id=(\d+)$/.exec(query);
+
+        if (parentMatch !== null
+            && bootstrapCache.known[parentMatch[1]] === true
+            && bootstrapCache.children[parentMatch[1]] === undefined) {
+            responseCache[query] = [];
+
+            return Promise.resolve([]);
         }
 
         return fetchJson(config.endpoints.categories + query).then(function (data) {
@@ -2050,10 +2338,9 @@
 
         Promise.all([
             fetchCategories(''),
-            apiRequest(config.endpoints.categories + '?id=' + encodeURIComponent(categoryId), 'GET'),
+            fetchCategoryOne(categoryId),
             fetchCategories('?parent_id=' + encodeURIComponent(categoryId)),
-            apiRequest(config.endpoints.cards + '?category_id=' + encodeURIComponent(categoryId)
-                + '&language=' + encodeURIComponent(locale), 'GET')
+            fetchCards(categoryId)
         ]).then(function (results) {
             var allAreas = results[0];
             var single = results[1];
@@ -3823,7 +4110,7 @@
                      * question is asked once more with the right numbers.
                      */
                     if (result.code === 'confirm_required') {
-                        responseCache = {};
+                        bootstrapDropAll();
                         render();
                         askDeleteAgain(kind, target);
                         return;
@@ -3836,7 +4123,7 @@
                      * truth instead of an entry that can never be deleted.
                      */
                     if (result.status === 404) {
-                        responseCache = {};
+                        bootstrapDropAll();
                         render();
                         showFeedback(t('dialog.errorAlreadyGone'));
                         return;
@@ -3847,14 +4134,16 @@
                      * screen while the request was on its way, so the page is
                      * built again from the API.
                      */
-                    responseCache = {};
+                    bootstrapDropAll();
                     render();
                     showFeedback(t('dialog.errorDelete'));
                     return;
                 }
 
                 /* Everything the page shows comes from the API again. */
-                responseCache = {};
+                /* Nur die Karten dieser Kategorie und die Zaehlungen am Baum. */
+                bootstrapDropCards(config.categoryId);
+                bootstrapDropCategories();
 
                 if (wasOpen) {
                     /* The page itself is gone, so the browser goes up one level. */
@@ -4105,7 +4394,7 @@
                  */
                 if (isDelete && result.status === 404) {
                     closeDialog();
-                    responseCache = {};
+                    bootstrapDropAll();
                     render();
                     showFeedback(t('dialog.errorAlreadyGone'));
                     return;
@@ -4119,7 +4408,9 @@
              * Everything the page shows comes from the API again, so a saved row
              * is really there and an edited one really shows its new text.
              */
-            responseCache = {};
+            /* Die Karten der gezeigten Kategorie und die Zaehlungen am Baum. */
+            bootstrapDropCards(config.categoryId);
+            bootstrapDropCategories();
 
             if (isDelete) {
                 var removedTarget = dialogEntry.target;
@@ -4187,6 +4478,107 @@
        Start
        ---------------------------------------------------------------------- */
 
+
+    /* ----------------------------------------------------------------------
+       Walking through the application without loading the page again
+       ---------------------------------------------------------------------- */
+
+    /*
+     * Every view has a real address, and the links keep their real href: a middle
+     * click, a right click, "open in a new tab" and a crawler all behave as they
+     * did. Only a plain left click is taken over - then the view is drawn out of
+     * the store instead of loading the whole page again.
+     */
+    function routeFromUrl() {
+        var match = /[?&]category=(\d+)/.exec(window.location.search);
+        var value = match === null ? null : Number(match[1]);
+
+        config.categoryId = value === null || !isFinite(value) ? null : value;
+    }
+
+    /* Is this one of our own view addresses? */
+    function isOwnViewLink(link) {
+        if (link.origin !== window.location.origin) {
+            return false;
+        }
+
+        if (link.hasAttribute('download') || (link.target !== '' && link.target !== '_self')) {
+            return false;
+        }
+
+        if (link.pathname.indexOf('/index.php') !== -1) {
+            return true;
+        }
+
+        /* "index.php" as a folder index is the same page. */
+        return link.search.indexOf('category=') !== -1;
+    }
+
+    /*
+     * Whatever is on top of the page goes away before another view appears: an
+     * open dialog, an open row menu, a running learning session. The session is
+     * left without the usual question here, because the address has already
+     * changed - the stored answers keep their rows.
+     */
+    function clearOverlaysForNavigation() {
+        if (elements.dialog.open) {
+            closeDialog();
+        }
+
+        closeMenu();
+
+        if (learnSession !== null) {
+            closeLearnView();
+        }
+    }
+
+    function showViewFromUrl() {
+        routeFromUrl();
+        render();
+        window.scrollTo(0, 0);
+    }
+
+    /*
+     * Two ways lead to the same place: a click inside the page, and the back or
+     * forward button of the browser. Both only change the address and then let the
+     * page draw itself out of the store - never a reload.
+     */
+    function wireNavigation() {
+        document.addEventListener('click', function (event) {
+            if (event.defaultPrevented || event.button !== 0) {
+                return;
+            }
+
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+
+            if (link === null || !isOwnViewLink(link)) {
+                return;
+            }
+
+            event.preventDefault();
+            clearOverlaysForNavigation();
+
+            var target = new URL(link.href);
+            var match = /[?&]category=(\d+)/.exec(target.search);
+
+            window.history.pushState(
+                { categoryId: match === null ? null : Number(match[1]) },
+                '',
+                target.pathname + target.search
+            );
+
+            showViewFromUrl();
+        });
+
+        window.addEventListener('popstate', function () {
+            clearOverlaysForNavigation();
+            showViewFromUrl();
+        });
+    }
     function wireEvents() {
         elements.themeToggle.addEventListener('click', function () {
             applyTheme(theme === 'dark' ? 'light' : 'dark', true);
@@ -4622,6 +5014,7 @@
      * counts what it was told.
      */
     var learnSession = null;
+
     var learnTimer = null;
 
 
@@ -5130,6 +5523,12 @@
     /* Leaves the session and reloads the list, so the dots are up to date. */
     function closeLearnView() {
         window.clearTimeout(learnTimer);
+
+        /*
+         * Which category was studied, before the session is dropped: the cards of
+         * exactly this category changed their status and leave the store.
+         */
+        bootstrapDropCards(learnSession === null ? null : learnSession.categoryId);
         learnSession = null;
 
         elements.learn.hidden = true;
@@ -5138,9 +5537,9 @@
         elements.learnCard.classList.remove('is-flipped', 'is-leaving-left', 'is-entering-right');
         document.body.classList.remove('is-learning');
 
-        /* Everything the page shows comes from the API again: the statuses of the
-           cards just answered are not guessed from memory. */
-        responseCache = {};
+        /* The tree carries the counters of the area and the subcategory, so it
+           is dropped as well - the cards of the other categories stay. */
+        bootstrapDropCategories();
         render();
 
         /* Back to the way in that was used - if it is still on the page. */
@@ -5884,7 +6283,7 @@
             /* Everything the page shows comes from the API again, so the new
                cards really are in the list. */
             closeDialog();
-            responseCache = {};
+            bootstrapDropAll();
             render();
             showFeedback(count === 1 ? t('feedback.importedOne') : t('feedback.imported', { count: count }));
         });
@@ -7082,5 +7481,24 @@
     }
 
     wireHeadActions();
+
+    /*
+     * The first answer is asked for before the first view is built: the view then
+     * finds the data in the store instead of loading the same thing twice.
+     */
+    loadBootstrap();
+
     init();
+    wireNavigation();
+
+    /*
+     * The first view is drawn out of the bootstrap as soon as it is here; whatever
+     * init() has already put on the screen stays visible until then. When the
+     * bootstrap does not arrive, everything keeps working the way it did before.
+     */
+    loadBootstrap().then(function (data) {
+        if (data !== null) {
+            render();
+        }
+    });
 })();

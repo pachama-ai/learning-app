@@ -711,3 +711,43 @@ function normalize_optional_text($value, int $maxLength): ?string
 
     return $value;
 }
+
+/**
+ * Which of these categories have subcategories of their own?
+ *
+ * Used by api/bootstrap.php: the answer names the parents that need a query, so
+ * a tree that is only two levels deep does not cost one query per category.
+ *
+ * @param list<int> $ids
+ * @return list<int> the ids that really have children, ordered like the input
+ */
+function category_ids_with_children(PDO $pdo, array $ids): array
+{
+    $wanted = array_values(array_unique(array_filter($ids, static fn ($id) => (int) $id > 0)));
+
+    if ($wanted === []) {
+        return [];
+    }
+
+    /* Every placeholder gets its own name: a statement may not mix named and
+       positional placeholders, and the rest of this file uses named ones. */
+    $placeholders = [];
+
+    foreach ($wanted as $index => $id) {
+        $placeholders[] = ':parent_' . $index;
+    }
+
+    $statement = $pdo->prepare(
+        'SELECT DISTINCT parent_id FROM categories
+          WHERE parent_id IN (' . implode(', ', $placeholders) . ')
+          ORDER BY parent_id ASC'
+    );
+
+    foreach ($wanted as $index => $id) {
+        $statement->bindValue(':parent_' . $index, (int) $id, PDO::PARAM_INT);
+    }
+
+    $statement->execute();
+
+    return array_map(static fn ($value): int => (int) $value, $statement->fetchAll(PDO::FETCH_COLUMN));
+}

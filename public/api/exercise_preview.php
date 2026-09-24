@@ -41,8 +41,38 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 try {
     $body = read_json_object();
 
-    $type = $body['exercise_type'] ?? null;
+    /*
+     * Batch form: the card list needs one fresh set of numbers per exercise card
+     * it is about to show. One request instead of one per card, built by the very
+     * same function - so a list can never show a task the card itself would not
+     * build. A card whose kind of task cannot be built answers with null instead
+     * of failing the whole request.
+     */
+    $items = $body['items'] ?? null;
 
+    if (is_array($items) && array_is_list($items)) {
+        $tasks = [];
+
+        foreach (array_slice($items, 0, 50) as $item) {
+            $one = is_array($item) ? $item : [];
+            $oneType = isset($one['exercise_type']) && is_string($one['exercise_type']) ? trim($one['exercise_type']) : '';
+            $oneParams = isset($one['exercise_params']) && is_array($one['exercise_params']) && !array_is_list($one['exercise_params'])
+                ? $one['exercise_params']
+                : [];
+
+            if ($oneType === '' || !exercise_type_is_known($oneType)) {
+                $tasks[] = null;
+
+                continue;
+            }
+
+            $tasks[] = exercise_build_task($oneType, exercise_normalise_params($oneType, $oneParams));
+        }
+
+        send_json_success(['tasks' => $tasks]);
+    }
+
+    $type = $body['exercise_type'] ?? null;
     if (!is_string($type) || trim($type) === '') {
         send_json_error('invalid_exercise_type', 'The field "exercise_type" must name a kind of task.', 400);
     }

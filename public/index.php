@@ -38,6 +38,8 @@ if (is_string($rawCategoryId) && ctype_digit($rawCategoryId) && (int) $rawCatego
 $appConfig = [
     'endpoints' => [
         'categories' => 'api/categories.php',
+        /* Everything the first view needs, in one answer. */
+        'bootstrap' => 'api/bootstrap.php',
         'category' => 'api/category.php',
         'cards' => 'api/cards.php',
         'card' => 'api/card.php',

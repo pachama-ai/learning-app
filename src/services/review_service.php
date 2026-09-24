@@ -881,3 +881,74 @@ function review_directions_of(array $card, string $status, bool $isDue): array
 
     return [$forward, $reverse];
 }
+
+/**
+ * Every card of every category in ONE read, grouped by category.
+ *
+ * This is what api/bootstrap.php needs: the browser loads it once and renders the
+ * other views out of it. One query instead of one per subcategory, because a
+ * subcategory list would otherwise cost forty round trips.
+ *
+ * The shape of a single card is exactly the shape api/cards.php returns, so the
+ * browser does not have to know two of them.
+ *
+ * @return array{cards: array<int, list<array<string, mixed>>>, summaries: array<int, array<string, mixed>>}
+ */
+function review_cards_all_categories(PDO $pdo, ?int $userId, string $language = 'de'): array
+{
+    $columns = card_columns($pdo);
+
+    $selected = ['k.id', 'k.category_id', 'k.is_bidirectional', 'k.front', 'k.back'];
+
+    if (card_column_available($columns, 'map_region')) {
+        $selected[] = 'k.map_region';
+    }
+
+    if (card_exercise_table_available($pdo) && card_exercise_params_available($pdo)) {
+        $selected[] = 'card_exercises.exercise_type AS exercise_type';
+        $selected[] = 'card_exercises.exercise_params AS exercise_params';
+    }
+
+    foreach (card_language_columns($columns) as $pair) {
+        foreach ($pair as $column) {
+            $selected[] = 'k.' . $column;
+        }
+    }
+
+    $statement = $pdo->prepare(
+        'SELECT ' . implode(', ', array_unique($selected)) . ',
+                p.state, p.due_at, p.last_reviewed_at, p.repetitions, p.lapses,
+                p.stability, p.difficulty
+           FROM cards AS k' . card_exercise_join($pdo, 'k') . '
+           LEFT JOIN user_card_progress AS p
+                  ON p.card_id = k.id AND p.user_id = :user_id
+          ORDER BY k.category_id ASC, k.id ASC'
+    );
+
+    if ($userId === null) {
+        $statement->bindValue(':user_id', null, PDO::PARAM_NULL);
+    } else {
+        $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    }
+
+    $statement->execute();
+
+    $cards = [];
+
+    foreach ($statement->fetchAll() as $row) {
+        $progress = $row['state'] === null ? null : $row;
+
+        $card = array_merge(normalize_card_row($row), card_localized_text($row, $columns, $language));
+        $card['progress'] = review_public_progress($progress);
+
+        $cards[(int) $row['category_id']][] = $card;
+    }
+
+    $summaries = [];
+
+    foreach ($cards as $categoryId => $list) {
+        $summaries[$categoryId] = review_summarise_cards($list);
+    }
+
+    return ['cards' => $cards, 'summaries' => $summaries];
+}
