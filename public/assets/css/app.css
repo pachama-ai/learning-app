@@ -2178,6 +2178,12 @@ html.is-theme-switching::view-transition-new(root) {
  * The initials of the signed-in user, as a quiet line above the menu items.
  * Mono and upper case like every label of this design.
  */
+/*
+ * The name of the signed-in person, as a quiet line above the menu items. It is
+ * a name and not an abbreviation of one, so it is written as it is - no upper
+ * case and no wide letter spacing, which were for the two initials it carried
+ * before.
+ */
 .menu__label {
     margin: 0 0 4px;
     padding: 6px 10px 8px;
@@ -2185,8 +2191,7 @@ html.is-theme-switching::view-transition-new(root) {
     color: var(--muted);
     font-family: var(--font-mono);
     font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 /* Heading of one entry, with the actions that belong to that entry. */
@@ -3327,9 +3332,8 @@ html.is-theme-switching::view-transition-new(root) {
     transition: opacity 200ms var(--ease), transform 200ms var(--ease);
 }
 
-.learn-button:hover:not(:disabled) {
-    transform: translateY(-1px);
-}
+/* The hover lives with the button itself further down, where it only deepens the
+   colour - it does not move and it does not cast a shadow. */
 
 .learn-button:disabled {
     opacity: 0.4;
@@ -4182,8 +4186,9 @@ body.is-learning {
     font-weight: 500;
     letter-spacing: 0.01em;
     cursor: pointer;
-    transition: transform 180ms var(--ease), box-shadow 180ms var(--ease),
-        filter 180ms var(--ease);
+    /* Only the colour changes, like the two buttons next to it - 180ms, the same
+       clock, and no shadow of its own. */
+    transition: background-color 180ms var(--ease);
 }
 
 .learn-button__icon {
@@ -4196,10 +4201,14 @@ body.is-learning {
     background-color: color-mix(in srgb, var(--accent-ink) 18%, transparent);
 }
 
+/*
+ * The main action of the card list deepens its own colour instead of lifting
+ * itself off the page: the neighbours "+ Card" and "Import" only change their
+ * surface, and a shadow here was the one thing that made this button behave
+ * differently. Nothing moves, nothing glows - only the disc gets a tone darker.
+ */
 .learn-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 38%, transparent);
-    filter: brightness(1.04);
+    background-color: color-mix(in srgb, var(--accent) 86%, var(--accent-ink));
 }
 
 .learn-button:focus-visible {
@@ -5074,6 +5083,8 @@ body.is-learning {
     border-color: var(--line-strong);
     background-color: var(--tile-bg);
     color: var(--text);
+    /* The circle carries two letters now, so they get the weight the drawing had. */
+    font-weight: 500;
 }
 
 .auth-button--user::after {

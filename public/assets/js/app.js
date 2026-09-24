@@ -993,17 +993,22 @@
         user.setAttribute('aria-expanded', 'false');
         user.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
         user.setAttribute('title', authState.user.name);
-        /* The very same drawing as in the signed-out state. Only the colour and
-           the fine ring around the circle tell the two states apart (app.css). */
-        user.innerHTML = PERSON_SVG;
+        /*
+         * The initials stand in the circle instead of the drawing: a colour and a
+         * fine ring alone were easy to miss, and the two letters say who is signed
+         * in at a glance. The drawing stays in the signed-out state. (app.css)
+         */
+        user.textContent = authState.user.initials;
+        user.classList.add('auth-button--initials');
 
         var menu = el('span', 'menu');
         menu.setAttribute('role', 'menu');
         menu.hidden = true;
 
-        /* The initials of the user are text in the menu now, not the symbol in
-           the circle. The button already names the user for screen readers. */
-        var who = el('p', 'menu__label', authState.user.initials);
+        /* The name of the person is the first line of the menu, so it is clear
+           there too who is signed in. The button already names the user for
+           screen readers. */
+        var who = el('p', 'menu__label', authState.user.name);
         who.setAttribute('aria-hidden', 'true');
 
         var signOutItem = el('button', 'menu__item');

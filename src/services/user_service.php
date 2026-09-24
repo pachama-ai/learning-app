@@ -432,8 +432,12 @@ function user_public_data(PDO $pdo, int $userId): ?array
 }
 
 /**
- * One or two letters for the small circle in the header: the first letter of the
- * first two words, so "Anna Beispiel" becomes "AB" and "Anna" stays "A".
+ * Two letters for the small circle in the header: the first letter of the first
+ * two words, so "Anna Beispiel" becomes "AB" and "selina.schneider" becomes "SS".
+ *
+ * A name that is a single word would give one letter only, and one letter in a
+ * circle tells nobody anything - so the second letter of that same word follows,
+ * which turns "Selina" into "SE".
  */
 function user_initials(string $name): string
 {
@@ -443,17 +447,26 @@ function user_initials(string $name): string
         $parts = [$name];
     }
 
+    $parts = array_values(array_filter($parts, static function ($part) {
+        return $part !== null && $part !== '';
+    }));
+
     $initials = '';
 
     foreach ($parts as $part) {
-        if ($part === '' || $part === null) {
-            continue;
-        }
-
         $initials .= mb_strtoupper(mb_substr((string) $part, 0, 1));
 
         if (mb_strlen($initials) === 2) {
             break;
+        }
+    }
+
+    /* One word, one letter so far: take the second letter of it as well. */
+    if (mb_strlen($initials) === 1 && count($parts) === 1) {
+        $word = (string) $parts[0];
+
+        if (mb_strlen($word) > 1) {
+            $initials = mb_strtoupper(mb_substr($word, 0, 2));
         }
     }
 
