@@ -50,109 +50,36 @@
 }
 
 /*
- * The circle of the loading screen, and the whole rhythm of it:
+ * The ring of the loading screen: the usual spinner, a circle drawn as a border
+ * with ONE gap in it. The gap is what makes the turning visible - a closed ring
+ * that turns would look like a standing circle.
  *
- *    0s -  4s   it grows
- *    4s - 11s   it holds its size
- *   11s - 19s   it shrinks again
- *
- * Three passes of that, and then the overlay fades away. The clock for that runs
- * in public/index.php with the very same numbers, so the drawing and the moment
- * it disappears cannot drift apart. The percentages below are those seconds out
- * of one 19 second pass: 4/19 and 11/19.
- *
- * The ring sits in a box that is as large as it can ever grow, so growing and
- * shrinking never push the line of text underneath it up and down.
+ * Three pixels of line on a 56 pixel ring, the gap is the top border. No 3D, no
+ * perspective, no second element: one rotation, which is the simplest thing a
+ * loading sign can do and the one that cannot go wrong.
  */
-.boot__circle {
+.boot__spinner {
     position: relative;
     z-index: 2;
-    display: grid;
-    place-items: center;
-    width: 200px;
-    height: 200px;
+    width: 56px;
+    height: 56px;
     color: var(--muted);
-}
-
-.boot__circle::before {
-    content: "";
-    width: 128px;
-    height: 128px;
-    border: 2px solid currentColor;
+    /* Four equal borders; the three below are the faint part of the ring ... */
+    border: 3px solid color-mix(in srgb, currentColor 20%, transparent);
+    /* ... and this one is the visible piece that runs around. */
+    border-top-color: currentColor;
     border-radius: 50%;
-    animation: boot-circle 19s linear 3 both;
+    animation: boot-spin 1s linear infinite;
 }
 
-@keyframes boot-circle {
-    0% {
-        transform: scale(0.45);
-    }
-
-    21.0526% {
-        transform: scale(1.45);
-    }
-
-    57.8947% {
-        transform: scale(1.45);
-    }
-
-    100% {
-        transform: scale(0.45);
+@keyframes boot-spin {
+    to {
+        transform: rotate(360deg);
     }
 }
 
-
-.boot__text {
-    margin: 0;
-    font-family: var(--font-sans);
-    font-size: 0.9rem;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-}
-
-.boot__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    max-width: 34rem;
-    padding: 0 24px;
-    text-align: center;
-}
-
-.boot__error[hidden] {
-    display: none;
-}
-
-.boot__retry {
-    padding: 9px 18px;
-    font-family: var(--font-sans);
-    font-size: 0.85rem;
-    color: var(--text);
-    background: var(--tile-bg, transparent);
-    border: 1px solid var(--line-strong, currentColor);
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
-}
-
-.boot__retry:hover,
-.boot__retry:focus-visible {
-    background: var(--tile-bg-strong, var(--tile-bg, transparent));
-}
-
-/*
- * The pools of the page, painted inside the overlay. The layer of the page sits
- * at z-index -1 (behind its own background), which inside the overlay would be
- * behind the opaque background as well - so it is lifted to 0 here.
- */
-.boot__bg {
-    z-index: 0;
-}
-
-/* The sky the clouds travel through: behind the rotor, above the pools. */
-/* The circle and the words. */
-.boot__circle,
+/* The ring and the words. */
+.boot__spinner,
 .boot__text,
 .boot__error {
     position: relative;
@@ -160,7 +87,7 @@
 }
 
 /* A slow connection may show it for a while: the drawing steps back. */
-.boot.is-failed .boot__circle {
+.boot.is-failed .boot__spinner {
     color: var(--line-strong, var(--muted));
 }
 
@@ -171,37 +98,14 @@
  */
 @media (prefers-reduced-motion: reduce) {
     /*
-     * Nobody who asked for less movement gets a circle that grows and shrinks
-     * for a whole minute: it stands at one size and the drawing breathes instead.
-     * It stands there for the same 57 seconds - the screen before the first page
-     * behaves the same way for everybody.
+     * Nobody who asked for less movement gets a turning ring: it stands still, and
+     * the gap in it still shows that something is being loaded.
      */
-    .boot__circle::before {
+    .boot__spinner {
         animation: none;
-        transform: scale(1);
     }
 
-    /*
-     * The stylesheet of the application shortens every animation for reduced
-     * motion (150 ms, one single run, both marked !important). For this drawing
-     * that would mean a short flash instead of a calm breath, so the pulse is
-     * taken out of that rule - same !important, but a selector that is one class
-     * more specific than "*".
-     */
-    .boot__pulse {
-        animation: boot-pulse 2400ms ease-in-out infinite !important;
-    }
-
-    @keyframes boot-pulse {
-        0%,
-        100% {
-            opacity: 0.45;
-        }
-
-        50% {
-            opacity: 1;
-        }
-    }
+   }
 }
 
 /* Nothing to see on paper, and nothing that needs the overlay. */

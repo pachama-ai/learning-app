@@ -266,12 +266,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         </div>
 
                 <!--
-            One simple circle, and nothing else. It is the whole drawing of this
-            screen: it grows for four seconds, holds its size for seven and
-            shrinks again for eight - three times in a row, and then the overlay
-            fades away and the page appears (boot.css carries the drawing).
+            The spinner every interface uses: a ring with one gap in it, turning
+            evenly around its own centre. Nothing is invented here - this is the
+            loading sign people already know, and the simplest drawing of them all.
         -->
-        <div class="boot__circle boot__pulse" aria-hidden="true"></div>
+        <div class="boot__spinner" aria-hidden="true"></div>
 
 <p class="boot__text" id="boot-text"
            data-text-de="Wird geladen …" data-text-en="Loading …">Loading …</p>
@@ -308,11 +307,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
              * inside the application never shows it again, because the page is not
              * loaded again.
              *
-             * The rhythm in here and the rhythm of the circle in boot.css are the
-             * same three numbers. This script only waits for the end of the third
-             * pass and then decides: the page appears, or - if there is still
-             * nothing to show - the message with the retry button takes over. A
-             * load that succeeds after that message still ends the overlay.
+             * It goes away as soon as the first view really stands, in a 240ms
+             * fade. Nothing after eight seconds means: something is wrong, and the
+             * message with the retry button appears - a load that succeeds after
+             * that message still ends the overlay.
              */
             var overlay = document.getElementById('boot-overlay');
 
@@ -341,18 +339,22 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
              */
             document.documentElement.setAttribute('lang', language);
 
-            /* The rhythm of the circle: four seconds growing, seven holding,
-               eight shrinking - nineteen per pass, three passes. */
-            var PASS_MS = 19000;
-            var SHOW_FOR_MS = PASS_MS * 3;
-
             /* Set while the message with the retry button is on screen. It only
                says "the message has been shown" and not "this is over": a load
                that succeeds afterwards still ends the overlay. */
             var failed = false;
-            var decided = false;
             var finished = false;
-            var shownAt = Date.now();
+
+            /*
+             * Eight seconds without a first view mean: something is wrong. Then
+             * the message with the retry button takes over. It is no final state -
+             * an answer that arrives afterwards still ends the overlay.
+             */
+            var failTimer = window.setTimeout(function () {
+                if (!isReady()) {
+                    fail();
+                }
+            }, 8000);
 
             /*
              * Ready means: the first view really stands there - a tile, a row, a
@@ -375,6 +377,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 }
 
                 finished = true;
+                window.clearTimeout(failTimer);
 
                 /*
                  * A fading overlay may not swallow clicks and it is not failed any
@@ -404,13 +407,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             }
 
             /*
-             * Every "the first view is there" signal ends here. The overlay does not
-             * go away before the three passes of the circle are over, however fast
-             * the answers arrive - the rhythm IS this screen, and a screen that
-             * disappeared after half a second would never show it.
+             * Every "the first view is there" signal ends here: as soon as the page
+             * really stands, the overlay fades away - it is there for the load, not
+             * for a fixed number of seconds.
              */
             function onReadySignal() {
-                if (!isReady()) {
+                if (!isReady() || finished) {
                     return;
                 }
 
@@ -421,20 +423,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     return;
                 }
 
-                if (decided) {
-                    return;
-                }
-
-                decided = true;
                 observer.disconnect();
-
-                window.setTimeout(function () {
-                    if (isReady()) {
-                        hide();
-                    } else {
-                        fail();
-                    }
-                }, Math.max(0, SHOW_FOR_MS - (Date.now() - shownAt)));
+                hide();
             }
 
             var observer = new MutationObserver(onReadySignal);
