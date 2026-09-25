@@ -901,7 +901,14 @@
      * The signed-in state is not told by the drawing but by its colour and by the
      * fine ring around the circle, and the initials live in the menu (see app.css).
      */
-    var PERSON_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" focusable="false" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c0-3.7 3.2-6 7.2-6s7.2 2.3 7.2 6"/></svg>';
+    /*
+     * The two symbols of the profile circle - an arrow going into an open frame
+     * when nobody is signed in, and the same arrow coming out of it when somebody
+     * is. Both are drawn like every other icon of the header: 18px, currentColor,
+     * a 1.5px line and no fill (the theme switch next to them is the reference).
+     */
+    var LOGIN_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M13.6 3.6h3.65A2.75 2.75 0 0 1 20 6.35v11.3a2.75 2.75 0 0 1-2.75 2.75H13.6"/><path d="M3.6 12h9.1"/><path d="M9.4 8.6 12.8 12l-3.4 3.4"/></svg>';
+    var LOGOUT_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M10.4 3.6H6.75A2.75 2.75 0 0 0 4 6.35v11.3a2.75 2.75 0 0 0 2.75 2.75h3.65"/><path d="M11.3 12h9.1"/><path d="M17.2 8.6 20.6 12l-3.4 3.4"/></svg>';
     var EYE_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye__slash" d="M4.4 19.6 19.6 4.4"/></svg>';
 
     var authState = { user: null, ready: false, csrfToken: '' };
@@ -977,7 +984,8 @@
                language it was built in. */
             open.setAttribute('aria-label', t('auth.open'));
             open.setAttribute('data-i18n-label', 'auth.open');
-            open.innerHTML = PERSON_SVG;
+            /* The arrow going in: "sign in". */
+            open.innerHTML = LOGIN_SVG;
             open.addEventListener('click', function () {
                 openAuthDialog('sign_in');
             });
@@ -994,12 +1002,11 @@
         user.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
         user.setAttribute('title', authState.user.name);
         /*
-         * The initials stand in the circle instead of the drawing: a colour and a
-         * fine ring alone were easy to miss, and the two letters say who is signed
-         * in at a glance. The drawing stays in the signed-out state. (app.css)
+         * The arrow coming out of the frame: "sign out" is what this circle stands
+         * for now, and the ring around it says "somebody is signed in". Who that is
+         * stands in the menu and in the accessible name of the button. (app.css)
          */
-        user.textContent = authState.user.initials;
-        user.classList.add('auth-button--initials');
+        user.innerHTML = LOGOUT_SVG;
 
         var menu = el('span', 'menu');
         menu.setAttribute('role', 'menu');
