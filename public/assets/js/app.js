@@ -1067,13 +1067,37 @@
                 window.setTimeout(renderAuthSlot, 240);
             }
 
-            /* A reload lets the running study session notice that the answers can
-               no longer be stored, instead of keeping a hint that is not true
-               any more. */
-            window.setTimeout(function () {
-                window.location.reload();
-            }, 250);
+            /*
+             * The store still holds the progress of the person who just left and
+             * every list still shows it, so it is asked again - the same way a
+             * language switch asks again - and the open view is drawn from the
+             * fresh answer. No page load, so the loading screen stays away.
+             */
+            window.setTimeout(refreshAfterAuthChange, 250);
         });
+    }
+
+    /*
+     * Signing in or out changes what the server knows about EVERY card - its
+     * progress - so nothing in the store may be kept: it is dropped and asked for
+     * again, exactly as a language switch does it, and the view that is open is
+     * drawn from the fresh answer. The page is not loaded again, which is what
+     * used to bring the loading screen for seconds after a sign-in.
+     *
+     * One case keeps the old way: while a study session is running. Its queue was
+     * built from the state before, and the answers of that session belong to that
+     * state - there the page is loaded again, exactly as it always was.
+     */
+    function refreshAfterAuthChange() {
+        if (learnSession !== null) {
+            window.location.reload();
+
+            return;
+        }
+
+        bootstrapDropAll();
+        loadBootstrap();
+        render();
     }
 
     /* The sign-in dialog is the same dialog block as every other form. */
@@ -1272,12 +1296,12 @@
             renderAuthSlot();
             closeDialog();
 
-            /* The study session and the hint about the missing user are built
-               from the state at load time, so a reload is the shortest way to
-               make the whole page tell the truth. */
-            window.setTimeout(function () {
-                window.location.reload();
-            }, 300);
+            /*
+             * From now on every card's progress comes from this person, so the
+             * store is asked again and the open view redraws itself - without a
+             * page load and therefore without the loading screen.
+             */
+            window.setTimeout(refreshAfterAuthChange, 300);
         });
     }
 
