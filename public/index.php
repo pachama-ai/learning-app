@@ -33,21 +33,6 @@ if (is_string($rawCategoryId) && ctype_digit($rawCategoryId) && (int) $rawCatego
     $requestedCategoryId = (int) $rawCategoryId;
 }
 
-/*
- * The statistics view has an address of its own: index.php?statistics=85 shows the
- * numbers of that subcategory, ?statistics=2 the numbers of a whole learning area.
- *
- * Which of the two it is is decided on the SERVER and not in the browser (a
- * category without a parent is an area), so a hand written address cannot give the
- * same id a second meaning.
- */
-$requestedStatisticsId = null;
-$rawStatisticsId = $_GET['statistics'] ?? null;
-
-if (is_string($rawStatisticsId) && ctype_digit($rawStatisticsId) && (int) $rawStatisticsId > 0) {
-    $requestedStatisticsId = (int) $rawStatisticsId;
-}
-
 // Everything the browser needs. It contains no credentials, no connection
 // details and no server file paths.
 $appConfig = [
@@ -63,8 +48,6 @@ $appConfig = [
         'auth' => 'api/auth.php',
         /* The account itself: the shape of its symbol and its end. */
         'account' => 'api/account.php',
-        /* The numbers behind the statistics view. */
-        'statistics' => 'api/statistics.php',
         /* The one example the card dialog shows while a kind of task is being
            chosen. It is built on the server, so the dialog and the card never
            draw their numbers from two different generators. */
@@ -137,7 +120,6 @@ $appConfig = [
     'defaultLocale' => $defaultLocale,
     'supportedLocales' => array_keys($translations),
     'categoryId' => $requestedCategoryId,
-    'statisticsId' => $requestedStatisticsId,
     'translations' => $translations,
 ];
 
@@ -381,11 +363,13 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
              */
             function isReady() {
                 /*
-                 * The statistics view has numbers instead of rows, so it needs its
-                 * own sign here - without it the loading screen would stay on that
-                 * page until the eight second message.
+                 * The empty notice (#empty-state on the start page, #entry-empty in
+                 * the detail view) is in the markup from the first moment, only
+                 * hidden. So it may count only while it is really shown: without the
+                 * "not hidden" the loading screen would be gone before the first
+                 * answer of the server arrived.
                  */
-                return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state, .stats__number') !== null;
+                return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .notice:not([hidden])') !== null;
             }
 
             function hide() {
@@ -557,9 +541,32 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 <p class="state state--error" id="error-state" data-i18n="state.error" hidden><?= $text('state.error') ?></p>
 
                 <div class="notice" id="empty-state" hidden>
+                    <!--
+                        The mark above the sentence: a stack of two cards, drawn
+                        inline like every other drawing of the application, with
+                        the same thin line (1.5) and in the accent colour of the
+                        theme. It only shows what the heading below says, so it is
+                        hidden from screen readers.
+                    -->
+                    <svg class="notice__icon" viewBox="0 0 24 24" width="30" height="30" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                         stroke-linejoin="round" focusable="false" aria-hidden="true">
+                        <rect x="3.5" y="7.5" width="12.5" height="13" rx="3"/>
+                        <path d="M8.5 4.5h8a3 3 0 0 1 3 3v9.5"/>
+                    </svg>
                     <h2 class="notice__title" id="empty-title"></h2>
                     <p class="notice__hint" id="empty-hint"></p>
-                    <button type="button" class="notice__button" id="empty-action" hidden></button>
+                    <!--
+                        The ways out. app.js shows one of them: signed in it is the
+                        form that creates a learning area, signed out it is the
+                        sign-in and the way to an account. The second button stays
+                        hidden while somebody is signed in.
+                    -->
+                    <div class="notice__actions">
+                        <button type="button" class="notice__button" id="empty-action" hidden></button>
+                        <button type="button" class="notice__button notice__button--quiet"
+                                id="empty-action-secondary" hidden></button>
+                    </div>
                 </div>
 
                 <!--
@@ -624,6 +631,39 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </div>
 
                     <!--
+                        The tiles of a subcategory: what is due, how much of it
+                        already sits and how many days in a row somebody studied.
+                        They stand directly under the head, before the counts and
+                        the buttons, because they belong to the work of this page.
+
+                        app.js fills them from the numbers the API already sends
+                        with the card list - nothing here is counted in the
+                        browser - and it keeps the whole section away on a learning
+                        area, which only holds subcategories and has no cards of
+                        its own.
+                    -->
+                    <section class="dash" id="detail-dashboard" hidden>
+                        <div class="dash__tile">
+                            <p class="dash__label" data-i18n="dash.due"><?= $text('dash.due') ?></p>
+                            <p class="dash__value" id="dash-due-value">&#8211;</p>
+                        </div>
+
+                        <div class="dash__tile">
+                            <p class="dash__label" data-i18n="dash.known"><?= $text('dash.known') ?></p>
+                            <p class="dash__value" id="dash-known-value">&#8211;</p>
+                            <div class="dash__track">
+                                <span class="dash__track-fill" id="dash-known-fill"></span>
+                            </div>
+                        </div>
+
+                        <div class="dash__tile">
+                            <p class="dash__label" data-i18n="dash.streak"><?= $text('dash.streak') ?></p>
+                            <p class="dash__value" id="dash-streak-value">&#8211;</p>
+                            <p class="dash__note" id="dash-streak-note" hidden></p>
+                        </div>
+                    </section>
+
+                    <!--
                         What the entry holds, in one quiet line: the number of
                         subcategories and the number of flashcards. Both are
                         counted by the API, and the wording follows the number.
@@ -662,38 +702,14 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </div>
 
                     <!--
-                        The header of a card list. It only shows while the open
-                        subcategory really has cards: a bar over an empty list would
-                        be three zeroes in a row, and that tells nobody anything.
-
-                        The "Study" button is the main action of this page. It is
-                        disabled while there is nothing to study, so a click can
-                        never open an empty session.
+                        The search of a card list. The numbers of this list stand in
+                        the tiles under the head now, so the only thing left here is
+                        the way to look for one card. app.js shows the strip from
+                        about fifteen cards on: searching three cards is more work
+                        than looking at them, and an empty strip above a list would
+                        only take room.
                     -->
                     <div class="card-tools" id="card-tools" hidden>
-                        <div class="card-tools__top">
-                            <p class="card-tools__counts">
-                                <span class="card-tools__count" id="card-tools-count"></span>
-                                <span class="card-tools__due" id="card-tools-due" hidden></span>
-                            </p>
-                        </div>
-
-                        <!--
-                            The distribution bar. Its three parts are sized by the
-                            numbers from the API and carry the colour of the status;
-                            the sentence below names the same numbers, so the colours
-                            are never the only thing that says something.
-                        -->
-                        <div class="card-tools__bar" id="card-tools-bar" role="img">
-                            <span class="card-tools__part card-tools__part--new" id="card-tools-part-new"></span>
-                            <span class="card-tools__part card-tools__part--unsure" id="card-tools-part-unsure"></span>
-                            <span class="card-tools__part card-tools__part--known" id="card-tools-part-known"></span>
-                        </div>
-
-                        <p class="card-tools__legend" id="card-tools-legend"></p>
-
-                        <!-- Only from about fifteen cards: searching three cards is
-                             more work than looking at them. -->
                         <div class="card-tools__search" id="card-tools-search" hidden>
                             <!--
                                 A search field, not a sign-in field - and one the
@@ -751,51 +767,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     <section class="detail__section" id="area-cards" hidden>
                         <h2 class="detail__section-title" data-i18n="cards.sectionTitle"><?= $text('cards.sectionTitle') ?></h2>
                         <ul class="rows" id="area-card-list"></ul>
-                    </section>
-                </div>
-            </section>
-            <!--
-                The statistics view. Almost everything inside it is written by
-                app.js: every number carries its own wording, its own share of a bar
-                and, on the area level, its own row - and the answer comes from
-                api/statistics.php, like every other row of this page.
-            -->
-            <section class="view view--stats" id="view-statistics" hidden>
-                <header class="stats__head">
-                    <p class="crumb" id="stats-crumb"></p>
-                    <h1 class="heading heading--detail" id="stats-heading"></h1>
-                    <p class="stats__hint" id="stats-hint"></p>
-                </header>
-
-                <p class="state" id="stats-loading" data-i18n="state.loading" hidden><?= $text('state.loading') ?></p>
-                <p class="state state--error" id="stats-error" hidden></p>
-
-                <div class="stats__body" id="stats-body" hidden>
-                    <!-- The three figures of the head. -->
-                    <div class="stats__figures" id="stats-figures"></div>
-
-                    <section class="stats__block">
-                        <h2 class="stats__title"><?= $text('statistics.distribution') ?></h2>
-                        <div class="stats__bar" id="stats-bar" role="img"></div>
-                        <p class="stats__legend" id="stats-legend"></p>
-                    </section>
-
-                    <section class="stats__block">
-                        <h2 class="stats__title"><?= $text('statistics.due') ?></h2>
-                        <div class="stats__bar stats__bar--due" id="stats-due-bar" role="img"></div>
-                        <p class="stats__legend" id="stats-due-legend"></p>
-                    </section>
-
-                    <section class="stats__block">
-                        <h2 class="stats__title"><?= $text('statistics.history') ?></h2>
-                        <div class="stats__days" id="stats-days"></div>
-                        <p class="stats__note" id="stats-history-note" hidden></p>
-                    </section>
-
-                    <!-- Only on the level of a learning area: one row per subcategory. -->
-                    <section class="stats__block" id="stats-children-block" hidden>
-                        <h2 class="stats__title"><?= $text('statistics.bySubcategory') ?></h2>
-                        <ul class="rows stats__rows" id="stats-children"></ul>
                     </section>
                 </div>
             </section>

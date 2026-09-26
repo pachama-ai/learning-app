@@ -5,19 +5,13 @@
  *   api/categories.php -> the learning areas with colour and counts
  *
  * Nothing is invented here: every number on the page is a value the API really
- * returned. The start page asks for exactly what it shows and nothing else; the
- * old statistics endpoint that no page called any more is gone.
+ * returned. The start page asks for exactly what it shows and nothing else.
  */
 (function () {
     'use strict';
 
     /* A thin stroke arrow, drawn inline so no extra icon file is needed.
        "currentColor" makes it follow the theme. */
-    /*
-     * The play triangle of the two "Study" entries. It is drawn inline with
-     * currentColor, so it follows the theme without a second icon file.
-     */
-    var PLAY_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" focusable="false" aria-hidden="true"><path d="M8 5.2v13.6L18.4 12 8 5.2z"/></svg>';
 
     /* The arrow that points into the drop zone of the import dialog. Like every
        other icon of this file it is written with innerHTML, because the string is
@@ -345,6 +339,7 @@
      */
     var openCards = [];
     var openCardSummary = null;
+    var openCardStreak = null;
     var cardSearchQuery = '';
     var cardSearchMin = 15;
 
@@ -411,6 +406,7 @@
         langUnderline: document.getElementById('lang-underline'),
         localeButtons: document.querySelectorAll('[data-locale]'),
         emptyAction: document.getElementById('empty-action'),
+        emptyActionSecondary: document.getElementById('empty-action-secondary'),
 
         entryList: document.getElementById('entry-list'),
         entryEmpty: document.getElementById('entry-empty'),
@@ -423,7 +419,12 @@
 
         detailActions: document.getElementById('detail-actions'),
         detailBlob: document.getElementById('detail-blob'),
-        detailStats: document.getElementById('detail-stats'),
+        dashboard: document.getElementById('detail-dashboard'),
+        dashDue: document.getElementById('dash-due-value'),
+        dashKnown: document.getElementById('dash-known-value'),
+        dashKnownFill: document.getElementById('dash-known-fill'),
+        dashStreak: document.getElementById('dash-streak-value'),
+        dashStreakNote: document.getElementById('dash-streak-note'),
         detailFigureCount: document.getElementById('detail-figure-count'),
         detailFigureCards: document.getElementById('detail-figure-cards'),
         detailCardCount: document.getElementById('detail-card-count'),
@@ -459,15 +460,8 @@
         accountPassword: document.getElementById('account-password'),
         accountError: document.getElementById('account-error'),
 
-        /* The header of a card list, above the rows of a subcategory. */
+        /* The strip above the rows of a subcategory: it holds the search field. */
         cardTools: document.getElementById('card-tools'),
-        cardToolsCount: document.getElementById('card-tools-count'),
-        cardToolsDue: document.getElementById('card-tools-due'),
-        cardToolsBar: document.getElementById('card-tools-bar'),
-        cardToolsLegend: document.getElementById('card-tools-legend'),
-        cardToolsPartNew: document.getElementById('card-tools-part-new'),
-        cardToolsPartUnsure: document.getElementById('card-tools-part-unsure'),
-        cardToolsPartKnown: document.getElementById('card-tools-part-known'),
         cardSearchWrap: document.getElementById('card-tools-search'),
         cardSearch: document.getElementById('card-search'),
         cardSearchEmpty: document.getElementById('card-search-empty'),
@@ -651,18 +645,6 @@
      * the row (see the stylesheet). The dot, the row track and every marker
      * therefore stay neutral through --cat-default.
      */
-
-    /*
-     * "0 cards" / "1 card" / "8 cards" - a positive number of cards or
-     * subcategories, then the noun in the right number.
-     *
-     * No pad2 here: this is a count and not a slot in a row of numbers, and
-     * "00 cards" reads like a typo. The rows keep their own padded index ("[01]"),
-     * which is an ordinal and never becomes "00".
-     */
-    function countedLabel(count, oneKey, otherKey) {
-        return String(count) + ' ' + t(count === 1 ? oneKey : otherKey);
-    }
 
     /*
      * The information line of a tile. Every number in it was counted by the
@@ -1012,12 +994,10 @@
                 }
 
                 /*
-                 * This answer arrives AFTER the first draw of the page, and two
-                 * things depend on it: the account in the header and every entry
-                 * that only exists for a signed-in person (the statistics button in
-                 * the head card, the statistics entry of a subcategory row).
+                 * This answer arrives AFTER the first draw of the page, and the
+                 * account in the header depends on it.
                  *
-                 * Without a second pass both stayed missing until the next
+                 * Without a second pass it stayed missing until the next
                  * navigation - the page looked signed out while it was not. So the
                  * header is built again and the open view is drawn once more.
                  */
@@ -1139,8 +1119,6 @@
         loadBootstrap();
 
         config.categoryId = null;
-        config.statisticsId = null;
-        statisticsScopeId = null;
 
         try {
             window.history.pushState({ categoryId: null }, '', 'index.php');
@@ -2061,10 +2039,29 @@
 
             if (areas.length === 0) {
                 elements.grid.hidden = true;
-                elements.emptyTitle.textContent = t('home.empty.title');
-                elements.emptyHint.textContent = t('home.empty.hint');
-                elements.emptyAction.textContent = t('footer.addAria');
-                elements.emptyAction.hidden = false;
+
+                /*
+                 * Who is asking decides what stands here. Signed in, an empty
+                 * list means "there is nothing of yours yet", and the way out is
+                 * the form that creates a learning area. Signed out there is
+                 * nothing to create, so the way out is the sign-in - the button
+                 * that would end in "no_user_session" is never shown.
+                 */
+                if (authState.user === null) {
+                    elements.emptyTitle.textContent = t('home.welcome.title');
+                    elements.emptyHint.textContent = t('home.welcome.hint');
+                    elements.emptyAction.textContent = t('auth.signIn');
+                    elements.emptyAction.hidden = false;
+                    elements.emptyActionSecondary.textContent = t('auth.register');
+                    elements.emptyActionSecondary.hidden = false;
+                } else {
+                    elements.emptyTitle.textContent = t('home.empty.title');
+                    elements.emptyHint.textContent = t('home.empty.hint');
+                    elements.emptyAction.textContent = t('footer.addAria');
+                    elements.emptyAction.hidden = false;
+                    elements.emptyActionSecondary.hidden = true;
+                }
+
                 elements.empty.hidden = false;
             }
 
@@ -2194,8 +2191,13 @@
     }
 
     /*
-     * One subcategory row: a link to its flashcards, the number of cards that
-     * sit in it and a menu with "edit" and "delete".
+     * One subcategory row: the name as the way to its page, and one button that
+     * starts the session of this subcategory right away.
+     *
+     * There is no number in front of the name, no progress track, no arrow and no
+     * menu any more: the whole row is the link, and everything that changes the
+     * category happens on the page it opens. The one thing left beside the name is
+     * the button, with the number of cards that are due right now.
      *
      * "row--category" is not decoration: the loading screen in index.php waits
      * for ".row--category" (or ".row--card") before it takes itself away, so a
@@ -2214,99 +2216,68 @@
         link.href = 'index.php?category=' + encodeURIComponent(entry.id);
         link.setAttribute('aria-label', t('cards.open', { name: title }));
 
-        var number = document.createElement('span');
-        number.className = 'row__index';
-        number.textContent = '[' + pad2(index + 1) + ']';
-
         var name = document.createElement('span');
         name.className = 'row__name';
         name.textContent = title;
 
-        /*
-         * The real number of cards in this subcategory, counted by the API. An
-         * empty subcategory reads "0 cards": the figure is a count, so it is not
-         * padded to a fixed width.
-         */
-        var count = document.createElement('span');
-        count.className = 'row__count data-pill';
-        count.textContent = countedLabel(entry.own_card_count, 'tile.cards.one', 'tile.cards.other');
-
-        /*
-         * Decorative empty track, exactly like the one on a tile: there is no
-         * review history yet, so there is nothing honest to fill in.
-         */
-        var progress = document.createElement('span');
-        progress.className = 'row__progress';
-        progress.setAttribute('aria-hidden', 'true');
-
-        var progressFill = document.createElement('span');
-        progressFill.className = 'row__progress-fill';
-        progress.appendChild(progressFill);
-
-        var arrow = document.createElement('span');
-        arrow.className = 'row__arrow';
-        arrow.innerHTML = ARROW_SVG;
-
-        link.appendChild(number);
         link.appendChild(name);
-        link.appendChild(count);
-        link.appendChild(progress);
-        link.appendChild(arrow);
-
         item.appendChild(link);
+        item.appendChild(buildLearnButton(entry, title));
 
-        /*
-         * The direct way into the session of THIS subcategory: one click from
-         * the list, no detour over the page. It sits next to the arrow and next
-         * to the menu, and because it is a button and not part of the link, it
-         * never opens the page instead.
-         */
-        var play = document.createElement('button');
-        play.type = 'button';
-        play.className = 'row__play';
-        play.setAttribute('aria-label', t('cards.learnThis', { name: title }));
-        play.setAttribute('title', t('cards.learnThis', { name: title }));
-        play.innerHTML = PLAY_SVG;
-        play.addEventListener('click', function () {
+        return item;
+    }
+
+    /*
+     * The one action of a subcategory row: learn it.
+     *
+     * The number in the badge is the number of cards that are DUE right now, not
+     * the number of cards that sit in there: a row is a place where something is
+     * to be done, so it says how much of it waits today.
+     *
+     * The button is not part of the link above, so clicking it can never open the
+     * page instead of starting the session.
+     */
+    function buildLearnButton(entry, title) {
+        var due = entryDueCount(entry);
+
+        var button = el('button', 'row__learn');
+        button.type = 'button';
+        button.setAttribute('aria-label', t('cards.learnDue', { name: title, count: due }));
+        button.addEventListener('click', function () {
             startLearning('all', entry.id, title);
         });
 
-        item.appendChild(play);
-
-        var rowActions = [
-            {
-                label: t('action.edit'),
-                run: function () {
-                    openCategoryForm('edit', entry, entry.parent_id);
-                }
-            }
-        ];
+        button.appendChild(el('span', 'row__learn-label', t('cards.learn')));
 
         /*
-         * The statistics of this subcategory. The entry only exists for a signed-in
-         * person - the same reason the button in the head card has: no account, no
-         * progress, nothing to show.
+         * The counter keeps its place even at zero: the rows then end on one
+         * line, and a zero here is an answer ("nothing due") and not a gap. It
+         * is the only thing that carries the accent colour of the area, so it
+         * also says which area this row belongs to.
          */
-        if (authState.user !== null) {
-            rowActions.push({
-                label: t('statistics.title'),
-                run: function () {
-                    openStatistics(entry.id);
-                }
-            });
+        var badge = el('span', 'row__learn-badge', String(due));
+        badge.setAttribute('aria-hidden', 'true');
+        badge.classList.add(due === 0 ? 'row__learn-badge--none' : 'row__learn-badge--some');
+        button.appendChild(badge);
+
+        return button;
+    }
+
+    /*
+     * How many cards of this subcategory are due right now.
+     *
+     * The number comes from the same summary the tiles of a detail page use -
+     * the API counts it for every category - so the row and the page it opens can
+     * never disagree. A category the answer does not cover counts as zero.
+     */
+    function entryDueCount(entry) {
+        var summary = bootstrapCache.summaries[String(entry.id)];
+
+        if (summary && typeof summary.due === 'number') {
+            return summary.due;
         }
 
-        rowActions.push({
-            label: t('action.delete'),
-            danger: true,
-            run: function () {
-                requestDelete('category', entry, item);
-            }
-        });
-
-        item.appendChild(buildMenu(rowActions, title));
-
-        return item;
+        return 0;
     }
 
     /*
@@ -2481,6 +2452,53 @@
     }
 
     /*
+     * The tiles of a subcategory: what is due, how much of it already sits, and
+     * how many days in a row somebody studied here.
+     *
+     * Every number is handed in - none of them is counted in the browser - so the
+     * tiles and the page under them can never disagree. They exist on the page of
+     * a subcategory and nowhere else: a learning area only holds subcategories and
+     * has no cards of its own, so it has nothing to count.
+     *
+     * A tile keeps its place when a number cannot be shown (the streak needs rows
+     * in study_sessions, and there may be none yet). Then it says so in one quiet
+     * line instead of showing a zero that would be a lie.
+     */
+    function renderDashboard(summary, streak) {
+        var hasSummary = summary !== null && typeof summary === 'object' && typeof summary.total === 'number';
+        var hasStreak = streak !== null && typeof streak === 'object';
+
+        if (!hasSummary && !hasStreak) {
+            elements.dashboard.hidden = true;
+
+            return;
+        }
+
+        var total = hasSummary ? summary.total : 0;
+
+        elements.dashDue.textContent = String(hasSummary ? (summary.due || 0) : 0);
+        elements.dashKnown.textContent = String(hasSummary ? (summary.known || 0) : 0);
+
+        /* How much of the list already sits is a share, so it gets the small
+           track under the number: "1 of 34" is easier to read as a length. */
+        elements.dashKnownFill.style.setProperty(
+            '--share',
+            (total > 0 ? Math.round(((summary.known || 0) / total) * 100) : 0) + '%'
+        );
+
+        if (hasStreak && streak.available === true) {
+            elements.dashStreak.textContent = String(streak.days);
+            elements.dashStreakNote.hidden = true;
+        } else {
+            elements.dashStreak.textContent = '\u2013';
+            elements.dashStreakNote.textContent = t('dash.streakNone');
+            elements.dashStreakNote.hidden = false;
+        }
+
+        elements.dashboard.hidden = false;
+    }
+
+    /*
      * The empty state of the detail view.
      *
      * The circle carries the drawing of the area this page belongs to - or the
@@ -2543,6 +2561,7 @@
         elements.areaCards.hidden = true;
         elements.detailActions.hidden = true;
         elements.detailStats.hidden = true;
+        elements.dashboard.hidden = true;
 
         Promise.all([
             fetchCategories(''),
@@ -2600,6 +2619,7 @@
             if (cardsPayload !== null && Array.isArray(cardsPayload.cards)) {
                 currentEntryCards = cardsPayload.cards;
                 openCardSummary = typeof cardsPayload.summary === 'object' ? cardsPayload.summary : null;
+                openCardStreak = typeof cardsPayload.streak === 'object' ? cardsPayload.streak : null;
 
                 /*
                  * Which languages a card can have is decided by the table, not
@@ -2612,6 +2632,7 @@
             } else {
                 currentEntryCards = Array.isArray(cardsResult.data) ? cardsResult.data : [];
                 openCardSummary = null;
+                openCardStreak = null;
             }
 
             var pageTitle = displayName(current);
@@ -2654,15 +2675,6 @@
                 }
             ], pageTitle, 'detail__menu'));
 
-            /*
-             * The way into the statistics of what is on screen, right next to the
-             * menu. Only for a signed-in person: without an account there is no
-             * progress to count.
-             */
-            if (authState.user !== null) {
-                elements.detailActions.appendChild(buildStatisticsButton(current.id, pageTitle));
-            }
-
             var crumbParts = [];
 
             if (isSubcategory && parent !== null) {
@@ -2683,6 +2695,9 @@
             elements.detailActions.hidden = false;
 
             if (isSubcategory) {
+                /* The tiles come first: they are the numbers of the work this page
+                   is for, and the counts and the buttons follow them. */
+                renderDashboard(openCardSummary, openCardStreak);
                 renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
                 renderCardTools(openCardSummary);
                 showHeadActions('card', current.id, currentEntryCards.length, currentEntryCards.length > 0);
@@ -2708,7 +2723,9 @@
                 return;
             }
 
-            /* A learning area has no card list of its own, so its header goes. */
+            /* A learning area holds subcategories and not cards, so it has
+               neither a dashboard nor a header of its own. */
+            renderDashboard(null, null);
             renderCardTools(null);
             openCards = [];
 
@@ -3130,392 +3147,8 @@
 
     wireTileNavigation();
 
-    /* ---------------------------------------------------------------------------
-       The statistics view
-       ---------------------------------------------------------------------------
-
-       What is known, what is due and how much is inside - for one subcategory or
-       for a whole learning area.
-
-       Every number on this page comes from api/statistics.php. Nothing is counted
-       here, so the page and the endpoint can never disagree; the same is true for
-       the card list and its legend, which is why the wording of the distribution
-       is the one the card list already uses.
-       --------------------------------------------------------------------------- */
-
-    /* The same icon language as the rest of the header: fine lines, currentColor. */
-    var STATISTICS_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4.5 19.5h15"/><path d="M8 19.5v-6"/><path d="M12 19.5V7"/><path d="M16 19.5v-9"/></svg>';
-
-    /* What the open statistics view belongs to. Needed by the way back. */
-    var statisticsScopeId = null;
-
-    /*
-     * The button in the head of a category. It only exists for a signed-in person:
-     * progress belongs to an account, so without one there would be nothing to
-     * show but an empty page - and a button that leads into a page of dashes is
-     * worse than no button.
-     */
-    function buildStatisticsButton(id, title) {
-        var button = el('button', 'stats-button');
-        button.type = 'button';
-        button.innerHTML = STATISTICS_SVG;
-        button.setAttribute('title', t('statistics.title'));
-        button.setAttribute('aria-label', t('statistics.openChild', { name: title }));
-        button.addEventListener('click', function () {
-            openStatistics(id);
-        });
-
-        return button;
-    }
-
-    /*
-     * Opens the statistics of one category without loading the page again.
-     *
-     * The address is really changed as well: a person can copy it, bookmark it and
-     * open it later - index.php then draws the same view from the ID alone. Without
-     * history support (a very old browser) the view still opens, only the address
-     * stays what it was.
-     */
-    function openStatistics(id) {
-        config.statisticsId = id;
-
-        try {
-            window.history.pushState(
-                { statisticsId: id },
-                '',
-                'index.php?statistics=' + encodeURIComponent(id)
-            );
-        } catch (error) {
-            /* No history object: not worth a message. */
-        }
-
-        render();
-    }
-
-    /* The way back: to the page of the category the numbers belong to. */
-    function backFromStatistics() {
-        var target = statisticsScopeId === null ? config.categoryId : statisticsScopeId;
-
-        config.statisticsId = null;
-
-        try {
-            window.history.pushState(
-                {},
-                '',
-                target === null ? 'index.php' : 'index.php?category=' + encodeURIComponent(target)
-            );
-        } catch (error) {
-            /* Not worth a message either. */
-        }
-
-        render();
-    }
-
-    function renderStatistics(id) {
-        var view = document.getElementById('view-statistics');
-
-        if (view === null) {
-            return;
-        }
-
-        elements.homeView.hidden = true;
-        elements.detailView.hidden = true;
-        view.hidden = false;
-
-        /* No tile row on this page, so the arrows and the round plus button stay
-           away - the same control every other view uses. */
-        updateFooterControls('statistics');
-
-        currentEntry = null;
-        currentEntryCards = [];
-        setCrumb(null);
-        document.title = t('app.title');
-
-        var body = document.getElementById('stats-body');
-        var loading = document.getElementById('stats-loading');
-        var error = document.getElementById('stats-error');
-
-        loading.hidden = false;
-        error.hidden = true;
-        body.hidden = true;
-
-        apiRequest(config.endpoints.statistics + '?id=' + encodeURIComponent(id), 'GET').then(function (result) {
-            loading.hidden = true;
-
-            if (result.ok !== true || result.data === null || typeof result.data !== 'object') {
-                /* Signed out, gone or a real error: one sentence instead of a half
-                   drawn page. */
-                error.textContent = result.code === 'not_signed_in'
-                    ? t('statistics.needsAccount')
-                    : errorMessage(result.code);
-                error.hidden = false;
-
-                return;
-            }
-
-            statisticsScopeId = typeof result.data.scope === 'object' && result.data.scope !== null
-                ? Number(result.data.scope.id)
-                : null;
-
-            drawStatistics(result.data);
-        });
-    }
-
-    function drawStatistics(data) {
-        var scope = data.scope || {};
-        var cards = data.cards || {};
-        var due = data.due || {};
-
-        document.getElementById('stats-heading').textContent = t('statistics.title');
-        document.getElementById('stats-hint').textContent = scope.kind === 'area'
-            ? t('statistics.areaHint')
-            : t('statistics.categoryHint');
-
-        buildStatisticsCrumb(scope);
-        drawStatisticsFigures(cards, data.today);
-        drawDistributionBar(cards);
-        drawDueBar(due);
-        drawHistory(data.history);
-        drawStatisticsChildren(data.children);
-
-        document.getElementById('stats-body').hidden = false;
-    }
-
-    function buildStatisticsCrumb(scope) {
-        var crumb = document.getElementById('stats-crumb');
-        crumb.textContent = '';
-
-        var back = el('a', 'stats__back', t('statistics.back'));
-        back.href = 'index.php?category=' + encodeURIComponent(scope.id);
-        back.addEventListener('click', function (event) {
-            event.preventDefault();
-            backFromStatistics();
-        });
-
-        crumb.appendChild(back);
-        crumb.appendChild(el('span', 'stats__crumb-name', displayName(scope)));
-    }
-
-    /* One big number with its label underneath. */
-    function buildFigure(value, label) {
-        var figure = el('p', 'stats__figure');
-        figure.appendChild(el('span', 'stats__number', value));
-        figure.appendChild(el('span', 'stats__label', label));
-
-        return figure;
-    }
-
-    /*
-     * The three figures of the head.
-     *
-     * The percentage is measured against the cards that have progress (the
-     * endpoint decides that), and with no progress at all it is a dash - never a
-     * zero that would read like a result. "Today" carries the words of the endpoint:
-     * as long as study_sessions is empty it says "not available yet" instead of a
-     * number nobody wrote.
-     */
-    function drawStatisticsFigures(cards, today) {
-        var wrap = document.getElementById('stats-figures');
-        wrap.textContent = '';
-
-        wrap.appendChild(buildFigure(formatNumber(cards.total || 0), t('statistics.cards')));
-        wrap.appendChild(buildFigure(
-            cards.known_percent === null || cards.known_percent === undefined
-                ? '–'
-                : formatNumber(cards.known_percent) + ' %',
-            t('statistics.known')
-        ));
-        wrap.appendChild(buildFigure(
-            today && today.available === true ? formatNumber(today.cards || 0) : t('statistics.unavailable'),
-            t('statistics.today')
-        ));
-    }
-
-    /* Numbers in the writing of the chosen language: 5,9 % in German, 5.9 % in
-       English - and never a jumping width, because the figures use tabular-nums. */
-    function formatNumber(value) {
-        return new Intl.NumberFormat(locale === 'de' ? 'de-DE' : 'en-GB', {
-            maximumFractionDigits: 1
-        }).format(value);
-    }
-
-    function buildBarPart(count, total, className) {
-        var part = el('span', className);
-        part.hidden = count === 0;
-        part.style.setProperty('--share', (total > 0 ? (count / total) * 100 : 0) + '%');
-
-        return part;
-    }
-
-    /*
-     * The distribution: the same sentence the head of a card list writes, now as a
-     * bar. The three segments are one colour at three levels of opacity - no
-     * traffic-light colours, nothing that would turn a number into a judgement.
-     */
-    function drawDistributionBar(cards) {
-        var bar = document.getElementById('stats-bar');
-        var legend = document.getElementById('stats-legend');
-        var total = cards.total || 0;
-
-        bar.textContent = '';
-        bar.appendChild(buildBarPart(cards.fresh || 0, total, 'stats__part stats__part--fresh'));
-        bar.appendChild(buildBarPart(cards.learning || 0, total, 'stats__part stats__part--learning'));
-        bar.appendChild(buildBarPart(cards.known || 0, total, 'stats__part stats__part--known'));
-
-        legend.textContent = total === 0
-            ? t('statistics.noCards')
-            : t('cards.legend', { 'new': cards.fresh || 0, unsure: cards.learning || 0, known: cards.known || 0 });
-
-        bar.setAttribute('aria-label', legend.textContent);
-    }
-
-    /*
-     * When the cards of the scope are due. Four segments, filled from left to
-     * right: due now, the next three days, later, and those without a due date.
-     */
-    function drawDueBar(due) {
-        var bar = document.getElementById('stats-due-bar');
-        var legend = document.getElementById('stats-due-legend');
-        var total = (due.now || 0) + (due.soon || 0) + (due.later || 0) + (due.none || 0);
-
-        bar.textContent = '';
-        bar.appendChild(buildBarPart(due.now || 0, total, 'stats__part stats__part--now'));
-        bar.appendChild(buildBarPart(due.soon || 0, total, 'stats__part stats__part--soon'));
-        bar.appendChild(buildBarPart(due.later || 0, total, 'stats__part stats__part--later'));
-        bar.appendChild(buildBarPart(due.none || 0, total, 'stats__part stats__part--none'));
-
-        if (total === 0) {
-            legend.textContent = t('statistics.noCards');
-            bar.setAttribute('aria-label', legend.textContent);
-
-            return;
-        }
-
-        var parts = [
-            formatNumber(due.now || 0) + ' ' + t('statistics.due.now'),
-            formatNumber(due.soon || 0) + ' ' + t('statistics.due.soon'),
-            formatNumber(due.later || 0) + ' ' + t('statistics.due.later'),
-            formatNumber(due.none || 0) + ' ' + t('statistics.due.none')
-        ];
-
-        legend.textContent = parts.join(' · ');
-        bar.setAttribute('aria-label', legend.textContent);
-    }
-
-    /*
-     * The last seven days - but only when there is something to show. No learning
-     * sessions recorded yet means one quiet line instead of seven empty bars, and
-     * the block fills itself as soon as study_sessions really has rows.
-     */
-    function drawHistory(history) {
-        var days = document.getElementById('stats-days');
-        var note = document.getElementById('stats-history-note');
-        var list = history && Array.isArray(history.days) ? history.days : [];
-        var hasValues = list.some(function (day) {
-            return Number(day.cards) > 0;
-        });
-
-        days.textContent = '';
-
-        if (history === null || history === undefined || history.available !== true || !hasValues) {
-            days.hidden = true;
-            note.textContent = t('statistics.historyNone');
-            note.hidden = false;
-
-            return;
-        }
-
-        days.hidden = false;
-        note.hidden = true;
-
-        var highest = 0;
-
-        list.forEach(function (day) {
-            highest = Math.max(highest, Number(day.cards));
-        });
-
-        /* The short day names come from the browser, in the chosen language: no
-           second list of weekday names to keep in step with the translations. */
-        var weekday = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-GB', { weekday: 'short' });
-
-        list.forEach(function (day) {
-            var column = el('div', 'stats__day');
-            var bar = el('span', 'stats__day-bar');
-            var fill = el('span', 'stats__day-fill');
-            var label = el('span', 'stats__day-label', weekday.format(new Date(String(day.day) + 'T12:00:00')));
-
-            fill.style.height = (highest > 0 ? (Number(day.cards) / highest) * 100 : 0) + '%';
-            bar.appendChild(fill);
-            column.appendChild(bar);
-            column.appendChild(label);
-            column.setAttribute('title', formatNumber(day.cards) + ' ' + t('statistics.cards'));
-            days.appendChild(column);
-        });
-    }
-
-    /*
-     * One row per subcategory - only on the level of a learning area. The row looks
-     * exactly like a subcategory row of the list (same classes, same order), except
-     * that the bar carries a real share and the arrow leads into the statistics of
-     * that subcategory instead of its card list.
-     */
-    function drawStatisticsChildren(children) {
-        var block = document.getElementById('stats-children-block');
-        var list = document.getElementById('stats-children');
-
-        if (!Array.isArray(children) || children.length === 0) {
-            block.hidden = true;
-
-            return;
-        }
-
-        list.textContent = '';
-        block.hidden = false;
-
-        children.forEach(function (child) {
-            var name = displayName(child);
-            var item = el('li', 'row');
-            var link = el('a', 'row__link');
-            var progress = el('span', 'row__progress');
-            var progressFill = el('span', 'row__progress-fill');
-            var arrow = el('span', 'row__arrow');
-
-            link.href = 'index.php?statistics=' + encodeURIComponent(child.id);
-            link.setAttribute('aria-label', t('statistics.openChild', { name: name }));
-
-            progress.setAttribute('aria-hidden', 'true');
-            progressFill.style.setProperty('--share', (child.known_percent === null ? 0 : child.known_percent) + '%');
-            progress.appendChild(progressFill);
-
-            arrow.innerHTML = ARROW_SVG;
-
-            link.appendChild(el('span', 'row__name', name));
-            link.appendChild(el('span', 'row__count data-pill', formatNumber(child.cards || 0)));
-            link.appendChild(progress);
-            link.appendChild(arrow);
-
-            link.addEventListener('click', function (event) {
-                event.preventDefault();
-                openStatistics(child.id);
-            });
-
-            item.appendChild(link);
-            list.appendChild(item);
-        });
-    }
-
     function render() {
         clearLinked();
-
-        /*
-         * The statistics view has an address of its own, so it is decided first:
-         * only ?statistics=<id> opens it.
-         */
-        if (config.statisticsId !== null && config.statisticsId !== undefined) {
-            renderStatistics(config.statisticsId);
-
-            return;
-        }
 
         if (config.categoryId === null) {
             renderHome();
@@ -5545,8 +5178,24 @@
         elements.addButton.addEventListener('click', openAddForCurrentEntry);
 
 
+        /*
+         * The button of the empty start page asks who is there: signed in it
+         * opens the form for a learning area, signed out it opens the sign-in.
+         * The server checks the session in any case - this only keeps a button
+         * out of the page that could end in "no_user_session".
+         */
         elements.emptyAction.addEventListener('click', function () {
+            if (authState.user === null) {
+                openAuthDialog('sign_in');
+
+                return;
+            }
+
             openCategoryForm('create', null, null);
+        });
+
+        elements.emptyActionSecondary.addEventListener('click', function () {
+            openAuthDialog('register');
         });
 
         elements.entryEmptyAction.addEventListener('click', function () {
@@ -5718,48 +5367,23 @@
             && typeof summary.total === 'number'
             && summary.total > 0;
 
-        elements.cardTools.hidden = !usable;
+        /*
+         * The numbers of this list stand in the tiles under the head now, so the
+         * only thing this strip still carries is the search field - and a search
+         * over three cards is more work than looking at them, so it only appears
+         * from about fifteen cards on. Without it the strip stays away entirely.
+         */
+        var withSearch = usable && summary.total >= cardSearchMin;
 
-        if (!usable) {
-            elements.cardSearchWrap.hidden = true;
+        elements.cardTools.hidden = !withSearch;
+        elements.cardSearchWrap.hidden = !withSearch;
+
+        if (!withSearch) {
             return;
         }
 
-        var total = summary.total;
-        var fresh = summary['new'] || 0;
-        var unsure = summary.unsure || 0;
-        var known = summary.known || 0;
-        var due = summary.due || 0;
-
-        /*
-         * The number of cards is NOT repeated here: the quiet line under the head
-         * already says "34 cards", and the same number twice in a row only made
-         * the head harder to read. What stays is everything the count cannot say.
-         */
-        elements.cardToolsCount.hidden = true;
-
-        elements.cardToolsDue.textContent = t('cards.due', { count: due });
-        elements.cardToolsDue.hidden = due === 0;
-
-        elements.cardToolsLegend.textContent = t('cards.legend', { 'new': fresh, unsure: unsure, known: known });
-        elements.cardToolsBar.setAttribute(
-            'aria-label',
-            t('cards.distribution', { 'new': fresh, unsure: unsure, known: known })
-        );
-
-        setCardToolsPart(elements.cardToolsPartNew, fresh, total);
-        setCardToolsPart(elements.cardToolsPartUnsure, unsure, total);
-        setCardToolsPart(elements.cardToolsPartKnown, known, total);
-
-        /* A search over three cards is more work than looking at them. */
-        elements.cardSearchWrap.hidden = total < cardSearchMin;
         elements.cardSearch.setAttribute('placeholder', t('cards.searchPlaceholder'));
         elements.cardSearch.setAttribute('aria-label', t('cards.search'));
-    }
-
-    function setCardToolsPart(element, count, total) {
-        element.hidden = count === 0;
-        element.style.setProperty('--share', (total > 0 ? (count / total) * 100 : 0) + '%');
     }
 
     /*

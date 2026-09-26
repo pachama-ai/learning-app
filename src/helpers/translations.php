@@ -54,6 +54,12 @@ function learning_app_translations(): array
             'detail.addSubcategory' => '+ Add subcategory',
             'detail.notFound.title' => 'Not found',
             'detail.notFound.hint' => 'This entry does not exist (any more).',
+            /* The tiles of a subcategory - what the place where learning happens
+               says about itself. */
+            'dash.due' => 'Ready to repeat',
+            'dash.known' => 'Already sits',
+            'dash.streak' => 'Learned in a row (days)',
+            'dash.streakNone' => 'Nothing counted yet',
 
             'area.subareas' => 'Subcategories',
             'area.open' => 'Open learning area: {name}',
@@ -167,32 +173,6 @@ function learning_app_translations(): array
             /* Electricity, and only electricity - not all energy of the world. */
             /* English writes a thousand with a comma. */
 
-            /*
-             * The statistics view: three figures, two bars, the week and the rows
-             * per subcategory. {name}, {count} and the like are filled in by the
-             * browser from the answer of api/statistics.php.
-             */
-            'statistics.title' => 'Statistics',
-            'statistics.areaHint' => 'All subcategories of this learning area together.',
-            'statistics.categoryHint' => 'This subcategory.',
-            'statistics.cards' => 'Cards',
-            'statistics.known' => 'Known',
-            'statistics.today' => 'Learned today',
-            'statistics.unavailable' => 'not available yet',
-            /* Not signed in: progress belongs to a person, so there is nothing to count. */
-            'statistics.needsAccount' => 'Sign in to see your progress.',
-            'statistics.distribution' => 'Distribution',
-            'statistics.due' => 'Due',
-            'statistics.due.now' => 'due now',
-            'statistics.due.soon' => 'next three days',
-            'statistics.due.later' => 'later',
-            'statistics.due.none' => 'no due date',
-            'statistics.history' => 'Last seven days',
-            'statistics.historyNone' => 'No learning sessions recorded yet.',
-            'statistics.bySubcategory' => 'By subcategory',
-            'statistics.noCards' => 'No cards in this scope yet.',
-            'statistics.openChild' => 'Show the statistics of {name}',
-            'statistics.back' => 'Back to the learning area',
             'dialog.delete.deleting' => 'Deleting …',
             'dialog.deleteCard.title' => 'Delete this flashcard?',
             'dialog.deleteCard.hint' => 'The card is removed. Its learning progress is removed with it.',
@@ -200,6 +180,9 @@ function learning_app_translations(): array
             // --- Empty states and messages of the new views ---
             'home.empty.title' => 'No learning areas yet',
             'home.empty.hint' => 'Create the first learning area to get started.',
+            /* The empty start page of somebody who is not signed in. */
+            'home.welcome.title' => 'Your card box is waiting for you',
+            'home.welcome.hint' => 'Create your own learning areas and cards, and learn them with repetition.',
             'state.loadingCards' => 'Loading flashcards …',
             'state.saving' => 'Saving …',
             'feedback.deleted' => '{name} was deleted.',
@@ -290,6 +273,7 @@ function learning_app_translations(): array
             'cards.learn' => 'Study',
             'cards.learnAll' => 'Study all',
             'cards.learnThis' => 'Study “{name}”',
+            'cards.learnDue' => 'Study “{name}”: {count} due',
             'cards.addCardShort' => '+ Card',
             'cards.addSubcategoryShort' => '+ Subcategory',
             'cards.onlyGerman' => 'German only',
@@ -298,9 +282,6 @@ function learning_app_translations(): array
             'cards.learnAria' => 'Start studying this subcategory',
             'cards.summary' => '{count} cards',
             'cards.summaryOne' => '1 card',
-            'cards.due' => '{count} to repeat',
-            'cards.legend' => 'New {new} · Unsure {unsure} · Known {known}',
-            'cards.distribution' => 'Distribution: {new} new, {unsure} unsure, {known} known',
             'cards.search' => 'Search cards',
             'cards.searchPlaceholder' => 'Search in front and back',
             'cards.searchEmpty' => 'No card matches this search.',
@@ -651,6 +632,12 @@ function learning_app_translations(): array
             'detail.addSubcategory' => '+ Unterkategorie hinzufügen',
             'detail.notFound.title' => 'Nicht gefunden',
             'detail.notFound.hint' => 'Dieser Eintrag existiert nicht (mehr).',
+            /* Die Kacheln einer Unterkategorie - was der Ort, an dem gelernt
+               wird, über sich selbst sagt. */
+            'dash.due' => 'Bereit zum Wiederholen',
+            'dash.known' => 'Sitzt schon',
+            'dash.streak' => 'In Folge gelernt (Tage)',
+            'dash.streakNone' => 'Noch nichts gezählt',
 
             'area.subareas' => 'Unterkategorien',
             'area.open' => 'Themengebiet öffnen: {name}',
@@ -743,31 +730,6 @@ function learning_app_translations(): array
             'account.signedOut' => 'Du wurdest abgemeldet.',
 
 
-            /*
-             * Die Statistik-Ansicht: drei Kennzahlen, zwei Balken, die Woche und
-             * die Zeilen je Unterkategorie.
-             */
-            'statistics.title' => 'Statistik',
-            'statistics.areaHint' => 'Alle Unterkategorien dieses Themengebiets zusammen.',
-            'statistics.categoryHint' => 'Diese Unterkategorie.',
-            'statistics.cards' => 'Karten',
-            'statistics.known' => 'Gewusst',
-            'statistics.today' => 'Heute gelernt',
-            'statistics.unavailable' => 'noch nicht verfügbar',
-            /* Nicht angemeldet: Fortschritt gehört zu einer Person. */
-            'statistics.needsAccount' => 'Melde dich an, um deinen Fortschritt zu sehen.',
-            'statistics.distribution' => 'Verteilung',
-            'statistics.due' => 'Fälligkeit',
-            'statistics.due.now' => 'fällig jetzt',
-            'statistics.due.soon' => 'nächste drei Tage',
-            'statistics.due.later' => 'später',
-            'statistics.due.none' => 'ohne Fälligkeit',
-            'statistics.history' => 'Letzte sieben Tage',
-            'statistics.historyNone' => 'Noch keine Lern-Sitzungen aufgezeichnet.',
-            'statistics.bySubcategory' => 'Je Unterkategorie',
-            'statistics.noCards' => 'In diesem Bereich liegen noch keine Karten.',
-            'statistics.openChild' => 'Statistik von {name} zeigen',
-            'statistics.back' => 'Zurück zum Themengebiet',
             'dialog.delete.subcategories.one' => '1 Unterkategorie',
             'dialog.delete.subcategories.other' => '{count} Unterkategorien',
             'dialog.delete.cards.one' => '1 Karteikarte',
@@ -780,6 +742,9 @@ function learning_app_translations(): array
             // --- Leere Zustände und Meldungen der neuen Ansichten ---
             'home.empty.title' => 'Noch keine Themengebiete',
             'home.empty.hint' => 'Lege das erste Themengebiet an, um zu starten.',
+            /* Der leere Startbildschirm von jemandem, der nicht angemeldet ist. */
+            'home.welcome.title' => 'Deine Lernkartei wartet auf dich',
+            'home.welcome.hint' => 'Lege eigene Themengebiete und Karten an und lerne sie mit Wiederholung.',
             'state.loadingCards' => 'Karteikarten werden geladen …',
             'state.saving' => 'Wird gespeichert …',
             'feedback.deleted' => '„{name}“ wurde gelöscht.',
@@ -871,6 +836,7 @@ function learning_app_translations(): array
             'cards.learn' => 'Lernen',
             'cards.learnAll' => 'Alles lernen',
             'cards.learnThis' => '„{name}“ lernen',
+            'cards.learnDue' => '„{name}“ lernen: {count} fällig',
             'cards.addCardShort' => '+ Karte',
             'cards.addSubcategoryShort' => '+ Unterkategorie',
             'cards.onlyGerman' => 'Nur Deutsch',
@@ -879,9 +845,6 @@ function learning_app_translations(): array
             'cards.learnAria' => 'Diese Unterkategorie jetzt lernen',
             'cards.summary' => '{count} Karten',
             'cards.summaryOne' => '1 Karte',
-            'cards.due' => '{count} zum Wiederholen',
-            'cards.legend' => 'Neu {new} · Unsicher {unsure} · Gewusst {known}',
-            'cards.distribution' => 'Verteilung: {new} neu, {unsure} unsicher, {known} gewusst',
             'cards.search' => 'Karten suchen',
             'cards.searchPlaceholder' => 'In Vorder- und Rückseite suchen',
             'cards.searchEmpty' => 'Zu dieser Suche passt keine Karte.',

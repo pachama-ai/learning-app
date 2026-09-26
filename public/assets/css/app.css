@@ -10,7 +10,7 @@
  *   2. base and page frame
  *   3. header
  *   4. headings
- *   5. overview band (statistics)
+ *   5. start header
  *   6. learning area grid
  *   7. detail view (sidebar + subarea rows)
  *   8. footer
@@ -370,10 +370,10 @@ input {
 }
 
 /*
- * Everything monospace in this design: numbers such as [01], the statistics,
- * the uppercase labels and the metadata.
- * Tabular numerals give every digit the same width, so a value cannot shift
- * sideways while the statistics count up or while its length changes.
+ * Everything monospace in this design: numbers such as [01], the uppercase labels
+ * and the metadata.
+ * Tabular numerals give every digit the same width, so a number cannot shift
+ * sideways while it changes.
  */
 .eyebrow,
 .crumb,
@@ -791,14 +791,9 @@ img {
 }
 
 /* ==========================================================================
-   5. Start header and statistics
+   5. Start header
    ========================================================================== */
 
-/*
- * Two columns: the label and heading on the left, the statistics on the right.
- * "align-items: end" lines the bottom of the statistics up with the bottom of
- * the last heading line.
- */
 .start-header {
     display: grid;
     /* One column: the heading is the only thing left in here. */
@@ -1412,15 +1407,29 @@ img {
     align-items: center;
 }
 
+/*
+ * The link takes the whole room left of the button: the name is the way into the
+ * subcategory, and there is nothing else in the row any more - no number, no
+ * track, no arrow. A card row sets its own grid a few hundred lines down.
+ */
 .row__link {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: 18px;
     color: inherit;
     text-decoration: none;
 }
 
+.row__name {
+    font-size: 1.02rem;
+}
+
+/*
+ * The number in front of a CARD row ("[01]"). A subcategory row has none any
+ * more - it carries its name and the button that starts the session - so this
+ * only serves the flashcards themselves.
+ */
 .row__index {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -1429,48 +1438,142 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
-.row__name {
-    font-size: 1.02rem;
+/*
+ * The one action of a subcategory row: the button that starts the session, with
+ * the number of cards that are due right now in a badge beside the word.
+ *
+ * It wears the same pill as the study button of a detail page, so the same action
+ * looks the same in both places - and the row keeps its height whether the number
+ * is there or not.
+ */
+.row__learn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    padding: 9px 10px 9px 18px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-color: var(--text);
+    color: var(--panel);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
+        color 160ms var(--ease);
 }
 
-/* The card count is a data pill, exactly like the data line on a tile. */
-.row__count {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-    padding: 3px 10px;
+.row__learn:hover {
+    background-color: color-mix(in srgb, var(--text) 84%, var(--panel));
+}
+
+.row__learn:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
 }
 
 /*
- * Same situation as the tile progress line: there is no review history yet, so
- * this is an empty track and not an invented value. It is aria-hidden.
+ * The badge carries the colour of the learning area (--detail-palette is set for
+ * the whole detail view), mixed into the pill instead of covering it: the text
+ * then keeps the contrast it already had in both themes, and the colour still
+ * says at a glance which area this row belongs to.
  */
-.row__progress {
-    width: 48px;
-    height: 2px;
-    background-color: var(--line);
+.row__learn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 45%, transparent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
 }
 
-.row__progress-fill {
-    display: block;
-    height: 100%;
-    width: 0;
-    background-color: var(--cat, var(--cat-default));
-    transform-origin: left;
+/* Nothing due: the number stays, the colour goes. A zero is an answer. */
+.row__learn-badge--none {
+    background-color: color-mix(in srgb, var(--panel) 16%, transparent);
 }
 
-.row__arrow {
+/*
+ * A subcategory row: one line high, separated from the next one by a hairline
+ * and not by a dotted rule. The dotted line stays on the card rows, where it
+ * separates two texts of the same kind; here it separates two places.
+ */
+.row--category {
+    border-bottom: 0.5px solid var(--hairline);
+}
+
+/* --- the tiles of a subcategory ------------------------------------------- */
+
+/*
+ * The numbers of the place where learning really happens. Three tiles, and a
+ * fourth as soon as one is added: the tracks share the width and an empty one
+ * collapses, so a new tile needs no rule of its own.
+ *
+ * They take the corner of a tile (--radius-tile) and cast no shadow at all - the
+ * calm comes from the distance and the edge. The area colour sits IN the surface
+ * as a quiet tint on top of the panel colour, so a page of one area is
+ * recognisable at a glance while every text keeps the contrast it had.
+ */
+.dash {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 12px;
+    margin: 0 0 22px;
+}
+
+.dash__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px;
+    border-radius: var(--radius-tile);
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 35%, var(--panel));
+}
+
+.dash__label {
     color: var(--muted);
-    transition: transform 250ms var(--ease), color 250ms var(--ease);
+    font-size: 12.5px;
+    line-height: 1.3;
 }
 
-.row:hover .row__arrow {
-    color: var(--text);
-    transform: translateX(6px);
+.dash__value {
+    font-size: 26px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
+
+/* The quiet line under a number that has nothing to show yet. */
+.dash__note {
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.35;
+}
+
+/* How much of the list already sits, as a length instead of a percentage. */
+.dash__track {
+    height: 4px;
+    margin-top: auto;
+    border-radius: 999px;
+    background-color: var(--line);
+    overflow: hidden;
+}
+
+.dash__track-fill {
+    display: block;
+    width: var(--share, 0%);
+    height: 100%;
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 70%, var(--surface));
+    transition: width 300ms var(--ease);
+}
+
+/* --- the header of a card list -------------------------------------------- */
 
 /*
  * Status text and empty states. Used on both views, which is why they live here
@@ -3096,26 +3199,28 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 /*
- * The empty state is a sentence and one button, no dashed box: a dashed frame
- * reads like a place that is still being built.
+ * The empty state is a sentence and one button - but it takes the surface and
+ * the corner of a tile (--surface is the tile background of the theme,
+ * --hairline its edge, --radius-tile the corner of the tiles beside it), so it
+ * reads as one of the cards around it and not as a place still being built.
  */
 .rows + .notice,
 .notice {
-    padding: 34px 24px 30px;
-    border: 0;
-    border-radius: 26px;
-    background-color: var(--tile-bg);
+    padding: 40px 28px 36px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-tile);
+    background-color: var(--surface);
 }
 
-/* A quiet mark above the sentence, in the colour of the area. */
-#empty-state::before {
-    content: '';
+/*
+ * The mark above the sentence of the empty start page: a thin stack of cards in
+ * the accent colour of the theme. It replaced a filled circle that carried no
+ * meaning - the drawing now says "cards" before the first word is read.
+ */
+.notice__icon {
     display: block;
-    width: 46px;
-    height: 46px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    background-color: color-mix(in srgb, var(--detail-palette, var(--cat-default)) 45%, transparent);
+    margin: 0 auto 18px;
+    color: var(--accent);
 }
 
 /*
@@ -3125,13 +3230,38 @@ html.is-theme-switching::view-transition-new(root) {
 .notice__blob {
     width: 54px;
     height: 54px;
-    margin: 0 auto 16px;
+    margin: 0 auto 18px;
 }
 
 .notice__title {
     font-family: var(--font-sans);
-    font-weight: 400;
-    font-size: 1.15rem;
+    font-weight: 600;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+}
+
+/*
+ * The explanatory line stays narrower than the panel and a little lighter than
+ * the heading, so the two are read one after the other and not as one block.
+ */
+.notice__hint {
+    max-width: 46ch;
+    margin: 10px auto 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/*
+ * One line for the ways out. The gap keeps two buttons apart; "wrap" folds them
+ * under each other on a narrow screen instead of squeezing them.
+ */
+.notice__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 26px;
 }
 
 .notice__button {
@@ -3146,11 +3276,34 @@ html.is-theme-switching::view-transition-new(root) {
     font-size: 0.98rem;
     letter-spacing: 0;
     text-transform: none;
+    cursor: pointer;
+    transition: border-color 200ms var(--ease), background-color 200ms var(--ease);
+}
+
+/* Inside the row of buttons the gap does the spacing, not the button. */
+.notice__actions .notice__button {
+    margin-top: 0;
 }
 
 .notice__button:hover {
     border-color: transparent;
     background-color: color-mix(in srgb, var(--accent) 88%, var(--bg));
+}
+
+/*
+ * The second way out ("create an account") is quieter than the first: the edge
+ * of a tile and the text colour instead of the accent fill, so it never
+ * competes with the button beside it.
+ */
+.notice__button--quiet {
+    border-color: var(--hairline);
+    background-color: transparent;
+    color: var(--text);
+}
+
+.notice__button--quiet:hover {
+    border-color: var(--text);
+    background-color: var(--active-surface);
 }
 
 /* --- the sidebar: a dot, a name, an active surface ---------------------- */
@@ -3273,14 +3426,6 @@ html.is-theme-switching::view-transition-new(root) {
     margin: 0 0 22px;
 }
 
-.card-tools__top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-}
-
 .learn-button {
     appearance: none;
     border: 1px solid transparent;
@@ -3307,56 +3452,6 @@ html.is-theme-switching::view-transition-new(root) {
 .learn-button:focus-visible {
     outline: 2px solid var(--line-strong);
     outline-offset: 3px;
-}
-
-.card-tools__counts {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
-.card-tools__due {
-    color: var(--status-unsure);
-}
-
-/* The three parts are sized by their share of the whole list. */
-.card-tools__bar {
-    display: flex;
-    width: 100%;
-    height: 6px;
-    border-radius: 999px;
-    overflow: hidden;
-    background-color: var(--line, rgba(0, 0, 0, 0.08));
-}
-
-.card-tools__part {
-    width: var(--share, 0%);
-    height: 100%;
-    transition: width 300ms var(--ease);
-}
-
-.card-tools__part--new {
-    background-color: var(--status-new);
-}
-
-.card-tools__part--unsure {
-    background-color: var(--status-unsure);
-}
-
-.card-tools__part--known {
-    background-color: var(--status-known);
-}
-
-.card-tools__legend {
-    margin: 0;
-    font-size: 13px;
-    color: var(--muted);
 }
 
 .card-tools__search-input {
@@ -4211,56 +4306,6 @@ body.is-learning {
 }
 
 /* --- the direct way into a session, from the subcategory row -------------- */
-
-/*
- * This is the one control of a row that does something other than opening it, so
- * it must not look like the arrow beside it. It is a circle of its own: a quiet
- * ring and a faint surface at rest, filled and lifted when the row or the button
- * itself is under the pointer. The arrow next to it stays a plain thin arrow in
- * the muted text colour (see .row__arrow).
- *
- * The distance to that arrow is part of the rule: the two must never read as one
- * pair of arrows again.
- */
-.row__play {
-    appearance: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 34px;
-    height: 34px;
-    margin-left: 12px;
-    border: 1px solid var(--hairline);
-    border-radius: 50%;
-    background-color: var(--tile-bg);
-    color: var(--muted);
-    cursor: pointer;
-    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
-        color 160ms var(--ease), transform 160ms var(--ease);
-}
-
-/* Under the pointer of the row the control says clearly that it is a button. */
-.row:hover .row__play,
-.row__play:hover {
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-}
-
-/* Hovering the button itself lifts it a little on top of that. */
-.row__play:hover {
-    transform: translateY(-1px);
-}
-
-/* The keyboard reaches the button on its own, so it has to show it. */
-.row__play:focus-visible {
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-    outline: 2px solid var(--line-strong);
-    outline-offset: 2px;
-}
 
 /* --- the footer: back on the left, plus in the middle, on on the right ---- */
 
@@ -5312,226 +5357,6 @@ body.is-learning {
 .row__badge--exercise {
     color: var(--text);
     border-color: var(--line-strong, var(--line));
-}
-
-
-/* ---------------------------------------------------------------------------
-   Die Statistik-Ansicht
-   ---------------------------------------------------------------------------
-
-   Ruhig und reduziert wie der Rest: Zahlen in Monoschrift, Balken in Abstufungen
-   EINER Farbe (keine Ampelfarben), keine Kreise, keine Punkte, keine Abzeichen.
-   Alle Farben kommen aus den vorhandenen Tokens, damit hell und dunkel ohne
-   zweite Definition funktionieren.
-   --------------------------------------------------------------------------- */
-
-.stats__head {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 26px;
-}
-
-.stats__back {
-    font-size: 13px;
-    color: var(--muted);
-    text-decoration: none;
-    justify-self: start;
-}
-
-.stats__back:hover,
-.stats__back:focus-visible {
-    color: var(--text);
-}
-
-.stats__crumb-name {
-    font-size: 13px;
-    color: var(--muted);
-}
-
-.stats__hint {
-    font-size: 15px;
-    color: var(--muted);
-}
-
-/* Die drei Kennzahlen: große Mono-Zahlen nebeneinander. */
-.stats__figures {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px 44px;
-    align-items: flex-end;
-}
-
-.stats__figure {
-    display: grid;
-    gap: 6px;
-    margin: 0;
-}
-
-.stats__number {
-    font-family: var(--font-mono);
-    font-size: clamp(32px, 4.6vw, 46px);
-    font-weight: 400;
-    line-height: 1;
-    color: var(--text);
-    /* Nichts springt, während die Zahlen wechseln. */
-    font-variant-numeric: tabular-nums;
-}
-
-.stats__label {
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0.02em;
-}
-
-.stats__block {
-    display: grid;
-    gap: 12px;
-    margin-top: 34px;
-}
-
-.stats__title {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0;
-}
-
-/* Der segmentierte Balken: eine Spur, darin die Anteile. */
-.stats__bar {
-    display: flex;
-    height: 10px;
-    background-color: var(--line);
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.stats__part {
-    width: var(--share, 0%);
-    background-color: var(--text);
-    transition: width 320ms var(--ease);
-}
-
-/* Drei Stufen derselben Farbe: neu, lernend, gewusst. */
-.stats__part--fresh {
-    opacity: 0.26;
-}
-
-.stats__part--learning {
-    opacity: 0.55;
-}
-
-.stats__part--known {
-    opacity: 0.92;
-}
-
-/* Vier Stufen für die Fälligkeit, in derselben Logik. */
-.stats__part--now {
-    opacity: 0.92;
-}
-
-.stats__part--soon {
-    opacity: 0.62;
-}
-
-.stats__part--later {
-    opacity: 0.36;
-}
-
-.stats__part--none {
-    opacity: 0.16;
-}
-
-.stats__legend,
-.stats__note {
-    font-size: 14px;
-    color: var(--muted);
-    margin: 0;
-    font-variant-numeric: tabular-nums;
-}
-
-/* Die Woche: sieben schmale Säulen mit den Kürzeln darunter. */
-.stats__days {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 10px;
-    height: 132px;
-}
-
-.stats__day {
-    display: grid;
-    grid-template-rows: 1fr auto;
-    gap: 8px;
-    justify-items: center;
-    min-width: 0;
-}
-
-.stats__day-bar {
-    display: flex;
-    align-items: flex-end;
-    width: 100%;
-    height: 100%;
-    background-color: var(--line);
-    border-radius: 4px;
-}
-
-.stats__day-fill {
-    width: 100%;
-    background-color: var(--text);
-    opacity: 0.7;
-    border-radius: 4px;
-}
-
-.stats__day-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted);
-}
-
-/* Die Zeilen je Unterkategorie: dieselbe Optik wie die Liste, nur mit Balken. */
-.stats__rows .row__progress-fill {
-    width: var(--share, 0%);
-}
-
-/* Der Knopf in der Kopfkarte: derselbe Kreis wie das Konto-Symbol im Kopf. */
-.stats-button {
-    appearance: none;
-    display: inline-grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    border: 1px solid var(--hairline);
-    border-radius: 50%;
-    background-color: var(--tile-bg);
-    color: var(--muted);
-    cursor: pointer;
-    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
-        color 160ms var(--ease);
-}
-
-.stats-button:hover,
-.stats-button:focus-visible {
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-}
-
-.stats-button:focus-visible {
-    outline: 2px solid var(--line-strong);
-    outline-offset: 2px;
-}
-
-/* Auf schmalen Geräten stehen die Zahlen untereinander statt nebeneinander. */
-@media (max-width: 520px) {
-    .stats__figures {
-        gap: 16px 28px;
-    }
-
-    .stats__days {
-        gap: 6px;
-    }
 }
 
 
