@@ -104,3 +104,5 @@ needed.
   frontend, learning logic, conventions and the current state.
 - `docs/verification.md` — the manual verification run, start to finish.
 - `docs/migrations.md` — every migration file and what it changed.
+- `docs/development-environment.md` — the WSL/VS Code setup, and what to do when
+  the window says "WSL: Disconnected — Reload Window".
