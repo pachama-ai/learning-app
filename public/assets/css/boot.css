@@ -1,14 +1,14 @@
 /*
- * The overlay that covers the very first load - and only that.
+ * The loading screen of the very first load - and only that.
  *
- * It is transparent on purpose: the page colour, the gradient, the grain and the
- * three light pools stay visible behind it, exactly as they are. Nothing here
- * carries a shadow, a glow or a second colour: the drawing is thin lines in
- * currentColor, like every other icon of the application.
+ * It covers the page until the first view really stands there, so nobody sees a
+ * half built page. What it shows is one quiet line of text; everything else it
+ * used to show is gone, because a screen that explains itself is worth more than
+ * a screen that performs.
  *
- * It is shown by a few lines of JavaScript in index.php and not by app.js, so a
- * failed application script still ends in the message with the retry button
- * instead of an animation that never stops.
+ * It is shown and hidden by a few lines of JavaScript in index.php and not by
+ * app.js, so a broken application script still ends in the message with the retry
+ * button instead of a screen that never goes away.
  */
 
 .boot {
@@ -19,27 +19,24 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 26px;
+    gap: 22px;
     /*
-     * Opaque on purpose: the page background (colour plus gradient, the pools
-     * come with the layer of their own). While the first view is still being
-     * built, nothing of it may shine through - only the rotor, the clouds and
-     * the one line of text are to be seen. The grain lies above every layer of
-     * the page and covers this overlay as well, so the texture stays the usual
-     * one in both themes.
+     * Opaque on purpose: while the first view is still being built, nothing of it
+     * may shine through. The grain of the page lies above every layer and covers
+     * this overlay as well, so the texture stays the usual one in both themes.
      */
     background-color: var(--bg);
     background-image: var(--bg-image, none);
     /*
-     * Visible from the first painted line on: there is nothing to fade in any
-     * more. Only going away is a fade, and while it happens the screen may not
-     * swallow clicks.
+     * Visible from the first painted line on; only going away is a fade, and while
+     * it happens the screen may not swallow clicks.
      */
     opacity: 1;
-    transition: opacity 240ms var(--ease);
+    transition: opacity 300ms var(--ease);
     pointer-events: none;
 }
 
+/* The overlay fading out. */
 .boot.is-hiding {
     opacity: 0;
 }
@@ -49,63 +46,54 @@
     pointer-events: auto;
 }
 
-/*
- * The ring of the loading screen: the usual spinner, a circle drawn as a border
- * with ONE gap in it. The gap is what makes the turning visible - a closed ring
- * that turns would look like a standing circle.
- *
- * Three pixels of line on a 56 pixel ring, the gap is the top border. No 3D, no
- * perspective, no second element: one rotation, which is the simplest thing a
- * loading sign can do and the one that cannot go wrong.
- */
-.boot__spinner {
+/* The pools behind everything, exactly as the page paints them. */
+.boot__bg {
+    z-index: 1;
+}
+
+.boot__text {
     position: relative;
     z-index: 2;
-    width: 56px;
-    height: 56px;
+    font-family: var(--font-sans);
+    font-size: 15px;
     color: var(--muted);
-    /* Four equal borders; the three below are the faint part of the ring ... */
-    border: 3px solid color-mix(in srgb, currentColor 20%, transparent);
-    /* ... and this one is the visible piece that runs around. */
-    border-top-color: currentColor;
-    border-radius: 50%;
-    animation: boot-spin 1s linear infinite;
+    text-align: center;
+    max-width: 36ch;
+    padding: 0 16px;
 }
 
-@keyframes boot-spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* The ring and the words. */
-.boot__spinner,
-.boot__text,
+/* The message after eight seconds, and the way back. */
 .boot__error {
     position: relative;
     z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    text-align: center;
 }
 
-/* A slow connection may show it for a while: the drawing steps back. */
-.boot.is-failed .boot__spinner {
-    color: var(--line-strong, var(--muted));
+.boot__retry {
+    appearance: none;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text);
+    background: none;
+    border: 1px solid var(--line-strong, rgba(43, 38, 34, 0.38));
+    border-radius: 999px;
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: border-color 160ms var(--ease), color 160ms var(--ease);
 }
 
-/*
- * Nobody who asked for less movement gets a turning rotor. What stays is the
- * whole drawing breathing in and out - a still picture that still says
- * "something is happening".
- */
-@media (prefers-reduced-motion: reduce) {
-    /*
-     * Nobody who asked for less movement gets a turning ring: it stands still, and
-     * the gap in it still shows that something is being loaded.
-     */
-    .boot__spinner {
-        animation: none;
-    }
+.boot__retry:hover,
+.boot__retry:focus-visible {
+    border-color: var(--line-strong);
+    color: var(--text);
+}
 
-   }
+.boot__retry:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
 }
 
 /* Nothing to see on paper, and nothing that needs the overlay. */

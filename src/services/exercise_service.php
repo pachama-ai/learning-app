@@ -265,12 +265,6 @@ function exercise_type_label(string $type): ?string
 }
 
 /** The translation key that explains this kind of task, or null. */
-function exercise_type_hint(string $type): ?string
-{
-    $entry = exercise_catalog()[$type] ?? null;
-
-    return $entry === null ? null : (string) $entry['hint'];
-}
 
 /**
  * The parameters a card of this kind starts with in the dialog.
@@ -299,10 +293,6 @@ function exercise_type_default_params(string $type): array
  *
  * @return array<string, mixed>|null
  */
-function exercise_param_schema(string $type, string $name): ?array
-{
-    return exercise_catalog()[$type]['params'][$name] ?? null;
-}
 
 /**
  * Brings a stored or sent set of parameters into the shape this kind of task
@@ -438,28 +428,6 @@ function exercise_params_are_valid(string $type, array $params): bool
  *
  * @return array{lowest: int, highest: int}
  */
-function exercise_number_limits(string $type): array
-{
-    $entry = exercise_catalog()[$type] ?? null;
-
-    if ($entry === null) {
-        return ['lowest' => 1, 'highest' => 1];
-    }
-
-    $lowest = 1;
-    $highest = 1;
-
-    foreach ($entry['params'] as $schema) {
-        if ($schema['kind'] !== 'int') {
-            continue;
-        }
-
-        $lowest = min($lowest, (int) $schema['lowest']);
-        $highest = max($highest, (int) $schema['highest']);
-    }
-
-    return ['lowest' => $lowest, 'highest' => $highest];
-}
 
 /* -------------------------------------------------------------------------
    Building one task

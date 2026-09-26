@@ -129,6 +129,70 @@ function learning_app_translations(): array
             'dialog.delete.cards.one' => '1 flashcard',
             'dialog.delete.cards.other' => '{count} flashcards',
             'dialog.delete.submit' => 'Delete',
+
+            /*
+             * The account: the text in the header, the two steps of its popup and
+             * the quiet line that says what just happened.
+             */
+            'account.title' => 'Account',
+            'account.close' => 'Close',
+            'account.name' => 'Name',
+            'account.email' => 'E-mail',
+            'account.memberSince' => 'Member since',
+            'account.deleteTitle' => 'Delete account',
+            'account.deleteHint' => 'This removes your learning progress and your learning sessions. The flashcards stay, because they belong to everybody.',
+            'account.deleteSubmit' => 'Delete account',
+            'account.deleteWarning' => 'Your account, your learning progress and your learning sessions are deleted for good. This cannot be undone.',
+            'account.deleteConfirm' => 'Delete for good',
+            'account.deleted' => 'Your account has been deleted.',
+            'account.deleting' => 'Deleting ...',
+            'account.wrongPassword' => 'That password does not belong to this account.',
+            'account.passwordRequired' => 'Please enter your password.',
+            'account.signedOut' => 'You have been signed out.',
+
+            /*
+             * The loading screen: what the zoom teaches while the first view is
+             * being built. One key per station, so a sentence can be changed here
+             * without touching the animation.
+             */
+            /* The country is not a device: it is the sum of all of them. */
+            /* Electricity, and only electricity - not all energy of the world. */
+
+            /*
+             * The loading screen: what the zoom teaches while the first view is
+             * being built. One key per station, so a sentence can be changed here
+             * without touching the animation.
+             */
+            /* The country is not a device: it is the sum of all of them. */
+            /* Electricity, and only electricity - not all energy of the world. */
+            /* English writes a thousand with a comma. */
+
+            /*
+             * The statistics view: three figures, two bars, the week and the rows
+             * per subcategory. {name}, {count} and the like are filled in by the
+             * browser from the answer of api/statistics.php.
+             */
+            'statistics.title' => 'Statistics',
+            'statistics.areaHint' => 'All subcategories of this learning area together.',
+            'statistics.categoryHint' => 'This subcategory.',
+            'statistics.cards' => 'Cards',
+            'statistics.known' => 'Known',
+            'statistics.today' => 'Learned today',
+            'statistics.unavailable' => 'not available yet',
+            /* Not signed in: progress belongs to a person, so there is nothing to count. */
+            'statistics.needsAccount' => 'Sign in to see your progress.',
+            'statistics.distribution' => 'Distribution',
+            'statistics.due' => 'Due',
+            'statistics.due.now' => 'due now',
+            'statistics.due.soon' => 'next three days',
+            'statistics.due.later' => 'later',
+            'statistics.due.none' => 'no due date',
+            'statistics.history' => 'Last seven days',
+            'statistics.historyNone' => 'No learning sessions recorded yet.',
+            'statistics.bySubcategory' => 'By subcategory',
+            'statistics.noCards' => 'No cards in this scope yet.',
+            'statistics.openChild' => 'Show the statistics of {name}',
+            'statistics.back' => 'Back to the learning area',
             'dialog.delete.deleting' => 'Deleting …',
             'dialog.deleteCard.title' => 'Delete this flashcard?',
             'dialog.deleteCard.hint' => 'The card is removed. Its learning progress is removed with it.',
@@ -657,6 +721,53 @@ function learning_app_translations(): array
             'dialog.delete.title' => '„{name}“ löschen?',
             'dialog.delete.consequence' => 'Dabei werden auch {parts} endgültig gelöscht.',
             'dialog.delete.nothingBelow' => 'Darunter befindet sich nichts, es wird nur dieser Eintrag entfernt.',
+
+            /*
+             * Das Konto: der Text in der Kopfzeile, die beiden Schritte seines
+             * Fensters und die leise Zeile, die sagt, was gerade passiert ist.
+             */
+            'account.title' => 'Konto',
+            'account.close' => 'Schließen',
+            'account.name' => 'Name',
+            'account.email' => 'E-Mail',
+            'account.memberSince' => 'Dabei seit',
+            'account.deleteTitle' => 'Konto löschen',
+            'account.deleteHint' => 'Dabei werden dein Lernfortschritt und deine Lern-Sitzungen entfernt. Die Karteikarten bleiben, weil sie allen gehören.',
+            'account.deleteSubmit' => 'Konto löschen',
+            'account.deleteWarning' => 'Dein Konto, dein Lernfortschritt und deine Lern-Sitzungen werden dauerhaft gelöscht. Das lässt sich nicht rückgängig machen.',
+            'account.deleteConfirm' => 'Endgültig löschen',
+            'account.deleted' => 'Dein Konto wurde gelöscht.',
+            'account.deleting' => 'Wird gelöscht ...',
+            'account.wrongPassword' => 'Dieses Passwort gehört nicht zu diesem Konto.',
+            'account.passwordRequired' => 'Bitte gib dein Passwort ein.',
+            'account.signedOut' => 'Du wurdest abgemeldet.',
+
+
+            /*
+             * Die Statistik-Ansicht: drei Kennzahlen, zwei Balken, die Woche und
+             * die Zeilen je Unterkategorie.
+             */
+            'statistics.title' => 'Statistik',
+            'statistics.areaHint' => 'Alle Unterkategorien dieses Themengebiets zusammen.',
+            'statistics.categoryHint' => 'Diese Unterkategorie.',
+            'statistics.cards' => 'Karten',
+            'statistics.known' => 'Gewusst',
+            'statistics.today' => 'Heute gelernt',
+            'statistics.unavailable' => 'noch nicht verfügbar',
+            /* Nicht angemeldet: Fortschritt gehört zu einer Person. */
+            'statistics.needsAccount' => 'Melde dich an, um deinen Fortschritt zu sehen.',
+            'statistics.distribution' => 'Verteilung',
+            'statistics.due' => 'Fälligkeit',
+            'statistics.due.now' => 'fällig jetzt',
+            'statistics.due.soon' => 'nächste drei Tage',
+            'statistics.due.later' => 'später',
+            'statistics.due.none' => 'ohne Fälligkeit',
+            'statistics.history' => 'Letzte sieben Tage',
+            'statistics.historyNone' => 'Noch keine Lern-Sitzungen aufgezeichnet.',
+            'statistics.bySubcategory' => 'Je Unterkategorie',
+            'statistics.noCards' => 'In diesem Bereich liegen noch keine Karten.',
+            'statistics.openChild' => 'Statistik von {name} zeigen',
+            'statistics.back' => 'Zurück zum Themengebiet',
             'dialog.delete.subcategories.one' => '1 Unterkategorie',
             'dialog.delete.subcategories.other' => '{count} Unterkategorien',
             'dialog.delete.cards.one' => '1 Karteikarte',

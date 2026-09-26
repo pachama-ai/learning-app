@@ -364,6 +364,40 @@ function user_sign_in(PDO $pdo, string $identifier, string $password): array
     return ['ok' => true, 'error' => null, 'user' => ['id' => (int) $row['id'], 'name' => (string) $row['name']]];
 }
 
+/**
+ * Checks the password of the account itself.
+ *
+ * This is the one thing that stands between an open laptop and the deletion of a
+ * whole learning progress, so the account is asked for its password and not for
+ * its name: a name stands on the screen, a password does not.
+ *
+ * It uses password_verify() against the stored hash, exactly like the sign-in
+ * does, and the same short pause on a wrong password - a failed attempt costs
+ * the same time as a successful one, so nobody learns anything from it.
+ *
+ * Every "there is nothing to compare with" case answers false: no such user, an
+ * empty password, a table without the column (see database/add_user_auth.sql).
+ */
+function user_password_matches(PDO $pdo, int $userId, string $password): bool
+{
+    if ($password === '' || !user_sign_in_ready($pdo)) {
+        return false;
+    }
+
+    $statement = $pdo->prepare('SELECT password_hash FROM users WHERE id = :id');
+    $statement->bindValue(':id', $userId, PDO::PARAM_INT);
+    $statement->execute();
+    $hash = (string) ($statement->fetchColumn() ?: '');
+
+    if ($hash === '' || password_verify($password, $hash) !== true) {
+        usleep(USER_FAILED_SIGN_IN_DELAY);
+
+        return false;
+    }
+
+    return true;
+}
+
 /* --------------------------------------------------------------------------
    The session
    -------------------------------------------------------------------------- */
@@ -417,7 +451,12 @@ function user_sign_out_session(): void
  */
 function user_public_data(PDO $pdo, int $userId): ?array
 {
-    $statement = $pdo->prepare('SELECT id, name FROM users WHERE id = :id');
+    /*
+     * SELECT *: the table may carry optional columns (an address, the date the
+     * account was made). Every one of them is read below only after asking
+     * whether it exists, so the same code serves a table with and without them.
+     */
+    $statement = $pdo->prepare('SELECT * FROM users WHERE id = :id');
     $statement->bindValue(':id', $userId, PDO::PARAM_INT);
     $statement->execute();
     $row = $statement->fetch(PDO::FETCH_ASSOC);
@@ -428,7 +467,28 @@ function user_public_data(PDO $pdo, int $userId): ?array
 
     $name = (string) $row['name'];
 
-    return ['id' => (int) $row['id'], 'name' => $name, 'initials' => user_initials($name)];
+    $data = ['id' => (int) $row['id'], 'name' => $name, 'initials' => user_initials($name)];
+
+    /*
+     * The two quiet lines of the account popup: the address and the date the
+     * account was made. They are read with the same check every other optional
+     * column uses, so a missing column means one line less in the list instead of
+     * an error. Neither value is a secret to the person who is signed in - it is
+     * their own account, and nothing here is ever shown to anybody else.
+     */
+    $columns = user_columns($pdo);
+
+    if (user_column_available($columns, 'email') && ($row['email'] ?? null) !== null
+        && (string) $row['email'] !== '') {
+        $data['email'] = (string) $row['email'];
+    }
+
+    if (user_column_available($columns, 'created_at') && ($row['created_at'] ?? null) !== null
+        && (string) $row['created_at'] !== '') {
+        $data['created_at'] = (string) $row['created_at'];
+    }
+
+    return $data;
 }
 
 /**
@@ -471,4 +531,58 @@ function user_initials(string $name): string
     }
 
     return $initials === '' ? '?' : $initials;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Das Ende eines Kontos
+   --------------------------------------------------------------------------- */
+
+/**
+ * Deletes an account and everything that belongs to it, in one transaction.
+ *
+ * What goes with it: the learning progress (user_card_progress) and the learning
+ * sessions (study_sessions). Both hang on the user row with ON DELETE CASCADE, and
+ * both are written out here EXPLICITLY anyway - so anybody reading this function
+ * sees what disappears instead of having to look up a schema rule.
+ *
+ * What stays: cards, categories, card_exercises. They belong to nobody, so an
+ * account leaving never takes learning material away from the others.
+ *
+ * @return bool false when there is no such account (any more).
+ */
+function delete_user_account(PDO $pdo, int $userId): bool
+{
+    $exists = $pdo->prepare('SELECT COUNT(*) FROM users WHERE id = :id');
+    $exists->bindValue(':id', $userId, PDO::PARAM_INT);
+    $exists->execute();
+
+    if ((int) $exists->fetchColumn() === 0) {
+        return false;
+    }
+
+    $pdo->beginTransaction();
+
+    try {
+        $progress = $pdo->prepare('DELETE FROM user_card_progress WHERE user_id = :user_id');
+        $progress->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $progress->execute();
+
+        $sessions = $pdo->prepare('DELETE FROM study_sessions WHERE user_id = :user_id');
+        $sessions->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $sessions->execute();
+
+        $account = $pdo->prepare('DELETE FROM users WHERE id = :id');
+        $account->bindValue(':id', $userId, PDO::PARAM_INT);
+        $account->execute();
+
+        $pdo->commit();
+    } catch (Throwable $error) {
+        /* Half a deletion is worse than none: everything goes back. */
+        $pdo->rollBack();
+
+        throw $error;
+    }
+
+    return true;
 }

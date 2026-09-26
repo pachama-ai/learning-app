@@ -73,16 +73,6 @@ function normalize_card_row(array $row): array
  * @param list<array<string, mixed>> $rows
  * @return list<array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}>
  */
-function normalize_card_rows(array $rows): array
-{
-    $cards = [];
-
-    foreach ($rows as $row) {
-        $cards[] = normalize_card_row($row);
-    }
-
-    return $cards;
-}
 
 /**
  * Returns one card, or null when it does not exist.

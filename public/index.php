@@ -33,6 +33,21 @@ if (is_string($rawCategoryId) && ctype_digit($rawCategoryId) && (int) $rawCatego
     $requestedCategoryId = (int) $rawCategoryId;
 }
 
+/*
+ * The statistics view has an address of its own: index.php?statistics=85 shows the
+ * numbers of that subcategory, ?statistics=2 the numbers of a whole learning area.
+ *
+ * Which of the two it is is decided on the SERVER and not in the browser (a
+ * category without a parent is an area), so a hand written address cannot give the
+ * same id a second meaning.
+ */
+$requestedStatisticsId = null;
+$rawStatisticsId = $_GET['statistics'] ?? null;
+
+if (is_string($rawStatisticsId) && ctype_digit($rawStatisticsId) && (int) $rawStatisticsId > 0) {
+    $requestedStatisticsId = (int) $rawStatisticsId;
+}
+
 // Everything the browser needs. It contains no credentials, no connection
 // details and no server file paths.
 $appConfig = [
@@ -46,6 +61,10 @@ $appConfig = [
         'review' => 'api/review.php',
         'importCards' => 'api/import_cards.php',
         'auth' => 'api/auth.php',
+        /* The account itself: the shape of its symbol and its end. */
+        'account' => 'api/account.php',
+        /* The numbers behind the statistics view. */
+        'statistics' => 'api/statistics.php',
         /* The one example the card dialog shows while a kind of task is being
            chosen. It is built on the server, so the dialog and the card never
            draw their numbers from two different generators. */
@@ -118,6 +137,7 @@ $appConfig = [
     'defaultLocale' => $defaultLocale,
     'supportedLocales' => array_keys($translations),
     'categoryId' => $requestedCategoryId,
+    'statisticsId' => $requestedStatisticsId,
     'translations' => $translations,
 ];
 
@@ -252,7 +272,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         written into the script, so the translation stays in one place - the same
         keys the rest of the interface uses.
     -->
-    <div class="boot" id="boot-overlay" role="status" aria-live="polite">
+    <div class="boot" id="boot-overlay">
         <!--
             The background of the overlay: the very same pools the page itself
             paints (see .bg-layer in the stylesheet). The overlay is opaque, so
@@ -265,15 +285,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <span class="bg-blob bg-blob--c"></span>
         </div>
 
-                <!--
-            The spinner every interface uses: a ring with one gap in it, turning
-            evenly around its own centre. Nothing is invented here - this is the
-            loading sign people already know, and the simplest drawing of them all.
-        -->
-        <div class="boot__spinner" aria-hidden="true"></div>
 
-<p class="boot__text" id="boot-text"
-           data-text-de="Wird geladen …" data-text-en="Loading …">Loading …</p>
 
         <div class="boot__error" id="boot-error" hidden>
             <p class="boot__text" id="boot-error-text"
@@ -368,7 +380,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
              * nothing is there to show.
              */
             function isReady() {
-                return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state') !== null;
+                /*
+                 * The statistics view has numbers instead of rows, so it needs its
+                 * own sign here - without it the loading screen would stay on that
+                 * page until the eight second message.
+                 */
+                return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .empty-state, .stats__number') !== null;
             }
 
             function hide() {
@@ -401,7 +418,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                 failed = true;
                 overlay.classList.add('is-failed');
-                document.getElementById('boot-text').hidden = true;
+                /*
+                 * The loading line of the older overlay is gone - the stations
+                 * themselves say what is happening. It is hidden only if it is
+                 * still there, so this never throws.
+                 */
+                var loadingLine = document.getElementById('boot-text');
+
+                if (loadingLine !== null) {
+                    loadingLine.hidden = true;
+                }
+
                 document.getElementById('boot-error').hidden = false;
                 document.getElementById('boot-retry').focus();
             }
@@ -434,11 +461,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             } catch (error) {
                 /* No observer: the load event below still ends the overlay. */
             }
-
-            /*
-             * app.js says when the first answer of api/bootstrap.php is in and the
-             * first view has been built from it.
-             */
             document.addEventListener('lernkartei:ready', onReadySignal);
 
             window.addEventListener('load', function () {
@@ -454,6 +476,15 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     <div class="page">
         <header class="site-header">
             <div class="site-header__left">
+                <!--
+                    The account, as plain text: "Anmelden" while nobody is signed
+                    in, otherwise the name of the person and "Abmelden". It stands
+                    on the left edge of the content column, on the same line as the
+                    moon and the language switch, and app.js fills it from
+                    api/auth.php - this file never talks to the database.
+                -->
+                <div class="account" id="account-slot"></div>
+
                 <!--
                     Starts empty on both views, and an empty ".crumb" takes no
                     space (see the stylesheet). The home page deliberately shows
@@ -495,14 +526,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     <span class="lang-switch__underline" id="lang-underline" aria-hidden="true"></span>
                 </div>
 
-                <!--
-                    The sign-in slot. It is empty here on purpose: this file never
-                    talks to the database, and app.js fills the slot from
-                    api/auth.php - the same way every other row on this page comes
-                    from the API. Signed in it carries the initials of the person
-                    and the menu with "sign out".
-                -->
-                <div class="auth" id="auth-slot"></div>
             </div>
         </header>
 
@@ -511,6 +534,13 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         </noscript>
 
         <main class="main" id="main">
+        <!--
+            One quiet line above the content: "you have been signed out", "your
+            account has been deleted". app.js writes it, lets it fade away and
+            hides it again; while it is empty it takes no space at all.
+        -->
+        <p class="page-note" id="page-note" role="status" aria-live="polite" hidden></p>
+
             <!-- Home view -->
             <section class="view view--start" id="view-home">
                 <!--
@@ -705,6 +735,51 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </section>
                 </div>
             </section>
+            <!--
+                The statistics view. Almost everything inside it is written by
+                app.js: every number carries its own wording, its own share of a bar
+                and, on the area level, its own row - and the answer comes from
+                api/statistics.php, like every other row of this page.
+            -->
+            <section class="view view--stats" id="view-statistics" hidden>
+                <header class="stats__head">
+                    <p class="crumb" id="stats-crumb"></p>
+                    <h1 class="heading heading--detail" id="stats-heading"></h1>
+                    <p class="stats__hint" id="stats-hint"></p>
+                </header>
+
+                <p class="state" id="stats-loading" data-i18n="state.loading" hidden><?= $text('state.loading') ?></p>
+                <p class="state state--error" id="stats-error" hidden></p>
+
+                <div class="stats__body" id="stats-body" hidden>
+                    <!-- The three figures of the head. -->
+                    <div class="stats__figures" id="stats-figures"></div>
+
+                    <section class="stats__block">
+                        <h2 class="stats__title"><?= $text('statistics.distribution') ?></h2>
+                        <div class="stats__bar" id="stats-bar" role="img"></div>
+                        <p class="stats__legend" id="stats-legend"></p>
+                    </section>
+
+                    <section class="stats__block">
+                        <h2 class="stats__title"><?= $text('statistics.due') ?></h2>
+                        <div class="stats__bar stats__bar--due" id="stats-due-bar" role="img"></div>
+                        <p class="stats__legend" id="stats-due-legend"></p>
+                    </section>
+
+                    <section class="stats__block">
+                        <h2 class="stats__title"><?= $text('statistics.history') ?></h2>
+                        <div class="stats__days" id="stats-days"></div>
+                        <p class="stats__note" id="stats-history-note" hidden></p>
+                    </section>
+
+                    <!-- Only on the level of a learning area: one row per subcategory. -->
+                    <section class="stats__block" id="stats-children-block" hidden>
+                        <h2 class="stats__title"><?= $text('statistics.bySubcategory') ?></h2>
+                        <ul class="rows stats__rows" id="stats-children"></ul>
+                    </section>
+                </div>
+            </section>
         </main>
 
         <!--
@@ -794,6 +869,62 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 <button type="submit" class="dialog__button dialog__button--primary" id="app-dialog-submit"></button>
             </div>
         </form>
+    </dialog>
+
+    <!--
+        The account: ONE window with TWO steps.
+
+        The first step shows what the account is made of and carries the way to
+        delete it at its foot. That way switches this window to the second step
+        instead of opening a second one, so nobody ever faces two questions at
+        once - and going back is a click on "Cancel", not a closed window.
+
+        It is a native <dialog> like the form dialog above, which is what gives it
+        the focus trap, Escape and the darkened backdrop without extra code. The
+        fields inside are built by app.js: the list from the account data, the
+        wording from the translations.
+    -->
+    <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
+        <div class="account-dialog__panel">
+            <button type="button" class="account-dialog__close" id="account-dialog-close"
+                    aria-label="<?= $text('account.close') ?>" data-i18n-label="account.close">&#215;</button>
+
+            <h2 class="account-dialog__title" id="account-dialog-title"
+                data-i18n="account.title"><?= $text('account.title') ?></h2>
+
+            <!-- Step one: the account, and the end of it. -->
+            <div class="account-dialog__view" id="account-view-data">
+                <dl class="account-dialog__list" id="account-list"></dl>
+
+                <div class="account-dialog__danger">
+                    <h3 class="account-dialog__subtitle" data-i18n="account.deleteTitle"><?= $text('account.deleteTitle') ?></h3>
+                    <p class="account-dialog__hint" data-i18n="account.deleteHint"><?= $text('account.deleteHint') ?></p>
+                    <button type="button" class="account-dialog__text-button" id="account-delete-open"
+                            data-i18n="account.deleteSubmit"><?= $text('account.deleteSubmit') ?></button>
+                </div>
+            </div>
+
+            <!-- Step two: the password, and the last question. -->
+            <div class="account-dialog__view" id="account-view-confirm" hidden>
+                <p class="account-dialog__warning" data-i18n="account.deleteWarning"><?= $text('account.deleteWarning') ?></p>
+
+                <div class="account-dialog__field">
+                    <label class="account-dialog__label" for="account-password"
+                           data-i18n="auth.password"><?= $text('auth.password') ?></label>
+                    <input class="account-dialog__input" id="account-password" name="password"
+                           type="password" autocomplete="current-password">
+                </div>
+
+                <p class="account-dialog__error" id="account-error" role="alert" hidden></p>
+
+                <div class="account-dialog__actions">
+                    <button type="button" class="account-dialog__button" id="account-cancel"
+                            data-i18n="dialog.cancel"><?= $text('dialog.cancel') ?></button>
+                    <button type="button" class="account-dialog__button account-dialog__button--danger" id="account-confirm"
+                            data-i18n="account.deleteConfirm"><?= $text('account.deleteConfirm') ?></button>
+                </div>
+            </div>
+        </div>
     </dialog>
 
     <!--

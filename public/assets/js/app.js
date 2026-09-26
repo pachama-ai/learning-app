@@ -445,6 +445,20 @@
         feedbackText: document.getElementById('feedback-text'),
         feedbackAction: document.getElementById('feedback-action'),
 
+        /* The account in the header, its window and the quiet line. */
+        accountSlot: document.getElementById('account-slot'),
+        pageNote: document.getElementById('page-note'),
+        accountDialog: document.getElementById('account-dialog'),
+        accountList: document.getElementById('account-list'),
+        accountViewData: document.getElementById('account-view-data'),
+        accountViewConfirm: document.getElementById('account-view-confirm'),
+        accountClose: document.getElementById('account-dialog-close'),
+        accountDeleteOpen: document.getElementById('account-delete-open'),
+        accountCancel: document.getElementById('account-cancel'),
+        accountConfirm: document.getElementById('account-confirm'),
+        accountPassword: document.getElementById('account-password'),
+        accountError: document.getElementById('account-error'),
+
         /* The header of a card list, above the rows of a subcategory. */
         cardTools: document.getElementById('card-tools'),
         cardToolsCount: document.getElementById('card-tools-count'),
@@ -849,7 +863,17 @@
     function apiRequest(url, method, body) {
         var options = {
             method: method,
-            headers: { Accept: 'application/json' }
+            headers: { Accept: 'application/json' },
+            /*
+             * Never let the browser answer an API call from its own cache.
+             *
+             * Every answer here depends on WHO is asking: the card list carries
+             * the progress of the signed-in person. Signing out asks for exactly
+             * the same address again - and with a cached answer the list would
+             * keep showing the progress of the account that just left, which is
+             * the bug this line fixes.
+             */
+            cache: 'no-store'
         };
 
         if (body !== undefined) {
@@ -901,14 +925,6 @@
      * The signed-in state is not told by the drawing but by its colour and by the
      * fine ring around the circle, and the initials live in the menu (see app.css).
      */
-    /*
-     * The two symbols of the profile circle - an arrow going into an open frame
-     * when nobody is signed in, and the same arrow coming out of it when somebody
-     * is. Both are drawn like every other icon of the header: 18px, currentColor,
-     * a 1.5px line and no fill (the theme switch next to them is the reference).
-     */
-    var LOGIN_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M13.6 3.6h3.65A2.75 2.75 0 0 1 20 6.35v11.3a2.75 2.75 0 0 1-2.75 2.75H13.6"/><path d="M3.6 12h9.1"/><path d="M9.4 8.6 12.8 12l-3.4 3.4"/></svg>';
-    var LOGOUT_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M10.4 3.6H6.75A2.75 2.75 0 0 0 4 6.35v11.3a2.75 2.75 0 0 0 2.75 2.75h3.65"/><path d="M11.3 12h9.1"/><path d="M17.2 8.6 20.6 12l-3.4 3.4"/></svg>';
     var EYE_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye__slash" d="M4.4 19.6 19.6 4.4"/></svg>';
 
     var authState = { user: null, ready: false, csrfToken: '' };
@@ -954,21 +970,42 @@
                     authState.csrfToken = String(body.data.csrf_token || '');
                 }
 
+                /*
+                 * This answer arrives AFTER the first draw of the page, and two
+                 * things depend on it: the account in the header and every entry
+                 * that only exists for a signed-in person (the statistics button in
+                 * the head card, the statistics entry of a subcategory row).
+                 *
+                 * Without a second pass both stayed missing until the next
+                 * navigation - the page looked signed out while it was not. So the
+                 * header is built again and the open view is drawn once more.
+                 */
+                renderAccountSlot();
+                render();
+
                 return authState;
             })
             .catch(function () {
-                /* Without an answer the header simply keeps the sign-in button. */
+                /* Without an answer the header keeps its invitation to sign in. */
+                renderAccountSlot();
+
                 return authState;
             });
     }
 
     /*
-     * The header slot: a quiet round button while nobody is signed in, and the
-     * initials with a small menu while somebody is. Both are the same size as the
-     * theme switch next to them.
+     * The account in the header, as plain text.
+     *
+     * Signed out it is the word "Anmelden", which opens the sign-in dialog. Signed
+     * in it is the name of the person and, behind a small dot, "Abmelden": the name
+     * opens the account window, the word signs out right away.
+     *
+     * Nothing here is a button with a frame, a symbol or a shadow - it reads exactly
+     * like the language switch next to it, and it changes the height of the header
+     * by nothing at all (see app.css).
      */
-    function renderAuthSlot() {
-        var slot = document.getElementById('auth-slot');
+    function renderAccountSlot() {
+        var slot = document.getElementById('account-slot');
 
         if (slot === null) {
             return;
@@ -977,15 +1014,10 @@
         slot.textContent = '';
 
         if (authState.user === null) {
-            var open = el('button', 'auth-button');
+            var open = el('button', 'account__link');
             open.type = 'button';
-            /* Only the accessible name, no title: data-i18n-label is translated
-               again when the language changes, a title set once would keep the
-               language it was built in. */
-            open.setAttribute('aria-label', t('auth.open'));
-            open.setAttribute('data-i18n-label', 'auth.open');
-            /* The arrow going in: "sign in". */
-            open.innerHTML = LOGIN_SVG;
+            open.textContent = t('auth.signIn');
+            open.setAttribute('data-i18n', 'auth.signIn');
             open.addEventListener('click', function () {
                 openAuthDialog('sign_in');
             });
@@ -994,54 +1026,40 @@
             return;
         }
 
-        var wrap = el('span', 'auth-menu');
-        var user = el('button', 'auth-button auth-button--user');
-        user.type = 'button';
-        user.setAttribute('aria-haspopup', 'true');
-        user.setAttribute('aria-expanded', 'false');
-        user.setAttribute('aria-label', t('auth.account', { name: authState.user.name }));
-        user.setAttribute('title', authState.user.name);
+        var person = el('div', 'account__person');
+
         /*
-         * The arrow coming out of the frame: "sign out" is what this circle stands
-         * for now, and the ring around it says "somebody is signed in". Who that is
-         * stands in the menu and in the accessible name of the button. (app.css)
+         * The name carries no data-i18n: it is data and not a sentence, so the
+         * language switch has to leave it exactly as it stands.
          */
-        user.innerHTML = LOGOUT_SVG;
+        var name = el('button', 'account__name', authState.user.name);
+        name.type = 'button';
+        name.setAttribute('aria-haspopup', 'dialog');
+        name.addEventListener('click', function () {
+            openAccountDialog();
+        });
 
-        var menu = el('span', 'menu');
-        menu.setAttribute('role', 'menu');
-        menu.hidden = true;
+        var dot = el('span', 'account__dot', '\u00b7');
+        dot.setAttribute('aria-hidden', 'true');
 
-        /* The name of the person is the first line of the menu, so it is clear
-           there too who is signed in. The button already names the user for
-           screen readers. */
-        var who = el('p', 'menu__label', authState.user.name);
-        who.setAttribute('aria-hidden', 'true');
-
-        var signOutItem = el('button', 'menu__item');
-        signOutItem.type = 'button';
-        signOutItem.setAttribute('role', 'menuitem');
-        signOutItem.textContent = t('auth.signOut');
-        signOutItem.addEventListener('click', function () {
-            closeMenu();
+        var out = el('button', 'account__link');
+        out.type = 'button';
+        out.textContent = t('auth.signOut');
+        out.setAttribute('data-i18n', 'auth.signOut');
+        out.addEventListener('click', function () {
             signOut();
         });
 
-        menu.appendChild(who);
-        menu.appendChild(signOutItem);
-
-        user.addEventListener('click', function (event) {
-            /* Without this the document listener would close the menu again at
-               once, because the click is still on its way up. */
-            event.stopPropagation();
-            toggleMenu(wrap, user, menu);
-        });
-
-        wrap.appendChild(user);
-        wrap.appendChild(menu);
-        slot.appendChild(wrap);
+        person.appendChild(name);
+        person.appendChild(dot);
+        person.appendChild(out);
+        slot.appendChild(person);
     }
 
+    /*
+     * Signing out: the session ends, the screen stops pretending, and the page
+     * goes back to its start - with one quiet line that says what happened.
+     */
     function signOut() {
         authFetch({ action: 'sign_out', csrf_token: authState.csrfToken }).then(function (result) {
             if (result.ok !== true) {
@@ -1051,30 +1069,55 @@
             }
 
             authState.user = null;
-
-            /*
-             * The ring fades out before the circle becomes the signed-out one:
-             * the same 240ms the stylesheet needs for that fade (see
-             * .auth-button--user.is-signing-out). Without the wait the two
-             * states would swap inside a single frame.
-             */
-            var signedInButton = document.querySelector('.auth-button--user');
-
-            if (signedInButton === null) {
-                renderAuthSlot();
-            } else {
-                signedInButton.classList.add('is-signing-out');
-                window.setTimeout(renderAuthSlot, 240);
-            }
-
-            /*
-             * The store still holds the progress of the person who just left and
-             * every list still shows it, so it is asked again - the same way a
-             * language switch asks again - and the open view is drawn from the
-             * fresh answer. No page load, so the loading screen stays away.
-             */
-            window.setTimeout(refreshAfterAuthChange, 250);
+            renderAccountSlot();
+            goToStartPage('signedOut');
         });
+    }
+
+    /*
+     * The start page, without loading the page again: the address is changed and
+     * the view is drawn from the store, the same way a click on a card does it.
+     *
+     * Why the store is dropped first: it still holds the progress of the person who
+     * just left (or whose account was just deleted), and every list built from it
+     * would show numbers that belong to nobody any more.
+     *
+     * One case keeps the old way and loads the page: while a study session is
+     * running. Its queue was built from the state before, and those answers belong
+     * to that state - the message then waits for the page that follows.
+     */
+    function goToStartPage(noteKey) {
+        if (learnSession !== null) {
+            setPendingNote(noteKey);
+            window.location.href = 'index.php';
+
+            return;
+        }
+
+        bootstrapDropAll();
+        loadBootstrap();
+
+        config.categoryId = null;
+        config.statisticsId = null;
+        statisticsScopeId = null;
+
+        try {
+            window.history.pushState({ categoryId: null }, '', 'index.php');
+        } catch (error) {
+            /* Not being able to change the address is not worth a message. */
+        }
+
+        clearOverlaysForNavigation();
+        showViewFromUrl();
+
+        if (typeof noteKey === 'string' && noteKey !== '') {
+            showPageNote(accountNoteText(noteKey));
+        }
+    }
+
+    /* Which sentence the quiet line carries - the key decides it. */
+    function accountNoteText(noteKey) {
+        return noteKey === 'deleted' ? t('account.deleted') : t('account.signedOut');
     }
 
     /*
@@ -1293,7 +1336,7 @@
 
             authState.user = result.data && result.data.user ? result.data.user : null;
             authState.ready = true;
-            renderAuthSlot();
+            renderAccountSlot();
             closeDialog();
 
             /*
@@ -1332,10 +1375,10 @@
     /* The header button appears as soon as the page is there. */
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
-            loadAuthState().then(renderAuthSlot);
+            loadAuthState().then(renderAccountSlot);
         });
     } else {
-        loadAuthState().then(renderAuthSlot);
+        loadAuthState().then(renderAccountSlot);
     }
 
     /* Turns a code from the API into a sentence in the current language. */
@@ -1426,6 +1469,18 @@
 
         if (code === 'credentials') {
             return t('auth.errorCredentials');
+        }
+
+        /*
+         * Deleting the account: the password is the one thing the server checks, so
+         * it is also the one thing that can be wrong on this path.
+         */
+        if (code === 'wrong_password') {
+            return t('account.wrongPassword');
+        }
+
+        if (code === 'password_required') {
+            return t('account.passwordRequired');
         }
 
         if (code === 'identifier_required') {
@@ -2172,21 +2227,38 @@
 
         item.appendChild(play);
 
-        item.appendChild(buildMenu([
+        var rowActions = [
             {
                 label: t('action.edit'),
                 run: function () {
                     openCategoryForm('edit', entry, entry.parent_id);
                 }
-            },
-            {
-                label: t('action.delete'),
-                danger: true,
-                run: function () {
-                    requestDelete('category', entry, item);
-                }
             }
-        ], title));
+        ];
+
+        /*
+         * The statistics of this subcategory. The entry only exists for a signed-in
+         * person - the same reason the button in the head card has: no account, no
+         * progress, nothing to show.
+         */
+        if (authState.user !== null) {
+            rowActions.push({
+                label: t('statistics.title'),
+                run: function () {
+                    openStatistics(entry.id);
+                }
+            });
+        }
+
+        rowActions.push({
+            label: t('action.delete'),
+            danger: true,
+            run: function () {
+                requestDelete('category', entry, item);
+            }
+        });
+
+        item.appendChild(buildMenu(rowActions, title));
 
         return item;
     }
@@ -2535,6 +2607,15 @@
                     }
                 }
             ], pageTitle, 'detail__menu'));
+
+            /*
+             * The way into the statistics of what is on screen, right next to the
+             * menu. Only for a signed-in person: without an account there is no
+             * progress to count.
+             */
+            if (authState.user !== null) {
+                elements.detailActions.appendChild(buildStatisticsButton(current.id, pageTitle));
+            }
 
             var crumbParts = [];
 
@@ -3003,8 +3084,392 @@
 
     wireTileNavigation();
 
+    /* ---------------------------------------------------------------------------
+       The statistics view
+       ---------------------------------------------------------------------------
+
+       What is known, what is due and how much is inside - for one subcategory or
+       for a whole learning area.
+
+       Every number on this page comes from api/statistics.php. Nothing is counted
+       here, so the page and the endpoint can never disagree; the same is true for
+       the card list and its legend, which is why the wording of the distribution
+       is the one the card list already uses.
+       --------------------------------------------------------------------------- */
+
+    /* The same icon language as the rest of the header: fine lines, currentColor. */
+    var STATISTICS_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4.5 19.5h15"/><path d="M8 19.5v-6"/><path d="M12 19.5V7"/><path d="M16 19.5v-9"/></svg>';
+
+    /* What the open statistics view belongs to. Needed by the way back. */
+    var statisticsScopeId = null;
+
+    /*
+     * The button in the head of a category. It only exists for a signed-in person:
+     * progress belongs to an account, so without one there would be nothing to
+     * show but an empty page - and a button that leads into a page of dashes is
+     * worse than no button.
+     */
+    function buildStatisticsButton(id, title) {
+        var button = el('button', 'stats-button');
+        button.type = 'button';
+        button.innerHTML = STATISTICS_SVG;
+        button.setAttribute('title', t('statistics.title'));
+        button.setAttribute('aria-label', t('statistics.openChild', { name: title }));
+        button.addEventListener('click', function () {
+            openStatistics(id);
+        });
+
+        return button;
+    }
+
+    /*
+     * Opens the statistics of one category without loading the page again.
+     *
+     * The address is really changed as well: a person can copy it, bookmark it and
+     * open it later - index.php then draws the same view from the ID alone. Without
+     * history support (a very old browser) the view still opens, only the address
+     * stays what it was.
+     */
+    function openStatistics(id) {
+        config.statisticsId = id;
+
+        try {
+            window.history.pushState(
+                { statisticsId: id },
+                '',
+                'index.php?statistics=' + encodeURIComponent(id)
+            );
+        } catch (error) {
+            /* No history object: not worth a message. */
+        }
+
+        render();
+    }
+
+    /* The way back: to the page of the category the numbers belong to. */
+    function backFromStatistics() {
+        var target = statisticsScopeId === null ? config.categoryId : statisticsScopeId;
+
+        config.statisticsId = null;
+
+        try {
+            window.history.pushState(
+                {},
+                '',
+                target === null ? 'index.php' : 'index.php?category=' + encodeURIComponent(target)
+            );
+        } catch (error) {
+            /* Not worth a message either. */
+        }
+
+        render();
+    }
+
+    function renderStatistics(id) {
+        var view = document.getElementById('view-statistics');
+
+        if (view === null) {
+            return;
+        }
+
+        elements.homeView.hidden = true;
+        elements.detailView.hidden = true;
+        view.hidden = false;
+
+        /* No tile row on this page, so the arrows and the round plus button stay
+           away - the same control every other view uses. */
+        updateFooterControls('statistics');
+
+        currentEntry = null;
+        currentEntryCards = [];
+        setCrumb(null);
+        document.title = t('app.title');
+
+        var body = document.getElementById('stats-body');
+        var loading = document.getElementById('stats-loading');
+        var error = document.getElementById('stats-error');
+
+        loading.hidden = false;
+        error.hidden = true;
+        body.hidden = true;
+
+        apiRequest(config.endpoints.statistics + '?id=' + encodeURIComponent(id), 'GET').then(function (result) {
+            loading.hidden = true;
+
+            if (result.ok !== true || result.data === null || typeof result.data !== 'object') {
+                /* Signed out, gone or a real error: one sentence instead of a half
+                   drawn page. */
+                error.textContent = result.code === 'not_signed_in'
+                    ? t('statistics.needsAccount')
+                    : errorMessage(result.code);
+                error.hidden = false;
+
+                return;
+            }
+
+            statisticsScopeId = typeof result.data.scope === 'object' && result.data.scope !== null
+                ? Number(result.data.scope.id)
+                : null;
+
+            drawStatistics(result.data);
+        });
+    }
+
+    function drawStatistics(data) {
+        var scope = data.scope || {};
+        var cards = data.cards || {};
+        var due = data.due || {};
+
+        document.getElementById('stats-heading').textContent = t('statistics.title');
+        document.getElementById('stats-hint').textContent = scope.kind === 'area'
+            ? t('statistics.areaHint')
+            : t('statistics.categoryHint');
+
+        buildStatisticsCrumb(scope);
+        drawStatisticsFigures(cards, data.today);
+        drawDistributionBar(cards);
+        drawDueBar(due);
+        drawHistory(data.history);
+        drawStatisticsChildren(data.children);
+
+        document.getElementById('stats-body').hidden = false;
+    }
+
+    function buildStatisticsCrumb(scope) {
+        var crumb = document.getElementById('stats-crumb');
+        crumb.textContent = '';
+
+        var back = el('a', 'stats__back', t('statistics.back'));
+        back.href = 'index.php?category=' + encodeURIComponent(scope.id);
+        back.addEventListener('click', function (event) {
+            event.preventDefault();
+            backFromStatistics();
+        });
+
+        crumb.appendChild(back);
+        crumb.appendChild(el('span', 'stats__crumb-name', displayName(scope)));
+    }
+
+    /* One big number with its label underneath. */
+    function buildFigure(value, label) {
+        var figure = el('p', 'stats__figure');
+        figure.appendChild(el('span', 'stats__number', value));
+        figure.appendChild(el('span', 'stats__label', label));
+
+        return figure;
+    }
+
+    /*
+     * The three figures of the head.
+     *
+     * The percentage is measured against the cards that have progress (the
+     * endpoint decides that), and with no progress at all it is a dash - never a
+     * zero that would read like a result. "Today" carries the words of the endpoint:
+     * as long as study_sessions is empty it says "not available yet" instead of a
+     * number nobody wrote.
+     */
+    function drawStatisticsFigures(cards, today) {
+        var wrap = document.getElementById('stats-figures');
+        wrap.textContent = '';
+
+        wrap.appendChild(buildFigure(formatNumber(cards.total || 0), t('statistics.cards')));
+        wrap.appendChild(buildFigure(
+            cards.known_percent === null || cards.known_percent === undefined
+                ? '–'
+                : formatNumber(cards.known_percent) + ' %',
+            t('statistics.known')
+        ));
+        wrap.appendChild(buildFigure(
+            today && today.available === true ? formatNumber(today.cards || 0) : t('statistics.unavailable'),
+            t('statistics.today')
+        ));
+    }
+
+    /* Numbers in the writing of the chosen language: 5,9 % in German, 5.9 % in
+       English - and never a jumping width, because the figures use tabular-nums. */
+    function formatNumber(value) {
+        return new Intl.NumberFormat(locale === 'de' ? 'de-DE' : 'en-GB', {
+            maximumFractionDigits: 1
+        }).format(value);
+    }
+
+    function buildBarPart(count, total, className) {
+        var part = el('span', className);
+        part.hidden = count === 0;
+        part.style.setProperty('--share', (total > 0 ? (count / total) * 100 : 0) + '%');
+
+        return part;
+    }
+
+    /*
+     * The distribution: the same sentence the head of a card list writes, now as a
+     * bar. The three segments are one colour at three levels of opacity - no
+     * traffic-light colours, nothing that would turn a number into a judgement.
+     */
+    function drawDistributionBar(cards) {
+        var bar = document.getElementById('stats-bar');
+        var legend = document.getElementById('stats-legend');
+        var total = cards.total || 0;
+
+        bar.textContent = '';
+        bar.appendChild(buildBarPart(cards.fresh || 0, total, 'stats__part stats__part--fresh'));
+        bar.appendChild(buildBarPart(cards.learning || 0, total, 'stats__part stats__part--learning'));
+        bar.appendChild(buildBarPart(cards.known || 0, total, 'stats__part stats__part--known'));
+
+        legend.textContent = total === 0
+            ? t('statistics.noCards')
+            : t('cards.legend', { 'new': cards.fresh || 0, unsure: cards.learning || 0, known: cards.known || 0 });
+
+        bar.setAttribute('aria-label', legend.textContent);
+    }
+
+    /*
+     * When the cards of the scope are due. Four segments, filled from left to
+     * right: due now, the next three days, later, and those without a due date.
+     */
+    function drawDueBar(due) {
+        var bar = document.getElementById('stats-due-bar');
+        var legend = document.getElementById('stats-due-legend');
+        var total = (due.now || 0) + (due.soon || 0) + (due.later || 0) + (due.none || 0);
+
+        bar.textContent = '';
+        bar.appendChild(buildBarPart(due.now || 0, total, 'stats__part stats__part--now'));
+        bar.appendChild(buildBarPart(due.soon || 0, total, 'stats__part stats__part--soon'));
+        bar.appendChild(buildBarPart(due.later || 0, total, 'stats__part stats__part--later'));
+        bar.appendChild(buildBarPart(due.none || 0, total, 'stats__part stats__part--none'));
+
+        if (total === 0) {
+            legend.textContent = t('statistics.noCards');
+            bar.setAttribute('aria-label', legend.textContent);
+
+            return;
+        }
+
+        var parts = [
+            formatNumber(due.now || 0) + ' ' + t('statistics.due.now'),
+            formatNumber(due.soon || 0) + ' ' + t('statistics.due.soon'),
+            formatNumber(due.later || 0) + ' ' + t('statistics.due.later'),
+            formatNumber(due.none || 0) + ' ' + t('statistics.due.none')
+        ];
+
+        legend.textContent = parts.join(' · ');
+        bar.setAttribute('aria-label', legend.textContent);
+    }
+
+    /*
+     * The last seven days - but only when there is something to show. No learning
+     * sessions recorded yet means one quiet line instead of seven empty bars, and
+     * the block fills itself as soon as study_sessions really has rows.
+     */
+    function drawHistory(history) {
+        var days = document.getElementById('stats-days');
+        var note = document.getElementById('stats-history-note');
+        var list = history && Array.isArray(history.days) ? history.days : [];
+        var hasValues = list.some(function (day) {
+            return Number(day.cards) > 0;
+        });
+
+        days.textContent = '';
+
+        if (history === null || history === undefined || history.available !== true || !hasValues) {
+            days.hidden = true;
+            note.textContent = t('statistics.historyNone');
+            note.hidden = false;
+
+            return;
+        }
+
+        days.hidden = false;
+        note.hidden = true;
+
+        var highest = 0;
+
+        list.forEach(function (day) {
+            highest = Math.max(highest, Number(day.cards));
+        });
+
+        /* The short day names come from the browser, in the chosen language: no
+           second list of weekday names to keep in step with the translations. */
+        var weekday = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-GB', { weekday: 'short' });
+
+        list.forEach(function (day) {
+            var column = el('div', 'stats__day');
+            var bar = el('span', 'stats__day-bar');
+            var fill = el('span', 'stats__day-fill');
+            var label = el('span', 'stats__day-label', weekday.format(new Date(String(day.day) + 'T12:00:00')));
+
+            fill.style.height = (highest > 0 ? (Number(day.cards) / highest) * 100 : 0) + '%';
+            bar.appendChild(fill);
+            column.appendChild(bar);
+            column.appendChild(label);
+            column.setAttribute('title', formatNumber(day.cards) + ' ' + t('statistics.cards'));
+            days.appendChild(column);
+        });
+    }
+
+    /*
+     * One row per subcategory - only on the level of a learning area. The row looks
+     * exactly like a subcategory row of the list (same classes, same order), except
+     * that the bar carries a real share and the arrow leads into the statistics of
+     * that subcategory instead of its card list.
+     */
+    function drawStatisticsChildren(children) {
+        var block = document.getElementById('stats-children-block');
+        var list = document.getElementById('stats-children');
+
+        if (!Array.isArray(children) || children.length === 0) {
+            block.hidden = true;
+
+            return;
+        }
+
+        list.textContent = '';
+        block.hidden = false;
+
+        children.forEach(function (child) {
+            var name = displayName(child);
+            var item = el('li', 'row');
+            var link = el('a', 'row__link');
+            var progress = el('span', 'row__progress');
+            var progressFill = el('span', 'row__progress-fill');
+            var arrow = el('span', 'row__arrow');
+
+            link.href = 'index.php?statistics=' + encodeURIComponent(child.id);
+            link.setAttribute('aria-label', t('statistics.openChild', { name: name }));
+
+            progress.setAttribute('aria-hidden', 'true');
+            progressFill.style.setProperty('--share', (child.known_percent === null ? 0 : child.known_percent) + '%');
+            progress.appendChild(progressFill);
+
+            arrow.innerHTML = ARROW_SVG;
+
+            link.appendChild(el('span', 'row__name', name));
+            link.appendChild(el('span', 'row__count data-pill', formatNumber(child.cards || 0)));
+            link.appendChild(progress);
+            link.appendChild(arrow);
+
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                openStatistics(child.id);
+            });
+
+            item.appendChild(link);
+            list.appendChild(item);
+        });
+    }
+
     function render() {
         clearLinked();
+
+        /*
+         * The statistics view has an address of its own, so it is decided first:
+         * only ?statistics=<id> opens it.
+         */
+        if (config.statisticsId !== null && config.statisticsId !== undefined) {
+            renderStatistics(config.statisticsId);
+
+            return;
+        }
 
         if (config.categoryId === null) {
             renderHome();
@@ -4277,6 +4742,356 @@
      * focus starts on Cancel, so the safe answer is the one that is already
      * selected.
      */
+    /* ---------------------------------------------------------------------------
+       The account: the header text, the window and the quiet line
+       --------------------------------------------------------------------------- */
+
+    var pageNoteTimer = null;
+    var NOTE_STORAGE_KEY = 'lernkartei.note';
+
+    /* The one request of this block: it changes the account itself. */
+    function accountFetch(payload) {
+        return window.fetch(config.endpoints.account, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (response) {
+            return response.json().then(function (body) {
+                var data = body && body.data ? body.data : null;
+
+                if (response.ok === true && body && body.success === true) {
+                    return { ok: true, code: null, data: data };
+                }
+
+                return {
+                    ok: false,
+                    code: body && body.error ? String(body.error.code) : 'request_failed',
+                    data: data
+                };
+            }).catch(function () {
+                return { ok: false, code: 'request_failed', data: null };
+            });
+        }).catch(function () {
+            /* The request never reached the server. */
+            return { ok: false, code: 'network_error', data: null };
+        });
+    }
+
+    /*
+     * Opens the account window, always at its first step: what the account is made
+     * of. The second step (the password and the last question) is reached from
+     * there and never remembered - opening it again always starts calm.
+     */
+    function openAccountDialog() {
+        var dialog = elements.accountDialog;
+
+        if (dialog === null || authState.user === null) {
+            return;
+        }
+
+        buildAccountList();
+        showAccountStep('data');
+
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+
+        window.requestAnimationFrame(function () {
+            dialog.classList.add('is-open');
+        });
+    }
+
+    function closeAccountDialog() {
+        var dialog = elements.accountDialog;
+
+        if (dialog === null) {
+            return;
+        }
+
+        dialog.classList.remove('is-open');
+
+        window.setTimeout(function () {
+            if (typeof dialog.close === 'function' && dialog.open) {
+                dialog.close();
+            } else {
+                dialog.removeAttribute('open');
+            }
+        }, prefersReducedMotion() ? 0 : 200);
+    }
+
+    /*
+     * The two steps live in the SAME window: only the content is exchanged, the
+     * frame stays where it is. Nothing opens on top of anything, so nobody ever
+     * faces two questions at once.
+     */
+    function showAccountStep(step) {
+        if (elements.accountViewData === null || elements.accountViewConfirm === null
+            || elements.accountPassword === null || elements.accountError === null) {
+            return;
+        }
+
+        var confirm = step === 'confirm';
+
+        elements.accountViewData.hidden = confirm;
+        elements.accountViewConfirm.hidden = !confirm;
+        elements.accountError.hidden = true;
+        elements.accountPassword.value = '';
+        elements.accountPassword.classList.remove('is-invalid');
+
+        if (confirm) {
+            elements.accountPassword.focus();
+        }
+    }
+
+    /* The quiet list: muted labels, values in the text colour, roomy lines. */
+    function buildAccountList() {
+        var list = elements.accountList;
+        var user = authState.user;
+
+        if (list === null || user === null) {
+            return;
+        }
+
+        list.textContent = '';
+
+        addAccountRow(list, t('account.name'), user.name);
+
+        if (typeof user.email === 'string' && user.email !== '') {
+            addAccountRow(list, t('account.email'), user.email);
+        }
+
+        if (typeof user.created_at === 'string' && user.created_at !== '') {
+            addAccountRow(list, t('account.memberSince'), formatMemberSince(user.created_at));
+        }
+    }
+
+    function addAccountRow(list, label, value) {
+        list.appendChild(el('dt', 'account-dialog__term', label));
+        list.appendChild(el('dd', 'account-dialog__value', value));
+    }
+
+    /* "2026-09-20 14:03:11" becomes "September 2026" in the chosen language. */
+    function formatMemberSince(value) {
+        var parsed = new Date(String(value).replace(' ', 'T'));
+
+        if (isNaN(parsed.getTime())) {
+            return String(value);
+        }
+
+        return parsed.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', {
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+
+    /*
+     * The last step: the password. The browser only asks whether something was
+     * typed at all - the answer that counts comes from user_password_matches() on
+     * the other side, so a hand written request without the right password cannot
+     * delete anything.
+     */
+    function submitAccountDelete() {
+        var password = elements.accountPassword.value;
+
+        elements.accountError.hidden = true;
+        elements.accountPassword.classList.remove('is-invalid');
+
+        if (password === '') {
+            showAccountError(t('account.passwordRequired'));
+
+            return;
+        }
+
+        setAccountBusy(true);
+
+        accountFetch({
+            action: 'delete',
+            password: password,
+            csrf_token: authState.csrfToken
+        }).then(function (result) {
+            setAccountBusy(false);
+
+            if (result.ok !== true) {
+                showAccountError(errorMessage(result.code));
+                elements.accountPassword.focus();
+
+                return;
+            }
+
+            /*
+             * The account is gone. Nothing on the screen may go on pretending, so
+             * the header is built again and the page goes back to its start with the
+             * line that says what happened.
+             */
+            authState.user = null;
+            closeAccountDialog();
+            renderAccountSlot();
+            goToStartPage('deleted');
+        });
+    }
+
+    function showAccountError(message) {
+        elements.accountError.textContent = message;
+        elements.accountError.hidden = false;
+        elements.accountPassword.classList.add('is-invalid');
+    }
+
+    /* One label while it works, one while it waits - and nothing clicks twice. */
+    function setAccountBusy(busy) {
+        elements.accountConfirm.disabled = busy;
+        elements.accountCancel.disabled = busy;
+        elements.accountConfirm.textContent = busy ? t('account.deleting') : t('account.deleteConfirm');
+    }
+
+    /*
+     * The quiet line above the content. It says what just happened and takes itself
+     * away again after a few seconds - no button, nothing to click, nothing to
+     * answer.
+     */
+    function showPageNote(message, duration) {
+        var note = elements.pageNote;
+
+        if (note === null) {
+            return;
+        }
+
+        if (pageNoteTimer !== null) {
+            window.clearTimeout(pageNoteTimer);
+            pageNoteTimer = null;
+        }
+
+        note.textContent = message;
+        note.hidden = false;
+
+        /* Reading a layout value restarts the fade when the same line appears twice. */
+        void note.offsetWidth;
+        note.classList.add('is-visible');
+
+        pageNoteTimer = window.setTimeout(function () {
+            hidePageNote();
+        }, typeof duration === 'number' ? duration : 4200);
+    }
+
+    function hidePageNote() {
+        var note = elements.pageNote;
+
+        if (pageNoteTimer !== null) {
+            window.clearTimeout(pageNoteTimer);
+            pageNoteTimer = null;
+        }
+
+        if (note === null || note.hidden) {
+            return;
+        }
+
+        note.classList.remove('is-visible');
+
+        window.setTimeout(function () {
+            note.hidden = true;
+        }, prefersReducedMotion() ? 0 : 420);
+    }
+
+    /*
+     * A message for the page that is still being loaded: it is handed over in the
+     * session store and picked up exactly once by showPendingNote(). This is the
+     * only case in which a sign-out loads the page - see goToStartPage.
+     */
+    function setPendingNote(key) {
+        try {
+            window.sessionStorage.setItem(NOTE_STORAGE_KEY, String(key));
+        } catch (error) {
+            /* Without storage the line is simply gone; nothing fails because of it. */
+        }
+    }
+
+    function showPendingNote() {
+        var key = null;
+
+        try {
+            key = window.sessionStorage.getItem(NOTE_STORAGE_KEY);
+
+            if (key !== null) {
+                window.sessionStorage.removeItem(NOTE_STORAGE_KEY);
+            }
+        } catch (error) {
+            return;
+        }
+
+        if (key === 'deleted' || key === 'signedOut') {
+            showPageNote(accountNoteText(key));
+        }
+    }
+
+    /*
+     * The window listens to everything a window has to listen to: the X, a click on
+     * the dark background, Escape, the two buttons of the second step, and Enter in
+     * the password field.
+     */
+    function wireAccountDialog() {
+        var dialog = elements.accountDialog;
+
+        if (dialog === null) {
+            return;
+        }
+
+        elements.accountClose.addEventListener('click', closeAccountDialog);
+
+        elements.accountDeleteOpen.addEventListener('click', function () {
+            showAccountStep('confirm');
+        });
+
+        /* "Cancel" is not a closed window: it goes back to the account itself. */
+        elements.accountCancel.addEventListener('click', function () {
+            showAccountStep('data');
+        });
+
+        elements.accountConfirm.addEventListener('click', submitAccountDelete);
+
+        elements.accountPassword.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitAccountDelete();
+            }
+        });
+
+        elements.accountPassword.addEventListener('input', function () {
+            elements.accountError.hidden = true;
+            elements.accountPassword.classList.remove('is-invalid');
+        });
+
+        /* A click on the dialog element itself - not on its content - is the backdrop. */
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                closeAccountDialog();
+            }
+        });
+
+        /*
+         * Escape is handled twice on purpose, like in the form dialog: "cancel" is
+         * the native event of a modal dialog, and the key handler covers every
+         * situation in which that event does not arrive.
+         */
+        dialog.addEventListener('cancel', function (event) {
+            event.preventDefault();
+            closeAccountDialog();
+        });
+
+        dialog.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeAccountDialog();
+            }
+        });
+
+        /* Closed is closed: the next open starts at the account itself again. */
+        dialog.addEventListener('close', function () {
+            dialog.classList.remove('is-open');
+            showAccountStep('data');
+        });
+    }
+
     function openDeleteDialog(kind, target, node) {
         dialogKind = 'delete';
         dialogEntry = { kind: kind, target: target, node: node };
@@ -4786,8 +5601,13 @@
         applyRevealOrder(document.querySelectorAll('.view--start .reveal'), 0);
 
         wireEvents();
+        wireAccountDialog();
 
         applyLocale(locale, false);
+
+        /* A line that was meant for the page that has just been loaded: the sign-out
+           or the deletion that happened right before it. */
+        showPendingNote();
     }
 
     /* ----------------------------------------------------------------------

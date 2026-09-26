@@ -2178,22 +2178,6 @@ html.is-theme-switching::view-transition-new(root) {
  * The initials of the signed-in user, as a quiet line above the menu items.
  * Mono and upper case like every label of this design.
  */
-/*
- * The name of the signed-in person, as a quiet line above the menu items. It is
- * a name and not an abbreviation of one, so it is written as it is - no upper
- * case and no wide letter spacing, which were for the two initials it carried
- * before.
- */
-.menu__label {
-    margin: 0 0 4px;
-    padding: 6px 10px 8px;
-    border-bottom: 1px solid var(--hairline);
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
-}
-
 /* Heading of one entry, with the actions that belong to that entry. */
 .detail__head {
     display: flex;
@@ -3078,35 +3062,6 @@ html.is-theme-switching::view-transition-new(root) {
     color: var(--text);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
-}
-
-/* --- the last row of a list is the way in ------------------------------- */
-
-.row-add {
-    margin-top: 6px;
-}
-
-.add-row {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    min-height: 56px;
-    padding: 0 18px;
-    border: 0;
-    border-radius: 16px;
-    background: none;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.98rem;
-    text-align: left;
-    cursor: pointer;
-    transition: color 200ms var(--ease), background-color 200ms var(--ease);
-}
-
-.add-row:hover,
-.add-row:focus-visible {
-    background-color: var(--tile-bg);
-    color: var(--text);
 }
 
 /* --- one quiet line per row --------------------------------------------- */
@@ -5014,154 +4969,6 @@ body.is-learning {
     box-shadow: none;
 }
 
-/* ==========================================================================
-   Signing in
-
-   A round button in the header of the same size as the theme switch next to it,
-   and the initials of the person once somebody is signed in. The dialog is the
-   shared one; new here are only the field of a password, its small eye and the
-   link that switches between the two modes.
-   ========================================================================== */
-
-.auth {
-    display: inline-flex;
-    align-items: center;
-}
-
-.auth-button {
-    appearance: none;
-    display: inline-grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    border: 1px solid var(--hairline);
-    border-radius: 50%;
-    background-color: var(--tile-bg);
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.82rem;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
-        color 160ms var(--ease);
-}
-
-.auth-button:hover,
-.auth-button[aria-expanded="true"] {
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-}
-
-.auth-button:focus-visible {
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-    outline: 2px solid var(--line-strong);
-    outline-offset: 2px;
-}
-
-/*
- * Signed in: the same fingerprint as the signed-out button, but in the full
- * text colour and inside a fine ring in the accent colour of the application -
- * the same colour the plus button and the other main actions carry (--accent).
- *
- * The ring sits exactly on the edge of the circle and is not a second frame
- * inside it, so there is one line and one signal - and it keeps its distance to
- * the drawing, because the button is 34px wide while the symbol inside is 18px.
- * The small dot of the earlier version is gone: the ring is the only thing that
- * says "signed in".
- *
- * It is 2px wide on purpose. A border of 1.5px is rounded down to 1px by the
- * browser, and a ring that thin stops reading as a ring.
- *
- * No glow, no shadow, no movement of its own: this is a state, not an effect.
- */
-.auth-button--user {
-    position: relative;
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg);
-    color: var(--text);
-}
-
-.auth-button--user::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    /* 1.5px and not 2: at device pixel ratio 1 the browser draws this as the fine
-       line it should be, at ratio 2 as three device pixels - never as a frame. */
-    border: 1.5px solid var(--accent);
-    border-radius: 50%;
-    opacity: 1;
-    pointer-events: none;
-    /* The ring arrives in a short fade instead of a hard switch. The animation
-       deliberately carries no fill mode: with one, its final value would win
-       over the opacity below for good and the ring could never fade out. */
-    animation: auth-fade-in 240ms var(--ease);
-    transition: opacity 240ms var(--ease);
-}
-
-/*
- * On the way out the ring fades away first and the circle is replaced by the
- * signed-out one afterwards - app.js waits exactly these 240ms before it builds
- * the other state. Without the wait the ring would be gone in the same frame
- * the state changes.
- */
-.auth-button--user.is-signing-out::after {
-    opacity: 0;
-}
-
-/* Used by the ring and by the symbol inside it: both arrive in the same fade. */
-@keyframes auth-fade-in {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-/*
- * The symbol in the circle - 18px, a 1.5px line, no fill, like the theme switch
- * next to it. It fades in when the state changes and fades out on the way back
- * (see .is-signing-out below), so signing in and out is never a hard switch.
- */
-.auth-button svg {
-    display: block;
-    opacity: 1;
-    animation: auth-fade-in 240ms var(--ease);
-    transition: opacity 240ms var(--ease);
-}
-
-.auth-button--user.is-signing-out svg {
-    opacity: 0;
-}
-
-.auth-button--user:hover,
-.auth-button--user[aria-expanded="true"] {
-    border-color: var(--line-strong);
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-}
-
-.auth-menu {
-    position: relative;
-    display: inline-flex;
-}
-
-/* The small menu under the initials, aligned to the right edge so it stays
-   inside the window on a narrow screen. */
-.auth-menu .menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    left: auto;
-    min-width: 160px;
-    z-index: 30;
-}
-
 /* --- the password field of the dialog ------------------------------------ */
 
 /*
@@ -5258,7 +5065,6 @@ body.is-learning {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .auth-button,
     .password-eye {
         transition: none;
     }
@@ -5497,4 +5303,628 @@ body.is-learning {
 .row__badge--exercise {
     color: var(--text);
     border-color: var(--line-strong, var(--line));
+}
+
+
+/* ---------------------------------------------------------------------------
+   Die Statistik-Ansicht
+   ---------------------------------------------------------------------------
+
+   Ruhig und reduziert wie der Rest: Zahlen in Monoschrift, Balken in Abstufungen
+   EINER Farbe (keine Ampelfarben), keine Kreise, keine Punkte, keine Abzeichen.
+   Alle Farben kommen aus den vorhandenen Tokens, damit hell und dunkel ohne
+   zweite Definition funktionieren.
+   --------------------------------------------------------------------------- */
+
+.stats__head {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 26px;
+}
+
+.stats__back {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    justify-self: start;
+}
+
+.stats__back:hover,
+.stats__back:focus-visible {
+    color: var(--text);
+}
+
+.stats__crumb-name {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.stats__hint {
+    font-size: 15px;
+    color: var(--muted);
+}
+
+/* Die drei Kennzahlen: große Mono-Zahlen nebeneinander. */
+.stats__figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 44px;
+    align-items: flex-end;
+}
+
+.stats__figure {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+}
+
+.stats__number {
+    font-family: var(--font-mono);
+    font-size: clamp(32px, 4.6vw, 46px);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--text);
+    /* Nichts springt, während die Zahlen wechseln. */
+    font-variant-numeric: tabular-nums;
+}
+
+.stats__label {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+}
+
+.stats__block {
+    display: grid;
+    gap: 12px;
+    margin-top: 34px;
+}
+
+.stats__title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+}
+
+/* Der segmentierte Balken: eine Spur, darin die Anteile. */
+.stats__bar {
+    display: flex;
+    height: 10px;
+    background-color: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.stats__part {
+    width: var(--share, 0%);
+    background-color: var(--text);
+    transition: width 320ms var(--ease);
+}
+
+/* Drei Stufen derselben Farbe: neu, lernend, gewusst. */
+.stats__part--fresh {
+    opacity: 0.26;
+}
+
+.stats__part--learning {
+    opacity: 0.55;
+}
+
+.stats__part--known {
+    opacity: 0.92;
+}
+
+/* Vier Stufen für die Fälligkeit, in derselben Logik. */
+.stats__part--now {
+    opacity: 0.92;
+}
+
+.stats__part--soon {
+    opacity: 0.62;
+}
+
+.stats__part--later {
+    opacity: 0.36;
+}
+
+.stats__part--none {
+    opacity: 0.16;
+}
+
+.stats__legend,
+.stats__note {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Die Woche: sieben schmale Säulen mit den Kürzeln darunter. */
+.stats__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+    height: 132px;
+}
+
+.stats__day {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 8px;
+    justify-items: center;
+    min-width: 0;
+}
+
+.stats__day-bar {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 100%;
+    background-color: var(--line);
+    border-radius: 4px;
+}
+
+.stats__day-fill {
+    width: 100%;
+    background-color: var(--text);
+    opacity: 0.7;
+    border-radius: 4px;
+}
+
+.stats__day-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* Die Zeilen je Unterkategorie: dieselbe Optik wie die Liste, nur mit Balken. */
+.stats__rows .row__progress-fill {
+    width: var(--share, 0%);
+}
+
+/* Der Knopf in der Kopfkarte: derselbe Kreis wie das Konto-Symbol im Kopf. */
+.stats-button {
+    appearance: none;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background-color: var(--tile-bg);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
+        color 160ms var(--ease);
+}
+
+.stats-button:hover,
+.stats-button:focus-visible {
+    border-color: var(--line-strong);
+    background-color: var(--tile-bg-hover);
+    color: var(--text);
+}
+
+.stats-button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+/* Auf schmalen Geräten stehen die Zahlen untereinander statt nebeneinander. */
+@media (max-width: 520px) {
+    .stats__figures {
+        gap: 16px 28px;
+    }
+
+    .stats__days {
+        gap: 6px;
+    }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Das Konto: der Text in der Kopfzeile, sein Fenster, die leise Zeile
+   ---------------------------------------------------------------------------
+
+   Alles hier ist reiner Text: keine Symbole, keine Rahmen, keine Schatten,
+   keine Verlaeufe - wie die Startseite daneben. Farbe und Schrift sind genau
+   die des Sprachumschalters, damit der Kopf eine ruhige Zeile bleibt.
+   --------------------------------------------------------------------------- */
+
+.account {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    /* Dieselbe Grundlinie wie .lang-switch daneben, damit beide Texte auf einer
+       Hoehe sitzen und der Kopf keine zweite Linie bekommt. */
+    padding-bottom: 4px;
+}
+
+.account__person {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.account__link,
+.account__name {
+    position: relative;
+    padding: 2px 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.account__link {
+    color: var(--muted);
+}
+
+/* Der Name ist die einzige dunklere Stelle: er gehoert der Person, die hier
+   angemeldet ist. Punkt und "Abmelden" bleiben gedaempft. */
+.account__name {
+    color: var(--text);
+}
+
+.account__dot {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+}
+
+.account__link:hover,
+.account__link:focus-visible,
+.account__name:hover,
+.account__name:focus-visible {
+    color: var(--text);
+}
+
+.account__link:focus-visible,
+.account__name:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+/*
+ * Die feine Unterstreichung - dasselbe Zeichen wie bei der aktiven Sprache, nur
+ * weich eingeblendet statt hart gesetzt. Sie liegt auf einem eigenen Element,
+ * weil sich eine Textdekoration nicht einblenden laesst.
+ */
+.account__link::after,
+.account__name::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-color: var(--accent);
+    opacity: 0;
+    transition: opacity 200ms var(--ease);
+}
+
+.account__link:hover::after,
+.account__name:hover::after,
+.account__link:focus-visible::after,
+.account__name:focus-visible::after {
+    opacity: 1;
+}
+
+/*
+ * Das Konto-Fenster: eine ruhige Flaeche, gerundet wie die Karten der Themen,
+ * ohne Schatten. Es kommt mit einem weichen Einblenden und einer sehr kleinen
+ * Vergroesserung (200 ms).
+ */
+.account-dialog {
+    /* Das einzige Rot der Anwendung fuer eine Loeschung - dieselben Toene wie
+       die rote Schaltflaeche des Eintrag-Dialogs, damit es EIN Rot bleibt. */
+    --account-danger: #A8443A;
+    width: min(460px, calc(100vw - 32px));
+    padding: 0;
+    border: 0;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: transparent;
+    color: var(--text);
+    opacity: 0;
+    transform: scale(0.98);
+    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+
+[data-theme="dark"] .account-dialog {
+    --account-danger: #B34D40;
+}
+
+.account-dialog[open].is-open {
+    opacity: 1;
+    transform: none;
+}
+
+.account-dialog::backdrop {
+    background-color: var(--backdrop);
+    opacity: 0;
+    transition: opacity 200ms var(--ease);
+}
+
+.account-dialog[open].is-open::backdrop {
+    opacity: 1;
+}
+
+.account-dialog__panel {
+    position: relative;
+    padding: 34px 34px 28px;
+    border-radius: var(--radius-tile);
+    background-color: var(--panel);
+}
+
+/* Das X: ein Zeichen, kein Symbol, keine Flaeche. */
+.account-dialog__close {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.account-dialog__close:hover,
+.account-dialog__close:focus-visible {
+    color: var(--text);
+}
+
+.account-dialog__close:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+.account-dialog__title {
+    margin: 0;
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+/*
+ * Die Angaben zum Konto: Beschriftungen gedaempft und klein, Werte in der
+ * Textfarbe, dazwischen viel Luft. Keine Linien, keine Kaesten.
+ */
+.account-dialog__list {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px 24px;
+    margin: 26px 0 0;
+}
+
+.account-dialog__term {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+}
+
+.account-dialog__value {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+/* Der Schluss: eine feine Haarlinie trennt ihn vom Rest. */
+.account-dialog__danger {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+}
+
+.account-dialog__subtitle {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.account-dialog__hint {
+    margin: 10px 0 0;
+    max-width: 42ch;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+/* Die Loeschung selbst: ein Text, kein roter Block. */
+.account-dialog__text-button {
+    margin-top: 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--account-danger);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: opacity 200ms var(--ease);
+}
+
+.account-dialog__text-button:hover,
+.account-dialog__text-button:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.account-dialog__text-button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+/* Der zweite Schritt: die Warnung, das Passwort, die zwei Schaltflaechen. */
+.account-dialog__warning {
+    margin: 26px 0 0;
+    max-width: 44ch;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.account-dialog__field {
+    margin-top: 24px;
+}
+
+.account-dialog__label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+}
+
+.account-dialog__input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+}
+
+.account-dialog__input:focus {
+    outline: none;
+    border-color: var(--text);
+}
+
+.account-dialog__input.is-invalid {
+    border-color: var(--account-danger);
+}
+
+/* Die Fehlermeldung steht klein und direkt unter dem Feld. */
+.account-dialog__error {
+    margin: 10px 0 0;
+    color: var(--account-danger);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.account-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 22px;
+    margin-top: 28px;
+}
+
+.account-dialog__button {
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.account-dialog__button:hover,
+.account-dialog__button:focus-visible {
+    color: var(--text);
+}
+
+.account-dialog__button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+.account-dialog__button--danger {
+    color: var(--account-danger);
+}
+
+.account-dialog__button--danger:hover,
+.account-dialog__button--danger:focus-visible {
+    color: var(--account-danger);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.account-dialog__button[disabled] {
+    opacity: 0.5;
+    cursor: default;
+    text-decoration: none;
+}
+
+/*
+ * Die leise Zeile oben im Inhalt. Sie blendet sich weich ein und wieder aus und
+ * nimmt danach keinen Platz mehr ein.
+ */
+.page-note {
+    margin: 0 0 22px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 400ms var(--ease), transform 400ms var(--ease);
+}
+
+.page-note[hidden] {
+    display: none;
+}
+
+.page-note.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Auf schmalen Bildschirmen bleibt der Kopf eine Zeile: der Name entfaellt, und
+   der Pfad darf schrumpfen statt umzubrechen. */
+@media (max-width: 620px) {
+    .site-header {
+        flex-wrap: nowrap;
+    }
+
+    .site-header__left {
+        min-width: 0;
+    }
+
+    .crumb {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .account__name,
+    .account__dot {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .account-dialog,
+    .account-dialog::backdrop,
+    .account__link::after,
+    .account__name::after {
+        transition: none;
+    }
+
+    .page-note {
+        transition: none;
+        transform: none;
+    }
 }
