@@ -558,12 +558,17 @@
     }
 
     /*
-     * The wording of a category.
+     * What a row is called on the page.
      *
-     * The database decides: `categories.name_<language>` is used when it holds
-     * something, and `categories.name` otherwise. Nothing in this file knows the
-     * name of a category, so renaming a row in the database renames it on the
-     * page - in the language that is switched on.
+     * A category is named by the database: `categories.name_<language>` is used
+     * when it holds something, and `categories.name` otherwise. Nothing in this
+     * file knows the name of a category, so renaming a row in the database
+     * renames it on the page - in the language that is switched on.
+     *
+     * A card has no name column. Its front side is what a person recognises it
+     * by, so that is what is used here. It has to be flattened and cut short
+     * first, because a front can be a whole sentence and this name is quoted
+     * inside other sentences ("Delete \"...\"?", "... was deleted.").
      */
     function displayName(row) {
         var translated = row['name_' + locale];
@@ -572,7 +577,43 @@
             return translated;
         }
 
-        return row.name;
+        if (typeof row.name === 'string' && row.name !== '') {
+            return row.name;
+        }
+
+        return shortLabel(row.front);
+    }
+
+    /*
+     * A text reduced to one line of at most 90 characters.
+     *
+     * Cut on a space where one is near the end, so no word is torn apart, and
+     * marked with an ellipsis so it is clear that something is missing.
+     *
+     * Anything that is not a string becomes an empty string. That matters: an
+     * `undefined` handed to t() would be joined into the sentence as a comma,
+     * because String#split(...).join(undefined) falls back to the default
+     * separator - which is how a dialog title ended up reading 'Delete ","?'.
+     */
+    function shortLabel(text) {
+        if (typeof text !== 'string') {
+            return '';
+        }
+
+        var flat = text.replace(/\s+/g, ' ').trim();
+
+        if (flat.length <= 90) {
+            return flat;
+        }
+
+        var cut = flat.slice(0, 90);
+        var lastSpace = cut.lastIndexOf(' ');
+
+        if (lastSpace > 60) {
+            cut = cut.slice(0, lastSpace);
+        }
+
+        return cut.replace(/[ ,;.]+$/, '') + '\u2026';
     }
 
 
@@ -2155,10 +2196,15 @@
     /*
      * One subcategory row: a link to its flashcards, the number of cards that
      * sit in it and a menu with "edit" and "delete".
+     *
+     * "row--category" is not decoration: the loading screen in index.php waits
+     * for ".row--category" (or ".row--card") before it takes itself away, so a
+     * subcategory page that is opened directly - by reload, by bookmark or by
+     * link - would keep showing the overlay without it.
      */
     function buildEntryRow(entry, index) {
         var item = document.createElement('li');
-        item.className = 'row reveal';
+        item.className = 'row row--category reveal';
         item.style.setProperty('--reveal-index', String(index));
 
         var title = displayName(entry);
@@ -6505,6 +6551,19 @@
     function wireLearning() {
         elements.learnButton.addEventListener('click', function () {
             startLearning('all');
+        });
+
+        /*
+         * The search field arrives read-only, which is what keeps the browser's
+         * autofill out of it - the reason is written next to the input in
+         * index.php. A read-only field still takes focus and still receives
+         * clicks, so the first interaction is where it is handed over to the
+         * person. Setting readOnly to false twice is harmless.
+         */
+        ['focus', 'mousedown', 'touchstart'].forEach(function (name) {
+            elements.cardSearch.addEventListener(name, function () {
+                elements.cardSearch.readOnly = false;
+            });
         });
 
         /* The search filters the loaded list; it never asks the server. */

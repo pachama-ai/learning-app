@@ -695,8 +695,27 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         <!-- Only from about fifteen cards: searching three cards is
                              more work than looking at them. -->
                         <div class="card-tools__search" id="card-tools-search" hidden>
+                            <!--
+                                A search field, not a sign-in field - and one the
+                                browser is told to keep its hands off:
+
+                                  * no <form> around it, and a name that cannot be
+                                    mistaken for a login ("card-search-term", not
+                                    "email" or "user"),
+                                  * autocomplete="off" for the browsers that honour
+                                    it,
+                                  * readonly until the field is really used. This is
+                                    the part that does the work: Chrome skips
+                                    read-only fields when it fills a page in, while
+                                    "off" alone is ignored as soon as any sign-in
+                                    form exists somewhere in the document - and one
+                                    does, the account dialog. app.js drops readonly
+                                    again on the first focus or click.
+                            -->
                             <input type="search" class="card-tools__search-input" id="card-search"
-                                   autocomplete="off" data-i18n-placeholder="cards.searchPlaceholder">
+                                   name="card-search-term" autocomplete="off" autocorrect="off"
+                                   autocapitalize="off" spellcheck="false" readonly
+                                   data-i18n-placeholder="cards.searchPlaceholder">
                         </div>
                     </div>
 
