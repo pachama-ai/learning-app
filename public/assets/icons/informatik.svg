@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"
+     fill="none" stroke="#8c8c8c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <!--
+        The drawing of the learning area "Informatik": a window with a prompt.
+        Thin grey lines, the same colour (#8c8c8c) and the same reduced language
+        as the drawings of the other areas, so it sits beside them without
+        shouting. Four lines in total.
+    -->
+    <rect x="7" y="11" width="34" height="26" rx="4"/>
+    <path d="M7 18.5h34"/>
+    <path d="M15 25.5l4 3.5-4 3.5"/>
+    <path d="M24 32.5h9"/>
+</svg>

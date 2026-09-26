@@ -531,7 +531,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     The heading stands alone. The counts that used to sit beside
                     it are still in the footer counter, so nothing is lost.
                 -->
-                <header class="start-header reveal">
+                <header class="start-header reveal" id="home-header">
                     <div class="start-header__intro">
                         <h1 class="heading" id="home-heading"><?= $text('home.heading') ?></h1>
                     </div>

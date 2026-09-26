@@ -381,6 +381,7 @@
         homeView: document.getElementById('view-home'),
         detailView: document.getElementById('view-detail'),
         homeHeading: document.getElementById('home-heading'),
+        homeHeader: document.getElementById('home-header'),
         detailHeading: document.getElementById('detail-heading'),
         detailStats: document.getElementById('detail-stats'),
         detailCount: document.getElementById('detail-count'),
@@ -2000,6 +2001,14 @@
         elements.homeView.hidden = false;
         elements.detailView.hidden = true;
 
+        /*
+         * The heading is there for the signed-in start page, where it asks which
+         * learning area to open. Without a session there is nothing to choose, so
+         * the welcome state below speaks alone: a second heading over it would
+         * only repeat the same sentence in smaller letters.
+         */
+        elements.homeHeader.hidden = false;
+
         /* Nothing is open here, so the plus button adds a learning area. */
         currentEntry = null;
         currentEntryCards = [];
@@ -2048,6 +2057,7 @@
                  * that would end in "no_user_session" is never shown.
                  */
                 if (authState.user === null) {
+                    elements.homeHeader.hidden = true;
                     elements.emptyTitle.textContent = t('home.welcome.title');
                     elements.emptyHint.textContent = t('home.welcome.hint');
                     elements.emptyAction.textContent = t('auth.signIn');
