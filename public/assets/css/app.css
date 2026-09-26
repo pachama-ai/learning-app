@@ -2283,7 +2283,16 @@ html.is-theme-switching::view-transition-new(root) {
     gap: 20px;
 }
 
-.dialog__field--check {
+/*
+ * The one field whose control stands beside its label instead of above it.
+ *
+ * It carries both classes on purpose. This file holds a second copy of
+ * ".dialog__field" further down, and that copy sets "flex-direction: column"
+ * for exactly the same specificity - so with ".dialog__field--check" alone the
+ * checkbox ended up stacked above its text and centred. Two classes beat one,
+ * whatever the order.
+ */
+.dialog__field.dialog__field--check {
     flex-direction: row;
     align-items: center;
     gap: 10px;
