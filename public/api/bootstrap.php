@@ -69,7 +69,24 @@ try {
     $userId = current_user_id($pdo);
     $columns = card_columns($pdo);
 
-    $areas = find_main_categories($pdo);
+    /*
+     * Categories belong to an account, so a signed-out visitor has nothing to
+     * receive. The answer keeps its exact shape and is simply empty - that is
+     * what the start page reads to show its welcome state.
+     */
+    if ($userId === null) {
+        send_json_success([
+            'areas' => [],
+            'children' => [],
+            'cards' => [],
+            'summaries' => [],
+            'has_user' => false,
+            'content_languages' => card_content_languages($columns),
+            'language' => $language,
+        ]);
+    }
+
+    $areas = find_main_categories($pdo, $userId);
 
     /*
      * The subcategories of every area, and - should there ever be a third level -
@@ -81,11 +98,11 @@ try {
     $level = array_map(static fn (array $area): int => (int) $area['id'], $areas);
 
     while ($level !== []) {
-        $withChildren = category_ids_with_children($pdo, $level);
+        $withChildren = category_ids_with_children($pdo, $level, $userId);
         $next = [];
 
         foreach ($withChildren as $parentId) {
-            $list = find_subcategories($pdo, $parentId);
+            $list = find_subcategories($pdo, $parentId, $userId);
             $children[(string) $parentId] = $list;
 
             foreach ($list as $child) {

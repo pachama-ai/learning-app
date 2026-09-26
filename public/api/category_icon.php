@@ -32,6 +32,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
+require_once __DIR__ . '/../../src/helpers/session_user.php';
 
 /*
  * The drawing is SVG, and SVG is text: it travels gzipped. Apache does that by
@@ -53,8 +54,21 @@ $categoryId = require_query_id('id');
 try {
     $pdo = create_database_connection();
 
-    $statement = $pdo->prepare('SELECT icon_svg, MD5(icon_svg) AS fingerprint FROM categories WHERE id = :id');
+    /*
+     * The drawing belongs to a category, and a category belongs to an account:
+     * one account's drawing is not served to anybody else. A signed-out request
+     * gets the same 404 as a wrong id - the address must not reveal that a
+     * drawing exists which the visitor may not see.
+     */
+    $userId = current_user_id($pdo);
+
+    $statement = $pdo->prepare(
+        'SELECT icon_svg, MD5(icon_svg) AS fingerprint
+           FROM categories
+          WHERE id = :id AND owner_user_id = :owner_user_id'
+    );
     $statement->bindValue(':id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $userId, $userId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
     $statement->execute();
 
     $row = $statement->fetch();
@@ -62,7 +76,8 @@ try {
     $svg = is_array($row) ? $row['icon_svg'] : null;
 
     if (!is_string($svg) || trim($svg) === '') {
-        // Covers both "no such category" and "category without an icon".
+        // Covers "no such category", "not this account's category" and
+        // "category without an icon" - all three are the same to the visitor.
         send_json_error('icon_not_found', 'This category has no stored icon.', 404);
     }
 
@@ -86,7 +101,7 @@ try {
          * the drawing stays the same: a new icon is a new address. That is what
          * makes "immutable" honest here.
          */
-        header('Cache-Control: public, max-age=604800, immutable');
+        header('Cache-Control: private, max-age=604800, immutable');
     }
 
     if (is_string($ifNoneMatch) && $ifNoneMatch !== '' && strpos($ifNoneMatch, $etag) !== false) {

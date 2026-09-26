@@ -201,7 +201,17 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     try {
-        $state = import_read_state($pdo, $csv['areas']);
+        import_check_owner($pdo, $options['owner']);
+    } catch (Throwable $error) {
+        echo 'STOP: ' . $error->getMessage() . "\n";
+
+        return 1;
+    }
+
+    echo 'Owner: id ' . $options['owner'] . "\n";
+
+    try {
+        $state = import_read_state($pdo, $csv['areas'], $options['owner']);
     } catch (Throwable $error) {
         echo 'DATABASE ERROR while reading: ' . $error->getMessage() . "\n";
 
@@ -292,7 +302,7 @@ function import_main(array $argv, string $projectRoot): int
        --------------------------------------------------------------------- */
 
     try {
-        $result = import_execute($pdo, $options['wipe'], $options['reuse'], $area, $csv);
+        $result = import_execute($pdo, $options['wipe'], $options['reuse'], $area, $csv, $options['owner']);
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -336,12 +346,12 @@ function import_main(array $argv, string $projectRoot): int
    -------------------------------------------------------------------------- */
 
 /**
- * Reads --file, --dry-run, --execute, --wipe-subcategories,
+ * Reads --file, --owner, --dry-run, --execute, --wipe-subcategories,
  * --allow-existing-subcategories and --expect.
  *
- * Without a mode the tool only reads.
+ * Without a mode the tool only reads. The owner is required in every mode.
  *
- * @return array{file: string, execute: bool, wipe: bool, reuse: bool, expect: int|null}|null
+ * @return array{file: string, owner: int, execute: bool, wipe: bool, reuse: bool, expect: int|null}|null
  */
 function import_read_arguments(array $argv, string $projectRoot): ?array
 {
@@ -350,6 +360,7 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
        --file= stops with a clear message instead of pointing at a file that
        does not exist any more. */
     $file = null;
+    $owner = null;
     $execute = false;
     $wipe = false;
     $reuse = false;
@@ -357,6 +368,18 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
     $modeGiven = false;
 
     foreach (array_slice($argv, 1) as $argument) {
+        if (strpos($argument, '--owner=') === 0) {
+            $value = substr($argument, 8);
+
+            if (ctype_digit($value) && (int) $value > 0) {
+                $owner = (int) $value;
+                continue;
+            }
+
+            echo "The value of --owner must be a positive whole number.\n";
+
+            return null;
+        }
         if (strpos($argument, '--expect=') === 0) {
             $value = substr($argument, 9);
 
@@ -423,6 +446,19 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
         return null;
     }
 
+    /*
+     * The owner is required in every mode, not only with --execute: the dry run
+     * has to look at the areas of that user as well, otherwise it would count
+     * an area of another account that happens to have the same name.
+     */
+    if ($owner === null) {
+        echo "No owner given. Pass --owner=<id> with the id of a user in the users table.\n\n";
+
+        import_print_usage();
+
+        return null;
+    }
+
     if ($file === null) {
         echo "No CSV file given. Pass --file=<path>; there is no default file any more.\n\n";
 
@@ -439,22 +475,45 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
         return null;
     }
 
-    return ['file' => $real, 'execute' => $execute, 'wipe' => $wipe, 'reuse' => $reuse, 'expect' => $expect];
+    return ['file' => $real, 'owner' => $owner, 'execute' => $execute, 'wipe' => $wipe, 'reuse' => $reuse, 'expect' => $expect];
 }
 
 function import_print_usage(): void
 {
     echo "Usage:\n";
-    echo "  php bin/import_energy_cards.php --file=<path> --dry-run\n";
-    echo "  php bin/import_energy_cards.php --file=<path> --execute --expect=209 --wipe-subcategories\n";
+    echo "  php bin/import_energy_cards.php --file=<path> --owner=<id> --dry-run\n";
+    echo "  php bin/import_energy_cards.php --file=<path> --owner=<id> --execute --expect=209 --wipe-subcategories\n";
     echo "\n";
     echo "  --file=...              the CSV file, required (there is no default file)\n";
+    echo "  --owner=<id>            the user the new subcategories belong to, required\n";
     echo "  --dry-run               read and report, write nothing (default)\n";
     echo "  --execute               really import, all of it or none of it\n";
     echo "  --wipe-subcategories    delete the subcategories of the area in the file first\n";
     echo "  --allow-existing-subcategories\n";
     echo "                          put the cards into a subcategory that is already there\n";
     echo "  --expect=N              refuse to run when the file does not have N cards\n";
+}
+
+/**
+ * Makes sure the id given with --owner is a real user.
+ *
+ * Checked before anything is read or written: an id that is not in the users
+ * table would otherwise only be caught by the foreign key in the middle of the
+ * import, after part of the work is done.
+ *
+ * @throws RuntimeException when there is no user with that id.
+ */
+function import_check_owner(PDO $pdo, int $ownerUserId): void
+{
+    $statement = $pdo->prepare('SELECT id FROM users WHERE id = :id');
+    $statement->bindValue(':id', $ownerUserId, PDO::PARAM_INT);
+    $statement->execute();
+
+    if ($statement->fetchColumn() === false) {
+        throw new RuntimeException(
+            'there is no user with id ' . $ownerUserId . '. The owner must be a row in the users table.'
+        );
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -771,10 +830,20 @@ function import_expectation_problems(array $csv, ?int $expected): array
  * @param list<string> $wantedAreas The names the file uses in parent_category.
  * @return array<string, mixed>
  */
-function import_read_state(PDO $pdo, array $wantedAreas): array
+function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): array
 {
-    $areas = $pdo->query('SELECT id, name, name_en, name_de FROM categories WHERE parent_id IS NULL ORDER BY id')
-        ->fetchAll(PDO::FETCH_ASSOC);
+    /*
+     * Only the areas of this owner are read. Two accounts may each own an area
+     * called "Energy"; the file names the area, the owner decides which one.
+     */
+    $areasStatement = $pdo->prepare(
+        'SELECT id, name, name_en, name_de FROM categories
+          WHERE parent_id IS NULL AND owner_user_id = :owner_user_id
+          ORDER BY id'
+    );
+    $areasStatement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+    $areasStatement->execute();
+    $areas = $areasStatement->fetchAll(PDO::FETCH_ASSOC);
 
     /* The area the file names: name, name_de or name_en, without case. */
     $wanted = array_map(static fn ($name): string => mb_strtolower(trim((string) $name)), $wantedAreas);
@@ -1045,7 +1114,7 @@ function import_front_collisions(PDO $pdo, array $area, array $names, array $csv
     return $collisions;
 }
 
-function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $csv): array
+function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $csv, int $ownerUserId): array
 {
     $pdo->beginTransaction();
 
@@ -1054,7 +1123,7 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
     /* ---- STEP A ---------------------------------------------------------- */
 
     if ($wipe) {
-        $deleted = import_delete_subcategories($pdo, (int) $area['id']);
+        $deleted = import_delete_subcategories($pdo, (int) $area['id'], $ownerUserId);
 
         /* The proof: nothing is left below THIS area. */
         $left = (int) $pdo->query('SELECT COUNT(*) FROM categories WHERE parent_id = ' . (int) $area['id'])->fetchColumn();
@@ -1081,12 +1150,15 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
      * the German name carries the text, the English name stays empty, and the
      * drawing columns stay NULL. The application's create_category() is not used
      * here because it does not write name_de.
+     *
+     * owner_user_id carries the value from --owner: a subcategory belongs to the
+     * same user as the area above it.
      */
     $insertCategory = $pdo->prepare(
         'INSERT INTO categories
-            (parent_id, name, name_en, name_de, color, icon_svg, icon_scale, description_en, description_de)
+            (parent_id, name, name_en, name_de, owner_user_id, color, icon_svg, icon_scale, description_en, description_de)
          VALUES
-            (:parent_id, :name, NULL, :name_de, NULL, NULL, 1.00, NULL, NULL)'
+            (:parent_id, :name, NULL, :name_de, :owner_user_id, NULL, NULL, 1.00, NULL, NULL)'
     );
 
     /*
@@ -1098,8 +1170,11 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
     $reusable = [];
 
     if ($reuse) {
-        $existing = $pdo->prepare('SELECT id, name FROM categories WHERE parent_id = :parent_id');
+        $existing = $pdo->prepare(
+            'SELECT id, name FROM categories WHERE parent_id = :parent_id AND owner_user_id = :owner_user_id'
+        );
         $existing->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
+        $existing->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
         $existing->execute();
 
         foreach ($existing as $row) {
@@ -1117,6 +1192,7 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
         $insertCategory->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
         $insertCategory->bindValue(':name', $name, PDO::PARAM_STR);
         $insertCategory->bindValue(':name_de', $name, PDO::PARAM_STR);
+        $insertCategory->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
         $insertCategory->execute();
 
         $idOf[$name] = (int) $pdo->lastInsertId();
@@ -1204,9 +1280,16 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
  *
  * @return array{categories: int, cards: int, progress: int}
  */
-function import_delete_subcategories(PDO $pdo, int $areaId): array
+function import_delete_subcategories(PDO $pdo, int $areaId, int $ownerUserId): array
 {
-    $rows = $pdo->query('SELECT id, parent_id FROM categories WHERE parent_id IS NOT NULL')->fetchAll(PDO::FETCH_ASSOC);
+    /* Only the categories of this owner are read in; the area filter below then
+       keeps the descendants of the one area the file names. */
+    $rowsStatement = $pdo->prepare(
+        'SELECT id, parent_id FROM categories WHERE parent_id IS NOT NULL AND owner_user_id = :owner_user_id'
+    );
+    $rowsStatement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+    $rowsStatement->execute();
+    $rows = $rowsStatement->fetchAll(PDO::FETCH_ASSOC);
 
     if ($rows === []) {
         return ['categories' => 0, 'cards' => 0, 'progress' => 0];
@@ -1266,16 +1349,20 @@ function import_delete_subcategories(PDO $pdo, int $areaId): array
     arsort($depthOf, SORT_NUMERIC);
     $ids = array_map('intval', array_keys($depthOf));
 
-    /* 1. and 2.: the application's own helpers. */
-    $progress = delete_progress_of_categories($pdo, $ids);
-    $cards = delete_cards_of_categories($pdo, $ids);
+    /*
+     * 1. and 2.: the application's own helpers, with the owner as a second
+     * condition - they can never touch a row of another user.
+     */
+    $progress = delete_progress_of_categories($pdo, $ids, $ownerUserId);
+    $cards = delete_cards_of_categories($pdo, $ids, $ownerUserId);
 
-    /* 3. the categories themselves. */
-    $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id');
+    /* 3. the categories themselves, again with the owner as a second lock. */
+    $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
     $deleted = 0;
 
     foreach ($ids as $id) {
         $statement->bindValue(':id', $id, PDO::PARAM_INT);
+        $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
         $statement->execute();
         $deleted += $statement->rowCount();
     }

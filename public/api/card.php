@@ -19,6 +19,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
+require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? '';
@@ -36,15 +37,24 @@ $body = read_json_object($method === 'DELETE');
 
 try {
     $pdo = create_database_connection();
+    $userId = current_user_id($pdo);
 
-    $current = find_card($pdo, $cardId);
+    /* A card belongs to a category, and a category belongs to an account.
+       Changing or deleting one therefore needs that account. */
+    if ($userId === null) {
+        $required = session_user_required_error();
+
+        send_json_error($required['code'], $required['message'], $required['status']);
+    }
+
+    $current = find_card($pdo, $cardId, $userId);
 
     if ($current === null) {
         send_json_error('card_not_found', 'This card does not exist.', 404);
     }
 
     if ($method === 'DELETE') {
-        delete_card($pdo, $cardId);
+        delete_card($pdo, $cardId, $userId);
 
         send_json_success(['deleted' => true, 'id' => $cardId]);
     }
@@ -177,7 +187,7 @@ try {
         send_json_error('invalid_request_body', 'Send at least one field to change.', 400);
     }
 
-    $updated = update_card($pdo, $cardId, $changes);
+    $updated = update_card($pdo, $cardId, $changes, $userId);
 
     send_json_success($updated);
 } catch (Throwable $error) {

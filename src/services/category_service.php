@@ -177,15 +177,21 @@ function category_select_sql(array $columns): string
 }
 
 /**
- * Returns all top-level categories (the learning areas).
+ * Returns all top-level categories (the learning areas) of ONE account.
+ *
+ * Every read in this file takes the owner as a required argument. There is no
+ * default and no "no filter" mode on purpose: a forgotten argument has to fail
+ * loudly instead of quietly handing somebody else's categories to a request.
  */
-function find_main_categories(PDO $pdo): array
+function find_main_categories(PDO $pdo, int $ownerUserId): array
 {
     $statement = $pdo->prepare(
         category_select_sql(category_columns($pdo)) . '
          WHERE c.parent_id IS NULL
+           AND c.owner_user_id = :owner_user_id
          ORDER BY c.id ASC'
     );
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     return normalize_category_rows($statement->fetchAll());
@@ -194,16 +200,18 @@ function find_main_categories(PDO $pdo): array
 /**
  * Returns the subcategories of one category, ordered by id.
  */
-function find_subcategories(PDO $pdo, int $parentId): array
+function find_subcategories(PDO $pdo, int $parentId, int $ownerUserId): array
 {
     // The value is bound as an integer. It reaches the database separately from
     // the SQL text, so it can never be read as part of the query.
     $statement = $pdo->prepare(
         category_select_sql(category_columns($pdo)) . '
          WHERE c.parent_id = :parent_id
+           AND c.owner_user_id = :owner_user_id
          ORDER BY c.id ASC'
     );
     $statement->bindValue(':parent_id', $parentId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     return normalize_category_rows($statement->fetchAll());
@@ -218,13 +226,15 @@ function find_subcategories(PDO $pdo, int $parentId): array
  *
  * @return array<string, mixed>|null
  */
-function find_category(PDO $pdo, int $categoryId, bool $withDeletePreview = false): ?array
+function find_category(PDO $pdo, int $categoryId, int $ownerUserId, bool $withDeletePreview = false): ?array
 {
     $statement = $pdo->prepare(
         category_select_sql(category_columns($pdo)) . '
-         WHERE c.id = :id'
+         WHERE c.id = :id
+           AND c.owner_user_id = :owner_user_id'
     );
     $statement->bindValue(':id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     $row = $statement->fetch();
@@ -239,7 +249,7 @@ function find_category(PDO $pdo, int $categoryId, bool $withDeletePreview = fals
         return $category;
     }
 
-    $stats = category_subtree_stats($pdo, $categoryId);
+    $stats = category_subtree_stats($pdo, $categoryId, $ownerUserId);
 
     // "categories" counts the subcategories below this one; the category itself
     // is not part of the preview.
@@ -252,12 +262,20 @@ function find_category(PDO $pdo, int $categoryId, bool $withDeletePreview = fals
 }
 
 /**
- * Reports whether a category with this id exists.
+ * Reports whether this account owns a category with this id.
+ *
+ * This is the gate in front of everything that hangs off a category: the cards
+ * and the review queue ask here first. Without the owner in the condition a
+ * second account could reach somebody else's cards just by guessing a category
+ * id.
  */
-function category_exists(PDO $pdo, int $categoryId): bool
+function category_exists(PDO $pdo, int $categoryId, int $ownerUserId): bool
 {
-    $statement = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id = :id');
+    $statement = $pdo->prepare(
+        'SELECT COUNT(*) FROM categories WHERE id = :id AND owner_user_id = :owner_user_id'
+    );
     $statement->bindValue(':id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     return (int) $statement->fetchColumn() > 0;
@@ -273,11 +291,14 @@ function category_exists(PDO $pdo, int $categoryId): bool
  * @param int|null $exceptId A category that is allowed to keep the name (the
  *                           one that is currently being edited).
  */
-function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, ?int $exceptId = null): bool
+function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, int $ownerUserId, ?int $exceptId = null): bool
 {
+    /* Two accounts may both own a "Mathematics" area, so the owner belongs in
+       this condition as much as the name does. */
     $sql = 'SELECT COUNT(*)
               FROM categories
-             WHERE name = :name
+             WHERE owner_user_id = :owner_user_id
+               AND name = :name
                AND ' . ($parentId === null ? 'parent_id IS NULL' : 'parent_id = :parent_id');
 
     if ($exceptId !== null) {
@@ -285,6 +306,7 @@ function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, ?i
     }
 
     $statement = $pdo->prepare($sql);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->bindValue(':name', $name, PDO::PARAM_STR);
 
     if ($parentId !== null) {
@@ -311,14 +333,15 @@ function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, ?i
  * @param array<string, mixed> $fields
  * @return array<string, mixed>
  */
-function create_category(PDO $pdo, array $fields): array
+function create_category(PDO $pdo, array $fields, int $ownerUserId): array
 {
     $available = category_columns($pdo);
-    $columns = ['parent_id', 'name'];
-    $values = [':parent_id', ':name'];
+    $columns = ['parent_id', 'name', 'owner_user_id'];
+    $values = [':parent_id', ':name', ':owner_user_id'];
     $bindings = [
         ':parent_id' => [$fields['parent_id'] ?? null, PDO::PARAM_INT],
         ':name' => [(string) $fields['name'], PDO::PARAM_STR],
+        ':owner_user_id' => [$ownerUserId, PDO::PARAM_INT],
     ];
 
     $optional = [
@@ -356,7 +379,7 @@ function create_category(PDO $pdo, array $fields): array
 
     $statement->execute();
 
-    $created = find_category($pdo, (int) $pdo->lastInsertId());
+    $created = find_category($pdo, (int) $pdo->lastInsertId(), $ownerUserId);
 
     return $created ?? [];
 }
@@ -370,7 +393,7 @@ function create_category(PDO $pdo, array $fields): array
  * @param array<string, mixed> $changes
  * @return array<string, mixed>|null
  */
-function update_category(PDO $pdo, int $categoryId, array $changes): ?array
+function update_category(PDO $pdo, int $categoryId, array $changes, int $ownerUserId): ?array
 {
     $allowed = [
         'name' => PDO::PARAM_STR,
@@ -394,13 +417,15 @@ function update_category(PDO $pdo, int $categoryId, array $changes): ?array
     }
 
     if ($assignments === []) {
-        return find_category($pdo, $categoryId);
+        return find_category($pdo, $categoryId, $ownerUserId);
     }
 
     $statement = $pdo->prepare(
-        'UPDATE categories SET ' . implode(', ', $assignments) . ' WHERE id = :id'
+        'UPDATE categories SET ' . implode(', ', $assignments) . '
+          WHERE id = :id AND owner_user_id = :owner_user_id'
     );
     $statement->bindValue(':id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
 
     foreach ($bindings as $placeholder => [$value, $type]) {
         if ($value === null) {
@@ -413,7 +438,7 @@ function update_category(PDO $pdo, int $categoryId, array $changes): ?array
 
     $statement->execute();
 
-    return find_category($pdo, $categoryId);
+    return find_category($pdo, $categoryId, $ownerUserId);
 }
 
 /**
@@ -425,14 +450,33 @@ function update_category(PDO $pdo, int $categoryId, array $changes): ?array
  *
  * @return list<int> The category itself first, then its children level by level.
  */
-function category_subtree_ids(PDO $pdo, int $categoryId): array
+function category_subtree_ids(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
     $children = [];
+    $owned = [];
 
-    foreach ($pdo->query('SELECT id, parent_id FROM categories')->fetchAll() as $row) {
+    /* Only this account's rows are read, so a foreign id can never pull another
+       account's subtree into a delete or a count. */
+    $statement = $pdo->prepare('SELECT id, parent_id FROM categories WHERE owner_user_id = :owner_user_id');
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+    $statement->execute();
+
+    foreach ($statement->fetchAll() as $row) {
+        $owned[(int) $row['id']] = true;
+
         // A NULL parent_id becomes the key 0, which is never a real id.
         $parentKey = $row['parent_id'] === null ? 0 : (int) $row['parent_id'];
         $children[$parentKey][] = (int) $row['id'];
+    }
+
+    /*
+     * A category of somebody else is not a subtree with one member - it is no
+     * subtree at all. Returning [] keeps the answer honest instead of echoing an
+     * id that this account does not own, and delete_category_tree() then finds
+     * nothing to delete and refuses with its own check.
+     */
+    if (!isset($owned[$categoryId])) {
+        return [];
     }
 
     $ids = [$categoryId];
@@ -461,9 +505,15 @@ function category_subtree_ids(PDO $pdo, int $categoryId): array
  *
  * @return array{categories: int, cards: int}
  */
-function category_subtree_stats(PDO $pdo, int $categoryId): array
+function category_subtree_stats(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
-    $ids = category_subtree_ids($pdo, $categoryId);
+    $ids = category_subtree_ids($pdo, $categoryId, $ownerUserId);
+
+    /* A foreign category is no subtree at all, and "IN ()" is not valid SQL -
+       so the empty answer is written out here instead of being built. */
+    if ($ids === []) {
+        return ['categories' => 0, 'cards' => 0];
+    }
     $placeholders = [];
     $bindings = [];
 
@@ -495,9 +545,9 @@ function category_subtree_stats(PDO $pdo, int $categoryId): array
  *
  * @return array{categories: int, cards: int, descendants: int}
  */
-function category_delete_dependents(PDO $pdo, int $categoryId): array
+function category_delete_dependents(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
-    $stats = category_subtree_stats($pdo, $categoryId);
+    $stats = category_subtree_stats($pdo, $categoryId, $ownerUserId);
 
     return [
         /* Everything including the category itself. */
@@ -529,7 +579,7 @@ function category_delete_dependents(PDO $pdo, int $categoryId): array
  * @return array{categories: int, cards: int, progress: int} What was really deleted.
  * @throws RuntimeException when the selected category is still there afterwards.
  */
-function delete_category_tree(PDO $pdo, int $categoryId): array
+function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
     // The cards (and their progress) are deleted first and that is done by the
     // card service, so it is loaded here instead of relying on the caller.
@@ -548,13 +598,13 @@ function delete_category_tree(PDO $pdo, int $categoryId): array
     }
 
     try {
-        $ids = category_subtree_ids($pdo, $categoryId);
+        $ids = category_subtree_ids($pdo, $categoryId, $ownerUserId);
 
         // 1. the learning progress of every card in this subtree
-        $deletedProgress = delete_progress_of_categories($pdo, $ids);
+        $deletedProgress = delete_progress_of_categories($pdo, $ids, $ownerUserId);
 
         // 2. the cards themselves
-        $deletedCards = delete_cards_of_categories($pdo, $ids);
+        $deletedCards = delete_cards_of_categories($pdo, $ids, $ownerUserId);
 
         /*
          * 3. and 4. the categories. category_subtree_ids() returns a parent
@@ -562,9 +612,10 @@ function delete_category_tree(PDO $pdo, int $categoryId): array
          * first. A category can therefore never be removed while something still
          * points at it.
          */
-        $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id');
+        $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
         $deletedCategories = 0;
         $deletedSelected = 0;
+        $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
 
         foreach (array_reverse($ids) as $id) {
             $statement->bindValue(':id', $id, PDO::PARAM_INT);
@@ -588,8 +639,9 @@ function delete_category_tree(PDO $pdo, int $categoryId): array
             throw new RuntimeException('The selected category was not deleted.');
         }
 
-        $check = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id = :id');
+        $check = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
         $check->bindValue(':id', $categoryId, PDO::PARAM_INT);
+        $check->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
         $check->execute();
 
         if ((int) $check->fetchColumn() !== 0) {
@@ -721,7 +773,7 @@ function normalize_optional_text($value, int $maxLength): ?string
  * @param list<int> $ids
  * @return list<int> the ids that really have children, ordered like the input
  */
-function category_ids_with_children(PDO $pdo, array $ids): array
+function category_ids_with_children(PDO $pdo, array $ids, int $ownerUserId): array
 {
     $wanted = array_values(array_unique(array_filter($ids, static fn ($id) => (int) $id > 0)));
 
@@ -740,8 +792,11 @@ function category_ids_with_children(PDO $pdo, array $ids): array
     $statement = $pdo->prepare(
         'SELECT DISTINCT parent_id FROM categories
           WHERE parent_id IN (' . implode(', ', $placeholders) . ')
+            AND owner_user_id = :owner_user_id
           ORDER BY parent_id ASC'
     );
+
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
 
     foreach ($wanted as $index => $id) {
         $statement->bindValue(':parent_' . $index, (int) $id, PDO::PARAM_INT);

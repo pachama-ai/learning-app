@@ -42,6 +42,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
+require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/helpers/svg_sanitizer.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 
@@ -61,8 +62,16 @@ $body = read_json_object(true);
 
 try {
     $pdo = create_database_connection();
+    $userId = current_user_id($pdo);
 
-    $current = find_category($pdo, $categoryId, false);
+    /* A category belongs to an account: renaming and deleting one needs it. */
+    if ($userId === null) {
+        $required = session_user_required_error();
+
+        send_json_error($required['code'], $required['message'], $required['status']);
+    }
+
+    $current = find_category($pdo, $categoryId, $userId);
 
     if ($current === null) {
         send_json_error('category_not_found', 'This category does not exist.', 404);
@@ -82,7 +91,7 @@ try {
          * The browser answers "confirm_required" by reading the category again
          * (api/categories.php?id=N) and asking the person with those numbers.
          */
-        $dependents = category_delete_dependents($pdo, $categoryId);
+        $dependents = category_delete_dependents($pdo, $categoryId, $userId);
 
         if ($dependents['descendants'] > 0 || $dependents['cards'] > 0) {
             if (optional_flag($body, 'confirm') !== true) {
@@ -95,7 +104,7 @@ try {
         }
 
         try {
-            $deleted = delete_category_tree($pdo, $categoryId);
+            $deleted = delete_category_tree($pdo, $categoryId, $userId);
         } catch (PDOException $error) {
             /* A row that still points at this category: a conflict in the data,
                not a broken server. */
@@ -178,12 +187,12 @@ try {
 
     // A renamed category must not collide with a sibling.
     if (array_key_exists('name', $changes) && $changes['name'] !== $current['name']) {
-        if (category_sibling_name_exists($pdo, $changes['name'], $current['parent_id'], $categoryId)) {
+        if (category_sibling_name_exists($pdo, $changes['name'], $current['parent_id'], $userId, $categoryId)) {
             send_json_error('category_exists', 'A category with this name already exists here.', 409);
         }
     }
 
-    $updated = update_category($pdo, $categoryId, $changes);
+    $updated = update_category($pdo, $categoryId, $changes, $userId);
 
     send_json_success($updated);
 } catch (Throwable $error) {

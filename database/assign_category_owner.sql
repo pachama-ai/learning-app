@@ -1,0 +1,81 @@
+-- ==========================================================================
+-- Data: hand the existing categories to their account
+-- ==========================================================================
+--
+-- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
+-- Nothing in the application runs this file, and Copilot never executes a
+-- change to your data on its own.
+--
+-- Command line:
+--   mysql -u <user> -p learning_app < database/assign_category_owner.sql
+--
+-- Run this AFTER database/add_category_owner.sql. Without that column there is
+-- nothing here to fill.
+--
+-- Why
+--   `owner_user_id` exists since the migration above, and every row is NULL.
+--   Until that is filled, the application still cannot tell whose categories
+--   these are - so this file writes the owner once, for every row that has none.
+--
+-- The account
+--
+--   id    6
+--   name  selina.schneider
+--   email selina.schneider@gmail.com
+--   role  learner
+--
+--   That id was read from the `users` table and confirmed by the account holder
+--   before this file was written. It is the only account in the table. The id is
+--   written out literally rather than looked up by email on purpose: a one-off
+--   backfill should say which id it writes, so the statement can be reviewed
+--   without a second query in the head.
+--
+--   Check it yourself before running (expected: exactly one row, id 6):
+--
+--     SELECT id, name, email, role FROM users ORDER BY id;
+--
+-- What it does
+--   One UPDATE. It sets `owner_user_id = 6` on every category row that has no
+--   owner yet - the 4 learning areas and their 41 subcategories, 45 rows in
+--   total (counted on 2026-09-26, after the English subcategories were removed).
+--
+--   Nothing else changes: no name, no colour, no drawing, no parent, no card.
+--   The rows keep their ids, so every card stays in the category it was in.
+--
+-- What it does NOT do
+--   * no INSERT, no DELETE, no DROP, no ALTER - the structure is not touched
+--   * no other table is touched: `users`, `cards`, `user_card_progress`,
+--     `card_exercises` and `study_sessions` keep their rows exactly as they are
+--   * it does not make the column NOT NULL. That is a separate, later file, once
+--     the application always sets the owner itself.
+--   * it does not filter anything yet. The application does not read the column
+--     until the code change that follows, so this file alone changes no
+--     behaviour you can see.
+--
+-- Safety
+--   The WHERE clause only touches rows that are still empty. Running this file a
+--   second time therefore reports
+--
+--     0 rows affected
+--
+--   and changes nothing - which is also the answer you want if a category is
+--   ever handed to another account later: this file will not take it back.
+--
+-- Check after running (expected: 45 and 45)
+--   SELECT COUNT(*) AS gesamt,
+--          COUNT(owner_user_id) AS mit_besitzer
+--     FROM categories;
+--
+--   Expected: 45 rows carry owner 6, 0 rows are NULL.
+--
+--   SELECT owner_user_id, COUNT(*) FROM categories GROUP BY owner_user_id;
+--
+--   Expected: a single line, owner 6, count 45.
+--
+-- Rollback (only if you ever want the old state back)
+--   UPDATE `categories` SET `owner_user_id` = NULL WHERE `owner_user_id` = 6;
+-- ==========================================================================
+
+UPDATE `categories`
+   SET `owner_user_id` = 6
+ WHERE `owner_user_id` IS NULL;

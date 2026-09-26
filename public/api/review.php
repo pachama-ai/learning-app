@@ -85,7 +85,7 @@ if ($method === 'POST') {
             send_json_error($required['code'], $required['message'], $required['status']);
         }
 
-        if (!category_exists($pdo, $categoryId)) {
+        if (!category_exists($pdo, $categoryId, $userId)) {
             send_json_error('category_not_found', 'This category does not exist.', 404);
         }
 
@@ -138,12 +138,29 @@ if (is_string($rawMode) && $rawMode !== '') {
 
 try {
     $pdo = create_database_connection();
+    $userId = current_user_id($pdo);
 
-    if (!category_exists($pdo, $categoryId)) {
-        send_json_error('category_not_found', 'This category does not exist.', 404);
+    /*
+     * A category belongs to an account. Without one there is no queue to build:
+     * the answer is the empty session with 200, so the interface can show its own
+     * "nothing to study" state instead of an error (decided with the account
+     * work).
+     */
+    if ($userId === null) {
+        send_json_success([
+            'category_id' => $categoryId,
+            'mode' => $mode,
+            'has_user' => false,
+            'summary' => review_summarise_cards([]),
+            'counts' => ['due' => 0, 'new' => 0, 'unsure' => 0, 'known' => 0, 'cards' => 0],
+            'queue' => [],
+            'content_languages' => card_content_languages(card_columns($pdo)),
+        ]);
     }
 
-    $userId = current_user_id($pdo);
+    if (!category_exists($pdo, $categoryId, $userId)) {
+        send_json_error('category_not_found', 'This category does not exist.', 404);
+    }
 
     /*
      * The session belongs to the entry that was opened. A subcategory brings its
@@ -151,7 +168,7 @@ try {
      * which is what makes "Study all" possible without touching the repetition
      * logic - the queue and the scheduler see exactly the same cards as before.
      */
-    $branchIds = review_branch_category_ids($pdo, $categoryId);
+    $branchIds = review_branch_category_ids($pdo, $categoryId, $userId);
     $cards = review_cards_in_categories($pdo, $branchIds, $userId, optional_query_language());
     $summary = review_summarise_cards($cards);
 

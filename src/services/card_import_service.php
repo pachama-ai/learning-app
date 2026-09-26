@@ -550,17 +550,19 @@ function card_import_preview_row(int $line, array $values, bool $imports, string
  *
  * @return array<string, true>
  */
-function card_import_existing_fronts(PDO $pdo, int $categoryId): array
+function card_import_existing_fronts(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
     $columns = card_columns($pdo);
     $pairs = card_language_columns($columns);
     $statement = $pdo->prepare(
         'SELECT front, back, front_de, back_de, front_en, back_en
            FROM cards
-          WHERE category_id = :category_id'
+          WHERE category_id = :category_id
+            AND category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)'
     );
 
     $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     $existing = [];
@@ -591,7 +593,7 @@ function card_import_existing_fronts(PDO $pdo, int $categoryId): array
  * @param list<array<string, mixed>> $cards
  * @return int How many cards were written.
  */
-function card_import_insert(PDO $pdo, int $categoryId, array $cards): int
+function card_import_insert(PDO $pdo, int $categoryId, array $cards, int $ownerUserId): int
 {
     $columns = card_columns($pdo);
     $pairs = card_language_columns($columns);
@@ -628,6 +630,7 @@ function card_import_insert(PDO $pdo, int $categoryId, array $cards): int
                 $texts,
                 $columns,
                 $card['is_bidirectional'] === true,
+                $ownerUserId,
                 null,
                 $card['exercise'] ?? null
             );

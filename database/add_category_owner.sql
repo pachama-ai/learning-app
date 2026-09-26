@@ -1,0 +1,100 @@
+-- ==========================================================================
+-- Migration: a category belongs to an account
+-- ==========================================================================
+--
+-- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
+-- Nothing in the application runs this file, and Copilot never executes a
+-- structural change on its own.
+--
+-- Command line:
+--   mysql -u <user> -p learning_app < database/add_category_owner.sql
+--
+-- Why
+--   Until now a category belonged to nobody: `categories` had no column that
+--   said whose it is, so every visitor saw the same learning areas. The next
+--   step is a second account, and from then on a person must only ever see
+--   their own areas, subcategories and cards.
+--
+--   This file adds the column and nothing else. It does NOT assign it and it
+--   does NOT touch a single existing row: after this file the column is NULL
+--   everywhere, the application ignores it completely and keeps working exactly
+--   as it does today. Filling it is a separate file
+--   (database/assign_category_owner.sql), so the value can be checked before it
+--   is written.
+--
+-- The column
+--
+--   owner_user_id  The account a category belongs to. Same type as `users.id`
+--                  (`INT UNSIGNED`) and NULL-able, so this file can run before
+--                  anybody has been assigned.
+--
+--                  It belongs on `categories` and NOT on `cards`: a card always
+--                  sits in exactly one category, so the owner of the category is
+--                  already the owner of the card. A second column on `cards`
+--                  would be a second truth that can drift away from the first.
+--
+-- Why the foreign key is RESTRICT and not CASCADE
+--   CASCADE looks like the friendly choice ("delete the account, its categories
+--   go with it"), but on this schema it can never actually fire: `cards`
+--   references `categories` with ON DELETE RESTRICT, and `categories.parent_id`
+--   references itself with RESTRICT as well. MySQL would try to delete the
+--   category rows while their cards and subcategories are still there and stop
+--   with error 1451 (Cannot delete or update a parent row). A rule that is
+--   blocked by another rule only pretends to be a safety net.
+--
+--   With RESTRICT the behaviour is honest and visible: deleting an account with
+--   categories fails loudly, and the application removes the tree itself, in the
+--   order the foreign keys demand - which it already does today in
+--   `delete_category_tree()`.
+--
+-- What it does
+--   One ALTER TABLE: adds the column, its index and the foreign key.
+--
+-- What it does NOT do
+--   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE - no existing value
+--     is read or written
+--   * no other table is touched: `users`, `cards`, `user_card_progress`,
+--     `card_exercises` and `study_sessions` keep their columns and their rows
+--   * the column is NOT made NOT NULL here. That is a separate, later file, once
+--     every row carries an owner and the application always sets it.
+--
+-- Safety
+--   The column is NULL-able, which is what makes this step harmless: the
+--   application does not know the column yet, so it runs unchanged.
+--
+--   This server is MySQL 8.4, which does NOT support "ADD COLUMN IF NOT
+--   EXISTS" (that is MariaDB syntax; on MySQL it is a syntax error). Running
+--   this file a second time therefore stops with
+--
+--     ERROR 1060 (42S21): Duplicate column name 'owner_user_id'
+--
+--   and changes nothing. That error is the expected second-run answer, not a
+--   problem - it only means the step is already done.
+--
+-- Check before running
+--   SELECT COLUMN_NAME FROM information_schema.COLUMNS
+--    WHERE TABLE_SCHEMA = 'learning_app' AND TABLE_NAME = 'categories'
+--      AND COLUMN_NAME = 'owner_user_id';
+--   Expected before: no row.   Expected after: one row.
+--
+-- Check after running
+--   SHOW CREATE TABLE categories;
+--   Expected: the column `owner_user_id` int unsigned DEFAULT NULL, the key
+--   `idx_categories_owner` and the constraint `fk_categories_owner` with
+--   ON DELETE RESTRICT.
+--
+-- Rollback (only if you ever want the old state back)
+--   ALTER TABLE `categories`
+--       DROP FOREIGN KEY `fk_categories_owner`,
+--       DROP KEY `idx_categories_owner`,
+--       DROP COLUMN `owner_user_id`;
+-- ==========================================================================
+
+ALTER TABLE `categories`
+    ADD COLUMN `owner_user_id` INT UNSIGNED NULL
+        COMMENT 'The account this category belongs to; NULL only until every row has been assigned'
+        AFTER `parent_id`,
+    ADD KEY `idx_categories_owner` (`owner_user_id`),
+    ADD CONSTRAINT `fk_categories_owner`
+        FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`)
+        ON DELETE RESTRICT ON UPDATE RESTRICT;

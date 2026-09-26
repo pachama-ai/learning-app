@@ -197,11 +197,29 @@ function review_cards_with_progress(PDO $pdo, int $categoryId, ?int $userId, str
  *
  * @return list<int>
  */
-function review_branch_category_ids(PDO $pdo, int $categoryId): array
+function review_branch_category_ids(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
-    $statement = $pdo->prepare('SELECT id FROM categories WHERE parent_id = :parent_id ORDER BY id ASC');
+    $statement = $pdo->prepare(
+        'SELECT id FROM categories WHERE parent_id = :parent_id AND owner_user_id = :owner_user_id ORDER BY id ASC'
+    );
     $statement->bindValue(':parent_id', $categoryId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
+
+    /*
+     * A category of somebody else is no session at all: the answer is empty
+     * instead of an id this account does not own. The endpoint checks the same
+     * thing with category_exists() before it gets here, so this is the second
+     * lock, not the first.
+     */
+    $owned = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
+    $owned->bindValue(':id', $categoryId, PDO::PARAM_INT);
+    $owned->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+    $owned->execute();
+
+    if ((int) $owned->fetchColumn() === 0) {
+        return [];
+    }
 
     $ids = [$categoryId];
 
@@ -284,13 +302,18 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
            LEFT JOIN user_card_progress AS p
                   ON p.card_id = k.id AND p.user_id = :user_id
           WHERE k.category_id IN (' . implode(', ', $placeholders) . ')
+            AND k.category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)
           ORDER BY k.id ASC'
     );
 
     if ($userId === null) {
         $statement->bindValue(':user_id', null, PDO::PARAM_NULL);
+        /* No account, no cards: "owner_user_id = NULL" is never true, so the
+           answer stays empty instead of showing somebody else's list. */
+        $statement->bindValue(':owner_user_id', null, PDO::PARAM_NULL);
     } else {
         $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $statement->bindValue(':owner_user_id', $userId, PDO::PARAM_INT);
     }
 
     foreach ($ids as $index => $id) {
@@ -922,13 +945,17 @@ function review_cards_all_categories(PDO $pdo, ?int $userId, string $language = 
            FROM cards AS k' . card_exercise_join($pdo, 'k') . '
            LEFT JOIN user_card_progress AS p
                   ON p.card_id = k.id AND p.user_id = :user_id
+          WHERE k.category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)
           ORDER BY k.category_id ASC, k.id ASC'
     );
 
     if ($userId === null) {
         $statement->bindValue(':user_id', null, PDO::PARAM_NULL);
+        /* Signed out means an empty answer, not every card in the database. */
+        $statement->bindValue(':owner_user_id', null, PDO::PARAM_NULL);
     } else {
         $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $statement->bindValue(':owner_user_id', $userId, PDO::PARAM_INT);
     }
 
     $statement->execute();

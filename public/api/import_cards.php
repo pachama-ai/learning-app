@@ -33,6 +33,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
+require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
 require_once __DIR__ . '/../../src/services/card_import_service.php';
@@ -110,8 +111,16 @@ if ($categoryId <= 0) {
 
 try {
     $pdo = create_database_connection();
+    $userId = current_user_id($pdo);
 
-    if (!category_exists($pdo, $categoryId)) {
+    /* Imported cards land in a category of an account, so an import needs one. */
+    if ($userId === null) {
+        $required = session_user_required_error();
+
+        send_json_error($required['code'], $required['message'], $required['status']);
+    }
+
+    if (!category_exists($pdo, $categoryId, $userId)) {
         send_json_error('category_not_found', 'This category does not exist.', 404);
     }
 
@@ -125,7 +134,7 @@ try {
          * never ran database/add_exercise_params.sql can still import fixed cards.
          */
         $exercisesPossible = card_exercise_table_available($pdo) && card_exercise_params_available($pdo);
-        $checked = card_import_validate($read, card_import_existing_fronts($pdo, $categoryId), $tableColumns, $exercisesPossible);
+        $checked = card_import_validate($read, card_import_existing_fronts($pdo, $categoryId, $userId), $tableColumns, $exercisesPossible);
         $preview = array_slice($checked['preview'], 0, CARD_IMPORT_PREVIEW_ROWS);
     } else {
         $checked = ['cards' => [], 'errors' => [], 'preview' => [], 'importable' => 0, 'duplicates' => 0, 'invalid' => 0];
@@ -164,7 +173,7 @@ try {
         send_json_error('nothing_to_import', 'Every row is already in this subcategory.', 400);
     }
 
-    $imported = card_import_insert($pdo, $categoryId, $checked['cards']);
+    $imported = card_import_insert($pdo, $categoryId, $checked['cards'], $userId);
 
     send_json_success([
         'imported' => $imported,

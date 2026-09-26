@@ -28,6 +28,7 @@ require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
+require_once __DIR__ . '/../../src/services/dashboard_service.php';
 require_once __DIR__ . '/../../src/services/review_service.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -51,8 +52,16 @@ if ($method === 'POST') {
 
     try {
         $pdo = create_database_connection();
+        $userId = current_user_id($pdo);
 
-        if (!category_exists($pdo, $categoryId)) {
+        /* A card belongs to a category, and a category belongs to an account. */
+        if ($userId === null) {
+            $required = session_user_required_error();
+
+            send_json_error($required['code'], $required['message'], $required['status']);
+        }
+
+        if (!category_exists($pdo, $categoryId, $userId)) {
             send_json_error('category_not_found', 'This category does not exist.', 404);
         }
 
@@ -125,7 +134,7 @@ if ($method === 'POST') {
             send_json_error('invalid_map_region', 'The map region must look like "DE:Bayern", "EU:FR" or "WORLD:CN".', 400);
         }
 
-        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional, $mapRegion, $exercise);
+        $card = create_card_translated($pdo, $categoryId, $texts, $columns, $isBidirectional, $userId, $mapRegion, $exercise);
 
         send_json_success($card, 201);
     } catch (Throwable $error) {
@@ -144,23 +153,42 @@ $language = optional_query_language();
 
 try {
     $pdo = create_database_connection();
+    $userId = current_user_id($pdo);
 
-    if (!category_exists($pdo, $categoryId)) {
+    /*
+     * A category belongs to an account. Without one there is no category to read
+     * and no progress to show, so the answer is the empty list with 200 - the
+     * same shape the interface expects (decided with the account work).
+     */
+    if ($userId === null) {
+        send_json_success([
+            'cards' => [],
+            'summary' => review_summarise_cards([]),
+            /* Nobody is signed in, so there is no streak to show - but the key is
+               there, so the browser never has to guess whether it was forgotten. */
+            'streak' => ['available' => false, 'days' => 0],
+            'has_user' => false,
+            'content_languages' => card_content_languages(card_columns($pdo)),
+            'language' => $language,
+        ]);
+    }
+
+    if (!category_exists($pdo, $categoryId, $userId)) {
         send_json_error('category_not_found', 'This category does not exist.', 404);
     }
 
     /*
-     * Every card carries the status it has for the signed-in user. Without a
-     * signed-in user there is no progress to read and every card is "new",
-     * which is the truth: without a user id no progress row can exist.
+     * Every card carries the status it has for the signed-in user.
      */
-    $userId = current_user_id($pdo);
     $cards = review_cards_with_progress($pdo, $categoryId, $userId, $language);
 
     // An empty list is a valid answer and lets the page show its empty state.
     send_json_success([
         'cards' => $cards,
         'summary' => review_summarise_cards($cards),
+        /* How many days in a row this person studied - see
+           src/services/dashboard_service.php. */
+        'streak' => dashboard_streak($pdo, $userId),
         'has_user' => $userId !== null,
         /* Which languages this table can hold: one, or two after the
            migration. The card dialog shows its language tabs only for two. */

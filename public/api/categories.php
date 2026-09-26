@@ -28,6 +28,7 @@ require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/helpers/svg_sanitizer.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
+require_once __DIR__ . '/../../src/helpers/session_user.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -53,16 +54,25 @@ if ($method === 'POST') {
 
     try {
         $pdo = create_database_connection();
+        $userId = current_user_id($pdo);
 
-        // A subcategory needs a parent that really exists.
-        if ($parentId !== null && !category_exists($pdo, $parentId)) {
+        /* A category belongs to an account, so creating one needs an account. */
+        if ($userId === null) {
+            $required = session_user_required_error();
+
+            send_json_error($required['code'], $required['message'], $required['status']);
+        }
+
+        // A subcategory needs a parent that really exists - and it has to be a
+        // parent of this account.
+        if ($parentId !== null && !category_exists($pdo, $parentId, $userId)) {
             send_json_error('parent_not_found', 'The parent category does not exist.', 404);
         }
 
         // There is no unique index on the name column and the structure must not
         // be changed, so the duplicate check happens here. Two categories with
         // the same name may exist in different places, but not under one parent.
-        if (category_sibling_name_exists($pdo, $name, $parentId)) {
+        if (category_sibling_name_exists($pdo, $name, $parentId, $userId)) {
             send_json_error('category_exists', 'A category with this name already exists here.', 409);
         }
 
@@ -89,7 +99,7 @@ if ($method === 'POST') {
             $fields['icon_scale'] = 1.0;
         }
 
-        $created = create_category($pdo, $fields);
+        $created = create_category($pdo, $fields, $userId);
 
         send_json_success($created, 201);
     } catch (Throwable $error) {
@@ -136,9 +146,24 @@ if ($rawParentId !== null && $rawParentId !== '') {
 
 try {
     $pdo = create_database_connection();
+    $userId = current_user_id($pdo);
+
+    /*
+     * A category belongs to an account, so a signed-out visitor has nothing to
+     * list and nothing to read. The list answers empty with 200 so the start page
+     * can show its welcome state instead of an error; a single id answers 404,
+     * because "not yours" and "does not exist" have to look the same.
+     */
+    if ($userId === null) {
+        if ($categoryId !== null) {
+            send_json_error('category_not_found', 'This category does not exist.', 404);
+        }
+
+        send_json_success([]);
+    }
 
     if ($categoryId !== null) {
-        $category = find_category($pdo, $categoryId, true);
+        $category = find_category($pdo, $categoryId, $userId, true);
 
         if ($category === null) {
             send_json_error('category_not_found', 'This category does not exist.', 404);
@@ -148,8 +173,8 @@ try {
     }
 
     $categories = $parentId === null
-        ? find_main_categories($pdo)
-        : find_subcategories($pdo, $parentId);
+        ? find_main_categories($pdo, $userId)
+        : find_subcategories($pdo, $parentId, $userId);
 
     // An empty result is a valid answer and is returned as an empty array, so
     // the frontend can show its empty state instead of treating it as an error.

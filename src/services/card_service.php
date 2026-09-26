@@ -75,18 +75,24 @@ function normalize_card_row(array $row): array
  */
 
 /**
- * Returns one card, or null when it does not exist.
+ * Returns one card of this account, or null when it does not exist there.
+ *
+ * `cards` has no owner column of its own on purpose: a card always sits in
+ * exactly one category, so the owner of the category is already the owner of
+ * the card. One truth instead of two that can drift apart.
  *
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}|null
  */
-function find_card(PDO $pdo, int $cardId): ?array
+function find_card(PDO $pdo, int $cardId, int $ownerUserId): ?array
 {
     $statement = $pdo->prepare(
         'SELECT ' . implode(', ', card_read_columns($pdo)) . '
            FROM cards' . card_exercise_join($pdo) . '
-          WHERE id = :id'
+          WHERE id = :id
+            AND category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)'
     );
     $statement->bindValue(':id', $cardId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     $row = $statement->fetch();
@@ -106,7 +112,7 @@ function find_card(PDO $pdo, int $cardId): ?array
  *        the exercise that belongs to the card.
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}|null
  */
-function update_card(PDO $pdo, int $cardId, array $changes): ?array
+function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?array
 {
     $available = card_columns($pdo);
     $pairs = card_language_columns($available);
@@ -160,7 +166,7 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
     $exerciseChange = array_key_exists('exercise', $changes);
 
     if ($assignments === [] && !$exerciseChange) {
-        return find_card($pdo, $cardId);
+        return find_card($pdo, $cardId, $ownerUserId);
     }
 
 
@@ -178,9 +184,12 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
     try {
         if ($assignments !== []) {
             $statement = $pdo->prepare(
-                'UPDATE cards SET ' . implode(', ', $assignments) . ' WHERE id = :id'
+                'UPDATE cards SET ' . implode(', ', $assignments) . '
+                  WHERE id = :id
+                    AND category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)'
             );
             $statement->bindValue(':id', $cardId, PDO::PARAM_INT);
+            $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
 
             foreach ($values as $column => [$value, $type]) {
                 if ($column === 'is_bidirectional') {
@@ -209,7 +218,7 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
             save_card_exercise($pdo, $cardId, $changes['exercise']);
         }
 
-        $updated = find_card($pdo, $cardId);
+        $updated = find_card($pdo, $cardId, $ownerUserId);
     } catch (Throwable $error) {
         if ($ownsTransaction) {
             $pdo->rollBack();
@@ -232,10 +241,15 @@ function update_card(PDO $pdo, int $cardId, array $changes): ?array
  * The learning progress rows of this card are removed by the database itself
  * (fk_progress_card is ON DELETE CASCADE).
  */
-function delete_card(PDO $pdo, int $cardId): bool
+function delete_card(PDO $pdo, int $cardId, int $ownerUserId): bool
 {
-    $statement = $pdo->prepare('DELETE FROM cards WHERE id = :id');
+    $statement = $pdo->prepare(
+        'DELETE FROM cards
+          WHERE id = :id
+            AND category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)'
+    );
     $statement->bindValue(':id', $cardId, PDO::PARAM_INT);
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
     return $statement->rowCount() > 0;
@@ -257,7 +271,7 @@ function delete_card(PDO $pdo, int $cardId): bool
  * @param list<int> $categoryIds
  * @return int How many progress rows were removed.
  */
-function delete_progress_of_categories(PDO $pdo, array $categoryIds): int
+function delete_progress_of_categories(PDO $pdo, array $categoryIds, int $ownerUserId): int
 {
     if ($categoryIds === []) {
         return 0;
@@ -271,12 +285,27 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds): int
         $ids[':id' . $index] = (int) $categoryId;
     }
 
-    /* The subquery names the cards of the subtree, so only their progress rows
-       are part of this statement. */
+    /*
+     * The subquery names the cards of the subtree, so only their progress rows
+     * are part of this statement.
+     *
+     * It also joins the category of every card, although the ids already come
+     * from a subtree that was read for this account. That second lock is on
+     * purpose: a delete is the one operation that cannot be undone by a later
+     * check, so it does not rely on its caller having filtered correctly.
+     */
     $statement = $pdo->prepare(
         'DELETE FROM user_card_progress'
-        . ' WHERE card_id IN (SELECT id FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . '))'
+        . ' WHERE card_id IN ('
+        . '   SELECT k.id'
+        . '     FROM cards AS k'
+        . '     JOIN categories AS c ON c.id = k.category_id'
+        . '    WHERE k.category_id IN (' . implode(', ', $placeholders) . ')'
+        . '      AND c.owner_user_id = :owner_user_id'
+        . ' )'
     );
+
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
 
     foreach ($ids as $placeholder => $id) {
         $statement->bindValue($placeholder, $id, PDO::PARAM_INT);
@@ -875,6 +904,11 @@ function card_texts_from_body(array $body, array $columns): array
 /**
  * Inserts a card with the text of every language the table supports.
  *
+ * The caller has to make sure that $categoryId belongs to $ownerUserId - both
+ * callers do, with category_exists() before they get here. The owner is used
+ * for the read-back, so this function can never hand back a card of somebody
+ * else even if that check were ever forgotten.
+ *
  * @param array<string, string> $texts keyed by column name
  * @param list<string> $columns
  * @return array<string, mixed>
@@ -885,6 +919,7 @@ function create_card_translated(
     array $texts,
     array $columns,
     bool $isBidirectional,
+    int $ownerUserId,
     ?string $mapRegion = null,
     ?array $exercise = null
 ): array {
@@ -969,7 +1004,7 @@ function create_card_translated(
 
         save_card_exercise($pdo, $cardId, $exercise);
 
-        $created = find_card($pdo, $cardId);
+        $created = find_card($pdo, $cardId, $ownerUserId);
 
         if ($created === null) {
             throw new RuntimeException('The card was inserted but cannot be read back.');
@@ -988,7 +1023,7 @@ function create_card_translated(
 
     return $created;
 }
-function delete_cards_of_categories(PDO $pdo, array $categoryIds): int
+function delete_cards_of_categories(PDO $pdo, array $categoryIds, int $ownerUserId): int
 {
     if ($categoryIds === []) {
         return 0;
@@ -1005,9 +1040,16 @@ function delete_cards_of_categories(PDO $pdo, array $categoryIds): int
         $ids[':id' . $index] = (int) $categoryId;
     }
 
+    /* The second half of the condition is the lock described in
+       delete_progress_of_categories(): these ids, and they must belong to this
+       account. */
     $statement = $pdo->prepare(
-        'DELETE FROM cards WHERE category_id IN (' . implode(', ', $placeholders) . ')'
+        'DELETE FROM cards'
+        . ' WHERE category_id IN (' . implode(', ', $placeholders) . ')'
+        . '   AND category_id IN (SELECT id FROM categories WHERE owner_user_id = :owner_user_id)'
     );
+
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
 
     foreach ($ids as $placeholder => $id) {
         $statement->bindValue($placeholder, $id, PDO::PARAM_INT);
