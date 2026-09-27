@@ -3,48 +3,47 @@
 declare(strict_types=1);
 
 /**
- * Database queries for the `categories` table.
+ * Datenbankabfragen für die Tabelle `categories`.
  *
- * Verified structure (checked with SHOW COLUMNS):
- *   id             int unsigned, NOT NULL, primary key, auto_increment
- *   parent_id      int unsigned, NULL, foreign key to categories.id
+ * Geprüfte Struktur (mit SHOW COLUMNS kontrolliert):
+ *   id             int unsigned, NOT NULL, Primärschlüssel, auto_increment
+ *   parent_id      int unsigned, NULL, Fremdschlüssel auf categories.id
  *   name           varchar(100), NOT NULL
- *   color          varchar(7), NULL      -- still in the table, not read or written here
- *   icon_svg       mediumtext, NULL       -- the drawn icon, sanitised
- *                                           (never part of an answer: the row
- *                                            carries only the address)
- *   icon_scale     decimal(3,2), NOT NULL, default 1.00
+ *   color          varchar(7), NULL       -- noch in der Tabelle, wird hier nicht gelesen
+ *   icon_svg       mediumtext, NULL       -- die Zeichnung, geprüft (steckt nie in einer
+ *                                             Antwort, die nur die Adresse trägt)
+ *   icon_scale     decimal(3,2), NOT NULL, Standard 1.00
  *   name_en        varchar(100), NULL
  *   name_de        varchar(100), NULL
  *
- * The two description columns are still in the table, but nothing in this
- * application reads or writes them any more: a category is shown by its name.
- * They were not dropped and their data was not touched.
+ * Die beiden Beschreibungsspalten gibt es noch, aber nichts in der Anwendung liest
+ * oder schreibt sie: eine Kategorie wird über ihren Namen gezeigt. Sie wurden nicht
+ * gelöscht und ihre Daten nicht angefasst.
  *
- * A NULL parent_id means "top-level learning area". Any other value points at
- * the parent category, which is how subcategories are stored.
+ * parent_id NULL heißt "Themengebiet oberster Ebene". Jeder andere Wert zeigt auf
+ * die übergeordnete Kategorie - so sind Unterkategorien gespeichert.
  *
- * The optional columns are never referenced blindly: the table is inspected
- * once per request and the SELECT is built from the columns that really exist.
- * The page therefore keeps working on a database where the migration has not
- * been run yet, only without the icons and the translated names.
+ * Optionale Spalten werden nie blind angesprochen: die Tabelle wird einmal pro
+ * Anfrage angeschaut, und das SELECT wird aus den Spalten gebaut, die es wirklich
+ * gibt. Die Seite läuft deshalb auch auf einer Datenbank ohne die Migration, nur
+ * ohne Symbole und ohne übersetzte Namen.
  *
- * Every function receives the PDO connection as an argument instead of opening
- * its own connection, so one request always uses exactly one connection.
+ * Jede Funktion bekommt die PDO-Verbindung übergeben, statt selbst eine zu öffnen -
+ * so benutzt eine Anfrage immer genau eine Verbindung.
  */
 
-/** Longest accepted name, matching the varchar(100) column. */
+/** Längster erlaubter Name, passend zur Spalte varchar(100). */
 const CATEGORY_MAX_NAME_LENGTH = 100;
 
 
-/** How deep the tree may be walked while a category is deleted. */
+/** So tief darf der Baum beim Löschen durchlaufen werden. */
 const CATEGORY_MAX_DEPTH = 12;
 
 /**
- * Names of the columns that really exist in the table.
+ * Namen der Spalten, die es in der Tabelle wirklich gibt.
  *
- * The answer is remembered for the rest of the request, so the extra SHOW
- * COLUMNS only runs once even when several queries are made.
+ * Die Antwort wird für den Rest der Anfrage gemerkt, damit das zusätzliche SHOW
+ * COLUMNS nur einmal läuft, auch wenn mehrere Abfragen kommen.
  *
  * @return list<string>
  */
@@ -56,10 +55,10 @@ function category_columns(PDO $pdo): array
         $columns = category_columns_from_metadata($pdo);
 
         /*
-         * A driver that cannot report the metadata of a result would hand
-         * back an empty list, and an empty list would silently drop the
-         * optional columns from every query. SHOW COLUMNS is the fallback
-         * for exactly that case; on a normal MySQL driver it never runs.
+         * Ein Treiber, der die Metadaten eines Ergebnisses nicht melden kann, gäbe
+         * eine leere Liste zurück - und die würde die optionalen Spalten still aus
+         * jeder Abfrage werfen. Für genau diesen Fall ist SHOW COLUMNS der Rückfall;
+         * bei einem normalen MySQL-Treiber läuft er nie.
          */
         if ($columns === []) {
             foreach ($pdo->query('SHOW COLUMNS FROM categories')->fetchAll() as $column) {
@@ -72,13 +71,13 @@ function category_columns(PDO $pdo): array
 }
 
 /**
- * Reads the column names of the categories table from the metadata of a
- * query that returns no rows.
+ * Liest die Spaltennamen der Tabelle categories aus den Metadaten einer Abfrage,
+ * die keine Zeilen liefert.
  *
- * The names of the columns are already part of the answer metadata, so the
- * table does not have to be described twice. "LIMIT 0" transfers no rows at
- * all. Measured on this machine: about 1.2 ms here against about 3.5 ms for
- * SHOW COLUMNS, on every single API request.
+ * Die Spaltennamen stecken schon in den Metadaten der Antwort, die Tabelle muss also
+ * nicht zweimal beschrieben werden. "LIMIT 0" überträgt keine einzige Zeile.
+ * Auf diesem Rechner gemessen: etwa 1,2 ms gegenüber etwa 3,5 ms für SHOW COLUMNS -
+ * und das bei jeder einzelnen API-Anfrage.
  *
  * @return list<string>
  */
@@ -99,7 +98,7 @@ function category_columns_from_metadata(PDO $pdo): array
 }
 
 /**
- * Reports whether one optional column exists.
+ * Sagt, ob eine der optionalen Spalten existiert.
  *
  * @param list<string> $columns
  */
@@ -109,37 +108,37 @@ function category_column_available(array $columns, string $column): bool
 }
 
 /**
- * Builds the shared SELECT for a category list.
+ * Baut das gemeinsame SELECT für eine Kategorienliste.
  *
- * subcategory_count counts the direct children of the category.
- * own_card_count counts the cards that sit directly in this category.
- * card_count counts the cards of the category itself plus the cards of its
- * direct children, because a card belongs to exactly one category through
- * cards.category_id and the subcategories are the deeper level of the tree.
+ * subcategory_count zählt die direkten Kinder der Kategorie.
+ * own_card_count zählt die Karten, die direkt in dieser Kategorie liegen.
+ * card_count zählt die Karten der Kategorie plus die ihrer direkten Kinder, weil
+ * eine Karte über cards.category_id genau einer Kategorie gehört und die
+ * Unterkategorien die tiefere Ebene sind.
  *
- * It is written as two counted reads and not as one read with an OR, because
- * the OR stops MySQL from using the index on cards.category_id: it walks the
- * whole index once per row instead. Both spellings count the same cards -
- * every card has exactly one category_id, so nothing can be counted twice.
+ * Es sind zwei gezählte Abfragen und nicht eine mit OR: ein OR macht den Index auf
+ * cards.category_id unbrauchbar, MySQL läuft dann pro Zeile einmal durch den ganzen
+ * Index. Beide Schreibweisen zählen dieselben Karten - jede Karte hat genau eine
+ * category_id, doppelt gezählt wird also nichts.
  *
- * The icon itself is never sent to the browser as part of a list: a row only
- * carries whether an icon exists and a short fingerprint of it. The icon is
- * fetched separately through api/category_icon.php, which keeps a 60 KB
- * drawing out of every list response.
+ * Die Zeichnung selbst geht nie als Teil einer Liste an den Browser: eine Zeile
+ * trägt nur, OB es ein Symbol gibt, und einen kurzen Fingerabdruck davon. Geholt
+ * wird das Symbol einzeln über api/category_icon.php, damit eine 60-KB-Zeichnung
+ * nicht in jeder Listenantwort steckt.
  *
  * @param list<string> $columns
  */
 function category_select_sql(array $columns): string
 {
     /*
-     * The drawing is NEVER part of an answer - not in a list and not for a single
-     * category. A drawing may be 350 KB, and a page that asks for a category
-     * would carry it in every answer.
+     * Die Zeichnung ist NIE Teil einer Antwort - weder in einer Liste noch bei einer
+     * einzelnen Kategorie. Eine Zeichnung kann 350 KB haben, und eine Seite, die
+     * eine Kategorie abfragt, hätte sie in jeder Antwort dabei.
      *
-     * What a row carries instead is the address of the drawing (icon_url below),
-     * with a short fingerprint of its content in it. The browser fetches the
-     * drawing once from api/category_icon.php and keeps it, and a replaced icon
-     * gets a new address, so nothing stale is ever shown.
+     * Stattdessen trägt eine Zeile die Adresse der Zeichnung (icon_url unten) mit
+     * einem kurzen Fingerabdruck ihres Inhalts. Der Browser holt die Zeichnung
+     * einmal über api/category_icon.php und behält sie, und ein ersetztes Symbol
+     * bekommt eine neue Adresse - so wird nie etwas Veraltetes gezeigt.
      */
     $scale = category_column_available($columns, 'icon_scale') ? 'c.icon_scale' : '1.00';
     $iconFingerprint = category_column_available($columns, 'icon_svg')
@@ -177,11 +176,12 @@ function category_select_sql(array $columns): string
 }
 
 /**
- * Returns all top-level categories (the learning areas) of ONE account.
+ * Gibt alle Themengebiete (oberste Ebene) EINES Kontos zurück.
  *
- * Every read in this file takes the owner as a required argument. There is no
- * default and no "no filter" mode on purpose: a forgotten argument has to fail
- * loudly instead of quietly handing somebody else's categories to a request.
+ * Jede Leseabfrage in dieser Datei verlangt den Eigentümer als Pflichtargument. Es
+ * gibt absichtlich keinen Standard und keinen "kein Filter"-Modus: ein vergessener
+ * Parameter muss laut scheitern, statt still die Kategorien von jemand anderem
+ * auszuliefern.
  */
 function find_main_categories(PDO $pdo, int $ownerUserId): array
 {
@@ -198,12 +198,12 @@ function find_main_categories(PDO $pdo, int $ownerUserId): array
 }
 
 /**
- * Returns the subcategories of one category, ordered by id.
+ * Gibt die Unterkategorien einer Kategorie zurück, nach id sortiert.
  */
 function find_subcategories(PDO $pdo, int $parentId, int $ownerUserId): array
 {
-    // The value is bound as an integer. It reaches the database separately from
-    // the SQL text, so it can never be read as part of the query.
+    // Der Wert wird als Ganzzahl gebunden. Er erreicht die Datenbank getrennt vom
+    // SQL-Text und kann deshalb nie als Teil der Abfrage gelesen werden.
     $statement = $pdo->prepare(
         category_select_sql(category_columns($pdo)) . '
          WHERE c.parent_id = :parent_id
@@ -218,11 +218,11 @@ function find_subcategories(PDO $pdo, int $parentId, int $ownerUserId): array
 }
 
 /**
- * Returns one category, or null when it does not exist.
+ * Gibt eine Kategorie zurück, oder null, wenn es sie nicht gibt.
  *
- * With $withDeletePreview the subtree is counted as well, so the delete dialog
- * can say exactly how much would disappear. That count is a preview only: the
- * delete endpoint counts again inside its own transaction.
+ * Mit $withDeletePreview wird zusätzlich der Teilbaum gezählt, damit der Löschdialog
+ * genau sagen kann, wie viel verschwinden würde. Das ist nur eine Vorschau: der
+ * Lösch-Endpunkt zählt in seiner eigenen Transaktion noch einmal.
  *
  * @return array<string, mixed>|null
  */
@@ -251,8 +251,8 @@ function find_category(PDO $pdo, int $categoryId, int $ownerUserId, bool $withDe
 
     $stats = category_subtree_stats($pdo, $categoryId, $ownerUserId);
 
-    // "categories" counts the subcategories below this one; the category itself
-    // is not part of the preview.
+    // "categories" zählt die Unterkategorien unter dieser; die Kategorie selbst
+    // gehört nicht zur Vorschau.
     $category['delete_preview'] = [
         'categories' => max(0, $stats['categories'] - 1),
         'cards' => $stats['cards'],
@@ -262,12 +262,11 @@ function find_category(PDO $pdo, int $categoryId, int $ownerUserId, bool $withDe
 }
 
 /**
- * Reports whether this account owns a category with this id.
+ * Sagt, ob dieses Konto eine Kategorie mit dieser id besitzt.
  *
- * This is the gate in front of everything that hangs off a category: the cards
- * and the review queue ask here first. Without the owner in the condition a
- * second account could reach somebody else's cards just by guessing a category
- * id.
+ * Das ist das Tor vor allem, was an einer Kategorie hängt: die Karten und die
+ * Lern-Warteschlange fragen zuerst hier. Ohne den Eigentümer in der Bedingung käme
+ * ein zweites Konto allein durch Raten einer id an fremde Karten.
  */
 function category_exists(PDO $pdo, int $categoryId, int $ownerUserId): bool
 {
@@ -282,19 +281,19 @@ function category_exists(PDO $pdo, int $categoryId, int $ownerUserId): bool
 }
 
 /**
- * Reports whether a category with this name already exists among its siblings.
+ * Sagt, ob es eine Kategorie mit diesem Namen unter denselben Geschwistern gibt.
  *
- * The name column uses the utf8mb4_unicode_ci collation, which is
- * case-insensitive, so "History" and "history" are treated as the same name.
+ * Die Spalte name benutzt die Collation utf8mb4_unicode_ci, die Groß- und
+ * Kleinschreibung ignoriert: "History" und "history" gelten als derselbe Name.
  *
- * @param int|null $parentId The parent the new category would be created in.
- * @param int|null $exceptId A category that is allowed to keep the name (the
- *                           one that is currently being edited).
+ * @param int|null $parentId Die übergeordnete Kategorie, in der die neue angelegt würde.
+ * @param int|null $exceptId Eine Kategorie, die den Namen behalten darf (die gerade
+ *                           bearbeitete).
  */
 function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, int $ownerUserId, ?int $exceptId = null): bool
 {
-    /* Two accounts may both own a "Mathematics" area, so the owner belongs in
-       this condition as much as the name does. */
+    /* Zwei Konten dürfen beide ein "Mathematik" haben, der Eigentümer gehört also
+       genauso in die Bedingung wie der Name. */
     $sql = 'SELECT COUNT(*)
               FROM categories
              WHERE owner_user_id = :owner_user_id
@@ -323,12 +322,13 @@ function category_sibling_name_exists(PDO $pdo, string $name, ?int $parentId, in
 }
 
 /**
- * Inserts a new learning area or subcategory and returns it in the same shape
- * the read functions return, so the browser can use it without a second request.
+ * Legt ein Themengebiet oder eine Unterkategorie an und gibt es in derselben Form
+ * zurück wie die Lesefunktionen - so kann der Browser ohne zweite Anfrage
+ * weiterarbeiten.
  *
- * The values come from $fields, where only the keys listed below are used. Every
- * value is bound separately, so nothing from the request can become part of the
- * SQL text. Missing keys simply stay at their column default.
+ * Die Werte kommen aus $fields; benutzt werden nur die unten genannten Schlüssel.
+ * Jeder Wert wird einzeln gebunden, es kann also nichts aus der Anfrage zum Teil des
+ * SQL-Textes werden. Fehlende Schlüssel bleiben beim Spaltenstandard.
  *
  * @param array<string, mixed> $fields
  * @return array<string, mixed>
@@ -368,8 +368,8 @@ function create_category(PDO $pdo, array $fields, int $ownerUserId): array
 
     foreach ($bindings as $placeholder => [$value, $type]) {
         if ($value === null) {
-            // A real NULL, which is what makes a top-level category top-level
-            // and what leaves an optional field empty.
+            // Ein echtes NULL - das macht eine Kategorie zur obersten Ebene und
+            // lässt ein optionales Feld leer.
             $statement->bindValue($placeholder, null, PDO::PARAM_NULL);
             continue;
         }
@@ -385,10 +385,10 @@ function create_category(PDO $pdo, array $fields, int $ownerUserId): array
 }
 
 /**
- * Updates the given fields of one category.
+ * Ändert die übergebenen Felder einer Kategorie.
  *
- * Keys that are not real columns are ignored, so a request body can never add
- * anything to the SQL text. A value of null clears an optional field.
+ * Schlüssel, die keine echten Spalten sind, werden ignoriert - ein Anfragekörper kann
+ * dem SQL-Text also nichts hinzufügen. Ein Wert null leert ein optionales Feld.
  *
  * @param array<string, mixed> $changes
  * @return array<string, mixed>|null
@@ -442,21 +442,21 @@ function update_category(PDO $pdo, int $categoryId, array $changes, int $ownerUs
 }
 
 /**
- * Collects the id of a category and of every category below it.
+ * Sammelt die id einer Kategorie und die aller Kategorien darunter.
  *
- * The whole (small) table is read once and walked in PHP. That keeps the query
- * simple, avoids a recursive SQL statement and cannot be tricked into walking
- * forever: after CATEGORY_MAX_DEPTH levels the loop stops.
+ * Die ganze (kleine) Tabelle wird einmal gelesen und in PHP durchlaufen. Das hält die
+ * Abfrage einfach, spart ein rekursives SQL und kann nicht endlos laufen: nach
+ * CATEGORY_MAX_DEPTH Ebenen hört die Schleife auf.
  *
- * @return list<int> The category itself first, then its children level by level.
+ * @return list<int> Die Kategorie selbst zuerst, dann ihre Kinder Ebene für Ebene.
  */
 function category_subtree_ids(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
     $children = [];
     $owned = [];
 
-    /* Only this account's rows are read, so a foreign id can never pull another
-       account's subtree into a delete or a count. */
+    /* Gelesen werden nur die Zeilen dieses Kontos, eine fremde id kann also nie
+       einen fremden Teilbaum in ein Löschen oder Zählen ziehen. */
     $statement = $pdo->prepare('SELECT id, parent_id FROM categories WHERE owner_user_id = :owner_user_id');
     $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
@@ -464,16 +464,16 @@ function category_subtree_ids(PDO $pdo, int $categoryId, int $ownerUserId): arra
     foreach ($statement->fetchAll() as $row) {
         $owned[(int) $row['id']] = true;
 
-        // A NULL parent_id becomes the key 0, which is never a real id.
+        // Ein NULL-parent_id wird zum Schlüssel 0, und 0 ist nie eine echte id.
         $parentKey = $row['parent_id'] === null ? 0 : (int) $row['parent_id'];
         $children[$parentKey][] = (int) $row['id'];
     }
 
     /*
-     * A category of somebody else is not a subtree with one member - it is no
-     * subtree at all. Returning [] keeps the answer honest instead of echoing an
-     * id that this account does not own, and delete_category_tree() then finds
-     * nothing to delete and refuses with its own check.
+     * Eine Kategorie von jemand anderem ist kein Teilbaum mit einem Mitglied - sie
+     * ist gar kein Teilbaum. [] zurückzugeben bleibt ehrlich, statt eine id zu
+     * wiederholen, die dieses Konto nicht besitzt; delete_category_tree() findet dann
+     * nichts zu löschen und lehnt mit eigener Prüfung ab.
      */
     if (!isset($owned[$categoryId])) {
         return [];
@@ -501,7 +501,7 @@ function category_subtree_ids(PDO $pdo, int $categoryId, int $ownerUserId): arra
 }
 
 /**
- * Counts a category, everything below it and all cards in that subtree.
+ * Zählt eine Kategorie, alles darunter und alle Karten in diesem Teilbaum.
  *
  * @return array{categories: int, cards: int}
  */
@@ -509,8 +509,8 @@ function category_subtree_stats(PDO $pdo, int $categoryId, int $ownerUserId): ar
 {
     $ids = category_subtree_ids($pdo, $categoryId, $ownerUserId);
 
-    /* A foreign category is no subtree at all, and "IN ()" is not valid SQL -
-       so the empty answer is written out here instead of being built. */
+    /* Eine fremde Kategorie ist kein Teilbaum, und "IN ()" ist kein gültiges SQL -
+       deshalb wird die leere Antwort hier geschrieben statt gebaut. */
     if ($ids === []) {
         return ['categories' => 0, 'cards' => 0];
     }
@@ -537,11 +537,11 @@ function category_subtree_stats(PDO $pdo, int $categoryId, int $ownerUserId): ar
 }
 
 /**
- * Reports how much depends on a category: its descendants and their cards.
+ * Sagt, wie viel an einer Kategorie hängt: die Nachfahren und deren Karten.
  *
- * The delete endpoint uses this to decide whether a request has to be confirmed
- * once more. The decision is made on the server, never in the browser, so a hand
- * written request cannot skip the confirmation by leaving the field out.
+ * Der Lösch-Endpunkt entscheidet damit, ob eine Anfrage noch bestätigt werden muss.
+ * Entschieden wird auf dem Server, nie im Browser: eine von Hand gebaute Anfrage kann
+ * die Bestätigung nicht überspringen, indem sie das Feld weglässt.
  *
  * @return array{categories: int, cards: int, descendants: int}
  */
@@ -550,46 +550,47 @@ function category_delete_dependents(PDO $pdo, int $categoryId, int $ownerUserId)
     $stats = category_subtree_stats($pdo, $categoryId, $ownerUserId);
 
     return [
-        /* Everything including the category itself. */
+        /* Alles inklusive der Kategorie selbst. */
         'categories' => $stats['categories'],
-        /* The categories below it, which is what a person sees as "depends on it". */
+        /* Die Kategorien darunter - das sieht man als "hängt daran". */
         'descendants' => max(0, $stats['categories'] - 1),
         'cards' => $stats['cards'],
     ];
 }
 
 /**
- * Deletes a category, every subcategory below it and every card in that subtree.
+ * Löscht eine Kategorie, jede Unterkategorie darunter und jede Karte in diesem
+ * Teilbaum.
  *
- * The order is fixed by the foreign keys and is written out on purpose:
- *   1. the learning progress of the affected cards
- *   2. the cards, because fk_cards_category is ON DELETE RESTRICT
- *   3. the subcategories from the deepest level upwards, because
- *      fk_categories_parent is ON DELETE RESTRICT as well
- *   4. finally the selected category itself
+ * Die Reihenfolge geben die Fremdschlüssel vor, sie steht deshalb ausgeschrieben hier:
+ *   1. der Lernfortschritt der betroffenen Karten
+ *   2. die Karten, weil fk_cards_category ON DELETE RESTRICT ist
+ *   3. die Unterkategorien von der tiefsten Ebene nach oben, weil
+ *      fk_categories_parent ebenfalls ON DELETE RESTRICT ist
+ *   4. zuletzt die ausgewählte Kategorie selbst
  *
- * Everything happens in ONE transaction. Either the whole subtree disappears or
- * nothing does - a half deleted tree is never left behind.
+ * Alles läuft in EINER Transaktion: entweder verschwindet der ganze Teilbaum oder
+ * nichts. Ein halb gelöschter Baum bleibt nie stehen.
  *
- * The selected category is checked twice before the transaction is allowed to
- * commit: its own DELETE has to affect exactly one row, and a SELECT has to find
- * nothing afterwards. A caller can therefore never be told "deleted" while the
- * row is still there.
+ * Die ausgewählte Kategorie wird zweimal geprüft, bevor die Transaktion festschreiben
+ * darf: ihr eigenes DELETE muss genau eine Zeile treffen, und ein SELECT muss danach
+ * nichts mehr finden. Dem Aufrufer kann also nie "gelöscht" gemeldet werden, während
+ * die Zeile noch da ist.
  *
- * @return array{categories: int, cards: int, progress: int} What was really deleted.
- * @throws RuntimeException when the selected category is still there afterwards.
+ * @return array{categories: int, cards: int, progress: int} Was wirklich gelöscht wurde.
+ * @throws RuntimeException wenn die ausgewählte Kategorie danach noch existiert.
  */
 function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): array
 {
-    // The cards (and their progress) are deleted first and that is done by the
-    // card service, so it is loaded here instead of relying on the caller.
+    // Die Karten und ihr Fortschritt fliegen zuerst raus, und das macht der
+    // Kartenservice - deshalb wird er hier geladen und nicht dem Aufrufer überlassen.
     require_once __DIR__ . '/card_service.php';
 
     /*
-     * Normally this function owns the transaction. When it is called from a
-     * transaction that somebody else started - a test, or a future caller that
-     * deletes several subtrees in one go - that outer transaction is used as it
-     * is, so the decision about committing stays with the caller.
+     * Normalerweise gehört die Transaktion dieser Funktion. Wird sie aus einer
+     * Transaktion aufgerufen, die jemand anders gestartet hat - ein Test oder ein
+     * späterer Aufrufer, der mehrere Teilbäume auf einmal löscht - dann wird die
+     * äußere benutzt und die Entscheidung über das Festschreiben bleibt beim Aufrufer.
      */
     $ownsTransaction = !$pdo->inTransaction();
 
@@ -600,17 +601,17 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
     try {
         $ids = category_subtree_ids($pdo, $categoryId, $ownerUserId);
 
-        // 1. the learning progress of every card in this subtree
+        // 1. der Lernfortschritt jeder Karte in diesem Teilbaum
         $deletedProgress = delete_progress_of_categories($pdo, $ids, $ownerUserId);
 
-        // 2. the cards themselves
+        // 2. die Karten selbst
         $deletedCards = delete_cards_of_categories($pdo, $ids, $ownerUserId);
 
         /*
-         * 3. and 4. the categories. category_subtree_ids() returns a parent
-         * before its children, so the reversed list deletes the deepest level
-         * first. A category can therefore never be removed while something still
-         * points at it.
+         * 3. und 4. die Kategorien. category_subtree_ids() gibt ein Elternteil vor
+         * seinen Kindern zurück, die umgedrehte Liste löscht also die tiefste Ebene
+         * zuerst. Eine Kategorie kann deshalb nicht verschwinden, solange noch etwas
+         * auf sie zeigt.
          */
         $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
         $deletedCategories = 0;
@@ -630,10 +631,10 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
         }
 
         /*
-         * The proof. "rowCount() === 1" says the row was there and is gone; the
-         * SELECT says the same thing from the other side. If either of them
-         * disagrees, the whole transaction is rolled back and the caller gets an
-         * error instead of a success message about a row that still exists.
+         * Der Beweis. "rowCount() === 1" sagt: die Zeile war da und ist weg. Das
+         * SELECT sagt dasselbe von der anderen Seite. Widerspricht eines von beiden,
+         * wird die ganze Transaktion zurückgerollt und der Aufrufer bekommt einen
+         * Fehler statt einer Erfolgsmeldung über eine Zeile, die es noch gibt.
          */
         if ($deletedSelected !== 1) {
             throw new RuntimeException('The selected category was not deleted.');
@@ -658,8 +659,8 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
             'progress' => $deletedProgress,
         ];
     } catch (Throwable $error) {
-        // Rolling back puts the database exactly where it was before the
-        // attempt, including the cards that were already deleted.
+        // Ein Rollback setzt die Datenbank genau dorthin zurück, wo sie vor dem
+        // Versuch war - auch die Karten, die schon gelöscht wurden.
         if ($ownsTransaction) {
             $pdo->rollBack();
         }
@@ -669,7 +670,7 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
 }
 
 /**
- * Converts a list of database rows into the shape the API promises.
+ * Wandelt eine Liste von Datenbankzeilen in die Form um, die die API verspricht.
  *
  * @param list<array<string, mixed>> $rows
  * @return list<array<string, mixed>>
@@ -686,10 +687,10 @@ function normalize_category_rows(array $rows): array
 }
 
 /**
- * Converts one database row into the shape the API promises.
+ * Wandelt eine Datenbankzeile in die Form um, die die API verspricht.
  *
- * The casts matter for the JSON output: the browser receives "id": 3 as a
- * number instead of "3" as a string, so it can compare ids without converting.
+ * Die Umwandlungen sind für die JSON-Ausgabe wichtig: der Browser bekommt
+ * "id": 3 als Zahl und nicht "3" als Zeichenkette und kann ids direkt vergleichen.
  *
  * @param array<string, mixed> $row
  * @return array<string, mixed>
@@ -699,9 +700,9 @@ function normalize_category_row(array $row): array
     $id = (int) $row['id'];
 
     /*
-     * The `color` column is still in the table but nothing in this
-     * application reads, writes or displays it any more, so it is not part
-     * of the answer. A category is neutral by design.
+     * Die Spalte `color` gibt es noch, aber nichts in dieser Anwendung liest,
+     * schreibt oder zeigt sie - sie gehört deshalb nicht zur Antwort. Eine Kategorie
+     * ist neutral.
      */
     $fingerprint = $row['icon_fingerprint'] ?? null;
     $hasIcon = is_string($fingerprint) && $fingerprint !== '';
@@ -717,10 +718,10 @@ function normalize_category_row(array $row): array
         'parent_id' => $row['parent_id'] === null ? null : (int) $row['parent_id'],
         'name' => (string) $row['name'],
         /*
-         * The address of the stored icon. It carries a short fingerprint of the
-         * drawing, so a browser that cached the old icon asks for the new one
-         * as soon as the icon is edited. null means "this category has no icon
-         * of its own"; the browser then falls back to its own illustration.
+         * Die Adresse des gespeicherten Symbols. Sie trägt einen kurzen Fingerabdruck
+         * der Zeichnung, damit ein Browser mit der alten Fassung im Cache die neue
+         * holt, sobald das Symbol geändert wird. null heißt "diese Kategorie hat kein
+         * eigenes Symbol"; der Browser fällt dann auf seine eigene Zeichnung zurück.
          */
         'icon_url' => $hasIcon
             ? 'api/category_icon.php?id=' . $id . '&v=' . substr((string) $fingerprint, 0, 8)
@@ -734,9 +735,9 @@ function normalize_category_row(array $row): array
     ];
 
     /*
-     * The stored drawing itself. Only a single category carries it (see
-     * category_select_sql), and a category without a drawing answers with null,
-     * never with a file name.
+     * Die gespeicherte Zeichnung selbst. Nur eine einzelne Kategorie trägt sie
+     * (siehe category_select_sql); eine Kategorie ohne Zeichnung antwortet mit null,
+     * nie mit einem Dateinamen.
      */
 
 
@@ -744,8 +745,8 @@ function normalize_category_row(array $row): array
 }
 
 /**
- * Trims an optional text value and turns an empty one into null, so the browser
- * always receives either a real string or null.
+ * Schneidet einen optionalen Text zurecht und macht aus einem leeren Wert null,
+ * damit der Browser immer entweder eine echte Zeichenkette oder null bekommt.
  *
  * @param mixed $value
  */
@@ -765,13 +766,14 @@ function normalize_optional_text($value, int $maxLength): ?string
 }
 
 /**
- * Which of these categories have subcategories of their own?
+ * Welche dieser Kategorien haben selbst Unterkategorien?
  *
- * Used by api/bootstrap.php: the answer names the parents that need a query, so
- * a tree that is only two levels deep does not cost one query per category.
+ * Wird von api/bootstrap.php genutzt: die Antwort nennt die Eltern, für die eine
+ * Abfrage nötig ist, damit ein Baum mit zwei Ebenen nicht eine Abfrage pro Kategorie
+ * kostet.
  *
  * @param list<int> $ids
- * @return list<int> the ids that really have children, ordered like the input
+ * @return list<int> die ids, die wirklich Kinder haben, in der Reihenfolge der Eingabe
  */
 function category_ids_with_children(PDO $pdo, array $ids, int $ownerUserId): array
 {
@@ -781,8 +783,9 @@ function category_ids_with_children(PDO $pdo, array $ids, int $ownerUserId): arr
         return [];
     }
 
-    /* Every placeholder gets its own name: a statement may not mix named and
-       positional placeholders, and the rest of this file uses named ones. */
+    /* Jeder Platzhalter bekommt einen eigenen Namen: eine Anweisung darf benannte
+       und positionelle Platzhalter nicht mischen, und der Rest dieser Datei nutzt
+       benannte. */
     $placeholders = [];
 
     foreach ($wanted as $index => $id) {
