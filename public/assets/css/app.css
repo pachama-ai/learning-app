@@ -1171,14 +1171,74 @@ img {
 }
 
 /*
- * Hover and focus darken the very same colour by a few percent - no colour
- * change and no second palette. The lift of the light theme stands in the
- * appendix with the rest of the light theme.
+ * Zweite Farbstufe je Kategorie. Sie wird nur beim Ueberfahren und bei der
+ * Tastatur gebraucht und steht hier bei der Position, weil die helle Kachel ihre
+ * Farbe ebenfalls ueber die Position bekommt:
+ *
+ *   --kategorie-tint        Flaechen-Ton der Kachel
+ *   --kategorie-icon-kreis  Ton des Kreises hinter dem Symbol
+ *   --kategorie-akzent      kraeftige Farbe (Kante, Pfeil, Fokusrahmen)
+ *
+ * Der Tint ist fast der Ton, den die Kachel ohne Hover hat (55 % Palettenfarbe
+ * auf Weiss); die vorgegebenen Werte liegen auf zwei Kanaelen 1 Stufe darunter.
+ * Der Ruhezustand bleibt deshalb bei der Mischung aus der Palettenfarbe - so
+ * aendert diese Runde wirklich nur das Ueberfahren - waehrend Hover und Fokus
+ * genau die Werte hier benutzen. Die drei Werte stehen als feste Farben da, weil
+ * der Akzent deutlich dunkler und farbiger ist als jede Mischung aus dem
+ * Kreiston - aus dem Kreis laesst er sich nicht ableiten.
+ *
+ * Nur die helle Fassung liest diese drei Werte. Das dunkle Thema bleibt bei
+ * --tile-bg und --tile-bg-hover und aendert sich nicht.
  */
-[data-theme="light"] .area-card:hover,
-[data-theme="light"] .area-card:focus-visible {
-    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 93%, #2B2622);
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+1) {
+    --kategorie-tint: #CFE0D4;
+    --kategorie-icon-kreis: #A9C7B2;
+    --kategorie-akzent: #3F8F6B;
 }
+
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+2) {
+    --kategorie-tint: #D3DAEB;
+    --kategorie-icon-kreis: #AEBADB;
+    --kategorie-akzent: #4A63A8;
+}
+
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+3) {
+    --kategorie-tint: #EDD2CB;
+    --kategorie-icon-kreis: #DDAFA4;
+    --kategorie-akzent: #B5533F;
+}
+
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+4) {
+    --kategorie-tint: #EFDDB4;
+    --kategorie-icon-kreis: #E0C27E;
+    --kategorie-akzent: #B08318;
+}
+
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+5) {
+    --kategorie-tint: #CDE2E2;
+    --kategorie-icon-kreis: #A6CACA;
+    --kategorie-akzent: #3A8A8A;
+}
+
+/*
+ * Position 6 bis 8: Es gibt fuenf Lernbereiche, aber acht Palettenfarben. Kaeme
+ * ein sechster Bereich dazu, bekommt er seine drei Werte aus seiner
+ * Palettenfarbe abgeleitet und ist damit kein Sonderfall mit grauer Kante.
+ */
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+6),
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+7),
+[data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+8) {
+    --kategorie-tint: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 55%, #FFFFFF);
+    --kategorie-icon-kreis: var(--tile-palette, var(--icon-circle));
+    --kategorie-akzent: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 72%, #2B2622);
+}
+
+/*
+ * Hover und Fokus der hellen Kachel stehen weiter unten bei den uebrigen Regeln
+ * des hellen Themas - dort, wo auch die Ruhefarbe der Kachel steht. Hier bleibt
+ * nur die Farbe je Position, damit es fuer eine Kachel nicht zwei Orte mit
+ * Hover-Regeln gibt.
+ */
 
 /* The brief highlight after a new area appears: the same colour, lighter. */
 [data-theme="light"] .area-card.is-highlighted {
@@ -1308,7 +1368,9 @@ img {
 .area-card:hover .arrow,
 .area-card:focus-visible .arrow {
     color: var(--text);
-    transform: translateX(6px);
+    /* 4 px, nicht 6: die Regel weiter unten (UX-Durchgang) setzt schon 4 px, und
+       zwei verschiedene Zahlen fuer dieselbe Bewegung sind nur verwirrend. */
+    transform: translateX(4px);
 }
 
 /*
@@ -2792,6 +2854,31 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 /*
+ * Auf der hellen Kachel sitzt der Knopf auf einer farbigen Flaeche. Statt einer
+ * eigenen Flaeche (die den Kachellton verdeckt) traegt er einen milchigen
+ * Weiss-Schleier ohne Kante; beim Ueberfahren wird er deckender. 28 px bleiben
+ * 28 px, weil box-sizing: border-box fuer alle Elemente gilt.
+ *
+ * Nur das helle Thema: im dunklen bleibt der Knopf, wie er war.
+ *
+ * Die Groesse muss hier stehen, weil die Regel "[data-theme=\"light\"] .menu-button"
+ * weiter unten 32 px setzt und mehr wiegt als die 28 px aus dem Kachel-Abschnitt.
+ */
+[data-theme="light"] .tile-menu .menu-button {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    background-color: rgba(255, 255, 255, 0.5);
+    color: var(--text);
+    backdrop-filter: blur(6px);
+}
+
+[data-theme="light"] .tile-menu .menu-button:hover,
+[data-theme="light"] .tile-menu .menu-button[aria-expanded="true"] {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/*
  * The menu itself opens downwards from the button. The surface, the radius and
  * the shadow are the ones the row menus already use, so both read as the same
  * control.
@@ -4256,10 +4343,12 @@ body.is-learning {
 
 /* --- the hovered tile lifts, the others stay as they are ------------------ */
 
-[data-theme="light"] .area-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-}
+/*
+ * Die helle Kachel steht weiter unten im Abschnitt "The editorial light theme":
+ * dort liegen Ruhefarbe, Hover, Fokus, Kreis und Pfeil beieinander, damit eine
+ * Aenderung an einer Stelle wirkt und nicht an zweien. Hier bleibt nur das
+ * dunkle Thema, das sich mit dieser Runde nicht aendert.
+ */
 
 /*
  * The dark theme keeps the lift, the brighter surface and the arrow - and the
@@ -4614,6 +4703,21 @@ body.is-learning {
 
     .area-card:hover .arrow,
     .area-card:focus-visible .arrow {
+        transform: none;
+    }
+
+    /*
+     * Die hellen Regeln der Kachel stehen weiter unten und sind spezifischer als
+     * die beiden Regeln hier - ohne diese Wiederholung wuerde die Kachel fuer
+     * jemanden, der weniger Bewegung eingestellt hat, trotzdem springen.
+     */
+    [data-theme="light"] .area-card:hover,
+    [data-theme="light"] .area-card:focus-visible {
+        transform: none;
+    }
+
+    [data-theme="light"] .area-card:hover .arrow,
+    [data-theme="light"] .area-card:focus-visible .arrow {
         transform: none;
     }
 }
@@ -6653,6 +6757,51 @@ select {
     background-color: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 55%, var(--surface));
     border: 1px solid rgba(0, 0, 0, 0.06);
     color: var(--text);
+    /* 180 ms statt 200 ms und mit geradlinigem "ease": Das Ueberfahren soll
+       ruhig wirken und sofort da sein. Ueber die Kante kommt keine Bewegung, weil
+       Ruhe- und Hoverzustand beide genau 1 px haben. */
+    transition: background-color 180ms ease, border-color 180ms ease,
+        box-shadow 180ms ease, transform 180ms ease;
+}
+
+/*
+ * Beim Ueberfahren - und genau so bei der Tastatur, denn :focus-visible steht in
+ * denselben Regeln:
+ *
+ *   Flaeche   92 % Kategorie-Ton und 8 % Akzent: eine Spur kraeftiger, nicht
+ *             dunkler. Der Unterschied zum Ruhezustand ist bewusst klein.
+ *   Kante     ein Hauch des Akzents (35 %) gibt der Kachel eine Kontur
+ *   Schatten  weich und farbig (24 px, 2 px Lift), statt eines grauen Flecks
+ *   Kreis     Kreiston mit 20 % Akzent. Er bleibt dunkler als die Flaeche -
+ *             das ist der Zweck der Trennung von Kreis und Flaeche.
+ *   Pfeil     in der Akzentfarbe und 4 px nach rechts (Farbe nur hier, die
+ *             Bewegung setzt die Regel weiter oben)
+ *   Titel     bleibt in der Textfarbe. Er ist die Ueberschrift der Kachel, und
+ *             eine eingefaerbte Ueberschrift waere auf jedem Ton anders lesbar.
+ */
+[data-theme="light"] .area-card:hover,
+[data-theme="light"] .area-card:focus-visible {
+    background-color: color-mix(in srgb, var(--kategorie-tint) 92%, var(--kategorie-akzent) 8%);
+    border-color: color-mix(in srgb, var(--kategorie-akzent) 35%, transparent);
+    box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--kategorie-akzent) 25%, transparent);
+    transform: translateY(-2px);
+}
+
+/* Die Tastatur bekommt denselben Zustand und zusaetzlich den Rahmen. */
+[data-theme="light"] .area-card:focus-visible {
+    outline: 2px solid var(--kategorie-akzent);
+    outline-offset: 3px;
+}
+
+[data-theme="light"] .area-card:hover .blob,
+[data-theme="light"] .area-card:focus-visible .blob {
+    background-color: color-mix(in srgb, var(--kategorie-icon-kreis) 80%, var(--kategorie-akzent) 20%);
+}
+
+[data-theme="light"] .area-card:hover .arrow,
+[data-theme="light"] .area-card:focus-visible .arrow {
+    color: var(--kategorie-akzent);
+    transform: translateX(4px);
 }
 
 /*

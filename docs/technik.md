@@ -623,12 +623,13 @@ Werte:
 | --- | --- |
 | `--bg`, `--bg-image` | Seitenhintergrund (im dunklen Thema ein Verlauf) |
 | `--text`, `--text-muted`, `--text-faint` | Schriftfarben in drei Lautstärken |
-| `--surface`, `--surface-soft`, `--surface-soft-strong` | Flächen: Blatt, leise Fläche, Hover darauf |
+| `--surface`, `--surface-soft` | Flächen: Blatt, leise Fläche |
 | `--border`, `--border-strong` (Alias `--line`, `--line-strong`) | Linien und Rahmen |
 | `--accent`, `--accent-soft`, `--accent-ink` | die Akzentfarbe und ihre Abtönungen |
 | `--warn` | die warme Farbe für „Unsicher“ |
 | `--tile-bg`, `--tile-bg-hover`, `--icon-circle` | Fläche einer Kachel, Hover, Kreis hinter einer Zeichnung |
 | `--palette-1` … `--palette-8` | die acht Kachelfarben des hellen Themas (nach Position vergeben) |
+| `--kategorie-tint`, `--kategorie-icon-kreis`, `--kategorie-akzent` | die zweite Farbstufe je Position: Fläche, Kreis, kräftige Farbe für Hover, Fokus, Kante und Pfeil (nur helles Thema) |
 | `--icon-filter` | färbt die Symbol-Zeichnungen um |
 | `--panel`, `--panel-shadow`, `--dialog-shadow`, `--backdrop` | Dialoge und Menüs |
 | `--font-sans`, `--font-serif`, `--font-mono` | Schriftfamilien |
@@ -816,6 +817,7 @@ ist dabei unter anderem `chmod o+x /home/user`, damit der Benutzer `www-data`
 | Widersprüchliche Regeln | `.area-card`, `.detail__head`, `.heading--detail` und die Hover-Regeln stehen jetzt je in **einer** Regel, mit genau den Werten, die vorher galten; die vollständig überschriebene Regel für `.detail__head` in Abschnitt 7 ist weg. Gemessen: kein einziger der geprüften 1584 Einzelwerte hat sich geändert. |
 | Ältere Dokumente | Die überholten Fassungen von `project-brief.md` und `verification.md` sind aus dem Repository entfernt. Sie bleiben über die **Git-Historie** einsehbar (`git log --diff-filter=D -- docs/`). |
 | Zugangsdaten | Die Werte standen in `src/config/database.local.php` (nicht im Git). Jetzt stehen sie in der Datei **`.env`** im Projektstamm, gelesen von `src/helpers/env.php`; Vorlage ohne echte Werte: `.env.example`. Beide alten Konfigurationsdateien (`database.local.php`, `database.example.php`) sind entfernt, damit es nur **eine** Stelle mit Werten gibt. Nachgemessen: Passwort und Benutzername kommen in genau einer Datei vor (`.env`), und `.env` ist über HTTP nicht erreichbar. |
+| Hover der Startseiten-Kacheln | Jede Position hat jetzt drei eigene Farben (`--kategorie-tint`, `--kategorie-icon-kreis`, `--kategorie-akzent`). Beim Überfahren und beim Tastatur-Fokus wird die Fläche eine Spur kräftiger, die Kante und der Schatten bekommen einen Hauch der Akzentfarbe, der Kreis wird dunkler, der Pfeil färbt sich und rückt 4 px nach rechts; die Bewegung fällt kleiner aus als vorher (2 px statt 3 px) und dauert 180 ms. Der Fokus bekommt zusätzlich einen Rahmen in der Akzentfarbe. Nachgemessen: im dunklen Thema sind von 145 geprüften Einzelwerten **0** anders als vorher; im hellen Thema ändern sich nur der Übergang, der Menü-Knopf und der neue Hover beziehungsweise Fokus. |
 
 ### 10.2 Weiter offen
 
