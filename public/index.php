@@ -22,6 +22,15 @@ require_once __DIR__ . '/../src/helpers/html.php';
 require_once __DIR__ . '/../src/helpers/translations.php';
 require_once __DIR__ . '/../src/services/exercise_service.php';
 
+/*
+ * Diese Seite darf der Browser nicht zwischenspeichern. Sie traegt die
+ * Uebersetzungen und die Versionsnummern der Dateien; eine alte Kopie zeigt
+ * genau die alten Texte, obwohl im Code schon neue stehen. Das ist passiert, als
+ * die Anmeldung von "Name oder E-Mail" auf "E-Mail" umgestellt wurde: der Server
+ * lieferte laengst "E-Mail", der Browser zeigte weiter den alten Text.
+ */
+header('Cache-Control: no-store, must-revalidate');
+
 $translations = learning_app_translations();
 $defaultLocale = 'en';
 
