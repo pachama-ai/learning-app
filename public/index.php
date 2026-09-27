@@ -140,9 +140,14 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     <title><?= $text('app.title') ?></title>
     <!-- The browser tab icon. It is the browser icon file, not a category icon. -->
     <link rel="icon" href="assets/icons/browser_icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="assets/css/app.css">
+    <!--
+        Both stylesheets and the script below carry the time of their last change
+        as a version (asset_url), so an edit reaches the browser at the next load
+        instead of sitting in its cache.
+    -->
+    <link rel="stylesheet" href="<?= escape_html(asset_url('assets/css/app.css')) ?>">
     <!-- The overlay for the very first load; it owns no other rule. -->
-    <link rel="stylesheet" href="assets/css/boot.css">
+    <link rel="stylesheet" href="<?= escape_html(asset_url('assets/css/boot.css')) ?>">
 
     <!--
         The one rule that must be there before anything is painted: while the
@@ -1061,6 +1066,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         <p class="learn__notice" id="learn-notice" role="status" aria-live="polite" hidden></p>
     </div>
 
-    <script src="assets/js/app.js"></script>
+    <script src="<?= escape_html(asset_url('assets/js/app.js')) ?>"></script>
 </body>
 </html>
