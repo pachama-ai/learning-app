@@ -1635,7 +1635,15 @@ img {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
     gap: 10px;
-    margin: 0 0 22px;
+    /*
+     * The air between the heading and the statistics, and it was missing: with
+     * margin-top 0 the first tile started on the very edge of the heading banner
+     * (measured: gap 0px, the 20px that were visible belonged to the inside of the
+     * banner). The row now takes the same distance the list takes after a section
+     * head - clamp(24px, 3vw, 36px), the value used above the rows - so the page
+     * has one rhythm and not one per section.
+     */
+    margin: clamp(24px, 3vw, 36px) 0 22px;
 }
 
 /*
