@@ -932,17 +932,6 @@ img {
     scroll-snap-align: start;
 }
 
-.area-card {
-    flex: 1 1 auto;
-    min-width: 0;
-    /*
-     * "user-drag: none" is what lets the row be dragged with a mouse: without it
-     * Chrome starts its own link drag and stops sending the pointer events the
-     * row would pan with. A plain click is unaffected.
-     */
-    -webkit-user-drag: none;
-}
-
 /*
  * Whole tiles per view: 4 on a desktop, 3 on a laptop, 2 on a tablet, 1 on a
  * phone. The width of a tile is derived from this, so it is never a guess.
@@ -1073,10 +1062,25 @@ img {
  * the surface reads as a surface and never as a solid block. The whole tile is
  * one link, so it holds no nested controls.
  *
- * The category colour is deliberately NOT used here either. Both themes take the
- * same two tokens; only the strength of the wash differs.
+ * The category colour is deliberately NOT used here: in the light theme a tile
+ * takes one of the eight palette colours by its POSITION in the row (see the
+ * light palette below), the dark theme keeps the wash of --tile-bg.
+ *
+ * Everything that belongs to the tile stands in ONE rule: its part in the row,
+ * the surface, the cursor and the clock of the hover. It used to be spread over
+ * five blocks, of which three were overriding each other.
  */
 .area-card {
+    /* In the row: share the width, never force it. */
+    flex: 1 1 auto;
+    min-width: 0;
+    /*
+     * "user-drag: none" is what lets the row be dragged with a mouse: without it
+     * Chrome starts its own link drag and stops sending the pointer events the
+     * row would pan with. A plain click is unaffected.
+     */
+    -webkit-user-drag: none;
+
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1093,13 +1097,25 @@ img {
     background-color: var(--tile-bg);
     color: inherit;
     text-decoration: none;
-    transition: background-color 200ms var(--ease), transform 250ms var(--ease);
+    cursor: pointer;
+    /* The same clock as a row: see "one hover" above. */
+    transition: transform 200ms var(--ease), box-shadow 200ms var(--ease),
+        background-color 200ms var(--ease);
 }
 
-/* Hover and keyboard focus get the same treatment, including the 4px lift. */
+/*
+ * The tile under the pointer is the click target: it rises a little and its
+ * surface shifts by a few percent - darker in the light theme, lighter in the
+ * dark one. It casts no shadow, in either theme: the surface carries the answer
+ * on its own, and a shadow on a tile only made the row around it look busy.
+ *
+ * The two theme rules below change the colour only; the light theme adds its own
+ * smaller lift.
+ */
 .area-card:hover,
 .area-card:focus-visible {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
+    box-shadow: none;
     background-color: var(--tile-bg-hover);
 }
 /* --------------------------------------------------------------------------
@@ -1108,8 +1124,7 @@ img {
 
 /*
  * In the light theme a tile is a fully opaque colour surface, so the palette
- * really is what is on screen: no wash, no border and no shadow, with the grain
- * layer still lying over it.
+ * really is what is on screen: no wash, no border and no shadow.
  *
  * The colour follows the POSITION of the tile in the row. The first tile gets
  * colour 1, the second colour 2, and so on; the ninth starts the palette again
@@ -1118,11 +1133,10 @@ img {
  * colour, and adding or reordering a learning area re-colours the row by itself.
  *
  * The dark theme is not involved at all: there a tile stays the translucent
- * white wash of --tile-bg and the palette is never read.
+ * white wash of --tile-bg and the palette is never read. The one rule that paints
+ * the light tile stands in the appendix at the end of this file, together with
+ * the rest of the light theme.
  */
-[data-theme="light"] .area-card {
-    background-color: var(--tile-palette, var(--tile-bg));
-}
 
 [data-theme="light"] .area-grid > .area-card-slot:nth-child(8n+1) {
     --tile-palette: var(--palette-1);
@@ -1158,11 +1172,12 @@ img {
 
 /*
  * Hover and focus darken the very same colour by a few percent - no colour
- * change and no second palette.
+ * change and no second palette. The lift of the light theme stands in the
+ * appendix with the rest of the light theme.
  */
 [data-theme="light"] .area-card:hover,
 [data-theme="light"] .area-card:focus-visible {
-    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 92%, #2B2622);
+    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 93%, #2B2622);
 }
 
 /* The brief highlight after a new area appears: the same colour, lighter. */
@@ -1399,8 +1414,7 @@ img {
  * button of a row reacted, the row itself did not, which is why the same list
  * felt different from one row to the next.
  */
-.row,
-.area-card {
+.row {
     transition: background-color 200ms var(--ease), border-color 200ms var(--ease),
         transform 200ms var(--ease), box-shadow 200ms var(--ease),
         padding-inline 200ms var(--ease);
@@ -2417,14 +2431,6 @@ html.is-theme-switching::view-transition-new(root) {
  * Mono and upper case like every label of this design.
  */
 /* Heading of one entry, with the actions that belong to that entry. */
-.detail__head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    flex-wrap: wrap;
-}
-
 .detail__actions {
     display: flex;
     align-items: center;
@@ -3203,28 +3209,26 @@ html.is-theme-switching::view-transition-new(root) {
    language and not three.
    ========================================================================== */
 
-.detail__head {
-    align-items: center;
-    gap: 20px;
-    padding: 20px 22px;
-    border-radius: 26px;
-    background-color: var(--tile-bg);
-    /*
-     * One line, always: the drawing and the name on the left, the menu on the
-     * right. A long name wraps inside its own block instead of pushing the menu
-     * onto a second line, so the menu keeps its place and stays vertically
-     * centred even on a narrow phone.
-     */
-    flex-wrap: nowrap;
-}
-
 /*
- * In the light theme the zone carries the colour of its learning area, softly
- * mixed with the page colour so it is a tint and not a coloured block. In the
- * dark theme it stays neutral: the dark look is not changed.
+ * Der Kopf einer Detailansicht: eine ruhige Flaeche, Name und Symbol links,
+ * Bedienung rechts.
+ *
+ * Alle Werte dieses Selektors stehen in EINER Regel. Vorher waren es vier
+ * Bloecke: zwei davon haben sich gegenseitig ueberschrieben (Ausrichtung,
+ * Abstand, Innenabstand, Rundung, Umbruch), und die Werte der spaeteren Bloecke
+ * haben gewonnen. Hier stehen genau diese Werte.
  */
-[data-theme="light"] .detail__head {
-    background-color: color-mix(in srgb, var(--detail-palette, var(--tile-bg)) 30%, var(--bg));
+.detail__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px 20px;
+    /* The buttons belong beside the title, so the head wraps on a narrow window
+       instead of squeezing the name into one word per line. */
+    flex-wrap: wrap;
+    padding: 20px 24px;
+    border-radius: 12px;
+    background-color: var(--tile-bg);
 }
 
 .detail__titles {
@@ -3245,12 +3249,7 @@ html.is-theme-switching::view-transition-new(root) {
     height: 54px;
 }
 
-/* A step smaller than the start page: this is a page about one entry. */
-.heading--detail {
-    font-size: clamp(34px, 4.4vw, 62px);
-    /* A very long name wraps inside the card instead of pushing it apart. */
-    overflow-wrap: anywhere;
-}
+/* A step smaller than the start page - see .heading--detail further down. */
 
 /* The menu next to the heading, in the surface the row menus already use. */
 .detail__menu {
@@ -4257,28 +4256,9 @@ body.is-learning {
 
 /* --- the hovered tile lifts, the others stay as they are ------------------ */
 
-.area-card {
-    cursor: pointer;
-    /* The same clock as a row: see "one hover" above. */
-    transition: transform 200ms var(--ease), box-shadow 200ms var(--ease),
-        background-color 200ms var(--ease);
-}
-
-/*
- * The tile under the pointer is the click target: it rises a little and its
- * surface shifts by a few percent - darker in the light theme, lighter in the
- * dark one. It casts no shadow, in either theme: the surface carries the answer
- * on its own, and a shadow on a tile only made the row around it look busy.
- */
-.area-card:hover,
-.area-card:focus-visible {
-    transform: translateY(-3px);
-    box-shadow: none;
-}
-
-[data-theme="light"] .area-card:hover,
-[data-theme="light"] .area-card:focus-visible {
-    background-color: color-mix(in srgb, var(--tile-palette, var(--tile-bg)) 93%, #2B2622);
+[data-theme="light"] .area-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
 /*
@@ -4316,13 +4296,6 @@ body.is-learning {
 }
 
 /* --- the two actions in the head of an entry ------------------------------ */
-
-.detail__head {
-    /* The buttons belong beside the title, so the head wraps on a narrow window
-       instead of squeezing the name into one word per line. */
-    flex-wrap: wrap;
-    gap: 14px 20px;
-}
 
 /*
  * One quiet row of actions, directly under the counts: the main action first,
@@ -4458,13 +4431,17 @@ body.is-learning {
 /* --- a calmer title in the head of a subcategory ------------------------- */
 
 /*
- * Half the size it was: the head card becomes lower and the list moves up. The
- * name may wrap onto two lines, and the icon and the menu stay vertically in the
- * middle of the card because the row is aligned on the centre line.
+ * Der Titel einer Detailansicht: eine Stufe kleiner als die Startseite (siehe
+ * .heading--detail unten), hoechstens zwei Zeilen, und ein sehr langer Name
+ * bricht im Kasten um, statt ihn auseinanderzudruecken.
+ *
+ * Die Werte stehen in EINER Regel; vorher waren es drei, die sich mit
+ * unterschiedlichen font-size gegenseitig ueberschrieben haben.
  */
 .heading--detail {
-    font-size: clamp(19px, 2.2vw, 33px);
+    font-size: 30px;
     line-height: 1.25;
+    overflow-wrap: anywhere;
     /* Two lines at most: a name that needs more is cut off, never the card. */
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -6136,10 +6113,6 @@ h2,
     line-height: 1.4;
 }
 
-.heading--detail {
-    font-size: 30px;
-}
-
 /* Die Startseite: gross, aber ruhig - nicht mehr die riesige duenne Schrift. */
 .view--start .heading,
 .start-header__intro .heading {
@@ -6468,12 +6441,8 @@ select:focus-visible,
 
 /* --- 3. Surfaces -------------------------------------------------------- */
 
-/* Der Kategorie-Kopf: die weiche Flaeche der Kategorie statt eines Graukastens. */
-.detail__head {
-    padding: 20px 24px;
-    border-radius: 12px;
-}
-
+/* Nur der Licht-Anteil des Kategorie-Kopfes; Groesse und Innenabstand stehen bei
+   .detail__head in Abschnitt 7. */
 [data-theme="light"] .detail__head {
     background-color: color-mix(in srgb, var(--detail-palette, var(--icon-circle)) 55%, var(--surface));
     color: var(--text);
@@ -6675,11 +6644,10 @@ select {
  * Die Kacheln der Startseite: die Kategorie-Flaeche, Text in der Textfarbe, der
  * Kreis in der Kategorie-Farbe. Der Tint entsteht aus dem Kreiston - 55 % davon
  * auf Weiss ergibt genau die vorgegebenen Toene, weshalb keine zweite Farbtabelle
- * noetig ist und die Position im JavaScript nicht bekannt sein muss.
+ * noetig ist und die Position im JavaScript nicht bekannt sein muss. Das ist die
+ * einzige Regel, die die helle Kachelflaeche malt; die Kreisradius steht bei
+ * .area-card in Abschnitt 6.
  */
-.area-card {
-    border-radius: 12px;
-}
 
 [data-theme="light"] .area-card {
     background-color: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 55%, var(--surface));
@@ -6720,11 +6688,6 @@ select {
 [data-theme="light"] .area-card .blob {
     background-color: var(--tile-palette, var(--icon-circle));
     color: var(--text);
-}
-
-[data-theme="light"] .area-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
 /* Die Fortschrittslinie der Kachelreihe: gefuellt in der Textfarbe. */
