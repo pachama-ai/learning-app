@@ -276,18 +276,29 @@
      * The same slate family as the light theme, clearly darker, and as a vertical
      * gradient. --bg stays the plain darker end because the tooltip and the
      * dialog panel need an opaque colour; --bg-image is what paints.
+     *
+     * The whole theme is one step lighter than it was, the hue is unchanged: the
+     * page #252A3D, every surface #2E3449, a hovered or active surface #353B52,
+     * the circle behind a drawing #3A415A. The gradient of the page and the three
+     * pools of the background were raised by about seven percent of their
+     * brightness with their alpha untouched, so the gradient and the slow drift
+     * stay exactly as they are.
      */
-    --bg: #20243A;
-    --bg-image: linear-gradient(180deg, #282D44, #20243A);
+    --bg: #252A3D;
+    --bg-image: linear-gradient(180deg, #2B3049, #252A3D);
     --text: #F1F2F8;
-    --muted: #BCC1D6;
-    --line: rgba(241, 242, 248, 0.20);
+    /* The muted text and the faint one. Measured on a surface: 5.8:1 and 4.9:1. */
+    --muted: rgba(255, 255, 255, 0.62);
+    --line: rgba(255, 255, 255, 0.10);
     --line-strong: rgba(241, 242, 248, 0.32);
 
-    /* The same two white washes, a touch lighter than they were. */
-    --tile-bg: rgba(255, 255, 255, 0.09);
-    --tile-bg-hover: rgba(255, 255, 255, 0.14);
-    --icon-circle: rgba(255, 255, 255, 0.10);
+    /*
+     * The surfaces are opaque colours of the family now instead of translucent
+     * white washes: a surface is #2E3449 wherever it sits, whatever is behind it.
+     */
+    --tile-bg: #2E3449;
+    --tile-bg-hover: #353B52;
+    --icon-circle: #3A415A;
     --surface: var(--tile-bg);
 
     --accent: #8FD3E6;
@@ -310,7 +321,8 @@
     --border: var(--line);
     --border-strong: var(--line-strong);
     --text-muted: var(--muted);
-    --text-faint: var(--muted);
+    /* Die leiseste Stufe: Beschriftungen und Meta-Infos. */
+    --text-faint: rgba(255, 255, 255, 0.55);
     --accent-soft: rgba(255, 255, 255, 0.10);
     --warn: #D3A26A;
     --warn-soft: rgba(211, 162, 106, 0.16);
@@ -327,19 +339,23 @@
     --palette-4: #D4A94A;
     --palette-5: #92B5AD;
 
-    /* The three light pools, a little stronger than in the light theme. */
-    --blob-a: rgba(58, 110, 140, 0.60);
-    --blob-b: rgba(80, 140, 200, 0.45);
-    --blob-c: rgba(120, 135, 200, 0.28);
+    /*
+     * The three light pools, a little stronger than in the light theme - and, like
+     * the page itself, one step brighter than they were (about seven percent, the
+     * alpha untouched).
+     */
+    --blob-a: rgba(62, 118, 150, 0.60);
+    --blob-b: rgba(86, 150, 214, 0.45);
+    --blob-c: rgba(128, 144, 214, 0.28);
 
     --backdrop: rgba(8, 10, 20, 0.42);
 
     /*
-     * The panels are the opaque page colour of the dark theme, exactly as they
-     * were before the token existed, so nothing about them changes here.
+     * A panel is a surface too, so it takes the same value as every other surface
+     * of the dark theme - and it is still a step lighter than the page, so an
+     * overlay reads as a surface above it.
      */
-    /* A step lighter than the page, so an overlay reads as a surface above it. */
-    --panel: #2A3049;
+    --panel: #2E3449;
     --panel-shadow: 0 14px 32px rgba(8, 10, 20, 0.34);
     --dialog-shadow: 0 28px 70px rgba(6, 8, 16, 0.55);
 
@@ -6641,7 +6657,11 @@ select:focus-visible,
 
 /*
  * Die Statistik-Kacheln: ein weisses Blatt mit einer feinen Kante statt einer
- * grauen Flaeche. "Unsicher" ist die eine Kachel, die sich abhebt.
+ * grauen Flaeche. "Unsicher" ist die eine Kachel mit einer eigenen Flaeche - aber
+ * kein gelber Block mehr, sondern ein ruhiges Grau, eine Stufe dunkler als die
+ * Seite. Warm bleibt nur der kleine Punkt vor dem Label: er haelt die Verbindung
+ * zum Status-Tag "Unsicher" der Kartenliste, und sonst ist kein Gelb in der
+ * Kachel.
  */
 .dash__tile {
     border-radius: 8px;
@@ -6653,12 +6673,32 @@ select:focus-visible,
 }
 
 [data-theme="light"] .dash__tile--unsure {
-    background-color: var(--warn-soft);
-    border-color: transparent;
+    background-color: #ECEAE5;
+    border-color: #DDD9D1;
 }
 
 [data-theme="light"] .dash__tile--unsure .dash__label {
-    color: var(--warn);
+    color: var(--text-muted);
+}
+
+[data-theme="light"] .dash__tile--unsure .dash__value {
+    color: var(--text);
+}
+
+/*
+ * Der eine warme Punkt. Er sitzt im Label, ist aber kein Text: "content" traegt
+ * keine Uebersetzung und keine Grossschreibung, und die Groesse steht hier fest,
+ * damit der Punkt in jeder Sprache derselbe ist.
+ */
+[data-theme="light"] .dash__tile--unsure .dash__label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 7px;
+    border-radius: 50%;
+    background-color: var(--warn);
+    vertical-align: middle;
 }
 
 [data-theme="light"] .dash__track {
@@ -6863,6 +6903,22 @@ select {
     background-color: var(--text);
 }
 
+/* --- 4. Die Flaechen des dunklen Themas --------------------------------- */
+
+/*
+ * Das dunkle Thema ist eine Stufe heller geworden. Fast alles davon steckt in den
+ * Farbvariablen ganz oben (--bg, --tile-bg, --tile-bg-hover, --icon-circle, --line,
+ * --muted, --text-faint, --panel), deshalb steht hier nur das eine, was eine eigene
+ * Regel braucht.
+ *
+ * Der aktive Eintrag der Sidebar war eine Mischung aus der Kategorie-Farbe und dem
+ * Seitenhintergrund. Jetzt ist er die Hover-Flaeche des Themas; die Kategorie-Farbe
+ * bleibt der Punkt davor, unveraendert.
+ */
+[data-theme="dark"] .sidebar__link[aria-current="page"] {
+    background-color: var(--tile-bg-hover);
+}
+
 /* --- 5. Die Statistik-Kacheln im dunklen Thema --------------------------- */
 
 /*
@@ -6872,8 +6928,8 @@ select {
  */
 [data-theme="dark"] .dash__tile {
     padding: 16px 18px;
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 [data-theme="dark"] .dash__tile:hover {
@@ -6881,7 +6937,7 @@ select {
 }
 
 [data-theme="dark"] .dash__label {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.55);
 }
 
 [data-theme="dark"] .dash__value {
@@ -6892,13 +6948,17 @@ select {
     color: #F2F1EE;
 }
 
-/* Die Unterzeile ist ein Satz und keine Beschriftung: keine Grossbuchstaben. */
+/*
+ * Die Unterzeile ist ein Satz und keine Beschriftung: keine Grossbuchstaben, und
+ * sie traegt die Farbe des gedaempften Textes statt einer eigenen, noch leisereren
+ * Stufe - mit 0,45 lag sie bei 3,9:1 und damit unter den 4,5:1.
+ */
 [data-theme="dark"] .dash__note {
     font-size: 12px;
     font-weight: 400;
     letter-spacing: 0;
     text-transform: none;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.62);
 }
 
 [data-theme="dark"] .dash__track {
