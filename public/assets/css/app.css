@@ -4586,26 +4586,37 @@ body.is-learning {
 /* --- a calmer title in the head of a subcategory ------------------------- */
 
 /*
- * Der Titel einer Detailansicht: eine Stufe kleiner als die Startseite (siehe
- * .heading--detail unten), hoechstens zwei Zeilen, und ein sehr langer Name
- * bricht im Kasten um, statt ihn auseinanderzudruecken.
+ * Der Titel einer Detailansicht: eine Stufe kleiner als die Startseite.
  *
- * Die Werte stehen in EINER Regel; vorher waren es drei, die sich mit
- * unterschiedlichen font-size gegenseitig ueberschrieben haben.
+ * Er wird NICHT mehr abgeschnitten. Vorher standen hier zwei Zeilen als
+ * Obergrenze (-webkit-line-clamp) mit overflow: hidden - ein langer Name wie
+ * "System Operation, Balancing Energy and Redispatch" verlor damit seinen Rest.
+ * Jetzt gilt: eine Zeile, wenn sie passt; wenn nicht, bricht der Titel normal
+ * um, und nur dann wird er etwas kleiner gesetzt (.heading--long, ab 32 Zeichen,
+ * gesetzt in setHeading() in app.js).
+ *
+ * text-wrap: pretty statt balance - balance verteilt die Woerter gleichmaessig
+ * auf zwei Zeilen, was bei einem Namen wie "Betriebssysteme" albern aussieht.
+ * `max-width: none` hebt die Breitenbegrenzung auf, die der Kasten einmal hatte.
  */
 .heading--detail {
-    font-size: 30px;
+    font-size: clamp(24px, 2.2vw, 30px);
     line-height: 1.25;
+    max-width: none;
+    text-wrap: pretty;
     overflow-wrap: anywhere;
-    /* Two lines at most: a name that needs more is cut off, never the card. */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+}
+
+/* Lange Titel eine Stufe kleiner: so passt auch ein Name mit vier Woertern in
+   eine Zeile, ohne dass am Ende etwas fehlt. */
+.heading--detail.heading--long {
+    font-size: clamp(20px, 1.8vw, 24px);
 }
 
 .detail__titles {
+    flex: 1;
     align-items: center;
+    min-width: 0;
 }
 
 /* --- the one red button: the confirmation of a deletion ------------------ */
@@ -7015,6 +7026,10 @@ select {
 @media (max-width: 639px) {
     .heading--detail {
         font-size: 24px;
+    }
+
+    .heading--detail.heading--long {
+        font-size: 20px;
     }
 
     .view--start .heading,

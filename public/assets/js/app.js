@@ -766,6 +766,14 @@
     function setHeading(element, text) {
         var lines = String(text).split('\n');
 
+        /*
+         * Ein langer Titel bekommt eine eigene Klasse und wird dann eine Stufe
+         * kleiner gesetzt, statt abgeschnitten zu werden. Die Grenze liegt bei
+         * 32 Zeichen: darueber passt ein Name wie "Electricity and Electrical
+         * Engineering" auch auf 1440 px nicht mehr in eine Zeile.
+         */
+        element.classList.toggle('heading--long', String(text).length > 32);
+
         element.textContent = '';
 
         lines.forEach(function (line, index) {
