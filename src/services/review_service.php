@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/study_session_service.php';
+
 /**
  * The repetition logic: the card box, the intervals and the status of a card.
  *
@@ -526,7 +528,7 @@ function review_calculate($progress, int $rating, int $now): array
  *
  * @return array{ok: bool, code?: string, message?: string, data?: array<string, mixed>}
  */
-function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $categoryId, ?int $now = null): array
+function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $categoryId, ?int $sessionId = null, ?int $now = null): array
 {
     if (!isset(REVIEW_RATINGS[$rating])) {
         return ['ok' => false, 'code' => 'invalid_rating', 'message' => 'The rating must be 1, 2, 3 or 4.'];
@@ -550,8 +552,22 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
     $previous = review_find_progress($pdo, $userId, $cardId);
     $next = review_calculate($previous, $rating, $now);
 
-    review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $next): void {
+    /*
+     * The id of the learning run this answer belongs to. It is decided inside the
+     * transaction below: the browser sends null with the first answer of a run and
+     * gets the new id back, see study_session_service.php.
+     */
+    $runId = $sessionId;
+
+    review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $next, $rating, $now, $sessionId, &$runId): void {
         review_store_progress($pdo, $userId, $cardId, $next);
+
+        /*
+         * The session row is written in the SAME transaction as the progress:
+         * either both are there or neither is. A rating that was stored but not
+         * counted - or the other way round - could never be explained afterwards.
+         */
+        $runId = study_session_record_rating($pdo, $userId, $sessionId, $rating, $now);
     });
 
     return [
@@ -560,6 +576,12 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
             'card_id' => $cardId,
             'rating' => $rating,
             'rating_name' => REVIEW_RATINGS[$rating],
+            /*
+             * The learning run this answer was counted in. The browser sends this
+             * id with its next answer, so one run stays one row in
+             * study_sessions (see study_session_service.php).
+             */
+            'session_id' => $runId,
             /* What the card looks like now. */
             'progress' => review_public_progress($next, $now),
             'interval_days' => $next['interval_days'],
@@ -684,7 +706,7 @@ function review_store_progress(PDO $pdo, int $userId, int $cardId, array $values
  * @param array<string, mixed>|null $previous what was there before the rating
  * @return array{ok: bool, code?: string, message?: string, data?: array<string, mixed>}
  */
-function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previous, int $categoryId): array
+function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previous, int $categoryId, ?int $sessionId = null, int $rating = 0): array
 {
     /* Same owner check as the rating itself, see review_rate_card(). */
     $card = find_card($pdo, $cardId, $userId);
@@ -703,7 +725,14 @@ function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previo
         return ['ok' => false, 'code' => 'undo_conflict', 'message' => 'This rating can no longer be taken back.'];
     }
 
-    review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $previous): void {
+    review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $previous, $sessionId, $rating): void {
+        /*
+         * The taken-back answer leaves the run as well, so its counters keep
+         * matching what the learning view shows. It happens first, because the
+         * branch below may return early.
+         */
+        study_session_take_back_rating($pdo, $userId, $sessionId, $rating);
+
         if ($previous === null) {
             $statement = $pdo->prepare('DELETE FROM user_card_progress WHERE user_id = :user_id AND card_id = :card_id');
             $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);

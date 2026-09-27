@@ -11,6 +11,13 @@ declare(strict_types=1);
  *                                                   answered "Again" or "Hard"
  * POST /api/review.php   {"action":"rate", ...}  -> store one rating
  * POST /api/review.php   {"action":"undo", ...}  -> take the last rating back
+ * POST /api/review.php   {"action":"session_end"} -> close the learning run
+ *
+ * A rating also writes the learning run it happened in (study_sessions, see
+ * src/services/study_session_service.php). The first answer of a run creates that
+ * row and the answer of the server carries its id; the browser sends the id back
+ * with every further answer, and "session_end" closes the run when the learning
+ * view is left - whether the queue ran out or the person stopped early.
  *
  * The queue is built here and not in the browser: which card comes first, and
  * what its status is, are decisions of the server. The browser may show them and
@@ -27,6 +34,7 @@ require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/review_service.php';
+require_once __DIR__ . '/../../src/services/study_session_service.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -45,19 +53,23 @@ if ($method === 'POST') {
     $body = read_json_object();
     $action = isset($body['action']) && is_string($body['action']) ? $body['action'] : 'rate';
 
-    if ($action !== 'rate' && $action !== 'undo') {
-        send_json_error('invalid_action', 'The action must be "rate" or "undo".', 400);
+    if ($action !== 'rate' && $action !== 'undo' && $action !== 'session_end') {
+        send_json_error('invalid_action', 'The action must be "rate", "undo" or "session_end".', 400);
     }
 
     $categoryId = optional_positive_id($body, 'category_id', 'invalid_category_id');
     $cardId = optional_positive_id($body, 'card_id', 'invalid_card_id');
 
-    if ($categoryId === null) {
-        send_json_error('invalid_category_id', 'The field "category_id" must be a positive whole number.', 400);
-    }
+    /* Closing the run needs neither a card nor a category, so those two checks
+       only count for a rating and for an undo. */
+    if ($action !== 'session_end') {
+        if ($categoryId === null) {
+            send_json_error('invalid_category_id', 'The field "category_id" must be a positive whole number.', 400);
+        }
 
-    if ($cardId === null) {
-        send_json_error('invalid_card_id', 'The field "card_id" must be a positive whole number.', 400);
+        if ($cardId === null) {
+            send_json_error('invalid_card_id', 'The field "card_id" must be a positive whole number.', 400);
+        }
     }
 
     $rating = 0;
@@ -72,6 +84,24 @@ if ($method === 'POST') {
         $rating = (int) $rawRating;
     }
 
+    /*
+     * A taken-back answer carries the answer it takes back, so the counters of
+     * the run can follow it. Missing means: the counters stay as they are.
+     */
+    if ($action === 'undo') {
+        $rawUndoRating = $body['rating'] ?? null;
+
+        if (is_int($rawUndoRating) || (is_string($rawUndoRating) && ctype_digit($rawUndoRating))) {
+            $rating = (int) $rawUndoRating;
+        }
+    }
+
+    /*
+     * The learning run this call belongs to. The browser sends null with the first
+     * answer of a run and gets the new id back (study_session_service.php).
+     */
+    $sessionId = optional_positive_id($body, 'session_id', 'invalid_session_id');
+
     try {
         $pdo = create_database_connection();
 
@@ -85,6 +115,18 @@ if ($method === 'POST') {
             send_json_error($required['code'], $required['message'], $required['status']);
         }
 
+        /*
+         * The run is over. It stands before the category check, because closing
+         * needs neither a category nor a card - and send_json_success ends the
+         * request right here.
+         */
+        if ($action === 'session_end') {
+            send_json_success([
+                'session_id' => $sessionId,
+                'closed' => study_session_close($pdo, $userId, $sessionId, time()),
+            ]);
+        }
+
         if (!category_exists($pdo, $categoryId, $userId)) {
             send_json_error('category_not_found', 'This category does not exist.', 404);
         }
@@ -93,7 +135,7 @@ if ($method === 'POST') {
             $stored = isset($body['stored']) && is_array($body['stored']) ? $body['stored'] : null;
             $previous = isset($body['previous']) && is_array($body['previous']) ? $body['previous'] : null;
 
-            $result = review_undo_rating($pdo, $userId, $cardId, $stored, $previous, $categoryId);
+            $result = review_undo_rating($pdo, $userId, $cardId, $stored, $previous, $categoryId, $sessionId, $rating);
 
             if (!$result['ok']) {
                 send_json_error($result['code'], $result['message'], 409);
@@ -102,7 +144,7 @@ if ($method === 'POST') {
             send_json_success($result['data']);
         }
 
-        $result = review_rate_card($pdo, $userId, $cardId, $rating, $categoryId);
+        $result = review_rate_card($pdo, $userId, $cardId, $rating, $categoryId, $sessionId);
 
         if (!$result['ok']) {
             $status = $result['code'] === 'card_not_found' ? 404 : 400;

@@ -75,6 +75,7 @@
         cards: {},           // "85" -> Liste der Karten
         summaries: {},       // "85" -> Zaehlung (total/due/known/unsure)
         contentLanguages: [],
+        streak: null,        // {"available":true,"days":3} - Tage in Folge
         hasUser: false
     };
 
@@ -97,6 +98,7 @@
                 bootstrapCache.cards = data.cards && typeof data.cards === 'object' ? data.cards : {};
                 bootstrapCache.summaries = data.summaries && typeof data.summaries === 'object' ? data.summaries : {};
                 bootstrapCache.contentLanguages = Array.isArray(data.content_languages) ? data.content_languages : [];
+                bootstrapCache.streak = data.streak && typeof data.streak === 'object' ? data.streak : null;
                 bootstrapCache.hasUser = data.has_user === true;
 
                 /*
@@ -199,6 +201,9 @@
                 data: {
                     cards: [],
                     summary: null,
+                    /* Die Tage in Folge kommen aus demselben Zwischenspeicher wie
+                       die Karten: die Kachel braucht sie beim ersten Aufbau. */
+                    streak: bootstrapCache.streak,
                     has_user: bootstrapCache.hasUser,
                     content_languages: bootstrapCache.contentLanguages,
                     language: locale
@@ -208,7 +213,19 @@
 
         if (cached === undefined) {
             return apiRequest(config.endpoints.cards + '?category_id=' + encodeURIComponent(categoryId)
-                + '&language=' + encodeURIComponent(locale), 'GET');
+                + '&language=' + encodeURIComponent(locale), 'GET').then(function (result) {
+                /*
+                 * The answer carries the streak as well. Keep the newest one, so a
+                 * later view drawn out of the bootstrap cannot show an older number
+                 * than the one that just came from the server.
+                 */
+                if (result.ok && result.data !== null && typeof result.data === 'object'
+                    && result.data.streak !== null && typeof result.data.streak === 'object') {
+                    bootstrapCache.streak = result.data.streak;
+                }
+
+                return result;
+            });
         }
 
         var withoutTask = cached.filter(function (card) {
@@ -226,6 +243,9 @@
                 data: {
                     cards: cached,
                     summary: bootstrapCache.summaries[String(categoryId)] || null,
+                    /* The streak comes from the same cache the cards come from - see
+                       the empty list above. */
+                    streak: bootstrapCache.streak,
                     has_user: bootstrapCache.hasUser,
                     content_languages: bootstrapCache.contentLanguages,
                     language: locale
@@ -5740,6 +5760,13 @@
             label: typeof label === 'string' ? label : (currentEntry === null ? '' : displayName(currentEntry)),
             queue: queue,
             hasUser: data.has_user === true,
+            /*
+             * The learning run in the database. It is still null here: the row is
+             * created with the FIRST answer of this run, so a run that is opened
+             * and closed again without answering anything leaves nothing behind.
+             * The id comes back with that first answer (see rateLearnCard).
+             */
+            sessionId: null,
             index: 0,
             flipped: false,
             busy: false,
@@ -6198,7 +6225,9 @@
             action: 'rate',
             category_id: learnSession.categoryId,
             card_id: entry.card_id,
-            rating: rating
+            rating: rating,
+            /* Null with the first answer of the run: that is what creates it. */
+            session_id: learnSession.sessionId
         }).then(function (result) {
             /*
              * The session can be closed while the answer is on its way - with
@@ -6220,6 +6249,12 @@
             }
 
             var data = result.data;
+
+            /* The run this answer was counted in - the id arrives with the first
+               answer of the run and is carried on with every further one. */
+            if (typeof data.session_id === 'number') {
+                learnSession.sessionId = data.session_id;
+            }
 
             learnSession.saved++;
             learnSession.ratings.push(rating);
@@ -6309,7 +6344,10 @@
             category_id: learnSession.categoryId,
             card_id: undo.cardId,
             stored: undo.stored,
-            previous: undo.previous
+            previous: undo.previous,
+            /* The run and the answer, so its counters follow the undo. */
+            session_id: learnSession.sessionId,
+            rating: undo.rating
         }).then(function (result) {
             learnSession.busy = false;
 
@@ -6415,8 +6453,32 @@
     }
 
     /* Leaves the session and reloads the list, so the dots are up to date. */
+    /*
+     * Tells the server that the run is over, so the row in study_sessions gets its
+     * ended_at.
+     *
+     * Not awaited: leaving the learning view must never wait for the network. A
+     * call that fails costs nothing - the row stays open, exactly what a killed
+     * browser tab leaves behind, and the streak counts by started_at anyway (see
+     * database/add_study_sessions.sql).
+     */
+    function endLearnSessionOnServer() {
+        if (learnSession === null || !learnSession.sessionId || learnSession.hasUser !== true) {
+            return;
+        }
+
+        apiRequest(config.endpoints.review, 'POST', {
+            action: 'session_end',
+            session_id: learnSession.sessionId
+        });
+    }
+
     function closeLearnView() {
         window.clearTimeout(learnTimer);
+
+        /* The run ends with the view, and it is closed before the session object
+           is dropped - the id is needed for the call. */
+        endLearnSessionOnServer();
 
         /*
          * Which category was studied, before the session is dropped: the cards of

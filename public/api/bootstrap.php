@@ -42,6 +42,7 @@ require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/helpers/session_user.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
+require_once __DIR__ . '/../../src/services/dashboard_service.php';
 require_once __DIR__ . '/../../src/services/review_service.php';
 
 /*
@@ -133,6 +134,15 @@ try {
         'children' => $children,
         'cards' => $all['cards'],
         'summaries' => $all['summaries'],
+        /*
+         * How many days in a row this person studied (see
+         * src/services/dashboard_service.php).
+         *
+         * It travels with the bootstrap because the first view of a page is drawn
+         * out of this answer alone - without it the streak tile had nothing to show
+         * until a write made the browser ask for its cards again.
+         */
+        'streak' => $userId === null ? ['available' => false, 'days' => 0] : dashboard_streak($pdo, $userId),
         'has_user' => $userId !== null,
         'content_languages' => card_content_languages($columns),
         'language' => $language,
