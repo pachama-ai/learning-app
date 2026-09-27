@@ -1557,6 +1557,12 @@ img {
  * rows kept their narrower line, the highlight did not line up with anything.
  */
 .row--category {
+    /*
+     * One value for both sides, used for the left and for the right edge: the air
+     * under the pointer cannot be wider on one side than on the other, because
+     * there is only one number that both sides read.
+     */
+    --row-hover-inset: 8px;
     margin-inline: 0;
     padding-inline: 0;
     /*
@@ -1576,13 +1582,13 @@ img {
 
 /*
  * The row under the pointer: the name moves a step away from the left edge and
- * the button a step away from the right one. Only the padding changes, so the
- * surface keeps the width of the list and the hairlines above and below still
+ * the button the same step away from the right one. Only the padding changes, so
+ * the surface keeps the width of the list and the hairlines above and below still
  * begin and end with it.
  */
 .row--category:hover,
 .row--category:focus-within {
-    padding-inline: 14px;
+    padding-inline: var(--row-hover-inset);
 }
 
 /* The hairline belongs to the row and not to the list: it is exactly as wide. */
@@ -1631,46 +1637,74 @@ img {
 .dash {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-    gap: 12px;
+    gap: 10px;
     margin: 0 0 22px;
 }
 
+/*
+ * A tile is a quiet note beside the list and not a second headline: a small
+ * caption, the number as the only heavy mark, and a lot of room around both. The
+ * three plain ones share ONE neutral surface tone - the same wash the rest of the
+ * application uses for a surface (--surface). Only "unsure" steps out with the
+ * warm tone the card list already uses for that status, and it stays a wash and
+ * not a coloured panel. The area colour keeps its place on the button, the badge
+ * and the bar; the tiles no longer carry it.
+ */
 .dash__tile {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 16px 18px;
+    gap: 6px;
+    padding: 16px 16px 12px;
     border-radius: var(--radius-tile);
-    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 35%, var(--panel));
+    background-color: var(--surface);
 }
 
+/*
+ * The caption, always two lines high whether it needs them or not: without the
+ * reserved height the numbers of the four tiles stood at different heights,
+ * because "Sitzt schon" fits on one line and "Bereit zum Wiederholen" needs two.
+ * The reserved height is the tallest caption in both languages.
+ *
+ * The tone is the quiet caption tone of the application, a little nearer to the
+ * text colour than --muted: on a wash the muted grey loses some of its contrast,
+ * and a caption of 11px has to stay readable (5.8:1 here, 4.9:1 on the warm tile
+ * of "unsure", both above the 4.5:1 of WCAG AA).
+ */
 .dash__label {
-    color: var(--muted);
-    font-size: 12.5px;
-    line-height: 1.3;
+    min-height: 27px;
+    color: color-mix(in srgb, var(--muted) 70%, var(--text));
+    font-size: 11px;
+    line-height: 1.2;
 }
 
+/* The one heavy mark of the tile - and even this one stays light. */
 .dash__value {
-    font-size: 26px;
-    line-height: 1.1;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
 }
 
 /*
- * The tile that counts what somebody is still unsure about wears the colour the
- * card list already uses for that status (--status-unsure), damped into the panel
- * colour just like the area tint of the other tiles. The number here and the
- * "UNSICHER" beside a card are recognisably the same thing.
+ * The fourth tile wears the colour the card list already uses for that status
+ * (--status-unsure), mixed into the same surface the other three take - damped,
+ * so it is a hue and not a colour block. So it is recognisably a different thing
+ * and still the same kind of surface as the three beside it.
  */
 .dash__tile--unsure {
-    background-color: color-mix(in srgb, var(--status-unsure) 22%, var(--panel));
+    background-color: color-mix(in srgb, var(--status-unsure) 14%, var(--surface));
 }
 
-/* The quiet line under a number that has nothing to show yet. */
+/*
+ * The quiet line under a number that has nothing to show yet. It sits on the
+ * bottom edge of its tile, so all four tiles end in the same place whatever
+ * stands under the number.
+ */
 .dash__note {
-    color: var(--muted);
-    font-size: 11.5px;
-    line-height: 1.35;
+    margin-top: auto;
+    color: color-mix(in srgb, var(--muted) 70%, var(--text));
+    font-size: 11px;
+    line-height: 1.3;
 }
 
 /* How much of the list already sits, as a length instead of a percentage. */
@@ -1681,7 +1715,7 @@ img {
  * that ends far too early.
  */
 .dash__track {
-    height: 4px;
+    height: 3px;
     margin-top: auto;
     border-radius: 999px;
     background-color: color-mix(in srgb, var(--text) 18%, transparent);
