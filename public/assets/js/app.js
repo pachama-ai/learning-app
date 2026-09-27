@@ -2333,6 +2333,16 @@
             startLearning('all', entry.id, title);
         });
 
+        /*
+         * Something to do or nothing to do: with cards due the button carries the
+         * accent colour of the theme and the number, without cards due it is a
+         * quiet outline and the zero disappears (the stylesheet decides the look,
+         * the class only says which of the two it is).
+         */
+        if (due > 0) {
+            button.classList.add('has-due');
+        }
+
         button.appendChild(el('span', 'row__learn-label', t('cards.learn')));
 
         /*

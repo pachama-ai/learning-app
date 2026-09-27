@@ -52,6 +52,14 @@
  * removed from the two stacks below. If the files are added later, one
  * @font-face block per file is enough to switch them on.
  */
+
+/*
+ * The editorial pair: Inter for everything that reads, "Source Serif 4" for the
+ * headings. Loaded from the font service because the project ships no files for
+ * them - Inter Tight stays in the stack below as the local fallback, so the page
+ * still reads well when the service is not reachable.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@500;600&display=swap");
 @font-face {
     font-family: "Inter Tight";
     src: url("../fonts/inter-tight-latin-wght-normal.woff2") format("woff2");
@@ -59,6 +67,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 
 /* ==========================================================================
    1. Design tokens
@@ -71,12 +80,45 @@
      * design. The dark theme paints a vertical gradient over the darker slate
      * family instead. The two themes differ in nothing else structurally.
      */
-    --bg: #EDEAE4;
+    --bg: #F8F7F4;
     --bg-image: none;
-    --text: #2B2622;
-    --muted: #6B645C;
-    --line: rgba(43, 38, 34, 0.16);
-    --line-strong: rgba(43, 38, 34, 0.38);
+    --text: #1C1C1A;
+    /* Der gedaempfte Text: Beschreibungen, Sidebar-Eintraege. */
+    --text-muted: #5F5C56;
+    /* Die leiseste Stufe: Labels, Meta-Infos, Breadcrumbs. */
+    --text-faint: #8C8880;
+    --muted: var(--text-muted);
+
+    /*
+     * Flaechen und Linien des hellen Themas. --surface ist ab hier WEISS: eine
+     * Karte, ein Eingabefeld und eine Kachel liegen als Blatt auf dem Papier und
+     * nicht mehr als Schleier darauf. --surface-soft ist die eine leise Flaeche
+     * fuer Hover und aktive Eintraege.
+     */
+    --surface: #FFFFFF;
+    --surface-soft: #F1EFEA;
+    --border: #E4E1DA;
+    --border-strong: #CFCBC2;
+    --line: var(--border);
+    --line-strong: var(--border-strong);
+    /* Hover eines Eintrags, der schon auf --surface-soft sitzt: eine Stufe tiefer. */
+    --surface-soft-strong: #EAE7E1;
+
+    --accent: #2F6B4F;
+    --accent-soft: #E6EFEA;
+    --accent-ink: #FFFFFF;
+    --warn: #A8691C;
+    --warn-soft: #F6ECDD;
+
+    /*
+     * Die zwei Washes, die das helle Thema weiter braucht: die leise Flaeche eines
+     * Hover-Zustands und der Kreis hinter einer Zeichnung. Beide sind jetzt
+     * deckende Toene statt Schleier - die Linien und Flaechen dieses Themas sind
+     * es auch.
+     */
+    --tile-bg: var(--surface-soft);
+    --tile-bg-hover: var(--surface-soft);
+    --icon-circle: #E9E6E0;
 
     /*
      * The two washes the light theme still needs: the faint warm tint of a
@@ -96,21 +138,13 @@
     --tile-bg: rgba(43, 38, 34, 0.06);
     --tile-bg-hover: rgba(43, 38, 34, 0.10);
     --icon-circle: rgba(43, 38, 34, 0.09);
-    /* Older name for the tile wash, kept so the rest of the sheet stays readable. */
-    --surface: var(--tile-bg);
-
     /*
-     * The accent of the light theme is the text colour itself. It is used by
-     * exactly three things: the focus ring, the underline of the selected
-     * language and the plus button. There is no aqua in the light theme.
-     *
-     * The plus button is the one solid control: a dark disc with the page colour
-     * as its plus, which is what makes it the obvious action on a beige page.
+     * Der Akzent des hellen Themas ist das Tannengruen. Er traegt die aktiven
+     * Zustaende, den Fokus, den Fortschritt und den Lernen-Knopf mit faelligen
+     * Karten; der runde Plus-Knopf bleibt die dunkle Scheibe (siehe unten).
      */
-    --accent: #2B2622;
-    --accent-ink: #EDEAE4;
     --plus-bg: var(--text);
-    --plus-fg: var(--bg);
+    --plus-fg: #FFFFFF;
 
     /*
      * ---- The category colour ----
@@ -157,7 +191,8 @@
     --active-surface: var(--surface);
 
     /* ---- Type and rhythm ---- */
-    --font-sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-sans: "Inter", "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
     --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
 
     --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -177,7 +212,7 @@
      * touch lighter than the page, in the dark theme the opaque slate the page
      * colour already is; the same goes for the shadow they cast.
      */
-    --panel: #FBF8F3;
+    --panel: var(--surface);
     --panel-shadow: 0 14px 32px rgba(43, 38, 34, 0.16);
     --dialog-shadow: 0 28px 70px rgba(43, 38, 34, 0.22);
 
@@ -198,15 +233,21 @@
      * (see "the light palette"). --tile-ink-muted is the darkened variant of the
      * text colour that the information line of a tile uses.
      */
-    --palette-1: #9BAE9F;
-    --palette-2: #9DA6BE;
-    --palette-3: #C99790;
-    --palette-4: #D4A94A;
-    --palette-5: #92B5AD;
+    --palette-1: #C9DACE;
+    --palette-2: #CCD2E3;
+    --palette-3: #E4C8C1;
+    --palette-4: #E6D3A8;
+    --palette-5: #C4D9D9;
     --palette-6: #B3A2BF;
     --palette-7: #C48E6E;
     --palette-8: #B2B27C;
-    --tile-ink-muted: #24201B;
+    /*
+     * Die weiche Flaeche einer Kategorie ist die Haelfte ihres Kreistons auf
+     * Weiss - genau die Toene, die als Tint vorgegeben sind. Deshalb braucht keine
+     * Kachel und kein Kopf eine eigene Farbtabelle oder eine Position im
+     * JavaScript: die Mischung macht aus dem Kreiston den Tint.
+     */
+    --tile-ink-muted: #1C1C1A;
 
     /*
      * The counter of a "Study" button. Its badge is always a deep tone of the area
@@ -257,6 +298,34 @@
     --cat-default: #A9AFC6;
 
     --cat-reserve-rose: #B8B0AC;
+
+    /*
+     * Die neuen Namen des hellen Themes bedeuten im dunklen Theme genau das, was
+     * die alten dort schon bedeuten. Nichts, was die neuen Namen liest, kann
+     * deshalb im dunklen Theme anders aussehen als vorher.
+     */
+    --surface: var(--panel);
+    --surface-soft: var(--tile-bg);
+    --surface-soft-strong: var(--tile-bg-hover);
+    --border: var(--line);
+    --border-strong: var(--line-strong);
+    --text-muted: var(--muted);
+    --text-faint: var(--muted);
+    --accent-soft: rgba(255, 255, 255, 0.10);
+    --warn: #D3A26A;
+    --warn-soft: rgba(211, 162, 106, 0.16);
+
+    /*
+     * Die Kreistöne der Kategorien: im dunklen Thema trugen sie den Punkt einer
+     * Zeile und den Zähler eines Lernen-Knopfs. Weil das helle Thema seine Kreise
+     * weicher gemacht hat, stehen hier die alten Töne noch einmal - so bleiben
+     * Punkt und Zähler im dunklen Thema exakt, was sie waren.
+     */
+    --palette-1: #9BAE9F;
+    --palette-2: #9DA6BE;
+    --palette-3: #C99790;
+    --palette-4: #D4A94A;
+    --palette-5: #92B5AD;
 
     /* The three light pools, a little stronger than in the light theme. */
     --blob-a: rgba(58, 110, 140, 0.60);
@@ -3573,9 +3642,9 @@ html.is-theme-switching::view-transition-new(root) {
 /* The status of a card, in the list and in the study session. The colour is
    never the only carrier: the word stands right next to the dot. */
 :root {
-    --status-new: var(--muted);
-    --status-unsure: #8A5322;
-    --status-known: #47613F;
+    --status-new: var(--text-faint);
+    --status-unsure: var(--warn);
+    --status-known: var(--accent);
 }
 
 [data-theme="dark"] {
@@ -6150,5 +6219,584 @@ body.is-learning {
     .page-note {
         transition: none;
         transform: none;
+    }
+}
+
+/* ==========================================================================
+   The editorial light theme
+   ==========================================================================
+
+   Everything the light theme looks like from here on: paper instead of beige,
+   white sheets instead of washes, one green accent, a serif for the headings.
+
+   How this section keeps the dark theme untouched:
+
+     * Colours stand in rules that begin with [data-theme="light"]. The dark
+       theme therefore keeps every colour it had, down to the last value.
+     * Everything that is NOT a colour - type, size, padding, radius, height,
+       motion - stands unprefixed, because that is what both themes share.
+     * The accent, the surfaces and the lines themselves live in the tokens of
+       :root; the dark block maps the same names onto its own old values.
+
+   The order matters: these rules stand at the end of the sheet, so they win
+   against the older ones they replace.
+   -------------------------------------------------------------------------- */
+
+/* --- 1. Type ------------------------------------------------------------ */
+
+body {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+/*
+ * The headings: a serif, one weight, tight lines. The mask/line wrappers of the
+ * start page keep their behaviour, they only pass the family on.
+ */
+h1,
+h2,
+.heading,
+.dialog__title,
+.count-dialog__title,
+.account-dialog__title,
+.detail__section-title,
+.notice__title,
+.learn__text,
+.learn__ask-title,
+.learn__summary-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+}
+
+/* Die Zuordnung der Bereiche sind Meta-Infos und keine Ueberschriften. */
+.detail__section-title,
+.learn__ask-title,
+.learn__summary-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+}
+
+.heading--detail {
+    font-size: 30px;
+}
+
+/* Die Startseite: gross, aber ruhig - nicht mehr die riesige duenne Schrift. */
+.view--start .heading,
+.start-header__intro .heading {
+    font-size: clamp(40px, 5vw, 60px);
+    font-weight: 600;
+}
+
+.area-card__name {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+}
+
+.area-card__stat,
+.area-card__foot {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+/* Die Zahl einer Kachel ist die zweite Ueberschrift der Seite. */
+.dash__value {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+/*
+ * Die kleinen Beschriftungen: Breadcrumbs, "THEMENGEBIETE", Kachel-Labels,
+ * Status-Tags, Tabellenkoepfe. Statt der Monospace-Schrift jetzt die Sans in
+ * 600 - die Kartennummern [01] bleiben die einzige Monospace-Stelle.
+ *
+ * Hier steht ABSICHTLICH keine Farbe: die Farben der Status-Tags und des
+ * Zaehlers gehoeren ihren eigenen Regeln, und das dunkle Thema behaelt seine
+ * Beschriftungsfarbe. Die leise Farbe des hellen Themas steht darunter.
+ */
+.eyebrow,
+.crumb,
+.dash__label,
+.dash__note,
+.detail__figure,
+.detail__figures,
+.row__status,
+.row__badge,
+.card-tools__label,
+.count-dialog__label,
+.account-dialog__label,
+.learn__label,
+.learn__rating-label,
+.learn__counter,
+.dialog__label {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Der Zaehler des Lernmodus bleibt in Ziffernbreite, damit er nicht springt. */
+.learn__counter {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+
+[data-theme="light"] .eyebrow,
+[data-theme="light"] .crumb,
+[data-theme="light"] .dash__label,
+[data-theme="light"] .dash__note,
+[data-theme="light"] .detail__figure,
+[data-theme="light"] .detail__figures,
+[data-theme="light"] .card-tools__label,
+[data-theme="light"] .count-dialog__label,
+[data-theme="light"] .account-dialog__label,
+[data-theme="light"] .learn__label,
+[data-theme="light"] .learn__rating-label,
+[data-theme="light"] .learn__counter,
+[data-theme="light"] .dialog__label {
+    color: var(--text-faint);
+}
+
+.row__index {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+}
+
+/* Listentexte: die Frage traegt, die Antwort begleitet. */
+.row__name {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.row__back {
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+[data-theme="light"] .row__back,
+[data-theme="light"] .row__stack,
+[data-theme="light"] .detail__text,
+[data-theme="light"] .notice__hint,
+[data-theme="light"] .state {
+    color: var(--text-muted);
+}
+
+/* --- 2. Buttons --------------------------------------------------------- */
+
+button,
+.menu__item {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.learn-button,
+.add-entry-button,
+.import-button,
+.row__learn,
+.notice__button,
+.dialog__button,
+.count-dialog__button,
+.account-dialog__button,
+.learn__action,
+.learn__button,
+.learn__close,
+.feedback__action,
+.theme-toggle,
+.menu-button,
+.tiles-nav__button {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 6px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 13px;
+    transition: background-color 150ms var(--ease), color 150ms var(--ease),
+        border-color 150ms var(--ease), transform 150ms var(--ease);
+}
+
+/*
+ * Im Lernmodus sind die vier Antworten die Hauptknoepfe der Seite: gleiche Form,
+ * aber einen Tick groesser, weil sie mit der Maus und mit der Tastatur getroffen
+ * werden muessen.
+ */
+.learn__button {
+    height: 42px;
+    padding: 0 16px;
+}
+
+/* Primaer: "Lernen" in der Kartenansicht. */
+[data-theme="light"] .learn-button {
+    background-color: var(--text);
+    color: #FFFFFF;
+}
+
+[data-theme="light"] .learn-button:hover {
+    background-color: #33322F;
+}
+
+/*
+ * Die Lernen-Knoepfe der Unterkategorie-Liste.
+ *
+ * Mit faelligen Karten (die Klasse setzt app.js) traegt der Knopf den Akzent und
+ * die Zahl; ohne faellige Karten ist er ein leiser Umriss und die Null
+ * verschwindet - ein Knopf, der nichts zu tun hat, soll nicht aussehen wie einer,
+ * der wartet.
+ */
+[data-theme="light"] .row__learn {
+    background-color: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+[data-theme="light"] .row__learn:hover {
+    background-color: var(--surface-soft);
+    color: var(--text);
+}
+
+[data-theme="light"] .row__learn .row__learn-badge--none {
+    display: none;
+}
+
+[data-theme="light"] .row__learn.has-due {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #FFFFFF;
+}
+
+[data-theme="light"] .row__learn.has-due:hover {
+    background-color: color-mix(in srgb, var(--accent) 86%, #000000);
+    color: #FFFFFF;
+}
+
+[data-theme="light"] .row__learn.has-due .row__learn-label {
+    color: #FFFFFF;
+}
+
+[data-theme="light"] .row__learn.has-due .row__learn-badge {
+    margin-left: 8px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Sekundaer: die Wege, etwas hinzuzufuegen. */
+[data-theme="light"] .add-entry-button,
+[data-theme="light"] .import-button,
+[data-theme="light"] .notice__button--quiet {
+    background-color: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+}
+
+[data-theme="light"] .add-entry-button:hover,
+[data-theme="light"] .import-button:hover,
+[data-theme="light"] .notice__button--quiet:hover {
+    background-color: var(--surface-soft);
+    color: var(--text);
+}
+
+/* Runde Icon-Knoepfe: Theme-Umschalter, "..."-Menue, Pfeile der Kachelreihe,
+   das Schliessen der Lernansicht. */
+[data-theme="light"] .theme-toggle,
+[data-theme="light"] .menu-button,
+[data-theme="light"] .tiles-nav__button,
+[data-theme="light"] .learn__close {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-color: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+[data-theme="light"] .theme-toggle:hover,
+[data-theme="light"] .menu-button:hover,
+[data-theme="light"] .tiles-nav__button:hover,
+[data-theme="light"] .learn__close:hover {
+    background-color: var(--surface-soft);
+}
+
+/* Der schwebende Plus-Knopf: die eine gefuellte Scheibe der Startseite. */
+[data-theme="light"] .plus-button {
+    background-color: var(--text);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Der Fokus aller bedienbaren Elemente: ein Ring im Akzent. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* --- 3. Surfaces -------------------------------------------------------- */
+
+/* Der Kategorie-Kopf: die weiche Flaeche der Kategorie statt eines Graukastens. */
+.detail__head {
+    padding: 20px 24px;
+    border-radius: 12px;
+}
+
+[data-theme="light"] .detail__head {
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 50%, var(--surface));
+    color: var(--text);
+}
+
+.detail__head .blob,
+.detail__blob {
+    width: 48px;
+    height: 48px;
+}
+
+[data-theme="light"] .detail__blob {
+    background-color: var(--detail-palette, var(--icon-circle));
+    color: var(--text);
+}
+
+/*
+ * Die Statistik-Kacheln: ein weisses Blatt mit einer feinen Kante statt einer
+ * grauen Flaeche. "Unsicher" ist die eine Kachel, die sich abhebt.
+ */
+.dash__tile {
+    border-radius: 8px;
+}
+
+[data-theme="light"] .dash__tile {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+}
+
+[data-theme="light"] .dash__tile--unsure {
+    background-color: var(--warn-soft);
+    border-color: transparent;
+}
+
+[data-theme="light"] .dash__tile--unsure .dash__label {
+    color: var(--warn);
+}
+
+[data-theme="light"] .dash__track {
+    background-color: var(--border);
+}
+
+[data-theme="light"] .dash__track-fill {
+    background-color: var(--accent);
+}
+
+/* Die Fortschrittslinie einer Lernrunde traegt denselben Akzent. */
+[data-theme="light"] .learn__progress-fill {
+    background-color: var(--accent);
+}
+
+[data-theme="light"] .learn__progress {
+    background-color: var(--border);
+}
+
+/* Die Zeilen einer Liste: eine Linie dazwischen, keine Kaesten. */
+[data-theme="light"] .row:hover,
+[data-theme="light"] .row:focus-within {
+    background-color: var(--surface-soft);
+}
+
+[data-theme="light"] .rows {
+    border-top: 1px solid var(--border);
+}
+
+[data-theme="light"] .row {
+    border-bottom: 1px solid var(--border);
+}
+
+[data-theme="light"] .row--category::after {
+    border-bottom: 1px solid var(--border);
+}
+
+/*
+ * Die Status-Tags: der Punkt sitzt vor dem Wort, beide tragen dieselbe Farbe.
+ * "Gewusst" ist der Akzent, "Unsicher" die warme Warnfarbe.
+ */
+[data-theme="light"] .row__status-dot {
+    width: 6px;
+    height: 6px;
+}
+
+[data-theme="light"] .row__status--known {
+    color: var(--accent);
+}
+
+[data-theme="light"] .row__status--unsure {
+    color: var(--warn);
+}
+
+[data-theme="light"] .row__status--new {
+    color: var(--text-faint);
+}
+
+[data-theme="light"] .row__badge {
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Das Suchfeld. */
+.card-tools__search-input,
+input[type="search"],
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+    height: 40px;
+    border-radius: 6px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+}
+
+[data-theme="light"] .card-tools__search-input,
+[data-theme="light"] input[type="search"],
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+    color: var(--text-faint);
+}
+
+[data-theme="light"] .card-tools__search-input:focus,
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+    border-color: var(--accent);
+}
+
+/* Die Sidebar: der aktive Eintrag ist eine leise Flaeche mit einer Linie. */
+[data-theme="light"] .sidebar__link {
+    color: var(--text-muted);
+}
+
+[data-theme="light"] .sidebar__link:hover {
+    color: var(--text);
+}
+
+[data-theme="light"] .sidebar__link.is-active,
+[data-theme="light"] .sidebar__link[aria-current],
+[data-theme="light"] .sidebar__link.is-current {
+    background-color: var(--surface-soft);
+    border-radius: 6px;
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: inset 2px 0 0 var(--link-color, var(--accent));
+}
+
+/* Der Sprachumschalter. */
+[data-theme="light"] .lang-switch__option {
+    color: var(--text-faint);
+}
+
+[data-theme="light"] .lang-switch__option[aria-pressed="true"] {
+    color: var(--text);
+}
+
+[data-theme="light"] .lang-switch__underline {
+    height: 1px;
+    background-color: var(--accent);
+}
+
+/*
+ * Die Kacheln der Startseite: die weiche Kategorie-Flaeche, Text in der
+ * Textfarbe, der Kreis in der Kategorie-Farbe. Die Mischung macht aus dem
+ * Kreiston genau den Tint, den die Vorgabe nennt.
+ */
+.area-card {
+    border-radius: 12px;
+}
+
+[data-theme="light"] .area-card {
+    background-color: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 50%, var(--surface));
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    color: var(--text);
+}
+
+[data-theme="light"] .area-card .blob {
+    background-color: var(--tile-palette, var(--icon-circle));
+    color: var(--text);
+}
+
+[data-theme="light"] .area-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* Die Fortschrittslinie der Kachelreihe: gefuellt in der Textfarbe. */
+[data-theme="light"] .tiles-nav__track {
+    height: 2px;
+    background-color: var(--border);
+}
+
+[data-theme="light"] .tiles-nav__thumb {
+    height: 2px;
+    background-color: var(--text);
+}
+
+/* --- 4. Kleinere Fenster ------------------------------------------------ */
+
+/*
+ * Die Groessen dieses Abschnitts sind fuer den Schreibtisch gedacht. Auf einem
+ * Telefon waren sie vorher kleiner, und das bleibt so: diese Regeln stehen am
+ * Ende und gewinnen deshalb gegen die Zeilen weiter oben.
+ */
+@media (max-width: 639px) {
+    .heading--detail {
+        font-size: 24px;
+    }
+
+    .view--start .heading,
+    .start-header__intro .heading {
+        font-size: clamp(32px, 9vw, 40px);
+    }
+
+    .area-card__name {
+        font-size: 19px;
+    }
+
+    .dash__value {
+        font-size: 23px;
+    }
+
+    .row__name {
+        font-size: 14px;
     }
 }
