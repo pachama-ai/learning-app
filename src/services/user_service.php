@@ -245,6 +245,37 @@ function user_find(PDO $pdo, string $identifier): ?array
 }
 
 /**
+ * Sucht ein Konto ueber seine E-Mail-Adresse.
+ *
+ * Seit die Anmeldung nur noch ueber die Adresse geht, steht diese Suche getrennt
+ * von user_find(): dort wird weiter nach Name ODER Adresse gesucht, weil das
+ * Anlegen prueft, ob ein Name schon vergeben ist. Beim Anmelden waere genau das
+ * der zweite Weg ins Konto, den es nicht mehr geben soll.
+ *
+ * Getrimmt wird hier, und Gross- oder Kleinschreibung spielt keine Rolle: die
+ * Spalte steht in utf8mb4_unicode_ci, der Vergleich ignoriert sie also schon.
+ *
+ * @param PDO $pdo die Datenbankverbindung
+ * @param string $email die eingetippte Adresse
+ * @return array<string, mixed>|null die Zeile des Kontos oder null
+ */
+function user_find_by_email(PDO $pdo, string $email): ?array
+{
+    /* Ohne die Spalte gibt es keine Adresse zu suchen - das kann nur passieren,
+       solange die Migration database/add_user_auth.sql noch nicht lief. */
+    if (!user_column_available(user_columns($pdo), 'email')) {
+        return null;
+    }
+
+    $statement = $pdo->prepare('SELECT * FROM users WHERE email IS NOT NULL AND email = :email LIMIT 1');
+    $statement->bindValue(':email', trim($email), PDO::PARAM_STR);
+    $statement->execute();
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+    return $row === false ? null : $row;
+}
+
+/**
  * Creates an account.
  *
  * @return array{ok: bool, error: ?string, user: ?array{id: int, name: string}}
@@ -256,6 +287,13 @@ function user_register(PDO $pdo, string $identifier, string $password): array
 
     if ($problem !== null) {
         return ['ok' => false, 'error' => $problem, 'user' => null];
+    }
+
+    /* Ohne Adresse gaebe es kein zweites Mal hinein: die Anmeldung kennt nur
+       noch die E-Mail. Sie muss also schon beim Anlegen da sein - sonst waere
+       das neue Konto sofort ausgesperrt. */
+    if (!user_identifier_is_email($identifier)) {
+        return ['ok' => false, 'error' => 'invalid_email', 'user' => null];
     }
 
     if (!user_sign_in_ready($pdo)) {
@@ -346,7 +384,7 @@ function user_sign_in(PDO $pdo, string $identifier, string $password): array
         return ['ok' => false, 'error' => 'sign_in_not_ready', 'user' => null];
     }
 
-    $row = user_find($pdo, $identifier);
+    $row = user_find_by_email($pdo, $identifier);
     $hash = $row === null ? USER_DUMMY_HASH : (string) ($row['password_hash'] ?? '');
 
     if ($hash === '') {
