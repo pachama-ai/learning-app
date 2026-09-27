@@ -2436,9 +2436,37 @@ html.is-theme-switching::view-transition-new(root) {
  * A row that opens a card list instead of a category: the same grid, but with
  * the decorative track left out, because a card list has no count to show.
  */
+/*
+ * Die Zeile einer Karte hat genau zwei Spalten: links den Inhalt (Landkarte,
+ * Titel, Beschreibung), rechts eine feste Spalte mit den Merkern, dem Status und
+ * dem "..."-Knopf. Beide beginnen oben.
+ *
+ * Vorher war das Zeilenraster "Index | Inhalt | Merker", und Merker und Status
+ * waren eigene Rasterzellen. Eine Karte mit Merker hatte damit vier Zellen fuer
+ * drei Spalten, und der Status landete in einer zweiten Rasterzeile - also unter
+ * der Landkarte statt daneben. Jetzt gibt es nur noch eine Struktur, und die
+ * Haenge der Karte (Landkarte ja/nein, Merker ja/nein) aendern daran nichts.
+ */
+.row--card {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
 .row--card .row__link {
-    /* index | front and back | the "both directions" badge */
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+/* Die rechte Spalte der Zeile: Merker, Status, Menue - von oben nach unten,
+   rechtsbuendig, und immer gleich breit. */
+.row__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 
 /* Front and back of a card share one cell, one above the other. */
@@ -2447,6 +2475,7 @@ html.is-theme-switching::view-transition-new(root) {
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    flex: 1;
 }
 
 .row__back {

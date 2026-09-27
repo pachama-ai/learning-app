@@ -2505,19 +2505,29 @@
         status.appendChild(dot);
         status.appendChild(statusText);
 
-        body.appendChild(number);
-        body.appendChild(stack);
-        body.appendChild(badge);
+        /*
+         * Die rechte Spalte: alles, was kein Text ist - die Merker, der Status
+         * und der "..."-Knopf. Sie liegen zusammen in EINEM Kasten, damit sie in
+         * jeder Zeile an derselben Stelle sitzen, egal ob links eine Landkarte
+         * steht oder nicht.
+         *
+         * Vorher waren Merker und Status eigene Zellen des Zeilenrasters. Bei
+         * einer Karte mit Merker ("Beide Richtungen") waren es damit vier
+         * Zellen fuer drei Spalten, und der Status rutschte in eine zweite
+         * Rasterzeile - in der Geografie, wo Landkarte und Merker zusammen
+         * vorkommen, ist genau das passiert.
+         */
+        var metaColumn = document.createElement('span');
+        metaColumn.className = 'row__meta';
+        metaColumn.appendChild(badge);
 
         if (exerciseBadge !== null) {
-            body.appendChild(exerciseBadge);
+            metaColumn.appendChild(exerciseBadge);
         }
 
-        body.appendChild(languageBadge);
-        body.appendChild(status);
-
-        item.appendChild(body);
-        item.appendChild(buildMenu([
+        metaColumn.appendChild(languageBadge);
+        metaColumn.appendChild(status);
+        metaColumn.appendChild(buildMenu([
             {
                 label: t('action.edit'),
                 run: function () {
@@ -2532,6 +2542,12 @@
                 }
             }
         ], card.front));
+
+        body.appendChild(number);
+        body.appendChild(stack);
+        body.appendChild(metaColumn);
+
+        item.appendChild(body);
 
         return item;
     }
