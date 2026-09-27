@@ -3,26 +3,26 @@
 declare(strict_types=1);
 
 /**
- * The kinds of task themselves: Energie-Kennzahlen, Einheiten, Statistik.
+ * Die Aufgabensorten selbst: Energie-Kennzahlen, Einheiten, Statistik.
  *
- * One function per kind of task, built the same way as in exercise_tasks.php:
- * numbers are drawn and the answer is computed in the same step, every answer is
- * either exact or clearly marked as rounded, and the parameters can only contain
- * what exercise_catalog() allows.
+ * Eine Funktion je Aufgabensorte, genauso gebaut wie in exercise_tasks.php:
+ * Zahlen werden gezogen und die Lösung im selben Schritt berechnet, jede Lösung
+ * ist entweder exakt oder klar als gerundet gekennzeichnet, und die Parameter
+ * können nur enthalten, was exercise_catalog() erlaubt.
  */
 
 /**
- * A value converted from one unit into another of the same family.
+ * Ein Wert, von einer Einheit in eine andere derselben Familie umgerechnet.
  *
- * The families are fixed lists in exercise_unit_families(), and every step inside
- * a family is a power of ten. The value is therefore chosen as a multiple of the
- * step, which makes the answer a whole number in every direction - no task ever
- * ends in 0,0000000001 kW.
+ * Die Familien stehen als feste Listen in exercise_unit_families(), und jeder
+ * Schritt innerhalb einer Familie ist eine Zehnerpotenz. Der Wert wird deshalb
+ * als Vielfaches des Schritts gewählt, damit die Lösung in jede Richtung eine
+ * ganze Zahl bleibt - keine Aufgabe endet bei 0,0000000001 kW.
  *
- * About cubic metres: the family holds m³ and the litre, which is its exact
- * thousandth. A conversion between m³ and Nm³ is not in the list on purpose - it
- * depends on pressure and temperature, so it would need a basis that this
- * application does not have, and inventing one would make the task wrong.
+ * Zu den Kubikmetern: die Familie enthält m³ und den Liter, der genau ein
+ * Tausendstel davon ist. Eine Umrechnung zwischen m³ und Nm³ fehlt absichtlich -
+ * sie hängt von Druck und Temperatur ab, bräuchte also eine Bezugsgröße, die
+ * diese Anwendung nicht hat, und eine erfundene würde die Aufgabe falsch machen.
  */
 function exercise_task_unit_conversion(array $params): array
 {
@@ -41,11 +41,11 @@ function exercise_task_unit_conversion(array $params): array
     $high = max($low, (int) $params['max']);
 
     if ($fromFactor > $toFactor) {
-        /* Into a smaller unit: multiplying always gives a whole number. */
+        /* In eine kleinere Einheit: Multiplizieren ergibt immer eine ganze Zahl. */
         $value = exercise_draw_multiple($low, $high, intdiv($fromFactor, $toFactor));
         $result = $value * intdiv($fromFactor, $toFactor);
     } else {
-        /* Into a bigger unit: the value has to be a multiple of the step. */
+        /* In eine größere Einheit: der Wert muss ein Vielfaches des Schritts sein. */
         $ratio = intdiv($toFactor, $fromFactor);
         $value = exercise_draw_multiple($low, $high, $ratio);
         $result = intdiv($value, $ratio);
@@ -58,14 +58,15 @@ function exercise_task_unit_conversion(array $params): array
 }
 
 /**
- * One of the two energy formulas with one letter missing.
+ * Eine der zwei Energieformeln mit einem fehlenden Buchstaben.
  *
- *   P = U · I    voltage and current are given, the power is asked for
- *   E = P · t    power and time are given, the energy is asked for
+ *   P = U · I    Spannung und Strom sind gegeben, die Leistung ist gesucht
+ *   E = P · t    Leistung und Zeit sind gegeben, die Energie ist gesucht
  *
- * All three values are whole numbers of their unit, so the answer is exact. The
- * letter that is missing is drawn, and the numbers are the sizes they have in
- * reality: volts in the hundreds, amperes in single digits, hours within a day.
+ * Alle drei Werte sind ganze Zahlen ihrer Einheit, die Lösung ist also exakt. Der
+ * fehlende Buchstabe wird gezogen, und die Zahlen haben die Größen, die sie in
+ * Wirklichkeit haben: Volt im Hunderterbereich, Ampere einstellig, Stunden
+ * innerhalb eines Tages.
  */
 function exercise_task_energy_formula(array $params): array
 {
@@ -123,12 +124,12 @@ function exercise_task_energy_formula(array $params): array
 }
 
 /**
- * The efficiency: how much of what went in came out useful.
+ * Der Wirkungsgrad: wie viel von dem, was hineinging, nutzbar herauskam.
  *
- * A power plant keeps 35 to 45 % of its fuel, a device 80 to 95 %. One of those
- * two is drawn, and then one of the three values is asked for. The energy that
- * goes in is chosen as a multiple of the step that makes the useful part whole,
- * so both answers are exact.
+ * Ein Kraftwerk behält 35 bis 45 % seines Brennstoffs, ein Gerät 80 bis 95 %. Eine
+ * der beiden Zahlen wird gezogen, danach ist einer der drei Werte gesucht. Die
+ * hineingehende Energie wird als Vielfaches des Schritts gewählt, der den Nutzen
+ * ganzzahlig macht - beide Lösungen sind also exakt.
  */
 function exercise_task_efficiency(array $params): array
 {
@@ -175,11 +176,12 @@ function exercise_task_efficiency(array $params): array
 }
 
 /**
- * The utilisation: how much of what a plant could produce it really produced.
+ * Die Auslastung: wie viel von dem, was eine Anlage leisten könnte, sie wirklich
+ * geleistet hat.
  *
- * Both the maximum and the percentage are drawn, the actual production is
- * computed from them - so whichever of the three is asked for, the answer is a
- * whole number.
+ * Maximum und Prozentwert werden beide gezogen, die tatsächliche Erzeugung daraus
+ * berechnet - egal welcher der drei Werte gesucht ist, die Lösung ist eine ganze
+ * Zahl.
  */
 function exercise_task_utilisation(array $params): array
 {
@@ -223,13 +225,13 @@ function exercise_task_utilisation(array $params): array
 }
 
 /**
- * Full load hours and the capacity factor.
+ * Volllaststunden und der Kapazitätsfaktor.
  *
- * The annual yield divided by the rated power gives the full load hours: a plant
- * of 5 MW that produced 8 000 MWh ran, as it were, 1 600 hours at full power. The
- * ratio of that to the 8 760 hours of a year is the capacity factor, which is a
- * percentage and usually a small one - that is why it is shown with one decimal
- * and the ≈ sign.
+ * Der Jahresertrag geteilt durch die Nennleistung ergibt die Volllaststunden: eine
+ * Anlage mit 5 MW, die 8 000 MWh erzeugt hat, lief sozusagen 1 600 Stunden unter
+ * Volllast. Das Verhältnis zu den 8 760 Stunden eines Jahres ist der
+ * Kapazitätsfaktor, ein Prozentwert und meist ein kleiner - deshalb steht er mit
+ * einer Nachkommastelle und dem ≈-Zeichen.
  */
 function exercise_task_full_load_hours(array $params): array
 {
@@ -259,15 +261,17 @@ function exercise_task_full_load_hours(array $params): array
 }
 
 /**
- * A row of quarter-hour values: the energy they add up to, or their average.
+ * Eine Reihe Viertelstundenwerte: die Energie, die sie zusammen ergeben, oder ihr
+ * Mittelwert.
  *
- * A quarter of an hour is a quarter of a kWh per kW, so the energy is the sum of
- * the values divided by four, and the power values are chosen as multiples of four
- * to keep that whole. The average is built by drawing the values around a chosen
- * mean, so it is a whole number as well.
+ * Eine Viertelstunde ist ein Viertel kWh je kW, die Energie ist also die Summe der
+ * Werte geteilt durch vier - die Leistungswerte werden deshalb als Vielfache von
+ * vier gezogen, damit das ganzzahlig bleibt. Der Mittelwert entsteht, indem die
+ * Werte um ein gewähltes Mittel herum gezogen werden, ist also ebenfalls eine
+ * ganze Zahl.
  *
- * The first answer is in kWh, the second one in kW - which is why the kind of task
- * carries which of the two is asked for.
+ * Die erste Lösung ist in kWh, die zweite in kW - deshalb trägt die Aufgabensorte
+ * mit, welche der beiden gefragt ist.
  */
 function exercise_task_quarter_hours(array $params): array
 {
@@ -297,7 +301,7 @@ function exercise_task_quarter_hours(array $params): array
         }
 
         if ($mean === null) {
-            /* No whole mean found in this narrow range: take the real one. */
+            /* In dem engen Bereich kein ganzzahliges Mittel gefunden: dann eben das echte. */
             $values = exercise_draw_series($count, $low, $high);
             $mean = array_sum($values) / $count;
 
@@ -334,12 +338,13 @@ function exercise_task_quarter_hours(array $params): array
 }
 
 /**
- * One of four figures about a short list of numbers: median, smallest, largest or
- * the span between the two.
+ * Eine von vier Kennzahlen zu einer kurzen Zahlenliste: Median, kleinster Wert,
+ * größter Wert oder der Abstand zwischen beiden.
  *
- * The list is drawn and shown as it was drawn - sorting it is part of the task for
- * whoever reads it. The median is the middle value of the sorted list (the list
- * always has an odd number of values, so there is exactly one middle).
+ * Die Liste wird gezogen und so gezeigt, wie sie gezogen wurde - sie zu sortieren
+ * gehört für den Leser zur Aufgabe. Der Median ist der mittlere Wert der
+ * sortierten Liste (die Liste hat immer eine ungerade Anzahl, es gibt also genau
+ * eine Mitte).
  */
 function exercise_task_statistics_spread(array $params): array
 {
@@ -368,11 +373,11 @@ function exercise_task_statistics_spread(array $params): array
 }
 
 /**
- * The mean of three to five numbers.
+ * Der Mittelwert aus drei bis fünf Zahlen.
  *
- * The list is built around a whole mean: the last value is computed from the
- * others, so the answer is a whole number. If the range is too narrow for that,
- * the true mean is used and rounded with the ≈ sign.
+ * Die Liste wird um ein ganzzahliges Mittel herum gebaut: der letzte Wert wird aus
+ * den anderen berechnet, die Lösung ist also eine ganze Zahl. Ist der Bereich
+ * dafür zu eng, wird der echte Mittelwert genommen und mit dem ≈-Zeichen gerundet.
  */
 function exercise_task_mean_value(array $params): array
 {
@@ -413,13 +418,13 @@ function exercise_task_mean_value(array $params): array
 }
 
 /**
- * The standard deviation of five to eight numbers.
+ * Die Standardabweichung aus fünf bis acht Zahlen.
  *
- * The usual formula, with the arithmetic mean as the point of reference: the mean
- * of the squared distances, and the square root of that. It is the deviation of
- * the whole list (divided by how many values there are), which is the one taught
- * with this formula. The answer is rounded to two decimals and written with the ≈
- * sign, unless it happens to be a whole number.
+ * Die übliche Formel, mit dem arithmetischen Mittel als Bezugspunkt: das Mittel
+ * der quadrierten Abstände und daraus die Wurzel. Es ist die Abweichung der ganzen
+ * Liste (geteilt durch die Anzahl der Werte), also die, die mit dieser Formel
+ * gelehrt wird. Die Lösung wird auf zwei Nachkommastellen gerundet und mit dem
+ * ≈-Zeichen geschrieben, außer sie ist zufällig ganzzahlig.
  */
 function exercise_task_standard_deviation(array $params): array
 {
@@ -447,12 +452,13 @@ function exercise_task_standard_deviation(array $params): array
 }
 
 /**
- * A small table of values, and one question about it.
+ * Eine kleine Wertetabelle und eine Frage dazu.
  *
- * Four to six values with letters as their names, drawn from the range. Asked for
- * is the largest value, the difference between two of them, or the share one of
- * them has of the total. For the share the total is a multiple of the step that
- * makes the percentage whole, so that answer is exact as well.
+ * Vier bis sechs Werte, benannt mit Buchstaben, aus dem Bereich gezogen. Gefragt
+ * ist der größte Wert, der Unterschied zwischen zwei von ihnen oder der Anteil,
+ * den einer am Ganzen hat. Für den Anteil ist die Summe ein Vielfaches des
+ * Schritts, der den Prozentwert ganzzahlig macht - auch diese Lösung ist also
+ * exakt.
  */
 function exercise_task_data_table(array $params): array
 {
@@ -491,12 +497,12 @@ function exercise_task_data_table(array $params): array
 
     if ($params['ask'] === 'share') {
         /*
-         * One of the values is made a whole percentage of the whole table on
-         * purpose, so the answer is exact. The value is drawn first and the total
-         * follows from it; the others then have to fit between the smallest and
-         * the largest value, which is what the attempt is for. When the range is
-         * too narrow for that, the question about the largest value is asked
-         * instead - a task is always shown.
+         * Einer der Werte wird absichtlich zu einem glatten Prozentanteil am Ganzen
+         * gemacht, damit die Lösung exakt ist. Der Wert wird zuerst gezogen, die
+         * Summe folgt daraus; die anderen müssen dann zwischen kleinstem und größtem
+         * Wert passen, und dafür ist der Versuch da. Ist der Bereich dafür zu eng,
+         * wird stattdessen nach dem größten Wert gefragt - eine Aufgabe wird immer
+         * gezeigt.
          */
         for ($attempt = 0; $attempt < 30; $attempt++) {
             $rate = exercise_pick([5, 10, 20, 25, 50]);
