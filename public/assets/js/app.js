@@ -460,6 +460,15 @@
         accountCancel: document.getElementById('account-cancel'),
         accountConfirm: document.getElementById('account-confirm'),
         accountPassword: document.getElementById('account-password'),
+        /* The question before a session starts. */
+        newCardsDialog: document.getElementById('new-cards-dialog'),
+        newCardsHint: document.getElementById('new-cards-dialog-hint'),
+        newCardsQuick: document.getElementById('new-cards-dialog-quick'),
+        newCardsInput: document.getElementById('new-cards-dialog-input'),
+        newCardsError: document.getElementById('new-cards-dialog-error'),
+        newCardsStart: document.getElementById('new-cards-dialog-start'),
+        newCardsCancel: document.getElementById('new-cards-dialog-cancel'),
+        newCardsClose: document.getElementById('new-cards-dialog-close'),
         accountError: document.getElementById('account-error'),
 
         /* The strip above the rows of a subcategory: it holds the search field. */
@@ -2615,6 +2624,14 @@
                 elements.entryEmptyHint.hidden = false;
                 elements.entryEmptyAction.hidden = true;
                 elements.entryEmpty.hidden = false;
+
+                /*
+                 * The footer follows the view that is really there and not the
+                 * one that was asked for: this is not the start page, so the plus
+                 * button goes away - and it would have nothing to act on anyway,
+                 * because there is no entry to add to.
+                 */
+                updateFooterControls('detail');
                 return;
             }
 
@@ -5327,6 +5344,7 @@
 
         wireEvents();
         wireAccountDialog();
+        wireNewCardsDialog();
 
         applyLocale(locale, false);
 
@@ -5674,24 +5692,279 @@
                 return;
             }
 
-            learnSession = {
-                categoryId: categoryId,
-                mode: result.data.mode === 'difficult' ? 'difficult' : 'all',
-                label: typeof label === 'string' ? label : (currentEntry === null ? '' : displayName(currentEntry)),
-                queue: result.data.queue.slice(),
-                hasUser: result.data.has_user === true,
-                index: 0,
-                flipped: false,
-                busy: false,
-                results: {},
-                ratings: [],
-                again: {},
-                undo: null,
-                saved: 0
-            };
+            /*
+             * Signed in, the session asks first how many new cards it should
+             * introduce. Forty new cards in one session is a promise nobody can
+             * keep, and how many of them to take on is a decision that belongs to
+             * the person learning and not to the queue.
+             *
+             * Without an account there is nothing to remember and nothing to
+             * limit; the "difficult" mode repeats cards that are already in the
+             * learning state. Neither of them has anything to choose.
+             *
+             * The question is asked here and not when the button was pressed,
+             * because how many new cards are really there is known only after the
+             * session was asked for its queue.
+             */
+            var queue = result.data.queue.slice();
+            var counts = result.data.counts !== null && typeof result.data.counts === 'object' ?
+                result.data.counts : {};
+            var fresh = typeof counts['new'] === 'number' ? counts['new'] : 0;
 
-            openLearnView();
-            renderLearnCard();
+            if (result.data.has_user === true && mode !== 'difficult' && fresh > 0) {
+                openNewCardsDialog(fresh, function (limit) {
+                    beginLearnSession(categoryId, result.data, label, limitNewCards(queue, limit));
+                });
+
+                return;
+            }
+
+            beginLearnSession(categoryId, result.data, label, queue);
+        });
+    }
+
+    /*
+     * Opens the session with the queue that was fetched - and, when somebody is
+     * signed in, narrowed down to the number of new cards they asked for.
+     */
+    function beginLearnSession(categoryId, data, label, queue) {
+        /* Nothing left to show: everything was filtered away. */
+        if (queue.length === 0) {
+            showFeedback(t('learn.noCards'));
+            return;
+        }
+
+        learnSession = {
+            categoryId: categoryId,
+            mode: data.mode === 'difficult' ? 'difficult' : 'all',
+            label: typeof label === 'string' ? label : (currentEntry === null ? '' : displayName(currentEntry)),
+            queue: queue,
+            hasUser: data.has_user === true,
+            index: 0,
+            flipped: false,
+            busy: false,
+            results: {},
+            ratings: [],
+            again: {},
+            undo: null,
+            saved: 0
+        };
+
+        openLearnView();
+        renderLearnCard();
+    }
+
+    /*
+     * Keeps every card that is due and only so many of the new ones.
+     *
+     * Counted per CARD and not per entry: a card that is practised in both
+     * directions stands in the queue twice, and both of its turns have to stay or
+     * go together - otherwise a session would show the same card twice and count
+     * it as two. The due cards keep their place at the front, the chosen new ones
+     * follow, and the order of the queue stays as the server built it.
+     */
+    function limitNewCards(queue, limit) {
+        var kept = [];
+        var seen = {};
+        var taken = 0;
+
+        queue.forEach(function (entry) {
+            if (entry.status !== 'new') {
+                kept.push(entry);
+                return;
+            }
+
+            var key = String(entry.card_id);
+
+            if (Object.prototype.hasOwnProperty.call(seen, key) === false) {
+                if (taken >= limit) {
+                    return;
+                }
+
+                seen[key] = true;
+                taken++;
+            }
+
+            kept.push(entry);
+        });
+
+        return kept;
+    }
+
+    /* ----------------------------------------------------------------------
+       The question before a session starts
+       ---------------------------------------------------------------------- */
+
+    /* The sizes that are offered as one tap. */
+    var NEW_CARDS_CHOICES = [5, 10, 20];
+
+    /* What the dialog does when it is answered, and how many cards there are. */
+    var newCardsHandler = null;
+    var newCardsAvailable = 0;
+
+    /*
+     * Asks how many new cards this session should introduce and calls the handler
+     * with the answer. Closing the window answers nothing at all.
+     */
+    function openNewCardsDialog(available, handler) {
+        var dialog = elements.newCardsDialog;
+
+        /* No window in the page: take everything rather than block the session. */
+        if (dialog === null) {
+            handler(available);
+            return;
+        }
+
+        newCardsHandler = handler;
+        newCardsAvailable = available;
+
+        elements.newCardsHint.textContent = t(
+            available === 1 ? 'learn.newCardsHintOne' : 'learn.newCardsHintOther',
+            { count: available }
+        );
+        elements.newCardsInput.setAttribute('max', String(available));
+        elements.newCardsError.hidden = true;
+        elements.newCardsError.textContent = '';
+
+        buildNewCardsQuick(available);
+
+        /* What is offered first: the usual ten, or everything if there is less. */
+        var start = Math.min(10, available);
+        elements.newCardsInput.value = String(start);
+        markNewCardsQuick(start);
+
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+
+        window.requestAnimationFrame(function () {
+            dialog.classList.add('is-open');
+        });
+
+        /* The number is the only thing to do here, so the focus goes there. */
+        window.setTimeout(function () {
+            elements.newCardsInput.focus();
+            elements.newCardsInput.select();
+        }, prefersReducedMotion() ? 0 : 200);
+    }
+
+    function closeNewCardsDialog() {
+        var dialog = elements.newCardsDialog;
+
+        if (dialog === null) {
+            return;
+        }
+
+        dialog.classList.remove('is-open');
+
+        window.setTimeout(function () {
+            if (typeof dialog.close === 'function' && dialog.open) {
+                dialog.close();
+            } else {
+                dialog.removeAttribute('open');
+            }
+        }, prefersReducedMotion() ? 0 : 200);
+    }
+
+    /* The shortcuts: the three usual sizes and "all" - and only what is there. */
+    function buildNewCardsQuick(available) {
+        elements.newCardsQuick.textContent = '';
+
+        NEW_CARDS_CHOICES.forEach(function (count) {
+            if (count >= available) {
+                return;
+            }
+
+            elements.newCardsQuick.appendChild(buildNewCardsChoice(String(count), count));
+        });
+
+        elements.newCardsQuick.appendChild(buildNewCardsChoice(t('learn.newCardsAll'), available));
+    }
+
+    function buildNewCardsChoice(label, count) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.count = String(count);
+        button.setAttribute('aria-pressed', 'false');
+        button.textContent = label;
+        button.addEventListener('click', function () {
+            elements.newCardsInput.value = String(count);
+            elements.newCardsError.hidden = true;
+            markNewCardsQuick(count);
+        });
+
+        return button;
+    }
+
+    /* Which shortcut is the chosen one: the one whose number stands in the field. */
+    function markNewCardsQuick(count) {
+        Array.prototype.forEach.call(elements.newCardsQuick.children, function (button) {
+            var chosen = Number(button.dataset.count) === count;
+            button.setAttribute('aria-pressed', chosen ? 'true' : 'false');
+        });
+    }
+
+    /*
+     * The answer: a whole number between 0 and what is there. Anything else is
+     * answered with one line under the field and the window stays open.
+     */
+    function confirmNewCards() {
+        var raw = elements.newCardsInput.value.trim();
+        var count = /^\d+$/.test(raw) ? parseInt(raw, 10) : NaN;
+
+        if (isNaN(count) || count > newCardsAvailable) {
+            elements.newCardsError.textContent = t('learn.newCardsError', { max: newCardsAvailable });
+            elements.newCardsError.hidden = false;
+            elements.newCardsInput.focus();
+            return;
+        }
+
+        var handler = newCardsHandler;
+        newCardsHandler = null;
+        closeNewCardsDialog();
+
+        /* Zero is a real answer: only the cards that are due. */
+        if (handler !== null) {
+            handler(count);
+        }
+    }
+
+    function wireNewCardsDialog() {
+        var dialog = elements.newCardsDialog;
+
+        if (dialog === null) {
+            return;
+        }
+
+        elements.newCardsStart.addEventListener('click', confirmNewCards);
+        elements.newCardsInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                confirmNewCards();
+            }
+        });
+
+        /* Typing a number moves the mark to whichever shortcut it belongs to. */
+        elements.newCardsInput.addEventListener('input', function () {
+            elements.newCardsError.hidden = true;
+            markNewCardsQuick(Number(elements.newCardsInput.value));
+        });
+
+        /* Leaving the window: the session starts only when it was answered. */
+        [elements.newCardsCancel, elements.newCardsClose].forEach(function (button) {
+            button.addEventListener('click', function () {
+                newCardsHandler = null;
+                closeNewCardsDialog();
+            });
+        });
+
+        /* Escape closes it like the X - and starts nothing. */
+        dialog.addEventListener('cancel', function (event) {
+            event.preventDefault();
+            newCardsHandler = null;
+            closeNewCardsDialog();
         });
     }
 

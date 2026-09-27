@@ -924,11 +924,44 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </dialog>
 
     <!--
-        Film grain: one fixed layer above everything (z-index 9999) that takes no
-        pointer events, so the noise sits over the whole page - colour, tiles and
-        text alike - and cannot be clicked, hovered or scrolled.
+        The one question before a session starts: how many new cards should this
+        one introduce. A window of its own and not the form dialog, because it is
+        not a form - it is one number, four shortcuts and two ways out.
+
+        The hint and the shortcuts are written by app.js: how many new cards are
+        really there is known only after the session was asked for its queue.
     -->
-    <div class="grain" aria-hidden="true"></div>
+    <dialog class="count-dialog" id="new-cards-dialog" aria-labelledby="new-cards-dialog-title">
+        <div class="count-dialog__panel">
+            <button type="button" class="count-dialog__close" id="new-cards-dialog-close"
+                    aria-label="<?= $text('dialog.close') ?>"
+                    data-i18n-label="dialog.close">&#215;</button>
+
+            <h2 class="count-dialog__title" id="new-cards-dialog-title"
+                data-i18n="learn.newCardsTitle"><?= $text('learn.newCardsTitle') ?></h2>
+
+            <p class="count-dialog__hint" id="new-cards-dialog-hint"></p>
+
+            <div class="count-dialog__quick" id="new-cards-dialog-quick"></div>
+
+            <div class="count-dialog__field">
+                <label class="count-dialog__label" for="new-cards-dialog-input"
+                       data-i18n="learn.newCardsField"><?= $text('learn.newCardsField') ?></label>
+                <input class="count-dialog__input" id="new-cards-dialog-input" name="new-cards-count"
+                       type="number" min="0" step="1" inputmode="numeric" autocomplete="off">
+            </div>
+
+            <p class="count-dialog__error" id="new-cards-dialog-error" role="alert" hidden></p>
+
+            <div class="count-dialog__actions">
+                <button type="button" class="count-dialog__button" id="new-cards-dialog-cancel"
+                        data-i18n="dialog.cancel"><?= $text('dialog.cancel') ?></button>
+                <button type="button" class="count-dialog__button count-dialog__button--primary"
+                        id="new-cards-dialog-start"
+                        data-i18n="learn.newCardsStart"><?= $text('learn.newCardsStart') ?></button>
+            </div>
+        </div>
+    </dialog>
 
     <!--
         The full screen study session.

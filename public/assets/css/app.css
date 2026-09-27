@@ -1582,6 +1582,23 @@ img {
     border-bottom: 0.5px solid var(--hairline);
 }
 
+/*
+ * A separator stands BETWEEN two rows and never after the last one: the line
+ * under the last row of a list belonged to nothing, and together with the space
+ * that followed it, it read like the rest of a section that is not there.
+ *
+ * Both kinds of list are covered here - the subcategories of an area carry their
+ * line on ::after, the cards of a category carry it on the row itself - so the
+ * rule is written once for the whole application.
+ */
+.rows > .row:last-child {
+    border-bottom: 0;
+}
+
+.row--category:last-child::after {
+    border-bottom: 0;
+}
+
 /* --- the tiles of a subcategory ------------------------------------------- */
 
 /*
@@ -3582,6 +3599,15 @@ html.is-theme-switching::view-transition-new(root) {
     align-items: center;
     gap: 7px;
     flex: 0 0 auto;
+    /*
+     * One width for all three words. With "flex: 0 0 auto" the box was exactly as
+     * wide as its own word - "NEW" is short, "UNSURE" long - so the dot and the
+     * word beside it started somewhere else in every row and the column of dots
+     * never lined up. The width fits the longest word of both languages
+     * ("UNSICHER") plus dot, gap and a little air; the menu behind it stays in
+     * place for the same reason.
+     */
+    min-width: 84px;
     font-family: var(--font-mono);
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -5807,6 +5833,204 @@ body.is-learning {
     opacity: 0.5;
     cursor: default;
     text-decoration: none;
+}
+
+/* --- the question before a session starts -------------------------------- */
+
+/*
+ * One small question: how many new cards should this session introduce. It wears
+ * the same shape as the account window - the same panel, the same X in the same
+ * corner, the same backdrop, the same quiet text buttons - so the application has
+ * ONE dialog gesture and not two.
+ */
+.count-dialog {
+    width: min(400px, calc(100vw - 32px));
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    opacity: 0;
+    transform: scale(0.98);
+    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+
+.count-dialog[open].is-open {
+    opacity: 1;
+    transform: none;
+}
+
+.count-dialog::backdrop {
+    background-color: var(--backdrop);
+    opacity: 0;
+    transition: opacity 200ms var(--ease);
+}
+
+.count-dialog[open].is-open::backdrop {
+    opacity: 1;
+}
+
+.count-dialog__panel {
+    position: relative;
+    padding: 32px 34px 26px;
+    border-radius: var(--radius-tile);
+    background-color: var(--panel);
+}
+
+.count-dialog__close {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.count-dialog__close:hover,
+.count-dialog__close:focus-visible {
+    color: var(--text);
+}
+
+.count-dialog__close:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+.count-dialog__title {
+    margin: 0;
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.count-dialog__hint {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/*
+ * The shortcuts: 5, 10, 20 and everything that is there. Small pills, because
+ * they are a choice out of a row of choices; the chosen one is filled.
+ */
+.count-dialog__quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.count-dialog__quick button {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: color 200ms var(--ease), border-color 200ms var(--ease),
+        background-color 200ms var(--ease);
+}
+
+.count-dialog__quick button:hover,
+.count-dialog__quick button:focus-visible {
+    border-color: var(--text);
+    color: var(--text);
+}
+
+.count-dialog__quick button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+.count-dialog__quick button[aria-pressed="true"] {
+    border-color: var(--text);
+    background-color: var(--text);
+    color: var(--panel);
+}
+
+/* The number itself: the field of the other dialogs, only wider. */
+.count-dialog__field {
+    margin-top: 22px;
+}
+
+.count-dialog__label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.count-dialog__input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+}
+
+.count-dialog__input:focus {
+    outline: none;
+    border-color: var(--text);
+}
+
+/* A wrong number: one word, one line, no frame. */
+.count-dialog__error {
+    margin: 10px 0 0;
+    color: var(--cat-reserve-rose);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.count-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 22px;
+    margin-top: 26px;
+}
+
+.count-dialog__button {
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+}
+
+.count-dialog__button:hover,
+.count-dialog__button:focus-visible {
+    color: var(--text);
+}
+
+.count-dialog__button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 3px;
+}
+
+.count-dialog__button--primary {
+    color: var(--text);
+    font-weight: 500;
 }
 
 /*
