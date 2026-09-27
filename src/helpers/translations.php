@@ -3,24 +3,24 @@
 declare(strict_types=1);
 
 /**
- * All interface text of the Learning App, in English and German.
+ * Der gesamte sichtbare Text der Lernkartei, auf Englisch und auf Deutsch.
  *
- * Every visible string lives here, so no German or English text is written
- * directly into a template or into JavaScript.
+ * Jeder Text steht hier, damit kein deutscher oder englischer Satz direkt in
+ * einer Vorlage oder in JavaScript landet.
  *
- * The same array is handed to the browser as JSON (see public/index.php), so the
- * server and the browser translate from one single source of truth.
+ * Dasselbe Array geht als JSON an den Browser (siehe public/index.php): Server
+ * und Browser übersetzen also aus einer einzigen Quelle.
  *
- * Two kinds of key live here:
- *   - interface text (labels, buttons, headings)
- *   - display names for the known categories, so a category that is stored in
- *     English in the database can be shown in German as well. The database row
- *     is still the source of truth for which categories exist; only the wording
- *     comes from here.
+ * Zwei Arten von Schlüsseln liegen hier:
+ *   - Oberflächentext (Beschriftungen, Knöpfe, Überschriften)
+ *   - Anzeigenamen der bekannten Kategorien, damit eine Kategorie, die in der
+ *     Datenbank englisch steht, auch deutsch angezeigt werden kann. Welche
+ *     Kategorien es gibt, bestimmt weiter die Datenbank; nur die Formulierung
+ *     kommt von hier.
  */
 
 /**
- * Returns every translation, grouped by language code.
+ * Gibt alle Übersetzungen zurück, gruppiert nach Sprachcode.
  *
  * @return array<string, array<string, string>>
  */
@@ -31,19 +31,19 @@ function learning_app_translations(): array
             'app.title' => 'Lernkartei',
             'crumb.start' => 'START',
 
-            // The newline is intentional: the heading is meant to break onto two
-            // lines. JavaScript turns each line into its own masked element so
-            // every line can reveal separately.
+            // Der Zeilenumbruch ist Absicht: die Überschrift soll zweizeilig sein.
+            // JavaScript macht aus jeder Zeile ein eigenes maskiertes Element, damit
+            // sich beide einzeln aufdecken lassen.
             'home.heading' => "Choose a\nlearning area",
 
-            // The segment bar has no visible label any more, so it needs a
-            // spoken one: this is what a screen reader announces for the bar.
+            // Die Segmentleiste hat keine sichtbare Beschriftung mehr, braucht aber
+            // eine gesprochene: das hier liest ein Screenreader vor.
 
             'tile.subcategories.one' => 'subcategory',
             'tile.subcategories.other' => 'subcategories',
             'tile.cards.one' => 'card',
             'tile.cards.other' => 'cards',
-            /* Shown in a tile while nothing sits inside the category yet. */
+            /* Steht in einer Kachel, solange noch nichts in der Kategorie liegt. */
             'tile.subcategories.none' => 'No subcategories yet',
 
             'sidebar.label' => 'Learning areas',
@@ -51,8 +51,8 @@ function learning_app_translations(): array
             'detail.addSubcategory' => '+ Add subcategory',
             'detail.notFound.title' => 'Not found',
             'detail.notFound.hint' => 'This entry does not exist (any more).',
-            /* The tiles of a subcategory - what the place where learning happens
-               says about itself. */
+            /* Die Kacheln einer Unterkategorie - was der Ort, an dem gelernt wird,
+               über sich selbst sagt. */
             'dash.due' => 'Ready to repeat',
             'dash.known' => 'Already sits',
             'dash.unsure' => 'Still unsure',
@@ -76,7 +76,7 @@ function learning_app_translations(): array
             'dialog.errorName' => 'This name cannot be used.',
             'dialog.errorServer' => 'The learning area could not be saved.',
 
-            // --- Flashcards (the level below a subcategory) ---
+            // --- Karteikarten (die Ebene unter einer Unterkategorie) ---
             'cards.sectionTitle' => 'Flashcards in this area',
             'cards.open' => 'Open flashcards: {name}',
             'cards.empty.title' => 'No flashcards yet',
@@ -85,12 +85,12 @@ function learning_app_translations(): array
             'card.back' => 'Back',
             'card.bidirectional' => 'Both directions',
 
-            // --- Actions on an entry ---
+            // --- Aktionen an einem Eintrag ---
             'action.edit' => 'Edit',
             'action.delete' => 'Delete',
             'action.more' => 'More actions for {name}',
 
-            // --- Category form (learning area or subcategory) ---
+            // --- Formular für eine Kategorie (Themengebiet oder Unterkategorie) ---
             'dialog.category.createArea' => 'Add learning area',
             'dialog.category.createSubcategory' => 'Add subcategory',
             'dialog.category.editArea' => 'Edit learning area',
@@ -102,7 +102,7 @@ function learning_app_translations(): array
             'dialog.errorIcon' => 'This file could not be read as an SVG icon.',
             'dialog.errorScale' => 'The icon size must be between 0.2 and 3.',
 
-            // --- Flashcard form ---
+            // --- Formular für eine Karteikarte ---
             'dialog.card.create' => 'Add flashcard',
             'dialog.card.edit' => 'Edit flashcard',
             'dialog.card.frontLabel' => 'Front',
@@ -113,7 +113,7 @@ function learning_app_translations(): array
             'dialog.errorFront' => 'Please enter the front of the card.',
             'dialog.errorBack' => 'Please enter the back of the card.',
 
-            // --- Delete confirmation ---
+            // --- Löschbestätigung ---
             'dialog.delete.title' => 'Delete "{name}"?',
             'dialog.delete.consequence' => 'This also deletes {parts} - permanently.',
             'dialog.delete.nothingBelow' => 'Nothing sits below it, so only this entry is removed.',
@@ -124,8 +124,8 @@ function learning_app_translations(): array
             'dialog.delete.submit' => 'Delete',
 
             /*
-             * The account: the text in the header, the two steps of its popup and
-             * the quiet line that says what just happened.
+             * Das Konto: der Text in der Kopfzeile, die beiden Schritte seines
+             * Fensters und die leise Zeile, die sagt, was gerade passiert ist.
              */
             'account.title' => 'Account',
             'account.close' => 'Close',
@@ -144,26 +144,26 @@ function learning_app_translations(): array
             'account.signedOut' => 'You have been signed out.',
 
             /*
-             * The loading screen: what the zoom teaches while the first view is
-             * being built. One key per station, so a sentence can be changed here
-             * without touching the animation.
+             * Der Ladebildschirm: was die Zoomfahrt erzählt, während die erste
+             * Ansicht entsteht. Ein Schlüssel pro Station, damit sich ein Satz
+             * ändern lässt, ohne die Animation anzufassen.
              */
-            /* The country is not a device: it is the sum of all of them. */
-            /* Electricity, and only electricity - not all energy of the world. */
+            /* Das Land ist kein Gerät: es ist die Summe aller. */
+            /* Strom, und nur Strom - nicht die ganze Energie der Welt. */
 
             /*
-             * The loading screen: what the zoom teaches while the first view is
-             * being built. One key per station, so a sentence can be changed here
-             * without touching the animation.
+             * Der Ladebildschirm: was die Zoomfahrt erzählt, während die erste
+             * Ansicht entsteht. Ein Schlüssel pro Station, damit sich ein Satz
+             * ändern lässt, ohne die Animation anzufassen.
              */
-            /* The country is not a device: it is the sum of all of them. */
-            /* Electricity, and only electricity - not all energy of the world. */
-            /* English writes a thousand with a comma. */
+            /* Das Land ist kein Gerät: es ist die Summe aller. */
+            /* Strom, und nur Strom - nicht die ganze Energie der Welt. */
+            /* Englisch schreibt Tausend mit Komma. */
 
-            // --- Empty states and messages of the new views ---
+            // --- Leere Zustände und Meldungen der neuen Ansichten ---
             'home.empty.title' => 'No learning areas yet',
             'home.empty.hint' => 'Create the first learning area to get started.',
-            /* The empty start page of somebody who is not signed in. */
+            /* Die leere Startseite von jemandem, der nicht angemeldet ist. */
             'home.welcome.title' => 'Your card box is waiting for you',
             'home.welcome.hint' => 'Create your own learning areas and cards, and learn them with repetition.',
             'feedback.deleted' => '{name} was deleted.',
@@ -200,12 +200,12 @@ function learning_app_translations(): array
             'theme.switch.toLight' => 'Switch to light mode',
             'language.label' => 'Language',
 
-            // --- Shared dialog system ---
+            // --- Gemeinsames Dialog-System ---
             'dialog.close' => 'Close',
             'dialog.translations' => 'Translations (optional)',
             'dialog.translationsHint' => 'Shown when the interface is in that language.',
 
-            // --- Field level validation ---
+            // --- Feldweise Prüfung ---
             'dialog.errorNameRequired' => 'Please enter a name.',
             'dialog.errorNameTooLong' => 'The name may be at most {max} characters long.',
             'dialog.errorFrontRequired' => 'Please enter the front of the card.',
@@ -213,7 +213,7 @@ function learning_app_translations(): array
             'dialog.errorDeleteConflict' => 'Other data still refers to this category, so it could not be deleted.',
             'dialog.errorAlreadyGone' => 'This entry no longer exists.',
 
-            // --- Icon upload ---
+            // --- Symbol hochladen ---
             'dialog.icon.choose' => 'Choose symbol',
             'dialog.icon.replace' => 'Replace icon',
             'dialog.icon.remove' => 'Remove icon',
@@ -221,15 +221,15 @@ function learning_app_translations(): array
             'dialog.icon.tooLarge' => 'The file is larger than {max} KB.',
             'dialog.icon.notSvg' => 'This file is not a readable SVG.',
 
-            // --- Edit mode and the tile menu ---
+            // --- Bearbeiten-Modus und Kachelmenü ---
 
-            // --- Toasts after a successful save ---
+            // --- Hinweise nach dem Speichern ---
             'feedback.created' => '{name} was created.',
             'feedback.updated' => '{name} was saved.',
             'feedback.undo' => 'Undo',
             'feedback.undone' => 'Kept as it was.',
 
-            // --- The card list of a subcategory ---
+            // --- Die Kartenliste einer Unterkategorie ---
             'cards.learn' => 'Study',
             'cards.learnThis' => 'Study “{name}”',
             'cards.learnDue' => 'Study “{name}”: {count} due',
@@ -238,7 +238,7 @@ function learning_app_translations(): array
             'cards.onlyGerman' => 'German only',
             'cards.onlyEnglish' => 'English only',
             'learn.noCards' => 'There is nothing to study here yet.',
-            /* The question before a session starts. */
+            /* Die Frage vor dem Start einer Sitzung. */
             'learn.newCardsTitle' => 'How many new cards?',
             'learn.newCardsHintOne' => '{count} new card available',
             'learn.newCardsHintOther' => '{count} new cards available',
@@ -263,7 +263,7 @@ function learning_app_translations(): array
             'cards.exerciseBadge' => 'Exercise',
             'cards.noUser' => 'Nobody is signed in, so answers cannot be saved yet.',
 
-            // --- The card dialog ---
+            // --- Der Kartendialog ---
             'dialog.card.preview' => 'Preview',
             'dialog.card.saveNext' => "Save\n& next card",
             'dialog.card.frontCount' => '{count} of {max} characters',
@@ -278,7 +278,7 @@ function learning_app_translations(): array
             'dialog.card.languageHint' => 'Switch the language here and fill in the other side of this card. One complete language is enough.',
             'dialog.card.keepOneLanguage' => 'Fill in a question and an answer in at least one language.',
 
-            // --- The learning session ---
+            // --- Die Lernsitzung ---
             'learn.close' => 'Close the study session',
             'learn.counter' => '{position} of {total}',
             'learn.progress' => '{percent} percent done',
@@ -307,7 +307,7 @@ function learning_app_translations(): array
             'learn.askEnd.confirm' => 'End the session',
             'learn.askEnd.cancel' => 'Keep studying',
 
-            // --- The end of a session ---
+            // --- Das Ende einer Sitzung ---
             'learn.done.title' => 'Session finished',
             'learn.done.known' => '{known} of {total} known',
             'learn.done.repeat' => 'Repeat the difficult cards',
@@ -317,7 +317,7 @@ function learning_app_translations(): array
             'language.en' => 'EN',
             'language.de' => 'DE',
 
-            // --- Importing cards from a CSV file ---
+            // --- Karten aus einer CSV-Datei importieren ---
             'cards.import' => 'Import',
             'dialog.import.title' => 'Import cards',
             'dialog.import.dropTitle' => 'Drag a CSV here, or click to choose one',
@@ -374,17 +374,17 @@ function learning_app_translations(): array
             'import.error.import_failed' => 'The cards could not be imported. Nothing was saved.',
             'import.error.category_not_found' => 'This subcategory does not exist any more.',
             /*
-             * The four problems of the file itself (not of one row). The import
-             * endpoint sends these codes, and app.js looks every import code up
-             * under "import.error." - before these keys existed it found nothing
-             * and showed a general message instead of the exact sentence.
+             * Die vier Fehler der Datei selbst (kein Zeilenfehler). Der
+             * Import-Endpunkt schickt diese Codes, und app.js sucht jeden
+             * Import-Code unter "import.error." - vor diesen Schlüsseln fand es
+             * nichts und zeigte statt des genauen Satzes eine allgemeine Meldung.
              */
             'import.error.read_failed' => 'The file could not be read.',
             'import.error.header_unknown' => 'The header has columns this import does not know: {columns}',
             'import.error.header_missing' => 'The header is missing the columns: {columns}',
             'import.error.too_many_rows' => 'The file has more than {rows} rows.',
 
-            // --- An exercise card: the kind of task and the numbers it may use ---
+            // --- Eine Übungsaufgabe: die Aufgabensorte und ihre Zahlen ---
             'dialog.card.kindLabel' => 'Kind of card',
             'dialog.card.kindFixed' => 'Question and answer',
             'dialog.card.kindExercise' => 'Exercise with numbers that change',
@@ -401,7 +401,7 @@ function learning_app_translations(): array
             'dialog.errorExerciseType' => 'Choose one of the kinds of task from the list.',
             'dialog.errorExerciseRange' => 'The number range does not fit this kind of task: it has to lie between {min} and {max}, and the smallest number may not be larger than the largest.',
             'dialog.errorExerciseUnavailable' => 'This installation has no table for exercise cards yet.',
-            // --- The twenty kinds of task an exercise card can show ---
+            // --- Die zwanzig Aufgabensorten einer Übungskarte ---
             'exercise.type.times_table' => 'Multiplication tables',
             'exercise.type.division_inverse' => 'Division',
             'exercise.type.fraction' => 'Fractions',
@@ -442,7 +442,7 @@ function learning_app_translations(): array
             'exercise.hint.mean_value' => 'Three to five numbers and their mean.',
             'exercise.hint.standard_deviation' => 'Five to eight numbers and their standard deviation, rounded to two decimals.',
             'exercise.hint.data_table' => 'A small table of values: the largest one, the difference between two of them, or the share one of them has of the total.',
-            // --- What a kind of task may be told ---
+            // --- Was man einer Aufgabensorte sagen kann ---
             'exercise.param.min' => 'Smallest number',
             'exercise.param.max' => 'Largest number',
             'exercise.param.count' => 'How many values',
@@ -453,7 +453,7 @@ function learning_app_translations(): array
             'exercise.param.formulas' => 'Which formulas',
             'exercise.param.families' => 'Which units',
             'exercise.param.remainder' => 'Allow a remainder',
-            // --- The values those can have ---
+            // --- Die Werte, die es dafür gibt ---
             'exercise.option.result' => 'The result',
             'exercise.option.divisor' => 'The divisor',
             'exercise.option.value' => 'The percentage value',
@@ -503,7 +503,7 @@ function learning_app_translations(): array
             'exercise.option.largest' => 'Largest value',
             'exercise.option.difference' => 'Difference between two values',
             'exercise.option.share' => 'Share of the total',
-            // --- The sentences a task is written in ---
+            // --- Die Sätze, in denen eine Aufgabe gestellt wird ---
             'exercise.task.remainder' => '{quotient} remainder {remainder}',
             'exercise.task.to_scientific' => 'Write {number} in scientific notation.',
             'exercise.task.percent_rate' => 'How much percent are {part} of {total}?',
@@ -535,7 +535,7 @@ function learning_app_translations(): array
             'exercise.task.data_table.largest' => 'Table: {table}. Which value is the largest?',
             'exercise.task.data_table.difference' => 'Table: {table}. What is the difference between {first} and {second}?',
             'exercise.task.data_table.share' => 'Table: {table}. How much percent of the total is {name}?',
-            // --- The map of a card ---
+            // --- Die Landkarte einer Karte ---
             'dialog.card.mapLabel' => 'Map (optional)',
             'dialog.card.mapNone' => 'No map',
             'dialog.card.mapAreaDe' => 'Germany',
@@ -568,16 +568,17 @@ function learning_app_translations(): array
             'app.title' => 'Lernkartei',
             'crumb.start' => 'START',
 
-            // Two lines, same as the English heading.
+            // Zwei Zeilen, genau wie die englische Überschrift.
             'home.heading' => "Wähle ein\nThemengebiet",
 
-            // Spoken label for the segment bar (see the English block).
+// Gesprochene Beschriftung der Segmentleiste (siehe englischer Block).
 
             'tile.subcategories.one' => 'Unterkategorie',
             'tile.subcategories.other' => 'Unterkategorien',
             'tile.cards.one' => 'Karte',
             'tile.cards.other' => 'Karten',
-            /* Shown in a tile while nothing sits inside the category yet. */
+/* Steht in einer Kachel, solange noch nichts in der Kategorie
+                       liegt. */
             'tile.subcategories.none' => 'Noch keine Unterkategorien',
 
             'sidebar.label' => 'Themengebiete',
@@ -1080,10 +1081,11 @@ function learning_app_translations(): array
 }
 
 /**
- * Looks up a single string.
+ * Sucht einen einzelnen Text.
  *
- * When a key is missing the key itself is returned, so a forgotten translation
- * shows up on the page during development instead of becoming an empty space.
+ * Fehlt ein Schlüssel, kommt der Schlüssel selbst zurück: eine vergessene
+ * Übersetzung fällt dann beim Entwickeln auf der Seite auf, statt eine leere
+ * Stelle zu hinterlassen.
  */
 function t(string $locale, string $key): string
 {
@@ -1097,15 +1099,16 @@ function t(string $locale, string $key): string
         return $translations[$locale][$key];
     }
 
-    // Fall back to English, then to the key itself.
+    // Erst auf Englisch zurückfallen, dann auf den Schlüssel selbst.
     return $translations['en'][$key] ?? $key;
 }
 
 /**
- * Looks up a string and fills its {placeholders}.
+ * Sucht einen Text und füllt seine {Platzhalter}.
  *
- * The same braces are used by the browser, so a sentence looks the same whether
- * it was put together on the server or in the interface.
+ * Der Browser benutzt dieselben geschweiften Klammern, damit ein Satz gleich
+ * aussieht, egal ob er auf dem Server oder in der Oberfläche zusammengesetzt
+ * wurde.
  *
  * @param array<string, string|int|float> $params
  */

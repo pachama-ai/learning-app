@@ -3,61 +3,55 @@
 declare(strict_types=1);
 
 /**
- * Sanitises an SVG before it is stored in the database.
+ * Macht ein SVG sicher, bevor es in die Datenbank kommt.
  *
- * An uploaded icon is untrusted input, exactly like a text field. It is stored
- * in the database and later served again, so everything dangerous is removed
- * before it is written:
- *   - <script> and event handlers (onclick="...") can run code
- *   - <foreignObject>, <iframe>, <object>, <embed> can pull in a whole document
- *   - <image> and <feImage> can fetch a file from another server
- *   - "javascript:" and "data:text/html" URLs can run code when they are opened
- *   - <use href="http://..."> can load something from outside this file
- *   - a doctype or an entity definition can make a small file explode into a
- *     huge one or load something from outside
+ * Eine hochgeladene Zeichnung ist ungeprüfte Eingabe, wie ein Textfeld auch. Sie
+ * wird gespeichert und später wieder ausgeliefert, also fliegt vorher alles
+ * Gefährliche raus:
+ *   - <script> und Ereignis-Attribute (onclick="...") führen Code aus
+ *   - <foreignObject>, <iframe>, <object>, <embed> ziehen ein ganzes Dokument nach
+ *   - <image> und <feImage> holen Dateien von fremden Servern
+ *   - "javascript:" und "data:text/html" führen beim Öffnen Code aus
+ *   - <use href="http://..."> lädt etwas von außerhalb der Datei
+ *   - ein Doctype oder eine Entität bläht eine kleine Datei riesig auf
  *
- * The icon is always drawn through an <img> tag, and an <img> never runs a
- * script inside an SVG. This file is the second layer of that protection, not
- * the only one.
+ * Das Icon wird immer über <img> gezeichnet, und ein <img> führt kein Skript im
+ * SVG aus. Diese Datei ist die zweite Schutzschicht, nicht die einzige.
  *
- * HOW IT WORKS
+ * WIE ES FUNKTIONIERT
  *
- * The file is parsed with a real XML parser (libxml through DOMDocument), not
- * with text patterns. That has three consequences, and all three are wanted:
+ * Geparst wird mit einem echten XML-Parser (libxml über DOMDocument), nicht mit
+ * Textmustern. Drei Folgen, alle gewollt:
  *
- *   1. It is fast and predictable. A 350 KB drawing is one parse and one walk
- *      over its elements; no pattern has to scan the whole text again and
- *      again, and nothing can backtrack.
- *   2. A file that is not valid XML is refused instead of being patched with
- *      text replacements. A half repaired drawing is worse than no drawing.
- *   3. Only the <svg> element is written back (saveXML of the root element).
- *      Text before or after the drawing cannot survive, because it was never
- *      part of the element that is written.
+ *   1. Schnell und berechenbar: eine 350-KB-Zeichnung ist ein Durchlauf, kein
+ *      Muster, das immer wieder über den ganzen Text läuft.
+ *   2. Kein gültiges XML heißt: abgelehnt. Eine halb geflickte Zeichnung ist
+ *      schlimmer als keine.
+ *   3. Zurückgeschrieben wird nur das <svg>-Element. Text davor oder danach kann
+ *      nicht überleben, weil er nie Teil dieses Elements war.
  *
- * Character references are resolved by the parser before the checks run, so
- * "&#106;avascript:" cannot hide anything.
+ * Zeichen-Referenzen löst der Parser auf, bevor geprüft wird - hinter
+ * "&#106;avascript:" kann sich also nichts verstecken.
  *
- * The stored value does not have to be squeezed into 65 KB any more: the
- * `icon_svg` column is MEDIUMTEXT now, so a drawing is stored as it is drawn -
- * nothing is rounded or shortened. The limit is the upload limit.
+ * In die Spalte muss nichts mehr gequetscht werden: `icon_svg` ist MEDIUMTEXT,
+ * eine Zeichnung wird so gespeichert, wie sie ist. Grenze ist das Upload-Limit.
  */
 
-/** Largest SVG accepted for upload: 350 KB (358 400 bytes). */
+/** Größtes SVG, das hochgeladen werden darf: 350 KB (358 400 Bytes). */
 const SVG_MAX_UPLOAD_BYTES = 358400;
 
 /**
- * Nothing larger than this is written into the column. It is the same number as
- * the upload limit: the parser only ever makes a file smaller (it drops what is
- * not allowed), never larger.
+ * Größer wird nichts in die Spalte geschrieben. Dieselbe Zahl wie beim Upload:
+ * der Parser macht eine Datei nur kleiner, weil er wegwirft, was verboten ist.
  */
 const SVG_MAX_STORED_BYTES = 358400;
 
 /**
- * The same names as a lookup table.
+ * Dieselben Namen als Nachschlagetabelle.
  *
- * A drawing of 350 KB has thousands of elements, so "is this name blocked?" is
- * asked thousands of times. A key lookup answers that in one step instead of
- * walking a list.
+ * Eine 350-KB-Zeichnung hat Tausende Elemente, "ist dieser Name gesperrt?" wird
+ * also Tausende Male gefragt. Ein Schlüssel-Lookup antwortet in einem Schritt,
+ * statt eine Liste durchzugehen.
  */
 const SVG_BLOCKED_ELEMENT_LOOKUP = [
     'script' => true,
@@ -75,10 +69,10 @@ const SVG_BLOCKED_ELEMENT_LOOKUP = [
 ];
 
 /**
- * Returns a safe SVG, or null when the input cannot be used.
+ * Gibt ein sicheres SVG zurück oder null, wenn die Eingabe nicht taugt.
  *
- * The caller only has to know these two answers: the drawing is usable, or it
- * is not. Every reason to refuse ends in null.
+ * Der Aufrufer muss nur diese zwei Antworten kennen. Jeder Grund abzulehnen
+ * endet in null.
  */
 function svg_sanitize(string $svg): ?string
 {
@@ -89,10 +83,9 @@ function svg_sanitize(string $svg): ?string
     }
 
     /*
-     * A doctype or an entity definition is refused before the parser sees it.
-     * These are the two constructs that could load something from outside or
-     * expand into a much larger document, and no icon needs them. The check is
-     * a plain text search, so it costs nothing.
+     * Doctype und Entitätsdefinition fliegen raus, bevor der Parser sie sieht:
+     * die zwei Konstrukte, die etwas von außen laden oder sich stark aufblähen
+     * könnten - und kein Icon braucht sie. Reine Textsuche, kostet nichts.
      */
     if (stripos($svg, '<!doctype') !== false || stripos($svg, '<!entity') !== false) {
         return null;
@@ -101,9 +94,9 @@ function svg_sanitize(string $svg): ?string
     $document = new DOMDocument();
 
     /*
-     * libxml reports through its own error queue while it parses; that queue is
-     * emptied here because this function answers with null, not with a warning
-     * on the page. LIBXML_NONET forbids every network access while parsing.
+     * libxml sammelt Fehler in einer eigenen Warteschlange; die wird hier
+     * geleert, weil diese Funktion mit null antwortet und nicht mit einer
+     * Warnung auf der Seite. LIBXML_NONET verbietet jeden Netzzugriff.
      */
     $previous = libxml_use_internal_errors(true);
     $loaded = $document->loadXML($svg, LIBXML_NONET | LIBXML_COMPACT);
@@ -138,11 +131,11 @@ function svg_sanitize(string $svg): ?string
 }
 
 /**
- * Walks the children of one element: comments, the blocked elements and the
- * dangerous attributes are removed, the rest is checked one level deeper.
+ * Geht die Kinder eines Elements durch: Kommentare, gesperrte Elemente und
+ * gefährliche Attribute fliegen raus, der Rest wird eine Ebene tiefer geprüft.
  *
- * The walk is written iteratively over the siblings (not with a fixed depth
- * limit), so a deeply nested drawing cannot stop it.
+ * Gelaufen wird iterativ über die Geschwister (ohne feste Tiefengrenze), damit
+ * auch eine tief verschachtelte Zeichnung durchläuft.
  */
 function svg_clean_children(DOMElement $parent): void
 {
@@ -152,7 +145,7 @@ function svg_clean_children(DOMElement $parent): void
         $next = $child->nextSibling;
 
         if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction) {
-            /* Editor comments and processing instructions carry no drawing. */
+            /* Editor-Kommentare und Verarbeitungsanweisungen zeichnen nichts. */
             $parent->removeChild($child);
             $child = $next;
             continue;
@@ -162,21 +155,21 @@ function svg_clean_children(DOMElement $parent): void
             $name = strtolower($child->localName);
 
             if (isset(SVG_BLOCKED_ELEMENT_LOOKUP[$name])) {
-                /* Removed with everything inside it. */
+                /* Kommt mit allem darin weg. */
                 $parent->removeChild($child);
                 $child = $next;
                 continue;
             }
 
             if ($name === 'use' && !svg_use_points_inside($child)) {
-                /* <use> may only reuse something from this very file. */
+                /* <use> darf nur etwas aus derselben Datei wiederverwenden. */
                 $parent->removeChild($child);
                 $child = $next;
                 continue;
             }
 
             if ($name === 'style' && stripos($child->textContent, '@import') !== false) {
-                /* A stylesheet that pulls in another file. */
+                /* Ein Stylesheet, das eine andere Datei nachlädt. */
                 $parent->removeChild($child);
                 $child = $next;
                 continue;
@@ -191,10 +184,10 @@ function svg_clean_children(DOMElement $parent): void
 }
 
 /**
- * Removes the dangerous attributes of one element.
+ * Entfernt die gefährlichen Attribute eines Elements.
  *
- * The names are collected first and removed afterwards: an attribute list is
- * not changed while it is being read.
+ * Erst werden die Namen gesammelt, dann entfernt: eine Attributliste darf nicht
+ * verändert werden, während sie gelesen wird.
  */
 function svg_clean_element(DOMElement $element): void
 {
@@ -204,22 +197,22 @@ function svg_clean_element(DOMElement $element): void
         $name = strtolower($attribute->nodeName);
         $value = (string) $attribute->nodeValue;
 
-        /* Event handlers: onclick, onload, onmouseover, ... */
+        /* Ereignis-Attribute: onclick, onload, onmouseover, ... */
         if (strlen($name) > 2 && strpos($name, 'on') === 0) {
             $remove[] = $attribute->nodeName;
             continue;
         }
 
-        /* A URL that could run code, in any attribute and any quoting style.
-           Character references were already resolved by the parser, so nothing
-           can hide behind &#106;avascript: */
+        /* Eine URL, die Code ausführen könnte - egal in welchem Attribut und in
+           welcher Schreibweise. Die Zeichen-Referenzen hat der Parser schon
+           aufgelöst, hinter &#106;avascript: kann sich also nichts verstecken. */
         if (svg_text_is_dangerous($value)) {
             $remove[] = $attribute->nodeName;
             continue;
         }
 
-        /* A link that leaves this file. The one exception is a reference to an
-           element inside the same drawing, which is how <use> works. */
+        /* Ein Verweis, der aus dieser Datei herausführt. Ausnahme: der Verweis
+           auf ein Element in derselben Zeichnung, so arbeitet <use>. */
         if ($name === 'href' || $name === 'xlink:href') {
             if (strpos(ltrim($value), '#') !== 0) {
                 $remove[] = $attribute->nodeName;
@@ -233,7 +226,7 @@ function svg_clean_element(DOMElement $element): void
 }
 
 /**
- * Reports whether a <use> element points at something inside this same file.
+ * Sagt, ob ein <use>-Element auf etwas in derselben Datei zeigt.
  */
 function svg_use_points_inside(DOMElement $use): bool
 {
@@ -247,18 +240,18 @@ function svg_use_points_inside(DOMElement $use): bool
 }
 
 /**
- * Reports whether a value contains something that could run code.
+ * Sagt, ob ein Wert etwas enthält, das Code ausführen könnte.
  *
- * Whitespace and control characters are taken out before the search, so
- * "java\nscript:" is found as well.
+ * Leerzeichen und Steuerzeichen fliegen vor der Suche raus, damit auch
+ * "java\nscript:" gefunden wird.
  */
 function svg_text_is_dangerous(string $value): bool
 {
     /*
-     * Nearly every value in a drawing is a number, a colour or path data - and
-     * none of them contains a colon. A URL scheme always does, so this one
-     * comparison answers most of the thousands of attributes of a 350 KB file
-     * without doing any work at all.
+     * Fast jeder Wert in einer Zeichnung ist eine Zahl, eine Farbe oder
+     * Pfaddaten - keiner davon enthält einen Doppelpunkt. Ein URL-Schema hat
+     * immer einen, deshalb reicht dieser eine Vergleich für die meisten der
+     * Tausenden Attribute einer 350-KB-Datei.
      */
     if ($value === '' || strpos($value, ':') === false) {
         return false;
@@ -276,11 +269,11 @@ function svg_text_is_dangerous(string $value): bool
 }
 
 /**
- * The last look at the result, before it is stored and served again.
+ * Der letzte Blick auf das Ergebnis, bevor es gespeichert wird.
  *
- * Everything above should have removed all of this already. Should one of these
- * ever appear here, the file is refused instead of being stored - a second look
- * that costs a few plain text searches and no pattern matching.
+ * Alles hier sollte oben schon entfernt worden sein. Taucht trotzdem etwas auf,
+ * wird die Datei abgelehnt statt gespeichert - ein zweiter Blick, der nur ein
+ * paar Textsuchen kostet.
  */
 function svg_looks_risky(string $svg): bool
 {
