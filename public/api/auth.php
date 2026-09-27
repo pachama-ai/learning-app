@@ -3,25 +3,26 @@
 declare(strict_types=1);
 
 /**
- * Signing in, out and up.
+ * Anmelden, abmelden, Konto anlegen.
  *
  *   GET  api/auth.php
- *        answers who is signed in, whether signing in is set up at all, and the
- *        token the next POST has to carry.
+ *        antwortet, wer angemeldet ist, ob die Anmeldung überhaupt eingerichtet
+ *        ist, und mit dem Token, den das nächste POST mitbringen muss.
  *
  *   POST api/auth.php
  *        body: { "action": "sign_in" | "register" | "sign_out",
- *                "identifier": "anna@example.com" (the e-mail address only),
+ *                "identifier": "anna@example.com" (nur die E-Mail-Adresse),
  *                "password": "...",
  *                "csrf_token": "..." }
  *
- * This file stays thin, like every endpoint here: read the request, check what
- * is obvious, call src/services/user_service.php, answer as JSON. Every SQL
- * statement lives in the service, and every statement there is prepared.
+ * Diese Datei bleibt dünn, wie jeder Endpunkt hier: Anfrage lesen, das
+ * Offensichtliche prüfen, src/services/user_service.php aufrufen, als JSON
+ * antworten. Jede SQL-Anweisung liegt im Service, und jede dort ist vorbereitet.
  *
- * The answers carry the same codes the dialog already turns into sentences.
- * A wrong password and a name that does not exist get the SAME code, so the
- * endpoint cannot be used to find out which names exist.
+ * Die Antworten tragen dieselben Fehlercodes, die der Dialog schon in Sätze
+ * übersetzt. Ein falsches Passwort und eine unbekannte Adresse bekommen denselben
+ * Code, damit man mit diesem Endpunkt nicht herausfinden kann, welche Konten es
+ * gibt.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -32,10 +33,10 @@ require_once __DIR__ . '/../../src/services/user_service.php';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 /*
- * Everything below runs inside this guard. Without it an unexpected database
- * error would end the request as an HTML page, and the browser would show its
- * generic sentence instead of something that names the problem. The details go
- * to the server log and never into the answer.
+ * Alles darunter läuft in diesem Schutz. Ohne ihn würde ein unerwarteter
+ * Datenbankfehler die Anfrage als HTML-Seite beenden, und der Browser zeigte
+ * seinen allgemeinen Satz statt etwas, das das Problem benennt. Die Einzelheiten
+ * gehen ins Server-Protokoll und nie in die Antwort.
  */
 try {
     handle_auth_request($method);
@@ -45,7 +46,7 @@ try {
     send_json_error('server_error', 'This request could not be handled.', 500);
 }
 
-/** The one entry point of this endpoint. */
+/** Der eine Einstiegspunkt dieses Endpunkts. */
 function handle_auth_request(string $method): void
 {
     if ($method === 'GET') {
@@ -66,7 +67,7 @@ function handle_auth_request(string $method): void
 
     $body = read_json_object();
 
-    /* The token first: without it nothing else in this file runs. */
+    /* Zuerst der Token: ohne ihn läuft in dieser Datei nichts weiter. */
     if (user_csrf_valid(optional_input_text($body, 'csrf_token', 128, 'invalid_token')) !== true) {
         send_json_error(
             'invalid_token',
@@ -96,8 +97,9 @@ function handle_auth_request(string $method): void
         : user_sign_in($pdo, $identifier, $password);
 
     if ($result['ok'] !== true) {
-        /* "Not set up yet" is not the visitor's mistake, and it says so: the
-           migration in database/add_user_auth.sql has to be run first. */
+        /* "Noch nicht eingerichtet" ist nicht der Fehler des Besuchers, und das
+           sagt die Antwort auch: zuerst muss die Migration in
+           database/add_user_auth.sql von Hand ausgeführt werden. */
         if ($result['error'] === 'sign_in_not_ready') {
             send_json_error(
                 'sign_in_not_ready',

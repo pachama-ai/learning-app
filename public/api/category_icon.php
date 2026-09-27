@@ -5,28 +5,29 @@ declare(strict_types=1);
 /**
  * GET /api/category_icon.php?id=2
  *
- * Serves the drawing that is stored in categories.icon_svg.
+ * Liefert die Zeichnung, die in categories.icon_svg gespeichert ist.
  *
- * Why this endpoint exists: the drawing lives in the database and may be up to
- * 350 KB, so no answer of this application ever carries it. A row only says
- * whether an icon exists and gives a short fingerprint; the <img> tag asks for
- * the drawing here, and the browser keeps it.
+ * Warum es diesen Endpunkt gibt: die Zeichnung liegt in der Datenbank und kann
+ * bis zu 350 KB groß sein, deshalb trägt sie keine Antwort dieser Anwendung mit
+ * sich. Eine Zeile sagt nur, ob es ein Symbol gibt, und nennt einen kurzen
+ * Fingerabdruck; das <img>-Tag fordert die Zeichnung hier an, und der Browser
+ * behält sie.
  *
- * The address carries that fingerprint (v=...), so it changes as soon as the
- * drawing changes: the answer can be cached for as long as a browser likes
- * without ever showing an old icon. On top of that the answer carries an ETag
- * and answers a conditional request with 304, so a browser that has the drawing
- * does not receive it a second time at all.
+ * In der Adresse steht dieser Fingerabdruck (v=...), sie ändert sich also, sobald
+ * sich die Zeichnung ändert: die Antwort darf so lange zwischengespeichert
+ * werden, wie ein Browser möchte, ohne je ein altes Symbol zu zeigen. Zusätzlich
+ * trägt die Antwort ein ETag und beantwortet eine bedingte Anfrage mit 304, ein
+ * Browser mit der Zeichnung bekommt sie also gar nicht erneut.
  *
- * The answer is always image/svg+xml, never HTML, and it is served with a
- * Content-Security-Policy that allows nothing at all. Combined with the fact
- * that the file is only ever drawn inside an <img> tag - where a browser does
- * not run scripts - the stored SVG cannot execute anything. The SVG is also
- * sanitised before it is stored (src/helpers/svg_sanitizer.php).
+ * Die Antwort ist immer image/svg+xml, nie HTML, und sie geht mit einer
+ * Content-Security-Policy hinaus, die nichts erlaubt. Zusammen damit, dass die
+ * Datei nur je in einem <img>-Tag gezeichnet wird - wo ein Browser keine Skripte
+ * ausführt - kann das gespeicherte SVG nichts ausführen. Das SVG wird außerdem
+ * vor dem Speichern entschärft (src/helpers/svg_sanitizer.php).
  *
- * 404 means "this category has no icon of its own"; the page then falls back to
- * the illustration that ships with the app. No file path, no database error and
- * no other detail is ever sent to the browser.
+ * 404 heißt "diese Kategorie hat kein eigenes Symbol"; die Seite fällt dann auf
+ * die Zeichnung zurück, die mit der Anwendung kommt. Kein Dateipfad, kein
+ * Datenbankfehler und keine andere Einzelheit geht je an den Browser.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -35,9 +36,10 @@ require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/helpers/session_user.php';
 
 /*
- * The drawing is SVG, and SVG is text: it travels gzipped. Apache does that by
- * itself (see deploy/apache/), the development server of PHP does not - so the
- * two behave the same. Measured on a 110 KB drawing: 28 KB with gzip.
+ * Die Zeichnung ist SVG, und SVG ist Text: sie reist gezippt. Apache macht das
+ * von selbst (siehe deploy/apache/), der Entwicklungsserver von PHP nicht - damit
+ * sich beide gleich verhalten. Auf einer Zeichnung mit 110 KB gemessen: 28 KB mit
+ * gzip.
  */
 if (!ini_get('zlib.output_compression') && !headers_sent()) {
     ini_set('zlib.output_compression', '6');
@@ -55,10 +57,11 @@ try {
     $pdo = create_database_connection();
 
     /*
-     * The drawing belongs to a category, and a category belongs to an account:
-     * one account's drawing is not served to anybody else. A signed-out request
-     * gets the same 404 as a wrong id - the address must not reveal that a
-     * drawing exists which the visitor may not see.
+     * Die Zeichnung gehört einer Kategorie, und eine Kategorie gehört einem Konto:
+     * die Zeichnung des einen Kontos wird keinem anderen ausgeliefert. Eine
+     * abgemeldete Anfrage bekommt dasselbe 404 wie eine falsche Id - die Adresse
+     * darf nicht verraten, dass es eine Zeichnung gibt, die der Besucher nicht
+     * sehen darf.
      */
     $userId = current_user_id($pdo);
 
@@ -76,15 +79,16 @@ try {
     $svg = is_array($row) ? $row['icon_svg'] : null;
 
     if (!is_string($svg) || trim($svg) === '') {
-        // Covers "no such category", "not this account's category" and
-        // "category without an icon" - all three are the same to the visitor.
+        // Deckt "keine solche Kategorie", "nicht die Kategorie dieses Kontos"
+        // und "Kategorie ohne Symbol" ab - für den Besucher sind alle drei
+        // dasselbe.
         send_json_error('icon_not_found', 'This category has no stored icon.', 404);
     }
 
     /*
-     * The fingerprint is the MD5 of the drawing - the same value the address
-     * carries. A browser that already has this drawing is therefore answered
-     * with "nothing changed" instead of 350 KB once more.
+     * Der Fingerabdruck ist die MD5-Summe der Zeichnung - derselbe Wert, den die
+     * Adresse trägt. Ein Browser, der diese Zeichnung schon hat, bekommt deshalb
+     * "nichts geändert" statt noch einmal 350 KB.
      */
     $etag = '"' . substr(is_array($row) ? (string) $row['fingerprint'] : '', 0, 8) . '"';
     $ifNoneMatch = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
@@ -92,27 +96,27 @@ try {
     if (!headers_sent()) {
         http_response_code(200);
         header('Content-Type: image/svg+xml; charset=utf-8');
-        // Nothing may be loaded from anywhere while this file is shown.
+        // Solange diese Datei gezeigt wird, darf von nirgendwo etwas geladen werden.
         header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox");
         header('X-Content-Type-Options: nosniff');
         header('ETag: ' . $etag);
         /*
-         * The address carries the fingerprint and therefore never changes while
-         * the drawing stays the same: a new icon is a new address. That is what
-         * makes "immutable" honest here.
+         * Die Adresse trägt den Fingerabdruck und ändert sich deshalb nie, solange
+         * die Zeichnung gleich bleibt: ein neues Symbol ist eine neue Adresse. Das
+         * macht "immutable" hier ehrlich.
          */
         header('Cache-Control: private, max-age=604800, immutable');
     }
 
     if (is_string($ifNoneMatch) && $ifNoneMatch !== '' && strpos($ifNoneMatch, $etag) !== false) {
-        /* The browser already has this drawing. */
+        /* Der Browser hat diese Zeichnung schon. */
         http_response_code(304);
         exit;
     }
 
     echo $svg;
 } catch (Throwable $error) {
-    // The real reason goes to the server log only.
+    // Der echte Grund landet nur im Server-Protokoll.
     error_log('Serving a category icon failed: ' . $error->getMessage());
 
     send_json_error('icon_unavailable', 'The icon could not be loaded.', 500);
