@@ -31,6 +31,12 @@ declare(strict_types=1);
  *
  * A learning area that does not exist yet is created with --create-area; its
  * drawing comes from --icon=<path to an svg>.
+ *
+ * With --only-german the two English columns are NOT written: the cards are then
+ * pure German cards, and front_en/back_en stay NULL. This is for files whose
+ * "English" columns carry the German text again - without the option those cards
+ * would look like English cards in the interface while showing German, which is
+ * worse than an empty column.
  */
 
 $projectRoot = dirname(__DIR__);
@@ -74,6 +80,7 @@ function import_arguments(array $argv, string $projectRoot): ?array
     $icon = null;
     $expect = null;
     $execute = false;
+    $onlyGerman = false;
     $modeGiven = false;
 
     foreach (array_slice($argv, 1) as $argument) {
@@ -112,6 +119,11 @@ function import_arguments(array $argv, string $projectRoot): ?array
             $icon = preg_match('/^([a-zA-Z]:|[\/\\\\])/', $candidate) === 1
                 ? $candidate
                 : $projectRoot . '/' . $candidate;
+            continue;
+        }
+
+        if ($argument === '--only-german') {
+            $onlyGerman = true;
             continue;
         }
 
@@ -173,6 +185,7 @@ function import_arguments(array $argv, string $projectRoot): ?array
         'icon' => $icon,
         'expect' => $expect,
         'execute' => $execute,
+        'onlyGerman' => $onlyGerman,
     ];
 }
 
@@ -209,6 +222,7 @@ function import_print_usage(): void
     echo "  --create-area      create that area when it does not exist yet\n";
     echo "  --icon=<path>      the drawing of a new area (svg file)\n";
     echo "  --file=<path>      one CSV file, may be given several times\n";
+    echo "  --only-german      write only the German columns; front_en/back_en stay empty\n";
     echo "  --dry-run          read and report, write nothing (default)\n";
     echo "  --execute          really import, all of it or none of it\n";
     echo "\n";
@@ -411,7 +425,13 @@ function import_print_file(array $file): void
     echo "\n";
 }
 
-function import_print_group(string $name, array $group, bool $exists): void
+/**
+ * Prints one planned subcategory: the counts and a few example rows.
+ *
+ * Mit $onlyGerman werden die englischen Spalten als "-" gezeigt, weil sie auch
+ * nicht geschrieben werden - der Plan zeigt, was die Datenbank bekommt.
+ */
+function import_print_group(string $name, array $group, bool $exists, bool $onlyGerman = false): void
 {
     $both = 0;
 
@@ -437,8 +457,8 @@ function import_print_group(string $name, array $group, bool $exists): void
             mb_substr($row['back'], 0, 28),
             mb_substr($row['front_de'], 0, 18),
             mb_substr($row['back_de'], 0, 18),
-            mb_substr($row['front_en'], 0, 18),
-            mb_substr($row['back_en'], 0, 18)
+            $onlyGerman ? '-' : mb_substr($row['front_en'], 0, 18),
+            $onlyGerman ? '-' : mb_substr($row['back_en'], 0, 18)
         );
     }
 
@@ -459,7 +479,7 @@ function import_print_group(string $name, array $group, bool $exists): void
  *
  * @return array{categories: int, cards: int}
  */
-function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId): array
+function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bool $onlyGerman = false): array
 {
     $insertCategory = $pdo->prepare(
         'INSERT INTO categories (parent_id, name, name_en, name_de, owner_user_id)
@@ -501,8 +521,11 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId): a
             $insertCard->bindValue(':back', $row['back'], PDO::PARAM_STR);
             $insertCard->bindValue(':front_de', $row['front_de'], PDO::PARAM_STR);
             $insertCard->bindValue(':back_de', $row['back_de'], PDO::PARAM_STR);
-            $insertCard->bindValue(':front_en', $row['front_en'], PDO::PARAM_STR);
-            $insertCard->bindValue(':back_en', $row['back_en'], PDO::PARAM_STR);
+            /* Mit --only-german bleiben die englischen Spalten leer: die Karte ist
+               dann eine reine deutsche Karte, statt eine zu sein, die englisch
+               heisst und deutsch aussieht. */
+            $insertCard->bindValue(':front_en', $onlyGerman ? null : $row['front_en'], $onlyGerman ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $insertCard->bindValue(':back_en', $onlyGerman ? null : $row['back_en'], $onlyGerman ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $insertCard->bindValue(':is_bidirectional', (int) $row['is_bidirectional'], PDO::PARAM_INT);
             $insertCard->execute();
 
@@ -529,7 +552,8 @@ function import_main(array $argv, string $projectRoot): int
     echo 'Mode  : ' . ($options['execute'] ? 'EXECUTE (writes to the database)' : 'DRY RUN (reads only)') . "\n";
     echo 'Owner : id ' . $options['owner'] . "\n";
     echo 'Area  : ' . $options['area'] . "\n";
-    echo 'Files : ' . count($options['files']) . "\n\n";
+    echo 'Files : ' . count($options['files']) . "\n";
+    echo 'Sprache: ' . ($options['onlyGerman'] ? "nur Deutsch (front_en/back_en bleiben leer)" : 'alle Spalten aus der Datei') . "\n\n";
 
     try {
         $pdo = create_database_connection();
@@ -637,7 +661,7 @@ function import_main(array $argv, string $projectRoot): int
     echo "SUBCATEGORIES\n";
 
     foreach ($groups as $name => $group) {
-        import_print_group($name, $group, isset($existing[$name]));
+        import_print_group($name, $group, isset($existing[$name]), $options['onlyGerman']);
     }
 
     $cards = 0;
@@ -700,7 +724,7 @@ function import_main(array $argv, string $projectRoot): int
             $areaId = (int) $area['id'];
         }
 
-        $written = import_write($pdo, $groups, $areaId, $options['owner']);
+        $written = import_write($pdo, $groups, $areaId, $options['owner'], $options['onlyGerman']);
 
         if ($written['cards'] !== $cards) {
             throw new RuntimeException('not every card was written (' . $written['cards'] . ' of ' . $cards . ')');
