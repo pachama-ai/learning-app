@@ -89,14 +89,10 @@
     --border-strong: #CFCBC2;
     --line: var(--border);
     --line-strong: var(--border-strong);
-    /* Hover eines Eintrags, der schon auf --surface-soft sitzt: eine Stufe tiefer. */
-    --surface-soft-strong: #EAE7E1;
 
     --accent: #2F6B4F;
-    --accent-soft: #E6EFEA;
     --accent-ink: #FFFFFF;
     --warn: #A8691C;
-    --warn-soft: #F6ECDD;
 
     /*
      * Die zwei Washes, die das helle Thema weiter braucht: die leise Flaeche eines
@@ -141,13 +137,7 @@
      * POSITION in the row (see --palette-1 .. --palette-8 in the appendix at the
      * end of this file). The `color` column is still in the table, but nothing
      * reads it any more.
-     *
-     * --cat-default is the one neutral colour that is used while no palette
-     * colour applies. It is currently read nowhere either - the dot of a row and
-     * the track of a progress bar take --link-color or the palette instead.
-     * It is kept as the neutral fallback of the design.
      */
-    --cat-default: #C6BFB2;
 
     /*
      * The muted red of anything destructive (a delete button, an error message).
@@ -171,7 +161,6 @@
     --blob-c: transparent;
 
     /* ---- Older names, kept as aliases so the whole sheet stays readable ---- */
-    --background: var(--bg);
     --hairline: var(--line);
     --active-surface: var(--surface);
 
@@ -200,13 +189,6 @@
     --panel: var(--surface);
     --panel-shadow: 0 14px 32px rgba(43, 38, 34, 0.16);
     --dialog-shadow: 0 28px 70px rgba(43, 38, 34, 0.22);
-
-    /*
-     * The film grain of the page as a token, because the light theme repeats it
-     * on a dialog panel: an open <dialog> is painted in the browser top layer,
-     * which sits above the grain layer, so the panel needs the texture itself.
-     */
-    --grain-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='noise'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23noise)'/></svg>");
 
     /*
      * The eight tile colours of the light theme, in this order:
@@ -291,8 +273,6 @@
     --plus-bg: var(--accent);
     --plus-fg: var(--accent-ink);
 
-    --cat-default: #A9AFC6;
-
     --cat-reserve-rose: #B8B0AC;
 
     /*
@@ -302,15 +282,12 @@
      */
     --surface: var(--panel);
     --surface-soft: var(--tile-bg);
-    --surface-soft-strong: var(--tile-bg-hover);
     --border: var(--line);
     --border-strong: var(--line-strong);
     --text-muted: var(--muted);
     /* Die leiseste Stufe: Beschriftungen und Meta-Infos. */
     --text-faint: rgba(255, 255, 255, 0.55);
-    --accent-soft: rgba(255, 255, 255, 0.10);
     --warn: #D3A26A;
-    --warn-soft: rgba(211, 162, 106, 0.16);
 
     /*
      * Die Kreistöne der Kategorien: im dunklen Thema trugen sie den Punkt einer
@@ -356,8 +333,7 @@
  * The `color` column is still in the table, but nothing in this application
  * reads, writes or shows it: app.js no longer writes a --cat-base and no longer
  * adds a "has-cat" class. Everything that used to take a category colour - the
- * dot beside a statistic, the track of a row - therefore falls back to the
- * neutral --cat-default of the current theme and stays neutral by design.
+ * dot beside a statistic, the track of a row - is neutral by design today.
  *
  * In the light theme a TILE is not neutral: it takes one of the eight palette
  * colours by its position in the row (see "the light palette" in section 6).
@@ -374,10 +350,10 @@
 }
 
 /*
- * The page colour lives on the root element, not on <body>. The two decorative
- * layers below (the light pools and the film grain) use a negative z-index, and
- * those paint above the canvas background but below the in-flow content - which
- * only holds while <body> paints no background of its own.
+ * The page colour lives on the root element, not on <body>. The decorative
+ * layer below (the three light pools) uses a negative z-index, and it paints
+ * above the canvas background but below the in-flow content - which only holds
+ * while <body> paints no background of its own.
  *
  * The gradient of the dark theme lives here too, on the root element, so the
  * pools still paint on top of it. The light theme has no gradient at all.
@@ -401,42 +377,6 @@ body {
     transition: color 300ms var(--ease);
     /* Together with "html" this guarantees a page without a sideways scroll. */
     overflow-x: clip;
-}
-
-/*
- * Film grain. One fixed, repeating SVG noise tile - no animation and no
- * full-window filter - so text stays sharp and nothing can start to scroll.
- *
- * NOTE: there is currently NO element with class="grain" in the markup, so none
- * of this is painted at the moment and --grain-image is read nowhere else. The
- * rule is kept because the texture is part of the design idea; if it is not
- * wanted any more, the rule and the token can go (see the cleanup list in
- * docs/technik.md).
- *
- * The layer covers the page and the tiles, but NOT the overlays: menus, the
- * toast and the dialogs are their own calm surfaces and lie above it (z-index
- * 1000 and up, dialogs in the top layer of the browser). A dialog therefore
- * never has a texture, and a menu never looks grainy.
- *
- * The strength is deliberately low. Dark grains over warm beige pull the page
- * towards grey, so the light theme keeps just enough of them to be felt as
- * paper - the background stays beige (measured: the mean shift is about 2 % of
- * the luminance range).
- */
-.grain {
-    position: fixed;
-    inset: 0;
-    z-index: 900;
-    pointer-events: none;
-    background-image: var(--grain-image);
-    background-size: 220px 220px;
-    opacity: 0.12;
-}
-
-/* The same texture, inverted: light grains instead of dark ones. */
-[data-theme="dark"] .grain {
-    opacity: 0.14;
-    filter: invert(1);
 }
 
 /*
@@ -648,14 +588,6 @@ img {
 .view--start.is-welcome .tiles,
 .view--start.is-welcome .tiles-nav {
     display: none;
-}
-
-.hairline {
-    width: 100%;
-    height: 0;
-    margin: 0;
-    border: 0;
-    border-top: 1px solid var(--hairline);
 }
 
 /* Small uppercase labels. */
@@ -910,27 +842,6 @@ img {
     flex-direction: column;
     gap: 10px;
     min-width: 0;
-}
-
-/*
- * Outline pills, the shared look for every statistic and every data badge.
- */
-.data-pill {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    border: 1px solid var(--line);
-    border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
-    color: var(--text);
-    background: transparent;
-    border-radius: 999px;
-}
-
-/* A data badge sits inside a line of text, so it has to be inline. */
-.data-pill {
-    display: inline-block;
-    vertical-align: middle;
 }
 
 /* ==========================================================================
@@ -1380,8 +1291,7 @@ img {
 }
 
 .area-card:hover .arrow,
-.area-card:focus-visible .arrow,
-.area-card.is-linked .arrow {
+.area-card:focus-visible .arrow {
     color: var(--text);
     transform: translateX(6px);
 }
@@ -1393,19 +1303,6 @@ img {
  * line that explained nothing. The same information stands on the tile itself, in
  * the stat line under the title (see buildAreaTile in app.js).
  */
-
-/*
- * Linked hover: the hovered tile keeps full strength while the other tiles fade
- * to 60%, so the row always shows which tile is meant.
- */
-.area-grid.is-linking .area-card {
-    opacity: .6;
-    transition: opacity 150ms var(--ease);
-}
-
-.area-grid.is-linking .area-card.is-linked {
-    opacity: 1;
-}
 
 /* ==========================================================================
    7. Detail view
@@ -2399,14 +2296,9 @@ html.is-theme-switching::view-transition-new(root) {
         max-width: none;
     }
 
-    /* The card count stays, the decorative track is dropped: the row would
-       otherwise be too cramped to read on a phone. */
+    /* Four columns: the row would otherwise be too cramped to read on a phone. */
     .row__link {
         grid-template-columns: auto minmax(0, 1fr) auto auto;
-    }
-
-    .row__progress {
-        display: none;
     }
 }
 
@@ -2776,9 +2668,7 @@ html.is-theme-switching::view-transition-new(root) {
 
     /* No travel on hover. */
     .area-card:hover .arrow,
-    .area-card:focus-visible .arrow,
-    .row:hover .row__arrow,
-    .row__link:focus-visible .row__arrow {
+    .area-card:focus-visible .arrow {
         transform: none !important;
     }
 
@@ -2787,11 +2677,6 @@ html.is-theme-switching::view-transition-new(root) {
     }
 
     .plus-button:hover .plus-button__icon {
-        transform: none !important;
-    }
-
-    /* The tile row keeps its distance from the study session above it. */
-    .area-card.is-linked .arrow {
         transform: none !important;
     }
 
@@ -3417,28 +3302,6 @@ html.is-theme-switching::view-transition-new(root) {
     color: var(--text);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
-}
-
-/* --- one quiet line per row --------------------------------------------- */
-
-/*
- * The number of flashcards of a row reads as text now: the pill around it made
- * every row look like a dashboard. The real number stays, only its frame goes.
- */
-.rows .row__count {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.92rem;
-    letter-spacing: 0;
-    text-transform: none;
-}
-
-.rows .row__progress {
-    opacity: .7;
 }
 
 /*
@@ -4394,17 +4257,6 @@ body.is-learning {
 
 /* --- the hovered tile lifts, the others stay as they are ------------------ */
 
-/*
- * The row used to dim every tile except the hovered one. That is switched off for
- * good: the classes are not set any more (app.js), and the rules that drew the
- * dimming are neutralised here as well, so a browser with an older script in its
- * cache shows the same calm row.
- */
-.area-grid.is-linking .area-card,
-.area-grid.is-linking .area-card.is-linked {
-    opacity: 1;
-}
-
 .area-card {
     cursor: pointer;
     /* The same clock as a row: see "one hover" above. */
@@ -4773,8 +4625,7 @@ body.is-learning {
     .area-card,
     .learn-button,
     .add-entry-button,
-    .arrow,
-    .row__play {
+    .arrow {
         transition: none;
     }
 
@@ -4786,11 +4637,6 @@ body.is-learning {
 
     .area-card:hover .arrow,
     .area-card:focus-visible .arrow {
-        transform: none;
-    }
-
-    /* The study button still gets its brighter surface, it just does not move. */
-    .row__play:hover {
         transform: none;
     }
 }
@@ -6340,7 +6186,6 @@ h2,
 .detail__figures,
 .row__status,
 .row__badge,
-.card-tools__label,
 .count-dialog__label,
 .account-dialog__label,
 .learn__label,
@@ -6366,7 +6211,6 @@ h2,
 [data-theme="light"] .dash__note,
 [data-theme="light"] .detail__figure,
 [data-theme="light"] .detail__figures,
-[data-theme="light"] .card-tools__label,
 [data-theme="light"] .count-dialog__label,
 [data-theme="light"] .account-dialog__label,
 [data-theme="light"] .learn__label,

@@ -424,8 +424,7 @@
     var importState = null;
     var importPanel = null;
 
-    /* Which entry a new one is created in, and what the empty state offers. */
-    var editingParentId = null;
+    /* What the empty state offers when there is nothing to show. */
     var entryEmptyHandler = null;
 
 
@@ -707,8 +706,7 @@
      * The `color` column is still in the database, but nothing in this
      * application reads, writes or shows it: a category is neutral by design,
      * and the tiles of the light theme take their colour from their position in
-     * the row (see the stylesheet). The dot, the row track and every marker
-     * therefore stay neutral through --cat-default.
+     * the row (see the stylesheet, --palette-1 .. --palette-8).
      */
 
     /*
@@ -4315,14 +4313,12 @@
      *
      * $node is the element that shows the entry; it is removed right away so the
      * page does not keep a row that the person has just deleted.
-     */
-    /*
-     * Every deletion is asked about first - an empty entry as well.
      *
-     * It used to be different: an empty entry disappeared straight away and only
-     * one with content was asked about, so the same click sometimes deleted
-     * something and sometimes did not. A question in front of every deletion is
-     * the only behaviour a person can predict.
+     * Every deletion is asked about first - an empty entry as well. It used to be
+     * different: an empty entry disappeared straight away and only one with
+     * content was asked about, so the same click sometimes deleted something and
+     * sometimes did not. A question in front of every deletion is the only
+     * behaviour a person can predict.
      */
     function requestDelete(kind, target, node) {
         /* Only one deletion waits at a time: a second one finishes the first. */
@@ -5591,14 +5587,12 @@
 
         var front = el('p', 'card-preview__text', '');
         front.id = 'card-preview-front';
-        front.setAttribute('data-i18n-empty', 'dialog.card.frontPlaceholder');
 
         var backLabel = el('p', 'card-preview__label', t('dialog.card.previewBack'));
         backLabel.setAttribute('data-i18n', 'dialog.card.previewBack');
 
         var back = el('p', 'card-preview__text', '');
         back.id = 'card-preview-back';
-        back.setAttribute('data-i18n-empty', 'dialog.card.backPlaceholder');
 
         /*
          * Two sides, exactly like the card in a session: the front is what is

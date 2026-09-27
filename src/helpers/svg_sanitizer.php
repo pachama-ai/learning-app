@@ -53,26 +53,6 @@ const SVG_MAX_UPLOAD_BYTES = 358400;
 const SVG_MAX_STORED_BYTES = 358400;
 
 /**
- * Elements that are removed together with everything inside them.
- *
- * Compared in lower case, so the list is written in lower case.
- */
-const SVG_BLOCKED_ELEMENTS = [
-    'script',
-    'foreignobject',
-    'iframe',
-    'object',
-    'embed',
-    'image',
-    'feimage',
-    'audio',
-    'video',
-    'handler',
-    'listener',
-    'metadata',
-];
-
-/**
  * The same names as a lookup table.
  *
  * A drawing of 350 KB has thousands of elements, so "is this name blocked?" is

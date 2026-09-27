@@ -29,7 +29,6 @@ function learning_app_translations(): array
     return [
         'en' => [
             'app.title' => 'Lernkartei',
-            'app.brand' => 'LERNKARTEI',
             'crumb.start' => 'START',
 
             // The newline is intentional: the heading is meant to break onto two
@@ -46,10 +45,8 @@ function learning_app_translations(): array
             'tile.cards.other' => 'cards',
             /* Shown in a tile while nothing sits inside the category yet. */
             'tile.subcategories.none' => 'No subcategories yet',
-            'tile.tooltip' => '{name} · {cards}',
 
             'sidebar.label' => 'Learning areas',
-            'detail.subareas' => 'Subcategories',
             'detail.empty.title' => 'No subcategories yet',
             'detail.addSubcategory' => '+ Add subcategory',
             'detail.notFound.title' => 'Not found',
@@ -62,9 +59,7 @@ function learning_app_translations(): array
             'dash.streak' => 'Learned in a row (days)',
             'dash.streakNone' => 'Nothing counted yet',
 
-            'area.subareas' => 'Subcategories',
             'area.open' => 'Open learning area: {name}',
-            'area.iconAlt' => 'Icon of {name}',
 
             'scroller.previous' => 'Previous categories',
             'scroller.next' => 'Next categories',
@@ -72,20 +67,16 @@ function learning_app_translations(): array
             'footer.addSubcategoryAria' => 'Add subcategory',
             'footer.addCardAria' => 'Add flashcard',
 
-            'dialog.addTitle' => 'Add learning area',
             'dialog.nameLabel' => 'Name',
             'dialog.namePlaceholder' => 'e.g. History',
             'dialog.cancel' => 'Cancel',
             'dialog.save' => 'Save',
             'dialog.saving' => 'Saving …',
-            'dialog.errorEmpty' => 'Please enter a name.',
-            'dialog.errorTooLong' => 'The name may be at most 100 characters long.',
             'dialog.errorDuplicate' => 'A learning area with this name already exists.',
             'dialog.errorName' => 'This name cannot be used.',
             'dialog.errorServer' => 'The learning area could not be saved.',
 
             // --- Flashcards (the level below a subcategory) ---
-            'cards.heading' => 'Flashcards',
             'cards.sectionTitle' => 'Flashcards in this area',
             'cards.open' => 'Open flashcards: {name}',
             'cards.empty.title' => 'No flashcards yet',
@@ -93,15 +84,11 @@ function learning_app_translations(): array
             'card.front' => 'Front',
             'card.back' => 'Back',
             'card.bidirectional' => 'Both directions',
-            'card.pair' => '{front} · {back}',
 
             // --- Actions on an entry ---
             'action.edit' => 'Edit',
             'action.delete' => 'Delete',
             'action.more' => 'More actions for {name}',
-            'action.removeIcon' => 'Remove icon',
-            'action.iconStored' => 'An icon is stored',
-            'action.clear' => 'Clear',
 
             // --- Category form (learning area or subcategory) ---
             'dialog.category.createArea' => 'Add learning area',
@@ -112,7 +99,6 @@ function learning_app_translations(): array
             'dialog.category.iconHint' => 'Optional. One .svg file, at most 350 KB.',
             'dialog.category.nameEn' => 'Name (English)',
             'dialog.category.nameDe' => 'Name (German)',
-            'dialog.category.nameHint' => 'Used when no translation is filled in.',
             'dialog.errorIcon' => 'This file could not be read as an SVG icon.',
             'dialog.errorScale' => 'The icon size must be between 0.2 and 3.',
 
@@ -174,26 +160,17 @@ function learning_app_translations(): array
             /* Electricity, and only electricity - not all energy of the world. */
             /* English writes a thousand with a comma. */
 
-            'dialog.delete.deleting' => 'Deleting …',
-            'dialog.deleteCard.title' => 'Delete this flashcard?',
-            'dialog.deleteCard.hint' => 'The card is removed. Its learning progress is removed with it.',
-
             // --- Empty states and messages of the new views ---
             'home.empty.title' => 'No learning areas yet',
             'home.empty.hint' => 'Create the first learning area to get started.',
             /* The empty start page of somebody who is not signed in. */
             'home.welcome.title' => 'Your card box is waiting for you',
             'home.welcome.hint' => 'Create your own learning areas and cards, and learn them with repetition.',
-            'state.loadingCards' => 'Loading flashcards …',
-            'state.saving' => 'Saving …',
             'feedback.deleted' => '{name} was deleted.',
-            'feedback.saved' => 'Saved.',
-            'dialog.errorSave' => 'The entry could not be saved.',
             'dialog.errorDelete' => 'The entry could not be deleted.',
 
             'state.loading' => 'Loading learning areas …',            'state.error' => 'The learning areas could not be loaded. Please try again later.',
             'state.noscript' => 'JavaScript is required to load the learning areas.',
-            'auth.open' => 'Sign in',
             'auth.title' => 'Sign in',
             'auth.registerTitle' => 'Create an account',
             'auth.signIn' => 'Sign in',
@@ -206,7 +183,6 @@ function learning_app_translations(): array
             'auth.passwordPlaceholder' => 'At least 8 characters',
             'auth.showPassword' => 'Show the password',
             'auth.hidePassword' => 'Hide the password',
-            'auth.account' => 'Account of {name}',
             'auth.signOut' => 'Sign out',
             'auth.errorNotReady' => 'Signing in is not set up yet. The file database/add_user_auth.sql has to be run once first.',
             'auth.errorCredentials' => 'This name and this password do not belong together.',
@@ -219,7 +195,6 @@ function learning_app_translations(): array
             'auth.errorPasswordRequired' => 'Please enter a password.',
             'auth.errorPasswordTooShort' => 'The password needs at least {min} characters.',
             'auth.errorToken' => 'The page was open for too long. Please reload it and try again.',
-            'state.unavailable' => '—',
 
             'theme.switch.toDark' => 'Switch to dark mode',
             'theme.switch.toLight' => 'Switch to light mode',
@@ -227,52 +202,35 @@ function learning_app_translations(): array
 
             // --- Shared dialog system ---
             'dialog.close' => 'Close',
-            'dialog.optional' => 'Optional',
             'dialog.translations' => 'Translations (optional)',
             'dialog.translationsHint' => 'Shown when the interface is in that language.',
-            'dialog.required' => 'Required',
-            'dialog.hintEscape' => 'Escape closes this dialog.',
-            'dialog.hintEnter' => 'Enter saves.',
 
             // --- Field level validation ---
             'dialog.errorNameRequired' => 'Please enter a name.',
             'dialog.errorNameTooLong' => 'The name may be at most {max} characters long.',
-            'dialog.errorNameDuplicate' => 'A category with this name already exists here.',
             'dialog.errorFrontRequired' => 'Please enter the front of the card.',
-            'dialog.errorFrontTooLong' => 'The front may be at most {max} characters long.',
             'dialog.errorBackRequired' => 'Please enter the back of the card.',
-            'dialog.errorBackTooLong' => 'The back may be at most {max} characters long.',
             'dialog.errorDeleteConflict' => 'Other data still refers to this category, so it could not be deleted.',
             'dialog.errorAlreadyGone' => 'This entry no longer exists.',
 
             // --- Icon upload ---
             'dialog.icon.choose' => 'Choose symbol',
-            'dialog.icon.uploadTitle' => 'Upload icon',
-            'dialog.icon.uploadHint' => 'Click to choose an SVG, or drag and drop one here.',
-            'dialog.icon.drop' => 'Drop the SVG here',
             'dialog.icon.replace' => 'Replace icon',
             'dialog.icon.remove' => 'Remove icon',
-            'dialog.icon.preview' => 'Preview',
             'dialog.icon.onlySvg' => 'Only .svg files are accepted.',
             'dialog.icon.tooLarge' => 'The file is larger than {max} KB.',
             'dialog.icon.notSvg' => 'This file is not a readable SVG.',
-            'dialog.icon.normalised' => 'The drawing was fitted to the icon circle automatically.',
-            'dialog.icon.fallbackHint' => 'Without an icon the first letter of the name is shown.',
-            'dialog.icon.fileChosen' => 'File chosen: {name}',
 
             // --- Edit mode and the tile menu ---
-            'action.moreTile' => 'Actions for {name}',
 
             // --- Toasts after a successful save ---
             'feedback.created' => '{name} was created.',
             'feedback.updated' => '{name} was saved.',
-            'feedback.iconRemoved' => 'The icon was removed.',
             'feedback.undo' => 'Undo',
             'feedback.undone' => 'Kept as it was.',
 
             // --- The card list of a subcategory ---
             'cards.learn' => 'Study',
-            'cards.learnAll' => 'Study all',
             'cards.learnThis' => 'Study “{name}”',
             'cards.learnDue' => 'Study “{name}”: {count} due',
             'cards.addCardShort' => '+ Card',
@@ -288,9 +246,6 @@ function learning_app_translations(): array
             'learn.newCardsAll' => 'All',
             'learn.newCardsStart' => 'Start',
             'learn.newCardsError' => 'Enter a whole number between 0 and {max}.',
-            'cards.learnAria' => 'Start studying this subcategory',
-            'cards.summary' => '{count} cards',
-            'cards.summaryOne' => '1 card',
             'cards.search' => 'Search cards',
             'cards.searchPlaceholder' => 'Search in front and back',
             'cards.searchEmpty' => 'No card matches this search.',
@@ -303,9 +258,7 @@ function learning_app_translations(): array
             'cards.status.aria' => '{name}: status {status}',
             'cards.dueHint' => 'Due since {date}',
             'cards.empty.title' => 'No cards here yet',
-            'cards.empty.hint' => 'Create the first card for this subcategory.',
             'cards.addFirst' => 'Create the first card',
-            'cards.openEditor' => 'Edit the card “{name}”',
             'cards.bidirectionalShort' => 'Both ways',
             'cards.exerciseBadge' => 'Exercise',
             'cards.noUser' => 'Nobody is signed in, so answers cannot be saved yet.',
@@ -324,10 +277,8 @@ function learning_app_translations(): array
             'dialog.card.languageEmpty' => 'still empty',
             'dialog.card.languageHint' => 'Switch the language here and fill in the other side of this card. One complete language is enough.',
             'dialog.card.keepOneLanguage' => 'Fill in a question and an answer in at least one language.',
-            'dialog.card.otherLanguage' => 'The other language may stay empty.',
 
             // --- The learning session ---
-            'learn.title' => 'Study session',
             'learn.close' => 'Close the study session',
             'learn.counter' => '{position} of {total}',
             'learn.progress' => '{percent} percent done',
@@ -346,13 +297,11 @@ function learning_app_translations(): array
             'learn.intervalDays' => '{count} days',
             'learn.intervalOneDay' => '1 day',
             'learn.undo' => 'Take the last answer back',
-            'learn.undoHint' => 'Press the left arrow key',
             'learn.undone' => 'The last answer was taken back.',
             'learn.undoFailed' => 'The last answer can no longer be taken back.',
             'learn.rateAgain' => 'The card comes back in this session.',
             'learn.savedFailed' => 'This answer could not be saved.',
             'learn.noUser' => 'Nobody is signed in. Answers cannot be saved yet, so the session only shows the cards.',
-            'learn.help' => 'Space flips the card, 1 to 4 answer it, Escape ends the session',
             'learn.askEnd.title' => 'End the session?',
             'learn.askEnd.text' => '{count} answers were already saved.',
             'learn.askEnd.confirm' => 'End the session',
@@ -361,10 +310,6 @@ function learning_app_translations(): array
             // --- The end of a session ---
             'learn.done.title' => 'Session finished',
             'learn.done.known' => '{known} of {total} known',
-            'learn.done.again' => 'Again',
-            'learn.done.hard' => 'Hard',
-            'learn.done.good' => 'Good',
-            'learn.done.easy' => 'Easy',
             'learn.done.repeat' => 'Repeat the difficult cards',
             'learn.done.finish' => 'Done',
             'learn.done.left' => '{count} cards are still in the learning phase.',
@@ -376,7 +321,6 @@ function learning_app_translations(): array
             'cards.import' => 'Import',
             'dialog.import.title' => 'Import cards',
             'dialog.import.dropTitle' => 'Drag a CSV here, or click to choose one',
-            'dialog.import.dropAgain' => 'Choose another file',
             'dialog.import.format' => 'Semicolon separated CSV in UTF-8. The first line is the header and names the columns - the order does not matter.',
             'dialog.import.columns' => 'front_de;back_de;front_en;back_en;is_bidirectional',
             'dialog.import.columnsOptional' => 'exercise (may be left out)',
@@ -392,9 +336,7 @@ function learning_app_translations(): array
             'dialog.import.invalidOne' => '1 row contains an error, so nothing is imported yet',
             'dialog.import.invalid' => '{count} rows contain errors, so nothing is imported yet',
             'dialog.import.fix' => 'Correct the file and choose it again.',
-            'dialog.import.nothing' => 'This file has nothing to import.',
             'dialog.import.andMore' => 'and {count} more rows',
-            'dialog.import.table' => 'First rows',
             'dialog.import.colLine' => 'Line',
             'dialog.import.colFrontDe' => 'Front (DE)',
             'dialog.import.colBackDe' => 'Back (DE)',
@@ -422,11 +364,6 @@ function learning_app_translations(): array
             'import.row.exercise_no_title' => 'Line {line}: an exercise card needs a title (front_de or front_en) instead of an answer.',
             'import.row.exercise_unavailable' => 'Line {line}: this installation cannot store exercise cards yet (see database/add_exercise_params.sql).',
             'dialog.import.colExercise' => 'Exercise',
-            'import.fatal.read_failed' => 'The file could not be read.',
-            'import.fatal.empty_file' => 'The file is empty.',
-            'import.fatal.header_unknown' => 'The header has columns this import does not know: {columns}',
-            'import.fatal.header_missing' => 'The header is missing the columns: {columns}',
-            'import.fatal.too_many_rows' => 'The file has more than {rows} rows.',
             'import.error.file_too_large' => 'The file is larger than 1 MB.',
             'import.error.file_missing' => 'No file was received.',
             'import.error.file_type' => 'Only .csv files are accepted.',
@@ -619,7 +556,6 @@ function learning_app_translations(): array
 
         'de' => [
             'app.title' => 'Lernkartei',
-            'app.brand' => 'LERNKARTEI',
             'crumb.start' => 'START',
 
             // Two lines, same as the English heading.
@@ -633,10 +569,8 @@ function learning_app_translations(): array
             'tile.cards.other' => 'Karten',
             /* Shown in a tile while nothing sits inside the category yet. */
             'tile.subcategories.none' => 'Noch keine Unterkategorien',
-            'tile.tooltip' => '{name} · {cards}',
 
             'sidebar.label' => 'Themengebiete',
-            'detail.subareas' => 'Unterkategorien',
             'detail.empty.title' => 'Noch keine Unterkategorien',
             'detail.addSubcategory' => '+ Unterkategorie hinzufügen',
             'detail.notFound.title' => 'Nicht gefunden',
@@ -649,9 +583,7 @@ function learning_app_translations(): array
             'dash.streak' => 'In Folge gelernt (Tage)',
             'dash.streakNone' => 'Noch nichts gezählt',
 
-            'area.subareas' => 'Unterkategorien',
             'area.open' => 'Themengebiet öffnen: {name}',
-            'area.iconAlt' => 'Symbol für {name}',
 
             'scroller.previous' => 'Vorherige Gebiete',
             'scroller.next' => 'Nächste Gebiete',
@@ -659,20 +591,16 @@ function learning_app_translations(): array
             'footer.addSubcategoryAria' => 'Unterkategorie hinzufügen',
             'footer.addCardAria' => 'Karteikarte hinzufügen',
 
-            'dialog.addTitle' => 'Themengebiet hinzufügen',
             'dialog.nameLabel' => 'Name',
             'dialog.namePlaceholder' => 'z. B. Geschichte',
             'dialog.cancel' => 'Abbrechen',
             'dialog.save' => 'Speichern',
             'dialog.saving' => 'Wird gespeichert …',
-            'dialog.errorEmpty' => 'Bitte einen Namen eingeben.',
-            'dialog.errorTooLong' => 'Der Name darf höchstens 100 Zeichen lang sein.',
             'dialog.errorDuplicate' => 'Ein Themengebiet mit diesem Namen existiert bereits.',
             'dialog.errorName' => 'Dieser Name kann nicht verwendet werden.',
             'dialog.errorServer' => 'Das Themengebiet konnte nicht gespeichert werden.',
 
             // --- Karteikarten (die Ebene unter einer Unterkategorie) ---
-            'cards.heading' => 'Karteikarten',
             'cards.sectionTitle' => 'Karteikarten in diesem Themengebiet',
             'cards.open' => 'Karteikarten öffnen: {name}',
             'cards.empty.title' => 'Noch keine Karteikarten',
@@ -680,15 +608,11 @@ function learning_app_translations(): array
             'card.front' => 'Vorderseite',
             'card.back' => 'Rückseite',
             'card.bidirectional' => 'Beide Richtungen',
-            'card.pair' => '{front} · {back}',
 
             // --- Aktionen an einem Eintrag ---
             'action.edit' => 'Bearbeiten',
             'action.delete' => 'Löschen',
             'action.more' => 'Weitere Aktionen für {name}',
-            'action.removeIcon' => 'Symbol entfernen',
-            'action.iconStored' => 'Ein Symbol ist gespeichert',
-            'action.clear' => 'Zurücksetzen',
 
             // --- Formular für eine Kategorie (Themengebiet oder Unterkategorie) ---
             'dialog.category.createArea' => 'Themengebiet hinzufügen',
@@ -699,7 +623,6 @@ function learning_app_translations(): array
             'dialog.category.iconHint' => 'Optional. Eine .svg-Datei, höchstens 350 KB.',
             'dialog.category.nameEn' => 'Name (Englisch)',
             'dialog.category.nameDe' => 'Name (Deutsch)',
-            'dialog.category.nameHint' => 'Wird verwendet, wenn keine Übersetzung eingetragen ist.',
             'dialog.errorIcon' => 'Diese Datei konnte nicht als SVG-Symbol gelesen werden.',
             'dialog.errorScale' => 'Die Symbolgröße muss zwischen 0.2 und 3 liegen.',
 
@@ -739,15 +662,11 @@ function learning_app_translations(): array
             'account.passwordRequired' => 'Bitte gib dein Passwort ein.',
             'account.signedOut' => 'Du wurdest abgemeldet.',
 
-
             'dialog.delete.subcategories.one' => '1 Unterkategorie',
             'dialog.delete.subcategories.other' => '{count} Unterkategorien',
             'dialog.delete.cards.one' => '1 Karteikarte',
             'dialog.delete.cards.other' => '{count} Karteikarten',
             'dialog.delete.submit' => 'Löschen',
-            'dialog.delete.deleting' => 'Wird gelöscht …',
-            'dialog.deleteCard.title' => 'Diese Karteikarte löschen?',
-            'dialog.deleteCard.hint' => 'Die Karte wird entfernt. Ihr Lernfortschritt wird mit entfernt.',
 
             // --- Leere Zustände und Meldungen der neuen Ansichten ---
             'home.empty.title' => 'Noch keine Themengebiete',
@@ -755,16 +674,11 @@ function learning_app_translations(): array
             /* Der leere Startbildschirm von jemandem, der nicht angemeldet ist. */
             'home.welcome.title' => 'Deine Lernkartei wartet auf dich',
             'home.welcome.hint' => 'Lege eigene Themengebiete und Karten an und lerne sie mit Wiederholung.',
-            'state.loadingCards' => 'Karteikarten werden geladen …',
-            'state.saving' => 'Wird gespeichert …',
             'feedback.deleted' => '„{name}“ wurde gelöscht.',
-            'feedback.saved' => 'Gespeichert.',
-            'dialog.errorSave' => 'Der Eintrag konnte nicht gespeichert werden.',
             'dialog.errorDelete' => 'Der Eintrag konnte nicht gelöscht werden.',
 
             'state.loading' => 'Themengebiete werden geladen …',            'state.error' => 'Die Themengebiete konnten nicht geladen werden. Bitte später erneut versuchen.',
             'state.noscript' => 'JavaScript wird benötigt, um die Themengebiete zu laden.',
-            'auth.open' => 'Anmelden',
             'auth.title' => 'Anmelden',
             'auth.registerTitle' => 'Konto anlegen',
             'auth.signIn' => 'Anmelden',
@@ -777,7 +691,6 @@ function learning_app_translations(): array
             'auth.passwordPlaceholder' => 'Mindestens 8 Zeichen',
             'auth.showPassword' => 'Passwort anzeigen',
             'auth.hidePassword' => 'Passwort verbergen',
-            'auth.account' => 'Konto von {name}',
             'auth.signOut' => 'Abmelden',
             'auth.errorNotReady' => 'Die Anmeldung ist noch nicht eingerichtet. Dazu muss database/add_user_auth.sql einmal ausgeführt werden.',
             'auth.errorCredentials' => 'Dieser Name und dieses Passwort gehören nicht zusammen.',
@@ -790,7 +703,6 @@ function learning_app_translations(): array
             'auth.errorPasswordRequired' => 'Bitte ein Passwort eingeben.',
             'auth.errorPasswordTooShort' => 'Das Passwort braucht mindestens {min} Zeichen.',
             'auth.errorToken' => 'Die Seite war zu lange offen. Bitte neu laden und noch einmal versuchen.',
-            'state.unavailable' => '—',
 
             'theme.switch.toDark' => 'Zum dunklen Modus wechseln',
             'theme.switch.toLight' => 'Zum hellen Modus wechseln',
@@ -798,53 +710,36 @@ function learning_app_translations(): array
 
             // --- Gemeinsames Dialog-System ---
             'dialog.close' => 'Schließen',
-            'dialog.optional' => 'Optional',
             'dialog.translations' => 'Übersetzungen (optional)',
             'dialog.translationsHint' => 'Wird angezeigt, wenn die Oberfläche in dieser Sprache läuft.',
-            'dialog.required' => 'Pflichtfeld',
-            'dialog.hintEscape' => 'Escape schließt diesen Dialog.',
-            'dialog.hintEnter' => 'Enter speichert.',
 
             // --- Feldweise Prüfung ---
             'dialog.errorNameRequired' => 'Bitte einen Namen eingeben.',
             'dialog.errorNameTooLong' => 'Der Name darf höchstens {max} Zeichen lang sein.',
-            'dialog.errorNameDuplicate' => 'Hier gibt es bereits eine Kategorie mit diesem Namen.',
             'dialog.errorFrontRequired' => 'Bitte die Vorderseite eingeben.',
-            'dialog.errorFrontTooLong' => 'Die Vorderseite darf höchstens {max} Zeichen lang sein.',
             'dialog.errorBackRequired' => 'Bitte die Rückseite eingeben.',
-            'dialog.errorBackTooLong' => 'Die Rückseite darf höchstens {max} Zeichen lang sein.',
             'dialog.errorDeleteConflict' => 'Andere Daten verweisen noch auf dieses Themengebiet, deshalb konnte es nicht gelöscht werden.',
             'dialog.errorAlreadyGone' => 'Dieser Eintrag existiert nicht mehr.',
 
             // --- Symbol hochladen ---
             'dialog.icon.choose' => 'Symbol wählen',
-            'dialog.icon.uploadTitle' => 'Symbol hochladen',
-            'dialog.icon.uploadHint' => 'Klicken, um ein SVG auszuwählen, oder hierher ziehen.',
-            'dialog.icon.drop' => 'SVG hier ablegen',
             'dialog.icon.replace' => 'Symbol ersetzen',
             'dialog.icon.remove' => 'Symbol entfernen',
-            'dialog.icon.preview' => 'Vorschau',
             'dialog.icon.onlySvg' => 'Nur .svg-Dateien werden akzeptiert.',
             'dialog.icon.tooLarge' => 'Die Datei ist größer als {max} KB.',
             'dialog.icon.notSvg' => 'Diese Datei ist kein lesbares SVG.',
-            'dialog.icon.normalised' => 'Die Zeichnung wurde automatisch an den Symbolkreis angepasst.',
-            'dialog.icon.fallbackHint' => 'Ohne Symbol wird der erste Buchstabe des Namens gezeigt.',
-            'dialog.icon.fileChosen' => 'Gewählte Datei: {name}',
 
             // --- Bearbeiten-Modus und Kachelmenü ---
-            'action.moreTile' => 'Aktionen für {name}',
 
             // --- Hinweise nach dem Speichern ---
             'feedback.created' => '„{name}“ wurde angelegt.',
             'feedback.updated' => '„{name}“ wurde gespeichert.',
-            'feedback.iconRemoved' => 'Das Symbol wurde entfernt.',
             'feedback.undo' => 'Rückgängig',
             'feedback.undone' => 'Unverändert behalten.',
 
             'language.en' => 'EN',
             // --- Die Kartenliste einer Unterkategorie ---
             'cards.learn' => 'Lernen',
-            'cards.learnAll' => 'Alles lernen',
             'cards.learnThis' => '„{name}“ lernen',
             'cards.learnDue' => '„{name}“ lernen: {count} fällig',
             'cards.addCardShort' => '+ Karte',
@@ -860,9 +755,6 @@ function learning_app_translations(): array
             'learn.newCardsAll' => 'Alle',
             'learn.newCardsStart' => 'Starten',
             'learn.newCardsError' => 'Bitte eine ganze Zahl zwischen 0 und {max} eingeben.',
-            'cards.learnAria' => 'Diese Unterkategorie jetzt lernen',
-            'cards.summary' => '{count} Karten',
-            'cards.summaryOne' => '1 Karte',
             'cards.search' => 'Karten suchen',
             'cards.searchPlaceholder' => 'In Vorder- und Rückseite suchen',
             'cards.searchEmpty' => 'Zu dieser Suche passt keine Karte.',
@@ -875,9 +767,7 @@ function learning_app_translations(): array
             'cards.status.aria' => '{name}: Status {status}',
             'cards.dueHint' => 'Fällig seit {date}',
             'cards.empty.title' => 'Hier sind noch keine Karten',
-            'cards.empty.hint' => 'Lege die erste Karte für diese Unterkategorie an.',
             'cards.addFirst' => 'Erste Karte anlegen',
-            'cards.openEditor' => 'Karte „{name}“ bearbeiten',
             'cards.bidirectionalShort' => 'Beide Richtungen',
             'cards.exerciseBadge' => 'Übungsaufgabe',
             'cards.noUser' => 'Es ist niemand angemeldet, deshalb können Antworten noch nicht gespeichert werden.',
@@ -896,10 +786,8 @@ function learning_app_translations(): array
             'dialog.card.languageEmpty' => 'noch leer',
             'dialog.card.languageHint' => 'Hier die Sprache umschalten und die andere Seite dieser Karte ausfüllen. Eine vollständige Sprache genügt.',
             'dialog.card.keepOneLanguage' => 'Fülle in mindestens einer Sprache Frage und Antwort aus.',
-            'dialog.card.otherLanguage' => 'Die andere Sprache darf leer bleiben.',
 
             // --- Die Lernsitzung ---
-            'learn.title' => 'Lernsitzung',
             'learn.close' => 'Lernsitzung schließen',
             'learn.counter' => '{position} von {total}',
             'learn.progress' => '{percent} Prozent geschafft',
@@ -918,13 +806,11 @@ function learning_app_translations(): array
             'learn.intervalDays' => '{count} Tage',
             'learn.intervalOneDay' => '1 Tag',
             'learn.undo' => 'Letzte Bewertung zurücknehmen',
-            'learn.undoHint' => 'Pfeil-zurück drücken',
             'learn.undone' => 'Die letzte Bewertung wurde zurückgenommen.',
             'learn.undoFailed' => 'Die letzte Bewertung lässt sich nicht mehr zurücknehmen.',
             'learn.rateAgain' => 'Die Karte kommt in dieser Sitzung wieder.',
             'learn.savedFailed' => 'Diese Antwort konnte nicht gespeichert werden.',
             'learn.noUser' => 'Es ist niemand angemeldet. Antworten können noch nicht gespeichert werden, die Sitzung zeigt nur die Karten.',
-            'learn.help' => 'Leertaste dreht um, 1 bis 4 bewerten, Escape beendet die Sitzung',
             'learn.askEnd.title' => 'Sitzung beenden?',
             'learn.askEnd.text' => '{count} Bewertungen wurden bereits gespeichert.',
             'learn.askEnd.confirm' => 'Sitzung beenden',
@@ -933,10 +819,6 @@ function learning_app_translations(): array
             // --- Das Ende einer Sitzung ---
             'learn.done.title' => 'Sitzung beendet',
             'learn.done.known' => '{known} von {total} gewusst',
-            'learn.done.again' => 'Nochmal',
-            'learn.done.hard' => 'Schwer',
-            'learn.done.good' => 'Gut',
-            'learn.done.easy' => 'Leicht',
             'learn.done.repeat' => 'Schwierige Karten wiederholen',
             'learn.done.finish' => 'Fertig',
             'learn.done.left' => '{count} Karten sind noch in der Lernphase.',
@@ -947,7 +829,6 @@ function learning_app_translations(): array
             'cards.import' => 'Importieren',
             'dialog.import.title' => 'Karten importieren',
             'dialog.import.dropTitle' => 'CSV hierher ziehen oder klicken zum Auswählen',
-            'dialog.import.dropAgain' => 'Andere Datei wählen',
             'dialog.import.format' => 'CSV mit Semikolon in UTF-8. Die erste Zeile ist die Kopfzeile und benennt die Spalten - die Reihenfolge ist beliebig.',
             'dialog.import.columns' => 'front_de;back_de;front_en;back_en;is_bidirectional',
             'dialog.import.columnsOptional' => 'exercise (darf fehlen)',
@@ -963,9 +844,7 @@ function learning_app_translations(): array
             'dialog.import.invalidOne' => '1 Zeile enthält einen Fehler, deshalb wird noch nichts importiert',
             'dialog.import.invalid' => '{count} Zeilen enthalten Fehler, deshalb wird noch nichts importiert',
             'dialog.import.fix' => 'Bitte die Datei korrigieren und erneut auswählen.',
-            'dialog.import.nothing' => 'In dieser Datei gibt es nichts zu importieren.',
             'dialog.import.andMore' => 'und {count} weitere Zeilen',
-            'dialog.import.table' => 'Erste Zeilen',
             'dialog.import.colLine' => 'Zeile',
             'dialog.import.colFrontDe' => 'Vorderseite (DE)',
             'dialog.import.colBackDe' => 'Rückseite (DE)',
@@ -993,11 +872,6 @@ function learning_app_translations(): array
             'import.row.exercise_no_title' => 'Zeile {line}: eine Übungsaufgabe braucht einen Titel (front_de oder front_en) statt einer Antwort.',
             'import.row.exercise_unavailable' => 'Zeile {line}: diese Installation kann noch keine Übungsaufgaben speichern (siehe database/add_exercise_params.sql).',
             'dialog.import.colExercise' => 'Aufgabe',
-            'import.fatal.read_failed' => 'Die Datei konnte nicht gelesen werden.',
-            'import.fatal.empty_file' => 'Die Datei ist leer.',
-            'import.fatal.header_unknown' => 'Die Kopfzeile enthält unbekannte Spalten: {columns}',
-            'import.fatal.header_missing' => 'In der Kopfzeile fehlen die Spalten: {columns}',
-            'import.fatal.too_many_rows' => 'Die Datei hat mehr als {rows} Zeilen.',
             'import.error.file_too_large' => 'Die Datei ist größer als 1 MB.',
             'import.error.file_missing' => 'Es wurde keine Datei empfangen.',
             'import.error.file_type' => 'Es werden nur .csv-Dateien angenommen.',
