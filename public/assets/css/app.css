@@ -1653,35 +1653,36 @@ img {
 .dash__tile {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 16px 16px 12px;
+    gap: 5px;
+    padding: 14px 14px 10px;
     border-radius: var(--radius-tile);
     background-color: var(--surface);
 }
 
 /*
- * The caption, always two lines high whether it needs them or not: without the
- * reserved height the numbers of the four tiles stood at different heights,
- * because "Sitzt schon" fits on one line and "Bereit zum Wiederholen" needs two.
- * The reserved height is the tallest caption in both languages.
+ * The caption: small, quiet, and one line high in every language and at every
+ * width the four tiles are shown side by side (measured - no caption wraps, not
+ * even "In Folge gelernt (Tage)"). The block keeps one line reserved, so the
+ * numbers of the four tiles stand on the same line; only a caption that really
+ * wraps would push its own number down.
  *
  * The tone is the quiet caption tone of the application, a little nearer to the
  * text colour than --muted: on a wash the muted grey loses some of its contrast,
- * and a caption of 11px has to stay readable (5.8:1 here, 4.9:1 on the warm tile
- * of "unsure", both above the 4.5:1 of WCAG AA).
+ * and a small caption has to stay readable (5.8:1 here, 4.9:1 on the warm tile of
+ * "unsure", both above the 4.5:1 of WCAG AA).
  */
 .dash__label {
-    min-height: 27px;
+    min-height: 13px;
     color: color-mix(in srgb, var(--muted) 70%, var(--text));
-    font-size: 11px;
-    line-height: 1.2;
+    font-size: 10.5px;
+    line-height: 1.25;
 }
 
 /* The one heavy mark of the tile - and even this one stays light. */
 .dash__value {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 500;
-    line-height: 1.15;
+    line-height: 1.1;
     font-variant-numeric: tabular-nums;
 }
 
@@ -1703,8 +1704,8 @@ img {
 .dash__note {
     margin-top: auto;
     color: color-mix(in srgb, var(--muted) 70%, var(--text));
-    font-size: 11px;
-    line-height: 1.3;
+    font-size: 10.5px;
+    line-height: 1.25;
 }
 
 /* How much of the list already sits, as a length instead of a percentage. */
