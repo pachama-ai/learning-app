@@ -1,0 +1,4 @@
+* text=auto eol=lf
+
+# SQL-Dateien und CSV-Importdaten sind reine Daten: Zeilenenden in Ruhe lassen.
+*.csv -text
