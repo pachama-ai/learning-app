@@ -143,6 +143,13 @@ try {
          * until a write made the browser ask for its cards again.
          */
         'streak' => $userId === null ? ['available' => false, 'days' => 0] : dashboard_streak($pdo, $userId),
+        /*
+         * The same number per subcategory, so the streak tile of whichever page is
+         * opened first can show ITS days and not the ones of the whole person. Null
+         * when the category column does not exist yet (see
+         * src/services/dashboard_service.php).
+         */
+        'streaks' => $userId === null ? null : dashboard_streaks_by_category($pdo, $userId),
         'has_user' => $userId !== null,
         'content_languages' => card_content_languages($columns),
         'language' => $language,

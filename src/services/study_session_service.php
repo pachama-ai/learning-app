@@ -43,29 +43,68 @@ function study_session_timestamp(int $now): string
 }
 
 /**
+ * Whether the table has the category column yet.
+ *
+ * The column comes from database/add_session_category.sql, a structure change that
+ * has to be run by hand like every other one. Until then the application works
+ * exactly as before: a run is written without a place, and the number of days in a
+ * row counts the whole person instead of one subcategory.
+ *
+ * The question is asked once per request and remembered, so the column list is
+ * read once and not on every single answer.
+ */
+function study_session_has_category(PDO $pdo): bool
+{
+    static $hasColumn = null;
+
+    if ($hasColumn === null) {
+        $statement = $pdo->query("SHOW COLUMNS FROM study_sessions LIKE 'category_id'");
+        $hasColumn = $statement !== false && $statement->fetch() !== false;
+    }
+
+    return $hasColumn;
+}
+
+/**
  * Writes one answer into the running session and answers with its id.
  *
  * The browser sends the id of the run it is in, or NULL with the FIRST answer of
  * a run - that is the moment the row is created, so a run without a single answer
  * leaves nothing behind.
  *
- * An id that does not belong to this person, or one of a run that was already
- * closed, is treated like a first answer: a new row starts. So a lost or stale id
- * can never write into somebody else's run or into an old one.
+ * An id that does not belong to this person, one of a run that was already closed
+ * or one of a run in ANOTHER subcategory is treated like a first answer: a new row
+ * starts. So a lost or stale id can never write into somebody else's run, into an
+ * old one, or into the wrong place.
  *
+ * @param int|null $categoryId the subcategory this answer was given in
  * @return int the id of the run this answer belongs to
  */
-function study_session_record_rating(PDO $pdo, int $userId, ?int $sessionId, int $rating, int $now): int
+function study_session_record_rating(PDO $pdo, int $userId, ?int $categoryId, ?int $sessionId, int $rating, int $now): int
 {
     $known = in_array($rating, STUDY_SESSION_KNOWN_RATINGS, true) ? 1 : 0;
-    $open = $sessionId === null ? null : study_session_find_open($pdo, $userId, $sessionId);
+    $withCategory = study_session_has_category($pdo);
+    $open = $sessionId === null ? null : study_session_find_open($pdo, $userId, $sessionId, $withCategory ? $categoryId : null);
 
     if ($open === null) {
+        /*
+         * Two fixed variants of the same statement, chosen by the structure of the
+         * table - and not one text that a value is put into: what stands here is
+         * written in this file and nowhere else.
+         */
         $statement = $pdo->prepare(
-            'INSERT INTO study_sessions (user_id, started_at, ended_at, cards_studied, cards_known)
-             VALUES (:user_id, :started_at, NULL, 1, :cards_known)'
+            $withCategory
+                ? 'INSERT INTO study_sessions (user_id, category_id, started_at, ended_at, cards_studied, cards_known)
+                   VALUES (:user_id, :category_id, :started_at, NULL, 1, :cards_known)'
+                : 'INSERT INTO study_sessions (user_id, started_at, ended_at, cards_studied, cards_known)
+                   VALUES (:user_id, :started_at, NULL, 1, :cards_known)'
         );
         $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+
+        if ($withCategory) {
+            $statement->bindValue(':category_id', $categoryId, $categoryId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        }
+
         $statement->bindValue(':started_at', study_session_timestamp($now));
         $statement->bindValue(':cards_known', $known, PDO::PARAM_INT);
         $statement->execute();
@@ -92,16 +131,29 @@ function study_session_record_rating(PDO $pdo, int $userId, ?int $sessionId, int
  *
  * "Running" means ended_at IS NULL. A row with an end is finished and is never
  * written into again.
+ *
+ * With a category the row has to belong to the same subcategory. A row from
+ * before the migration carries none, and it stays for ever what it is - a day of
+ * learning without a place - instead of swallowing the answers of a later run.
  */
-function study_session_find_open(PDO $pdo, int $userId, int $sessionId): ?int
+function study_session_find_open(PDO $pdo, int $userId, int $sessionId, ?int $categoryId = null): ?int
 {
-    $statement = $pdo->prepare(
-        'SELECT id
-           FROM study_sessions
-          WHERE id = :id AND user_id = :user_id AND ended_at IS NULL'
-    );
+    $sql = 'SELECT id
+              FROM study_sessions
+             WHERE id = :id AND user_id = :user_id AND ended_at IS NULL';
+
+    if ($categoryId !== null) {
+        $sql .= ' AND category_id = :category_id';
+    }
+
+    $statement = $pdo->prepare($sql);
     $statement->bindValue(':id', $sessionId, PDO::PARAM_INT);
     $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+
+    if ($categoryId !== null) {
+        $statement->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+    }
+
     $statement->execute();
 
     $row = $statement->fetch();

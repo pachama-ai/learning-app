@@ -75,7 +75,8 @@
         cards: {},           // "85" -> Liste der Karten
         summaries: {},       // "85" -> Zaehlung (total/due/known/unsure)
         contentLanguages: [],
-        streak: null,        // {"available":true,"days":3} - Tage in Folge
+        streak: null,        // {"available":true,"days":3} - Tage in Folge, ganze Person
+        streaks: null,       // "101" -> dasselbe je Unterkategorie (null, solange die Spalte fehlt)
         hasUser: false
     };
 
@@ -99,6 +100,7 @@
                 bootstrapCache.summaries = data.summaries && typeof data.summaries === 'object' ? data.summaries : {};
                 bootstrapCache.contentLanguages = Array.isArray(data.content_languages) ? data.content_languages : [];
                 bootstrapCache.streak = data.streak && typeof data.streak === 'object' ? data.streak : null;
+                bootstrapCache.streaks = data.streaks && typeof data.streaks === 'object' ? data.streaks : null;
                 bootstrapCache.hasUser = data.has_user === true;
 
                 /*
@@ -183,6 +185,29 @@
      * those numbers are drawn when the card is read, so they must not sit in a
      * store. They are fetched in ONE small request before the list is drawn.
      */
+    /*
+     * The days in a row of ONE subcategory.
+     *
+     * The number belongs to the subcategory whose page is open and not to the whole
+     * person: three days in "Uebungsaufgaben" are not three days in "Einmaleins".
+     *
+     * A subcategory without a single run has none of its own - and that is not the
+     * same as "no numbers", so it answers with "nothing learned here yet" instead of
+     * falling back to the number of another list. Only when the server sends no map
+     * at all (the category column of study_sessions does not exist yet, see
+     * database/add_session_category.sql) the whole-person number is used, exactly as
+     * before that migration.
+     */
+    function streakForCategory(categoryId) {
+        if (bootstrapCache.streaks === null) {
+            return bootstrapCache.streak;
+        }
+
+        var entry = bootstrapCache.streaks[String(categoryId)];
+
+        return entry === undefined ? { available: false, days: 0 } : entry;
+    }
+
     function fetchCards(categoryId) {
         if (bootstrapCache.pending) {
             return bootstrapCache.promise.then(function () {
@@ -203,7 +228,7 @@
                     summary: null,
                     /* Die Tage in Folge kommen aus demselben Zwischenspeicher wie
                        die Karten: die Kachel braucht sie beim ersten Aufbau. */
-                    streak: bootstrapCache.streak,
+                    streak: streakForCategory(categoryId),
                     has_user: bootstrapCache.hasUser,
                     content_languages: bootstrapCache.contentLanguages,
                     language: locale
@@ -221,7 +246,16 @@
                  */
                 if (result.ok && result.data !== null && typeof result.data === 'object'
                     && result.data.streak !== null && typeof result.data.streak === 'object') {
-                    bootstrapCache.streak = result.data.streak;
+                    /*
+                     * The answer is about one subcategory, so it belongs in the map.
+                     * Without a map (the category column does not exist yet) the number
+                     * is the one for the whole person.
+                     */
+                    if (bootstrapCache.streaks === null) {
+                        bootstrapCache.streak = result.data.streak;
+                    } else {
+                        bootstrapCache.streaks[String(categoryId)] = result.data.streak;
+                    }
                 }
 
                 return result;
@@ -245,7 +279,7 @@
                     summary: bootstrapCache.summaries[String(categoryId)] || null,
                     /* The streak comes from the same cache the cards come from - see
                        the empty list above. */
-                    streak: bootstrapCache.streak,
+                    streak: streakForCategory(categoryId),
                     has_user: bootstrapCache.hasUser,
                     content_languages: bootstrapCache.contentLanguages,
                     language: locale

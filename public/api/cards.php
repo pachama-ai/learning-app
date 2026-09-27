@@ -186,9 +186,9 @@ try {
     send_json_success([
         'cards' => $cards,
         'summary' => review_summarise_cards($cards),
-        /* How many days in a row this person studied - see
+        /* How many days in a row this person studied in THIS subcategory - see
            src/services/dashboard_service.php. */
-        'streak' => dashboard_streak($pdo, $userId),
+        'streak' => dashboard_streak($pdo, $userId, $categoryId),
         'has_user' => $userId !== null,
         /* Which languages this table can hold: one, or two after the
            migration. The card dialog shows its language tabs only for two. */

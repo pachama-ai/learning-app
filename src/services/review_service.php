@@ -559,7 +559,7 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
      */
     $runId = $sessionId;
 
-    review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $next, $rating, $now, $sessionId, &$runId): void {
+    review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $next, $rating, $categoryId, $now, $sessionId, &$runId): void {
         review_store_progress($pdo, $userId, $cardId, $next);
 
         /*
@@ -567,7 +567,7 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
          * either both are there or neither is. A rating that was stored but not
          * counted - or the other way round - could never be explained afterwards.
          */
-        $runId = study_session_record_rating($pdo, $userId, $sessionId, $rating, $now);
+        $runId = study_session_record_rating($pdo, $userId, $categoryId, $sessionId, $rating, $now);
     });
 
     return [
