@@ -3,41 +3,44 @@
 declare(strict_types=1);
 
 /**
- * Who is learning right now.
+ * Wer gerade lernt.
  *
- * Progress belongs to exactly one user and is stored in user_card_progress with
- * that user's id. The id can only come from a real signed-in session:
+ * Der Fortschritt gehoert genau einem Nutzer und steht in user_card_progress
+ * unter dessen id. Die id kann nur aus einer echten angemeldeten Sitzung kommen:
  *
- *   - the sign-in lives in public/api/auth.php and src/services/user_service.php.
- *     After a successful check that service calls user_sign_in_session(), which
- *     puts the id of the account into $_SESSION['user_id'],
- *   - there is still NO default user and NO "first user" fallback. Writing
- *     progress under a guessed id would silently mix up the progress of two
- *     people, which is the one thing this table must never do,
- *   - without a sign-in the answer is null, and every write of progress answers
- *     403 no_user_session. That is a definite answer, not a silent success.
+ *   - die Anmeldung steckt in public/api/auth.php und src/services/user_service.php.
+ *     Nach erfolgreicher Pruefung ruft der Service user_sign_in_session() und
+ *     legt die id des Kontos in $_SESSION['user_id'] ab,
+ *   - es gibt weiterhin KEINEN Standardnutzer und keinen Rueckfall auf "den
+ *     ersten Nutzer". Fortschritt unter einer geratenen id wuerde den Fortschritt
+ *     zweier Personen still vermischen - das Einzige, was diese Tabelle nie tun
+ *     darf,
+ *   - ohne Anmeldung ist die Antwort null, und jedes Schreiben von Fortschritt
+ *     antwortet mit 403 no_user_session. Das ist eine klare Antwort und kein
+ *     stiller Erfolg.
  *
- * This file is the only place that ever READS $_SESSION['user_id']. The value is
- * written in src/services/user_service.php.
+ * Diese Datei ist die einzige Stelle, die $_SESSION['user_id'] LIEST. Geschrieben
+ * wird der Wert in src/services/user_service.php.
  */
 
-/** How long a session cookie may live before the browser drops it. */
+/** Wie lange ein Sitzungs-Cookie leben darf, bevor der Browser ihn wegwirft. */
 const SESSION_COOKIE_LIFETIME = 60 * 60 * 24 * 30;
 
 /**
- * Returns the id of the signed-in user, or null when nobody is signed in.
+ * Liefert die id des angemeldeten Nutzers oder null, wenn niemand angemeldet ist.
  *
- * The id is only accepted when the user really exists in the users table: a
- * session can outlive its row, and the foreign key on user_card_progress would
- * then reject every write with an unclear database error. Checking here turns
- * that into a plain "nobody is signed in".
+ * Die id gilt nur, wenn der Nutzer wirklich in der Tabelle users steht: eine
+ * Sitzung kann ihre Zeile ueberleben, und der Fremdschluessel auf
+ * user_card_progress wuerde dann jedes Schreiben mit einem unklaren
+ * Datenbankfehler ablehnen. Die Pruefung hier macht daraus ein schlichtes "es ist
+ * niemand angemeldet".
  *
- * @return int|null null means "there is no user session"
+ * @return int|null null bedeutet "es gibt keine Nutzersitzung"
  */
 function current_user_id(PDO $pdo): ?int
 {
-    /* Remembered for the rest of the request: the answer cannot change while a
-       single request is running. */
+    /* Fuer den Rest der Anfrage gemerkt: die Antwort kann sich waehrend einer
+       laufenden Anfrage nicht aendern. */
     static $userId = false;
 
     if ($userId !== false) {
@@ -55,28 +58,29 @@ function current_user_id(PDO $pdo): ?int
 }
 
 /**
- * Reads $_SESSION['user_id'], starting a session when there is none.
+ * Liest $_SESSION['user_id'] und startet dabei eine Sitzung, wenn es keine gibt.
  *
- * This only touches the PHP session; it writes nothing to the database and
- * invents nothing. A session without a user id is the normal state as long as
- * nobody is signed in - the answer is then simply null.
+ * Das beruehrt nur die PHP-Sitzung; die Datenbank bleibt unangetastet und es wird
+ * nichts erfunden. Eine Sitzung ohne Nutzer-id ist der Normalfall, solange
+ * niemand angemeldet ist - die Antwort ist dann schlicht null.
  */
 function session_user_id_from_php_session(): ?int
 {
     if (session_status() === PHP_SESSION_NONE) {
         /*
-         * The cookie is set here for the first time. httponly keeps it away from
-         * JavaScript and samesite=Lax keeps it off cross-site requests; both are
-         * the safe defaults for a session that will one day carry a login.
+         * Hier wird das Cookie zum ersten Mal gesetzt. httponly haelt es von
+         * JavaScript fern, samesite=Lax von fremden Seiten; beides sind die
+         * sicheren Voreinstellungen fuer eine Sitzung, die einmal eine Anmeldung
+         * tragen wird.
          */
         @ini_set('session.cookie_httponly', '1');
         @ini_set('session.cookie_samesite', 'Lax');
         @ini_set('session.use_strict_mode', '1');
         @session_set_cookie_params(['lifetime' => SESSION_COOKIE_LIFETIME]);
 
-        /* A session that cannot be started (a broken session path, for example)
-           must not turn into a fatal error: nobody is signed in then, and that
-           is an answer this application can work with. */
+        /* Eine Sitzung, die sich nicht starten laesst (etwa ein kaputter
+           Sitzungspfad), darf kein fataler Fehler werden: dann ist eben niemand
+           angemeldet, und damit kann die Anwendung umgehen. */
         if (@session_start() === false) {
             return null;
         }
@@ -84,8 +88,8 @@ function session_user_id_from_php_session(): ?int
 
     $value = $_SESSION['user_id'] ?? null;
 
-    /* "7" and 7 are both accepted; anything else, including a missing key, means
-       "no user". */
+    /* "7" und 7 werden beide angenommen; alles andere - auch ein fehlender
+       Schluessel - bedeutet "kein Nutzer". */
     if (is_string($value) && ctype_digit($value)) {
         $value = (int) $value;
     }
@@ -98,7 +102,7 @@ function session_user_id_from_php_session(): ?int
 }
 
 /**
- * Reports whether the users table really holds this id.
+ * Meldet, ob die Tabelle users diese id wirklich enthaelt.
  */
 function session_user_exists(PDO $pdo, int $userId): bool
 {
@@ -110,10 +114,10 @@ function session_user_exists(PDO $pdo, int $userId): bool
 }
 
 /**
- * The error every write to progress answers with when nobody is signed in.
+ * Der Fehler, den jedes Schreiben von Fortschritt ohne Anmeldung liefert.
  *
- * It is a definite answer and not a silent success: the browser shows a clear
- * message instead of pretending that the rating was stored.
+ * Eine klare Antwort statt eines stillen Erfolgs: der Browser zeigt eine
+ * deutliche Meldung, statt so zu tun, als waere die Bewertung gespeichert.
  */
 function session_user_required_error(): array
 {

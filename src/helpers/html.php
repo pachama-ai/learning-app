@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 /**
- * Small helpers for building HTML safely.
+ * Kleine Helfer, um HTML sicher zu bauen.
  */
 
 /**
- * Escapes a value so it can be printed inside HTML or inside an HTML attribute.
+ * Maskiert einen Wert, damit er in HTML oder in einem HTML-Attribut stehen darf.
  *
- * ENT_QUOTES escapes both the single and the double quote, which is what makes
- * the result safe inside an attribute such as aria-label="...".
- * Passing UTF-8 tells htmlspecialchars how to read the input, so umlauts and
- * other non-ASCII characters are not turned into broken bytes.
+ * ENT_QUOTES maskiert das einfache und das doppelte Anfuehrungszeichen - genau
+ * das macht das Ergebnis in einem Attribut wie aria-label="..." sicher.
+ * Die Angabe UTF-8 sagt htmlspecialchars, wie die Eingabe zu lesen ist; sonst
+ * wuerden Umlaute und andere Zeichen ausserhalb von ASCII zu kaputten Bytes.
  */
 function escape_html(string $value): string
 {
@@ -20,18 +20,19 @@ function escape_html(string $value): string
 }
 
 /**
- * The URL of a file inside public/, with the time of its last change as a version.
+ * Die Adresse einer Datei aus public/, mit dem Zeitpunkt ihrer letzten Aenderung
+ * als Version.
  *
- * The stylesheet and the script are fetched once and then kept by the browser:
- * this server sends no cache headers and no "last modified", so a page that is
- * only navigated inside the application never asks for the new files, and an edit
- * stays invisible until somebody forces a reload. With the timestamp in the URL
- * every change is a new address and reaches the browser at the next page load,
- * while a file that did not change keeps the address it had - and therefore keeps
- * its place in the browser cache.
+ * Blatt und Skript werden einmal geholt und dann vom Browser behalten: dieser
+ * Server schickt keine Cache-Kopfzeilen und kein "last modified", deshalb fragt
+ * eine Seite, in der man nur innerhalb der Anwendung blaettert, die neuen Dateien
+ * nie nach - eine Aenderung bleibt unsichtbar, bis jemand bewusst neu laedt. Mit
+ * dem Zeitstempel in der Adresse ist jede Aenderung eine neue Adresse und kommt
+ * beim naechsten Seitenaufruf an, waehrend eine unveraenderte Datei ihre Adresse
+ * behaelt - und damit ihren Platz im Browser-Cache.
  *
- * A file that is not there gets the plain path back: a typo in a name must show up
- * as a missing file and not as a broken URL.
+ * Eine Datei, die es nicht gibt, bekommt den reinen Pfad zurueck: ein Tippfehler
+ * soll als fehlende Datei auffallen und nicht als kaputte Adresse.
  */
 function asset_url(string $path): string
 {
