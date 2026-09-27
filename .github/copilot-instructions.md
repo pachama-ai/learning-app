@@ -71,21 +71,31 @@ Hard rules:
 
 ### Naming
 
-- **Deutsche Namen** für Klassen, Funktionen, Methoden, Konstanten, Variablen und
-  Parameter im PHP- und JavaScript-Code. Beispiele: `KartenRepository`,
-  `holeFaelligeKarten()`, `$kategorie`, `KARTE_MAX_TEXTLAENGE`.
-- **Keine Umlaute und kein ß**: stattdessen `ae`, `oe`, `ue`, `ss`. Gilt auch für
-  Dateinamen, falls eine Datei nach einer Klasse benannt wird.
+- **Alle Namen bleiben englisch**: Klassen, Funktionen, Methoden, Konstanten,
+  Variablen und Parameter im PHP- und JavaScript-Code heißen weiter wie bisher
+  (`create_database_connection()`, `$categoryId`, `CATEGORY_MAX_DEPTH`). Eine
+  Umbenennung auf deutsche Namen findet **nicht** statt; das Thema ist
+  abgeschlossen.
 - Bestehende Schreibweisen bleiben: Klassen `PascalCase`, Funktionen/Methoden/
   Variablen `camelCase`, Konstanten `GROSS_MIT_UNTERSTRICH`.
-- **Weiter englisch** (nicht umbenennen): Datei- und Ordnernamen, Tabellen und
-  Spalten der Datenbank, JSON-Feldnamen der API, URL-Parameter (z. B. `?category=`),
+- Auch englisch bleiben: Datei- und Ordnernamen, Tabellen und Spalten der
+  Datenbank, JSON-Feldnamen der API, URL-Parameter (z. B. `?category=`),
   CSS-Klassen und CSS-Variablen, Übersetzungsschlüssel, alles, was zu PHP, MySQL
   oder JavaScript selbst gehört (Schlüsselwörter, eingebaute Funktionen, Magic
   Methods), sowie Namen aus fremden Bibliotheken.
 - Nur der Text, den der Nutzer sieht, wird übersetzt (Deutsch/Englisch).
-- Kommentare und DocBlocks sind deutsch, einfach und sachlich, mit `@param` und
-  `@return` bei Funktionen.
+- **Kommentare und DocBlocks sind deutsch** - kurz, natürlich und sauber, wie
+  eine Studentin oder ein Student es schreiben würde: klare Sätze, kein
+  Behördenstil, keine Schachtelsätze. Umlaute sind in Kommentaren erlaubt und
+  erwünscht (`prüft`, `gehört`, `nächstes`); die `ae/oe/ue`-Regel gilt nur für
+  **Namen**.
+- `@param` und `@return` gehören bei jeder Funktion dazu, und der dokumentierte
+  Name muss zum echten Parameter passen.
+- Erklärt wird, **warum** etwas so ist (z. B. warum eine Prüfung hier steht,
+  warum ein Index nicht benutzt wird) - nicht, was in der nächsten Zeile
+  ohnehin zu lesen ist.
+- **Kein deutscher oder englischer Text, den der Nutzer sieht, im Code**: er
+  gehört in `src/helpers/translations.php`.
 
 ---
 

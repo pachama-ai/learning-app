@@ -150,14 +150,6 @@ function learning_app_translations(): array
              */
             /* Das Land ist kein Gerät: es ist die Summe aller. */
             /* Strom, und nur Strom - nicht die ganze Energie der Welt. */
-
-            /*
-             * Der Ladebildschirm: was die Zoomfahrt erzählt, während die erste
-             * Ansicht entsteht. Ein Schlüssel pro Station, damit sich ein Satz
-             * ändern lässt, ohne die Animation anzufassen.
-             */
-            /* Das Land ist kein Gerät: es ist die Summe aller. */
-            /* Strom, und nur Strom - nicht die ganze Energie der Welt. */
             /* Englisch schreibt Tausend mit Komma. */
 
             // --- Leere Zustände und Meldungen der neuen Ansichten ---
