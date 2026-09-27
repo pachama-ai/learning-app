@@ -2571,10 +2571,18 @@
         }
 
         var total = hasSummary ? summary.total : 0;
+        var due = hasSummary ? (summary.due || 0) : 0;
 
-        elements.dashDue.textContent = String(hasSummary ? (summary.due || 0) : 0);
+        elements.dashDue.textContent = String(due);
         elements.dashKnown.textContent = String(hasSummary ? (summary.known || 0) : 0);
         elements.dashUnsure.textContent = String(hasSummary ? (summary.unsure || 0) : 0);
+
+        /*
+         * Something to do or nothing to do: while cards are due, the number of the
+         * first tile carries the accent colour of the theme (the stylesheet decides
+         * how it looks - a rule cannot read a number, so the class says it).
+         */
+        elements.dashDue.parentElement.classList.toggle('has-due', due > 0);
 
         /* How much of the list already sits is a share, so it gets the small
            track under the number: "1 of 34" is easier to read as a length. */

@@ -233,11 +233,11 @@
      * (see "the light palette"). --tile-ink-muted is the darkened variant of the
      * text colour that the information line of a tile uses.
      */
-    --palette-1: #C9DACE;
-    --palette-2: #CCD2E3;
-    --palette-3: #E4C8C1;
-    --palette-4: #E6D3A8;
-    --palette-5: #C4D9D9;
+    --palette-1: #A9C7B2;
+    --palette-2: #AEBADB;
+    --palette-3: #DDAFA4;
+    --palette-4: #E0C27E;
+    --palette-5: #A6CACA;
     --palette-6: #B3A2BF;
     --palette-7: #C48E6E;
     --palette-8: #B2B27C;
@@ -6536,6 +6536,67 @@ button,
     background-color: var(--surface-soft);
 }
 
+/*
+ * Der Theme-Umschalter: beide Zeichnungen sitzen in demselben Kasten und werden
+ * von der Mitte aus gesetzt - nicht von der Grundlinie eines Textes, nicht von
+ * einem Rand und nicht von einer Drehung. Deshalb inline-grid mit place-items,
+ * kein Innenabstand und keine Zeilenhoehe auf dem Knopf, und beide Symbole mit
+ * exakt derselben Groesse.
+ */
+.theme-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 0;
+}
+
+.theme-toggle svg {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    vertical-align: 0;
+}
+
+/*
+ * Genau EIN Symbol ist sichtbar, und welches, entscheidet das Thema. Die vier
+ * Zeilen stehen nach der Regel oben, damit sie sich wirklich durchsetzen: ohne
+ * sie liegen zwei Symbole im Raster, und das sichtbare rutscht um eine halbe
+ * Knopfhoehe nach oben.
+ */
+.theme-toggle__icon--light {
+    display: block;
+}
+
+.theme-toggle__icon--dark {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle__icon--light {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle__icon--dark {
+    display: block;
+}
+
+/*
+ * Die Drehung beim Umschalten bleibt eine Drehung: sie laeuft einmal ganz herum
+ * und steht danach wieder auf null. Mit 90 Grad blieb das Symbol schief stehen -
+ * und ein schiefes Symbol in einem runden Knopf sieht aus, als saesse es nicht in
+ * der Mitte.
+ */
+@keyframes icon-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Der schwebende Plus-Knopf: die eine gefuellte Scheibe der Startseite. */
 [data-theme="light"] .plus-button {
     background-color: var(--text);
@@ -6563,7 +6624,7 @@ select:focus-visible,
 }
 
 [data-theme="light"] .detail__head {
-    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 50%, var(--surface));
+    background-color: color-mix(in srgb, var(--detail-palette, var(--icon-circle)) 55%, var(--surface));
     color: var(--text);
 }
 
@@ -6718,7 +6779,7 @@ select {
     border-radius: 6px;
     color: var(--text);
     font-weight: 500;
-    box-shadow: inset 2px 0 0 var(--link-color, var(--accent));
+    box-shadow: inset 2px 0 0 var(--sidebar-accent, var(--link-color, var(--accent)));
 }
 
 /* Der Sprachumschalter. */
@@ -6736,18 +6797,49 @@ select {
 }
 
 /*
- * Die Kacheln der Startseite: die weiche Kategorie-Flaeche, Text in der
- * Textfarbe, der Kreis in der Kategorie-Farbe. Die Mischung macht aus dem
- * Kreiston genau den Tint, den die Vorgabe nennt.
+ * Die Kacheln der Startseite: die Kategorie-Flaeche, Text in der Textfarbe, der
+ * Kreis in der Kategorie-Farbe. Der Tint entsteht aus dem Kreiston - 55 % davon
+ * auf Weiss ergibt genau die vorgegebenen Toene, weshalb keine zweite Farbtabelle
+ * noetig ist und die Position im JavaScript nicht bekannt sein muss.
  */
 .area-card {
     border-radius: 12px;
 }
 
 [data-theme="light"] .area-card {
-    background-color: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 50%, var(--surface));
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background-color: color-mix(in srgb, var(--tile-palette, var(--icon-circle)) 55%, var(--surface));
+    border: 1px solid rgba(0, 0, 0, 0.06);
     color: var(--text);
+}
+
+/*
+ * Der Punkt einer Sidebar-Zeile und die Linie des aktiven Eintrags tragen die
+ * kraeftigere Akzentfarbe der Kategorie. app.js setzt --link-color als
+ * Inline-Stil, den keine Regel ueberstimmen kann - deshalb liest der Punkt hier
+ * eine eigene Variable, die jede Position selbst mitbringt.
+ */
+[data-theme="light"] .sidebar__link:nth-child(1) {
+    --sidebar-accent: #3F8F6B;
+}
+
+[data-theme="light"] .sidebar__link:nth-child(2) {
+    --sidebar-accent: #4A63A8;
+}
+
+[data-theme="light"] .sidebar__link:nth-child(3) {
+    --sidebar-accent: #B5533F;
+}
+
+[data-theme="light"] .sidebar__link:nth-child(4) {
+    --sidebar-accent: #B08318;
+}
+
+[data-theme="light"] .sidebar__link:nth-child(5) {
+    --sidebar-accent: #3A8A8A;
+}
+
+[data-theme="light"] .sidebar__link::before {
+    background-color: var(--sidebar-accent, var(--link-color, currentColor));
 }
 
 [data-theme="light"] .area-card .blob {
@@ -6771,7 +6863,79 @@ select {
     background-color: var(--text);
 }
 
-/* --- 4. Kleinere Fenster ------------------------------------------------ */
+/* --- 5. Die Statistik-Kacheln im dunklen Thema --------------------------- */
+
+/*
+ * Die Kacheln sind die eine Stelle, die auch im dunklen Thema nachgezogen wird:
+ * eine leise Flaeche, ein feiner Rahmen, ein gedaempftes Label und die Zahl als
+ * Blickfang - dieselbe Ruhe wie im hellen Thema.
+ */
+[data-theme="dark"] .dash__tile {
+    padding: 16px 18px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .dash__tile:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .dash__label {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .dash__value {
+    margin-top: 6px;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 28px;
+    color: #F2F1EE;
+}
+
+/* Die Unterzeile ist ein Satz und keine Beschriftung: keine Grossbuchstaben. */
+[data-theme="dark"] .dash__note {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"] .dash__track {
+    height: 3px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .dash__track-fill {
+    border-radius: 2px;
+    background-color: var(--accent);
+}
+
+/* "Unsicher" ist die eine Kachel mit einer eigenen, warmen Flaeche. */
+[data-theme="dark"] .dash__tile--unsure {
+    background-color: rgba(224, 164, 88, 0.10);
+    border-color: rgba(224, 164, 88, 0.30);
+}
+
+[data-theme="dark"] .dash__tile--unsure .dash__label {
+    color: rgba(224, 164, 88, 0.75);
+}
+
+[data-theme="dark"] .dash__tile--unsure .dash__value {
+    color: #E0A458;
+}
+
+/*
+ * "Bereit zum Wiederholen": gibt es etwas zu tun, traegt die Zahl den Akzent -
+ * gibt es nichts zu tun, bleibt sie ruhig. Die Klasse setzt app.js, weil eine
+ * Regel den Wert einer Zahl nicht lesen kann.
+ */
+[data-theme="dark"] .dash__tile.has-due .dash__value {
+    color: var(--accent);
+}
+
+/* --- 6. Kleinere Fenster ------------------------------------------------ */
 
 /*
  * Die Groessen dieses Abschnitts sind fuer den Schreibtisch gedacht. Auf einem
