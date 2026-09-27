@@ -353,9 +353,10 @@ der Aufgabe und ihre Parameter (`card_exercises.exercise_params` als JSON).
 | `import_energy_cards.php` | importiert das Energie-/Fachformat mit den optionalen Spalten `map_region` und `exercise`; kann mit `--wipe-subcategories` vorher aufräumen |
 
 Diese Skripte werden von **nichts** automatisch aufgerufen – weder von der
-Anwendung noch von einem Cronjob. Man startet sie von Hand im Terminal. Zwei der
-drei prüfen nicht, ob sie wirklich auf der Kommandozeile laufen; geschützt sind
-sie nur dadurch, dass `bin/` außerhalb des Web-Roots liegt.
+Anwendung noch von einem Cronjob. Man startet sie von Hand im Terminal. Alle drei
+prüfen mit `PHP_SAPI !== 'cli'` (und antworten sonst mit 404), dass sie wirklich
+auf der Kommandozeile laufen; geschützt sind sie außerdem dadurch, dass `bin/`
+außerhalb des Web-Roots liegt.
 
 ---
 
@@ -473,7 +474,7 @@ optional einer Kategorie.
   wird, ist Zustand der laufenden Sitzung, nicht der Datenbank.
 * Keine Statistik-Tabelle und keine eigene Statistik-Seite (siehe 6.5).
 
-### 6.5 Spalten, die nicht mehr benutzt werden
+### 6.5 Spalten, die derzeit ungenutzt sind
 
 Diese Spalten existieren noch und wurden **nicht** entfernt – sie sind hier nur
 aufgelistet, damit niemand sie für aktiv hält:
@@ -598,7 +599,7 @@ nie kurz das falsche Thema auf.
 
 Es gibt zwei Stylesheets:
 
-* `public/assets/css/app.css` (~7000 Zeilen) – das gesamte Design,
+* `public/assets/css/app.css` (~6800 Zeilen) – das gesamte Design,
 * `public/assets/css/boot.css` (~100 Zeilen) – nur der Ladebildschirm beim allerersten
   Aufruf; er wird von den Skripten in `index.php` ein- und ausgeblendet, nicht von
   `app.js`.
@@ -642,8 +643,9 @@ werden per `@import` von Google Fonts geladen; mitgeliefert wird nur Inter Tight
 (`public/assets/fonts/`). Ohne Internet funktioniert die Seite, sieht aber anders
 aus. Ist das nicht gewollt, ist das eine offene Frage (siehe Abschnitt 10).
 
-Zwei Variablen werden derzeit von keiner Regel gelesen: `--cat-default` und
-`--accent-soft` (und `--warn-soft` seit der Umstellung der „Unsicher“-Kachel).
+Zwei Variablen, die von keiner Regel gelesen wurden, sind am 27.09.2026 entfernt
+worden (`--cat-default`, `--accent-soft`, dazu `--warn-soft`, `--background` und
+`--surface-soft-strong`).
 
 ### 8.3 JavaScript
 
@@ -676,8 +678,8 @@ also kein Modul, kein Bundler, kein Framework.
 
 ### 8.4 Sprache DE/EN
 
-* Alle Texte stehen in `src/helpers/translations.php`: 505 Schlüssel pro Sprache
-  (Englisch und Deutsch sind vollständig deckungsgleich).
+* Alle Texte stehen in `src/helpers/translations.php`: **443** Schlüssel pro
+  Sprache (Englisch und Deutsch sind vollständig deckungsgleich).
 * PHP benutzt sie über `t('schlüssel')` und `t_fill(...)` mit Platzhaltern.
 * Der Browser bekommt **beide** Sprachfassungen im `#app-config`-Block mitgeliefert.
   `t(key, werte)` in `app.js` schlägt nach und ersetzt `{platzhalter}`. Ein
@@ -765,46 +767,51 @@ ist dabei unter anderem `chmod o+x /home/user`, damit der Benutzer `www-data`
 
 ---
 
-## 10. Offene Fragen
+## 10. Offene Fragen und was am 27.09.2026 aufgeräumt wurde
 
-Diese Punkte habe ich im Code gefunden, aber nicht selbst entscheiden wollen:
+### 10.1 Erledigt am 27.09.2026
+
+| Punkt | Was passiert ist |
+| --- | --- |
+| Tote CSS-Regeln | Entfernt: `.grain` (mitsamt `--grain-image`), `.hairline`, `.data-pill`, `.row__arrow`, `.row__progress`, `.row__count`, `.row__play`, `.card-tools__label` und alle Regeln für `.is-linked`/`.is-linking`. |
+| Unbenutzte CSS-Variablen | Entfernt: `--warn-soft`, `--accent-soft`, `--surface-soft-strong`, `--cat-default`, `--background`. (`--hairline` bleibt: es wird an 13 Stellen gelesen.) |
+| Ungenutzte Übersetzungsschlüssel | 62 Schlüssel je Sprache entfernt (58 ungenutzte plus `learn.done.again/hard/good/easy`). Es bleiben **443** Schlüssel, Englisch und Deutsch weiterhin deckungsgleich. |
+| Import-Fehlertexte (echter Bug) | Die vier Texte für Fehler der Datei selbst lagen unter `import.fatal.*`, gesucht wurde aber unter `import.error.*`. Sie liegen jetzt dort, wo gesucht wird – die genauen Sätze erscheinen in der Oberfläche. Geprüft mit vier kaputten Testdateien. |
+| Fehlende Einbindungen | `request_input.php`, `card_service.php`, `review_service.php` und `card_import_service.php` laden jetzt selbst, was sie benutzen. |
+| Skripte ohne Schutz | `bin/import_cards_csv.php` und `bin/import_english_csv.php` haben jetzt denselben `PHP_SAPI`-Wächter wie `import_energy_cards.php`. |
+| Toter PHP-Code | Die Konstante `SVG_BLOCKED_ELEMENTS` in `src/helpers/svg_sanitizer.php` ist weg (gebraucht wird nur die Lookup-Tabelle). |
+| Totes JavaScript | Die Variable `editingParentId` und das nie ausgewertete Attribut `data-i18n-empty` sind entfernt. |
+| Tote Datei | `public/assets/icons/informatik.svg` (keine Referenz im Repository). Das Symbol der Kategorie kommt aus `categories.icon_svg` und wird weiterhin geladen. |
+| Widersprüchliche Regeln | `.area-card`, `.detail__head`, `.heading--detail` und die Hover-Regeln stehen jetzt je in **einer** Regel, mit genau den Werten, die vorher galten; die vollständig überschriebene Regel für `.detail__head` in Abschnitt 7 ist weg. Gemessen: kein einziger der geprüften 1584 Einzelwerte hat sich geändert. |
+| Ältere Dokumente | Die überholten Fassungen von `project-brief.md` und `verification.md` sind aus dem Repository entfernt. Sie bleiben über die **Git-Historie** einsehbar (`git log --diff-filter=D -- docs/`). |
+
+### 10.2 Weiter offen
 
 1. **Externe Schriften.** `app.css` lädt „Inter“ und „Source Serif 4“ per
-   `@import` von Google Fonts. Das widerspricht dem Kommentar zwei Zeilen darüber
-   („Nothing is requested from Google Fonts“) und dem Grundsatz, dass die Seite
-   ohne fremde Dienste auskommt. Sollen die Dateien lokal mitgeliefert oder die
-   beiden Schnitte aus dem Stapel entfernt werden?
-2. **Tote Stellen im Stylesheet.** Aus welchen Gründen auch immer gibt es Regeln
-   für Elemente, die nicht mehr existieren: `.grain` (der Filmkorn-Layer, es gibt
-   kein Element mit dieser Klasse), `.hairline`, `.data-pill`, `.row__arrow`,
-   `.row__progress`, `.row__count`, `.row__play`, `.card-tools__label`. Ebenso
-   gibt es Regeln für `.is-linked`/`.is-linking`, die nur noch entfernt, nie
-   gesetzt werden. Sollen die weg?
-3. **Übersetzungsschlüssel.** Etwa 58 Schlüssel werden nirgends benutzt
-   (z. B. `app.brand`, `dialog.addTitle`, `cards.status.*` in der alten Form,
-   `learn.done.again/hard/good/easy`). Auffällig sind die fünf Schlüssel
-   `import.fatal.*`: Der Import sendet genau diese Codes, die Oberfläche sucht aber
-   unter `import.error.*`, findet dort nichts und zeigt deshalb die allgemeine
-   Fehlermeldung statt des genauen Satzes. Das sieht nach einem Verdrahtungsfehler
-   aus und ist kein reines Aufräumen. Soll ich das prüfen und beheben?
-4. **Spalten ohne Leser.** `categories.color`, `categories.description_en`/`_de`,
-   `users.role` und `card_exercises.range_min`/`range_max` existieren, werden aber
-   nicht mehr gelesen. Sie bleiben unangetastet, bis jemand entscheidet, was damit
-   passieren soll (das Schema darf nur nach Absprache geändert werden).
-5. **Zwei Skripte ohne Schutz.** `bin/import_cards_csv.php` und
-   `bin/import_english_csv.php` prüfen nicht, ob sie auf der Kommandozeile laufen
-   (nur `bin/import_energy_cards.php` tut das). Geschützt sind sie derzeit allein
-   durch den Ordner außerhalb des Web-Roots.
-6. **`bin/import_english_csv.php`** benutzt durchgehend deutsche Funktionsnamen und
-   arbeitet ab etwa Zeile 390 im Top-Level-Code statt in Funktionen. Das
-   widerspricht der Namensregel im Projekt und ist schwer testbar.
-7. **Fehlende Stile.** Für ein paar Klassen, die im HTML oder in `app.js`
-   vorkommen, gibt es keine Regel in `app.css`: `learn__action--ghost`,
-   `account-dialog__view`, `card-tools__search`, `view`, `import__state`,
-   `import__error`, `row__status-text`, `has-file`, `row__learn-badge--some`,
-   `learn__bar--hard`, `import__row--ok`. Teilweise sind das reine Merker für
-   JavaScript; bei den anderen fehlt die Gestaltung.
-8. **Wiederholte Selektoren.** `.area-card`, `.detail__head` und
-   `.heading--detail` werden an mehreren Stellen definiert, teils mit
-   widersprechenden Werten (z. B. `transition` und `transform` bei `.area-card`).
-   Es gewinnt jeweils die letzte Regel; die früheren sind Reste.
+   `@import` von Google Fonts. Das ist die einzige Anfrage an einen fremden Dienst.
+   Sollen die Dateien lokal mitgeliefert oder die beiden Schnitte aus dem Stapel
+   entfernt werden?
+2. **`bin/import_english_csv.php`** benutzt durchgehend deutsche Funktionsnamen
+   und arbeitet ab etwa Zeile 390 im Top-Level-Code statt in Funktionen. Das
+   widerspricht der Namensregel und ist schwer testbar.
+3. **Fehlende Stile.** Für ein paar Klassen aus dem HTML oder aus `app.js` gibt es
+   keine Regel in `app.css`: `learn__action--ghost`, `account-dialog__view`,
+   `card-tools__search`, `view`, `import__state`, `import__error`,
+   `row__status-text`, `has-file`, `row__learn-badge--some`, `learn__bar--hard`,
+   `import__row--ok`. Einige sind reine Merker für JavaScript; bei den anderen
+   fehlt die Gestaltung.
+4. **Spalten, die derzeit ungenutzt sind (nichts geändert).** `categories.color`,
+   `categories.description_en`, `categories.description_de`, `users.role`,
+   `card_exercises.range_min`, `card_exercises.range_max` stehen im Schema,
+   werden aber von keiner Stelle gelesen (siehe 6.5). Sie bleiben unangetastet,
+   bis entschieden ist, was damit passieren soll – das Schema darf nur nach
+   Absprache geändert werden.
+5. **Der Filmkorn-Effekt fehlt jetzt ganz.** Seine Regeln waren toter Code (kein
+   Element trug die Klasse) und sind entfernt. Wenn die Textur zurückkommen soll,
+   braucht sie ein Element im Markup **und** die Regeln dazu.
+6. **Laufzeitdaten in `deploy/apache/`.** Logs, `apache.pid` und die
+   Sitzungsdateien wurden am 27.09.2026 geleert; beide Pfade stehen in
+   `.gitignore`. Die Dateien entstehen beim nächsten Serverstart neu (ein bereits
+   laufender Apache schreibt weiter in die geöffneten Dateien, deren Namen nicht
+   mehr existiert). Wird auf Port 8082 gearbeitet, muss man sich einmal neu
+   anmelden, weil die PHP-Sitzungen mitgelöscht wurden.

@@ -71,9 +71,21 @@ Hard rules:
 
 ### Naming
 
-- Use **English names** for all files, folders, tables, columns, functions, classes and
-  variables.
-- Only the text the user sees gets translated into German or English.
+- **Deutsche Namen** für Klassen, Funktionen, Methoden, Konstanten, Variablen und
+  Parameter im PHP- und JavaScript-Code. Beispiele: `KartenRepository`,
+  `holeFaelligeKarten()`, `$kategorie`, `KARTE_MAX_TEXTLAENGE`.
+- **Keine Umlaute und kein ß**: stattdessen `ae`, `oe`, `ue`, `ss`. Gilt auch für
+  Dateinamen, falls eine Datei nach einer Klasse benannt wird.
+- Bestehende Schreibweisen bleiben: Klassen `PascalCase`, Funktionen/Methoden/
+  Variablen `camelCase`, Konstanten `GROSS_MIT_UNTERSTRICH`.
+- **Weiter englisch** (nicht umbenennen): Datei- und Ordnernamen, Tabellen und
+  Spalten der Datenbank, JSON-Feldnamen der API, URL-Parameter (z. B. `?category=`),
+  CSS-Klassen und CSS-Variablen, Übersetzungsschlüssel, alles, was zu PHP, MySQL
+  oder JavaScript selbst gehört (Schlüsselwörter, eingebaute Funktionen, Magic
+  Methods), sowie Namen aus fremden Bibliotheken.
+- Nur der Text, den der Nutzer sieht, wird übersetzt (Deutsch/Englisch).
+- Kommentare und DocBlocks sind deutsch, einfach und sachlich, mit `@param` und
+  `@return` bei Funktionen.
 
 ---
 

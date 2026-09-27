@@ -127,3 +127,7 @@ ausführt; die Anwendung selbst ändert das Schema nie.
 | `docs/migrations.md` | jede SQL-Datei in `database/` und was sie geändert hat |
 | `docs/development-environment.md` | die WSL-/VS-Code-Umgebung und das „WSL: Disconnected“-Problem |
 | `.github/copilot-instructions.md` | die verbindlichen Regeln für Änderungen am Projekt |
+
+Ältere Fassungen dieser Dateien und der Dokumentation bleiben in der
+**Git-Historie** erhalten (`git log --oneline -- docs/`), auch wenn eine Datei
+später ersetzt oder entfernt wurde.
