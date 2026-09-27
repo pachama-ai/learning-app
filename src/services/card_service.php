@@ -30,6 +30,8 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/exercise_service.php';
+require_once __DIR__ . '/category_service.php';
+require_once __DIR__ . '/../helpers/request_input.php';
 
 /** Longest text accepted for the front or the back of a card. */
 const CARD_MAX_TEXT_LENGTH = 2000;

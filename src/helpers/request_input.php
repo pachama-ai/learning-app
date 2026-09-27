@@ -24,6 +24,7 @@ declare(strict_types=1);
  * It is included here because the size is checked in this file, before the
  * drawing is handed over.
  */
+require_once __DIR__ . '/json_response.php';
 require_once __DIR__ . '/svg_sanitizer.php';
 
 /**

@@ -373,6 +373,16 @@ function learning_app_translations(): array
             'import.error.nothing_to_import' => 'Every row of this file is already in this subcategory.',
             'import.error.import_failed' => 'The cards could not be imported. Nothing was saved.',
             'import.error.category_not_found' => 'This subcategory does not exist any more.',
+            /*
+             * The four problems of the file itself (not of one row). The import
+             * endpoint sends these codes, and app.js looks every import code up
+             * under "import.error." - before these keys existed it found nothing
+             * and showed a general message instead of the exact sentence.
+             */
+            'import.error.read_failed' => 'The file could not be read.',
+            'import.error.header_unknown' => 'The header has columns this import does not know: {columns}',
+            'import.error.header_missing' => 'The header is missing the columns: {columns}',
+            'import.error.too_many_rows' => 'The file has more than {rows} rows.',
 
             // --- An exercise card: the kind of task and the numbers it may use ---
             'dialog.card.kindLabel' => 'Kind of card',
@@ -881,6 +891,11 @@ function learning_app_translations(): array
             'import.error.nothing_to_import' => 'Jede Zeile dieser Datei gibt es in dieser Unterkategorie schon.',
             'import.error.import_failed' => 'Der Import ist fehlgeschlagen. Es wurde nichts gespeichert.',
             'import.error.category_not_found' => 'Diese Unterkategorie gibt es nicht mehr.',
+            /* Die vier Fehler der Datei selbst (kein Zeilenfehler) - siehe oben. */
+            'import.error.read_failed' => 'Die Datei konnte nicht gelesen werden.',
+            'import.error.header_unknown' => 'Die Kopfzeile enthält unbekannte Spalten: {columns}',
+            'import.error.header_missing' => 'In der Kopfzeile fehlen die Spalten: {columns}',
+            'import.error.too_many_rows' => 'Die Datei hat mehr als {rows} Zeilen.',
 
             // --- Eine Übungsaufgabe: die Aufgabensorte und ihre Zahlen ---
             'dialog.card.kindLabel' => 'Kartenart',

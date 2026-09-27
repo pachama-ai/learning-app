@@ -37,6 +37,17 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/config/database.php';
 
+/*
+ * Nur ein Kommandozeilen-Werkzeug: keine URL, nicht im Webroot, und es gibt
+ * keine Zugangsdaten, kein SQL und keine Dateipfade aus. Der Waechter ist hier,
+ * damit ein falsch eingerichteter Server es nicht als Seite ausfuehren kann.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    echo "Not found.\n";
+    exit(1);
+}
+
 /* -------------------------------------------------------------------------
    Der Name der Unterkategorie je Datei. Ohne "Englisch" davor - das steht im
    Breadcrumb - und mit Umlauten, weil es der sichtbare Name ist.

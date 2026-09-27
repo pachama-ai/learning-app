@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/study_session_service.php';
+require_once __DIR__ . '/card_service.php';
+require_once __DIR__ . '/category_service.php';
 
 /**
  * The repetition logic: the card box, the intervals and the status of a card.

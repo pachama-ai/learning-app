@@ -34,6 +34,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/card_service.php';
+require_once __DIR__ . '/exercise_service.php';
 require_once __DIR__ . '/../helpers/request_input.php';
 
 /**

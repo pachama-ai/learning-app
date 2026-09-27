@@ -37,6 +37,17 @@ $projectRoot = dirname(__DIR__);
 
 require_once $projectRoot . '/src/config/database.php';
 
+/*
+ * Only a command line tool: it has no URL, it is not inside the web root and it
+ * prints no credentials, no SQL and no file paths. The guard is here so that a
+ * wrongly configured server cannot run it as if it were a page.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    echo "Not found.\n";
+    exit(1);
+}
+
 /** The eight columns this format has, in the order the plan prints them. */
 const CARD_CSV_COLUMNS = ['category', 'front', 'back', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
