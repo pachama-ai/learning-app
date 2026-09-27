@@ -1547,8 +1547,38 @@ img {
  * A subcategory row: one line high, separated from the next one by a hairline
  * and not by a dotted rule. The dotted line stays on the card rows, where it
  * separates two texts of the same kind; here it separates two places.
+ *
+ * The row reaches a little past the list on both sides and takes exactly as much
+ * back as padding, so the name and the button keep their place while the hover
+ * surface gains air around them. Without the negative margin the highlight began
+ * on the first letter of the name and ended on the last pixel of the button.
  */
 .row--category {
+    margin-inline: -14px;
+    padding-inline: 14px;
+    /*
+     * Two columns and not the three of a card row: a subcategory row has no menu
+     * any more, and the empty third column would push the button 12px further
+     * away from the right edge than the name sits from the left one.
+     */
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/*
+ * The hairline keeps the width of the LIST and not that of the row: it is drawn
+ * back inside by exactly the amount the row reaches out, so the separators look
+ * the same as before even though the row underneath them is wider now.
+ */
+.row--category {
+    border-bottom: 0;
+}
+
+.row--category::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    bottom: 0;
+    left: 14px;
     border-bottom: 0.5px solid var(--hairline);
 }
 
@@ -1610,11 +1640,17 @@ img {
 }
 
 /* How much of the list already sits, as a length instead of a percentage. */
+/*
+ * The empty part of the bar is a track and not a gap: it has to be visible over
+ * the tinted tile. With the hairline colour of the theme it disappeared, and
+ * then only the filled part was seen - a bar of two percent looked like a bar
+ * that ends far too early.
+ */
 .dash__track {
     height: 4px;
     margin-top: auto;
     border-radius: 999px;
-    background-color: var(--line);
+    background-color: color-mix(in srgb, var(--text) 18%, transparent);
     overflow: hidden;
 }
 
@@ -1622,7 +1658,7 @@ img {
     display: block;
     width: var(--share, 0%);
     height: 100%;
-    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 70%, var(--surface));
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 85%, var(--panel));
     transition: width 300ms var(--ease);
 }
 
@@ -3476,7 +3512,23 @@ html.is-theme-switching::view-transition-new(root) {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    margin: 0 0 22px;
+    /*
+     * The strip carries nothing but the search field now, and it gets 22px of air
+     * above it, the same the list keeps under it (see below). Before it sat
+     * directly under the action buttons.
+     */
+    margin: 22px 0 0;
+}
+
+/*
+ * A list under the search field starts 22px below it, so the field has the same
+ * room above and below. Without this the general 36px of a list would win and the
+ * field would look as if it belonged to the list instead of to the row of actions
+ * above it. Only while the field is really shown: with a short list there is no
+ * strip and the list keeps its usual distance.
+ */
+#card-tools:not([hidden]) ~ .rows {
+    margin-top: 22px;
 }
 
 .learn-button {
