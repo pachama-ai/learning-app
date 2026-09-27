@@ -1548,14 +1548,24 @@ img {
  * and not by a dotted rule. The dotted line stays on the card rows, where it
  * separates two texts of the same kind; here it separates two places.
  *
- * The row reaches a little past the list on both sides and takes exactly as much
- * back as padding, so the name and the button keep their place while the hover
- * surface gains air around them. Without the negative margin the highlight began
- * on the first letter of the name and ended on the last pixel of the button.
+ * The row keeps the width of the list, so the hover surface ends exactly where
+ * the hairline ends - in the row above and in the row below it. The air around
+ * the content comes from the content itself: when the pointer is on the row, the
+ * padding grows by one step and the name and the button move inward together,
+ * while the surface stays as wide as it is. A wider surface instead of that
+ * looked like a row that had grown a border on both sides, and because the other
+ * rows kept their narrower line, the highlight did not line up with anything.
  */
 .row--category {
-    margin-inline: -14px;
-    padding-inline: 14px;
+    margin-inline: 0;
+    padding-inline: 0;
+    /*
+     * The same list as a card row and one entry more: the content moves on the
+     * same clock as the wash of the surface.
+     */
+    transition: background-color 200ms var(--ease), border-color 200ms var(--ease),
+        transform 200ms var(--ease), box-shadow 200ms var(--ease),
+        padding-inline 200ms var(--ease);
     /*
      * Two columns and not the three of a card row: a subcategory row has no menu
      * any more, and the empty third column would push the button 12px further
@@ -1565,10 +1575,17 @@ img {
 }
 
 /*
- * The hairline keeps the width of the LIST and not that of the row: it is drawn
- * back inside by exactly the amount the row reaches out, so the separators look
- * the same as before even though the row underneath them is wider now.
+ * The row under the pointer: the name moves a step away from the left edge and
+ * the button a step away from the right one. Only the padding changes, so the
+ * surface keeps the width of the list and the hairlines above and below still
+ * begin and end with it.
  */
+.row--category:hover,
+.row--category:focus-within {
+    padding-inline: 14px;
+}
+
+/* The hairline belongs to the row and not to the list: it is exactly as wide. */
 .row--category {
     border-bottom: 0;
 }
@@ -1576,9 +1593,9 @@ img {
 .row--category::after {
     content: '';
     position: absolute;
-    right: 14px;
+    right: 0;
     bottom: 0;
-    left: 14px;
+    left: 0;
     border-bottom: 0.5px solid var(--hairline);
 }
 
