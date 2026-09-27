@@ -3,8 +3,10 @@
 Notes about the **machine and the editor setup**, not about the application. Read
 this when VS Code behaves strangely, not when the app does.
 
-The application itself is covered by `docs/project-brief.md` and
-`docs/verification.md`.
+The application itself is covered by `docs/technik.md` (the technical reference,
+including what WSL is and where it is used in this project),
+`docs/project-brief.md` (rules and current state) and `docs/verification.md` (the
+manual test procedure).
 
 ---
 

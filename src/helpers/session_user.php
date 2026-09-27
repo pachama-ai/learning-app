@@ -8,21 +8,17 @@ declare(strict_types=1);
  * Progress belongs to exactly one user and is stored in user_card_progress with
  * that user's id. The id can only come from a real signed-in session:
  *
- *   - this project has NO login yet. Nothing anywhere calls session_start(), no
- *     file reads $_SESSION, and the users table is empty. That is reported as a
- *     blocker instead of being papered over,
- *   - there is therefore NO default user and NO "first user" fallback. Writing
+ *   - the sign-in lives in public/api/auth.php and src/services/user_service.php.
+ *     After a successful check that service calls user_sign_in_session(), which
+ *     puts the id of the account into $_SESSION['user_id'],
+ *   - there is still NO default user and NO "first user" fallback. Writing
  *     progress under a guessed id would silently mix up the progress of two
- *     people, which is the one thing this table must never do.
+ *     people, which is the one thing this table must never do,
+ *   - without a sign-in the answer is null, and every write of progress answers
+ *     403 no_user_session. That is a definite answer, not a silent success.
  *
- * As soon as a login exists it has to do exactly one thing: put the id of the
- * signed-in user into $_SESSION['user_id']. Everything else already works,
- * because this file is the only place that ever reads that value.
- *
- * Example of a future login:
- *
- *     session_start();
- *     $_SESSION['user_id'] = $authenticatedUserId;
+ * This file is the only place that ever READS $_SESSION['user_id']. The value is
+ * written in src/services/user_service.php.
  */
 
 /** How long a session cookie may live before the browser drops it. */
@@ -62,8 +58,8 @@ function current_user_id(PDO $pdo): ?int
  * Reads $_SESSION['user_id'], starting a session when there is none.
  *
  * This only touches the PHP session; it writes nothing to the database and
- * invents nothing. An empty session - the normal case today - simply has no
- * user id in it and the answer is null.
+ * invents nothing. A session without a user id is the normal state as long as
+ * nobody is signed in - the answer is then simply null.
  */
 function session_user_id_from_php_session(): ?int
 {

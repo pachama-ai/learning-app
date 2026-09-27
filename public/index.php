@@ -251,9 +251,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         takes a moment to appear (see the few lines at its end), and it is hidden
         again as soon as the view is really there.
 
-        It is transparent: the page colour, the gradient, the grain and the three
-        light pools stay visible. The drawing is thin lines in currentColor, like
-        every other icon of the application, and it carries no shadow.
+        It is opaque on purpose: the page colour, the gradient and the three
+        light pools stay visible, because the overlay paints the same pools on
+        top of its own background (see .boot__bg). The drawing is thin lines in
+        currentColor, like every other icon of the application, and it carries
+        no shadow.
 
         The texts are handed to the browser as data attributes instead of being
         written into the script, so the translation stays in one place - the same
@@ -534,7 +536,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <section class="view view--start" id="view-home">
                 <!--
                     The heading stands alone. The counts that used to sit beside
-                    it are still in the footer counter, so nothing is lost.
+                    it are gone: the start page shows numbers on the tiles, and a
+                    subcategory shows them in the tiles under its head.
                 -->
                 <header class="start-header reveal" id="home-header">
                     <div class="start-header__intro">

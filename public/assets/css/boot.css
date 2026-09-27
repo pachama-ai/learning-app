@@ -22,8 +22,8 @@
     gap: 22px;
     /*
      * Opaque on purpose: while the first view is still being built, nothing of it
-     * may shine through. The grain of the page lies above every layer and covers
-     * this overlay as well, so the texture stays the usual one in both themes.
+     * may shine through. The pools of the page are painted again on top of it
+     * (see .boot__bg in the markup), so the overlay looks like the page it covers.
      */
     background-color: var(--bg);
     background-image: var(--bg-image, none);

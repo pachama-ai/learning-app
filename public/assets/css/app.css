@@ -4,21 +4,18 @@
  * Visual styling and animation only. No layout logic, no API behaviour and no
  * data changes live in this file.
  *
- * Structure
- *   0. local font faces
- *   1. design tokens
- *   2. base and page frame
- *   3. header
- *   4. headings
- *   5. start header
- *   6. learning area grid
- *   7. detail view (sidebar + subarea rows)
- *   8. footer
- *   9. dialog
- *  10. animations
- *  11. view transitions
- *  12. responsive
- *  13. reduced motion
+ * Structure of this file, top to bottom:
+ *   0. font faces (one local file, two faces from a font service - see below)
+ *   1. design tokens (:root for the light theme, [data-theme="dark"] below it)
+ *   2. base and page frame (html, body, grain, background pools)
+ *   3. header, 4. headings, 5. start header, 6. learning area grid
+ *   7. detail view (sidebar + subarea rows), 8. footer, 9. dialog
+ *  10. animations, 11. view transitions, 12. responsive, 13. reduced motion
+ *  14. the card list and the study session
+ *  15. "The editorial light theme" - the appendix at the end of the file.
+ *      Sections 1 to 13 describe the design as it was; that appendix holds the
+ *      current light theme and the handful of dark-theme rules that go with it,
+ *      so the newest layer is always the last one in the file.
  */
 
 /* ==========================================================================
@@ -27,37 +24,28 @@
 
 /*
  * Only one face is self-hosted here: Inter Tight, a variable font whose single
- * file covers the whole weight range from 100 to 900. Nothing is requested from
- * Google Fonts or any other external service at runtime.
+ * file covers the whole weight range from 100 to 900. The paths are relative to
+ * this stylesheet, so "../fonts/" resolves to public/assets/fonts/.
  *
- * The paths are relative to this stylesheet, so "../fonts/" resolves to
- * public/assets/fonts/.
- */
-/*
  * The interface face.
- *
- * The file is self-hosted in public/assets/fonts, so the page needs no network
- * access and no third-party font service. It is a variable font: one file
- * carries the whole weight range from 100 to 900, which is why the range is
- * declared here instead of a single weight.
  *
  * It is used for body and heading text through --font-sans in section 1. The
  * monospaced slots (--font-mono) keep a system monospace stack instead: Inter
  * Tight is proportional, so the alignment that counters and card labels rely
  * on would be lost.
- *
- * The two faces the design originally asked for (Instrument Sans, IBM Plex Mono)
- * are NOT declared: their files were never added to public/assets/fonts, so
- * declaring them only produced a 404 on every page load. Their names were
- * removed from the two stacks below. If the files are added later, one
- * @font-face block per file is enough to switch them on.
  */
 
 /*
  * The editorial pair: Inter for everything that reads, "Source Serif 4" for the
- * headings. Loaded from the font service because the project ships no files for
- * them - Inter Tight stays in the stack below as the local fallback, so the page
- * still reads well when the service is not reachable.
+ * headings. These two come from a font service, because the project ships no
+ * files for them - Inter Tight stays in the stack below as the local fallback,
+ * so the page still reads well when the service is not reachable.
+ *
+ * NOTE, open question: this line is the only request the page makes to a third
+ * party, and it contradicts the idea that the application needs no outside
+ * service. Delivering the two files locally (or dropping the import and keeping
+ * Inter Tight for everything) would remove it. Until that is decided, the import
+ * stays as it is.
  */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@500;600&display=swap");
 @font-face {
@@ -148,19 +136,16 @@
 
     /*
      * ---- The category colour ----
-     * The colour of a category is DATA: it lives in the `color` column of the
-     * `categories` table, and app.js writes the stored value onto the element as
-     * --cat-base. There is deliberately no table here that maps a category NAME
-     * to a colour any more - the database is the only place that decides.
+     * There is no colour per category any more, and there is no table here that
+     * maps a category NAME to a colour: the colour of a tile follows its
+     * POSITION in the row (see --palette-1 .. --palette-8 in the appendix at the
+     * end of this file). The `color` column is still in the table, but nothing
+     * reads it any more.
      *
-     * This value drives the dot beside a statistic, the progress track of a row
-     * and the preset of the colour field - but NOT a tile of the light theme:
-     * there the colour follows the position of the tile in the row, so a tile
-     * can never depend on a stored colour.
-     *
-     * --cat-default is the one neutral colour used while a category has no
-     * colour of its own yet; it can be set in the entry form at any time. In
-     * the light theme it is a warm neutral so that it fits the beige page.
+     * --cat-default is the one neutral colour that is used while no palette
+     * colour applies. It is currently read nowhere either - the dot of a row and
+     * the track of a progress bar take --link-color or the palette instead.
+     * It is kept as the neutral fallback of the design.
      */
     --cat-default: #C6BFB2;
 
@@ -421,6 +406,12 @@ body {
 /*
  * Film grain. One fixed, repeating SVG noise tile - no animation and no
  * full-window filter - so text stays sharp and nothing can start to scroll.
+ *
+ * NOTE: there is currently NO element with class="grain" in the markup, so none
+ * of this is painted at the moment and --grain-image is read nowhere else. The
+ * rule is kept because the texture is part of the design idea; if it is not
+ * wanted any more, the rule and the token can go (see the cleanup list in
+ * docs/technik.md).
  *
  * The layer covers the page and the tiles, but NOT the overlays: menus, the
  * toast and the dialogs are their own calm surfaces and lie above it (z-index
