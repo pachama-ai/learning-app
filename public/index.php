@@ -632,9 +632,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                     <!--
                         The tiles of a subcategory: what is due, how much of it
-                        already sits and how many days in a row somebody studied.
-                        They stand directly under the head, before the counts and
-                        the buttons, because they belong to the work of this page.
+                        already sits, how much is still unsure and how many days in
+                        a row somebody studied. They stand directly under the head,
+                        before the counts and the buttons, because they belong to
+                        the work of this page.
 
                         app.js fills them from the numbers the API already sends
                         with the card list - nothing here is counted in the
@@ -654,6 +655,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             <div class="dash__track">
                                 <span class="dash__track-fill" id="dash-known-fill"></span>
                             </div>
+                        </div>
+
+                        <div class="dash__tile dash__tile--unsure">
+                            <p class="dash__label" data-i18n="dash.unsure"><?= $text('dash.unsure') ?></p>
+                            <p class="dash__value" id="dash-unsure-value">&#8211;</p>
                         </div>
 
                         <div class="dash__tile">

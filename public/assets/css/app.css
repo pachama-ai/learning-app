@@ -1549,6 +1549,16 @@ img {
     font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The tile that counts what somebody is still unsure about wears the colour the
+ * card list already uses for that status (--status-unsure), damped into the panel
+ * colour just like the area tint of the other tiles. The number here and the
+ * "UNSICHER" beside a card are recognisably the same thing.
+ */
+.dash__tile--unsure {
+    background-color: color-mix(in srgb, var(--status-unsure) 22%, var(--panel));
+}
+
 /* The quiet line under a number that has nothing to show yet. */
 .dash__note {
     color: var(--muted);

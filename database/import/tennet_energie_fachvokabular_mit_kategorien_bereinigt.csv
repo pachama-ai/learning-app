@@ -1,0 +1,401 @@
+﻿English;Deutsch;Bereich;Priorität
+electric current;"elektrischer Strom; Stromstärke";Elektrotechnik-Grundlagen;1
+voltage;Spannung;Elektrotechnik-Grundlagen;1
+power;Leistung;Elektrotechnik-Grundlagen;1
+electrical energy;elektrische Energie;Elektrotechnik-Grundlagen;1
+active power;Wirkleistung;Elektrotechnik-Grundlagen;1
+reactive power;Blindleistung;Elektrotechnik-Grundlagen;1
+apparent power;Scheinleistung;Elektrotechnik-Grundlagen;2
+power factor;Leistungsfaktor;Elektrotechnik-Grundlagen;2
+frequency;Frequenz;Elektrotechnik-Grundlagen;1
+phase;Phase;Elektrotechnik-Grundlagen;1
+phase angle;Phasenwinkel;Elektrotechnik-Grundlagen;2
+alternating current (AC);Wechselstrom (AC);Elektrotechnik-Grundlagen;1
+direct current (DC);Gleichstrom (DC);Elektrotechnik-Grundlagen;1
+high voltage (HV);Hochspannung;Elektrotechnik-Grundlagen;1
+extra-high voltage (EHV);Höchstspannung;Elektrotechnik-Grundlagen;1
+resistance;Widerstand;Elektrotechnik-Grundlagen;2
+reactance;"Reaktanz; Blindwiderstand";Elektrotechnik-Grundlagen;2
+impedance;"Impedanz; Scheinwiderstand";Elektrotechnik-Grundlagen;2
+inductance;Induktivität;Elektrotechnik-Grundlagen;3
+capacitance;Kapazität;Elektrotechnik-Grundlagen;3
+short-circuit current;Kurzschlussstrom;Elektrotechnik-Grundlagen;2
+short-circuit power;Kurzschlussleistung;Elektrotechnik-Grundlagen;3
+load;Last;Elektrotechnik-Grundlagen;1
+electricity demand;"Stromnachfrage; Strombedarf";Elektrotechnik-Grundlagen;1
+generation;Stromerzeugung;Elektrotechnik-Grundlagen;1
+consumption;Stromverbrauch;Elektrotechnik-Grundlagen;1
+feed-in;Einspeisung;Elektrotechnik-Grundlagen;1
+injection;Einspeisung;Elektrotechnik-Grundlagen;2
+withdrawal;Entnahme;Elektrotechnik-Grundlagen;2
+rated power;Nennleistung;Elektrotechnik-Grundlagen;1
+installed capacity;installierte Leistung;Elektrotechnik-Grundlagen;1
+peak load;Spitzenlast;Elektrotechnik-Grundlagen;1
+base load;Grundlast;Elektrotechnik-Grundlagen;2
+energy loss;Energieverlust;Elektrotechnik-Grundlagen;1
+transmission loss;Übertragungsverlust;Elektrotechnik-Grundlagen;2
+efficiency;"Wirkungsgrad; Effizienz";Elektrotechnik-Grundlagen;1
+capacity factor;Kapazitätsfaktor;Elektrotechnik-Grundlagen;1
+full-load hours;Volllaststunden;Elektrotechnik-Grundlagen;1
+transmission grid;Übertragungsnetz;Stromnetz & Komponenten;1
+distribution grid;Verteilnetz;Stromnetz & Komponenten;1
+power grid;Stromnetz;Stromnetz & Komponenten;1
+transmission system operator (TSO);Übertragungsnetzbetreiber (ÜNB);Stromnetz & Komponenten;1
+distribution system operator (DSO);Verteilnetzbetreiber (VNB);Stromnetz & Komponenten;1
+grid connection;Netzanschluss;Stromnetz & Komponenten;1
+grid connection point;Netzanschlusspunkt;Stromnetz & Komponenten;1
+point of common coupling (PCC);Netzverknüpfungspunkt (PCC);Stromnetz & Komponenten;2
+substation;Umspannwerk;Stromnetz & Komponenten;1
+switchgear;Schaltanlage;Stromnetz & Komponenten;1
+transformer;Transformator;Stromnetz & Komponenten;1
+power transformer;Leistungstransformator;Stromnetz & Komponenten;2
+phase-shifting transformer (PST);Phasenschiebertransformator;Stromnetz & Komponenten;2
+circuit breaker;Leistungsschalter;Stromnetz & Komponenten;1
+disconnector / isolator;Trennschalter;Stromnetz & Komponenten;2
+busbar;Sammelschiene;Stromnetz & Komponenten;1
+bay;Schaltfeld;Stromnetz & Komponenten;2
+overhead line;Freileitung;Stromnetz & Komponenten;1
+underground cable;Erdkabel;Stromnetz & Komponenten;1
+submarine cable;Seekabel;Stromnetz & Komponenten;1
+conductor;"Leiterseil; Leiter";Stromnetz & Komponenten;2
+pylon / transmission tower;"Strommast; Freileitungsmast";Stromnetz & Komponenten;1
+insulator;Isolator;Stromnetz & Komponenten;2
+circuit;"Stromkreis; Leitungssystem";Stromnetz & Komponenten;2
+cable joint;"Kabelmuffe; Kabelverbindung";Stromnetz & Komponenten;3
+earthing / grounding;Erdung;Stromnetz & Komponenten;1
+shunt reactor;"Drosselspule; Kompensationsdrossel";Stromnetz & Komponenten;3
+capacitor bank;Kondensatorbank;Stromnetz & Komponenten;3
+synchronous condenser;"Synchronkondensator; rotierender Phasenschieber";Stromnetz & Komponenten;3
+reactive power compensation;Blindleistungskompensation;Stromnetz & Komponenten;2
+current transformer (CT);Stromwandler;Stromnetz & Komponenten;2
+voltage transformer (VT);Spannungswandler;Stromnetz & Komponenten;2
+protection relay;Schutzrelais;Stromnetz & Komponenten;2
+protection system;Schutzsystem;Stromnetz & Komponenten;2
+control area;Regelzone;Systembetrieb;1
+control area balance;Regelzonensaldo;Systembetrieb;1
+system balance;Systembilanz;Systembetrieb;1
+power balance;"Leistungsbilanz; Leistungsgleichgewicht";Systembetrieb;1
+system operation;"Systembetrieb; Netzbetrieb";Systembetrieb;1
+grid operation;Netzbetrieb;Systembetrieb;1
+control room;"Leitwarte; Netzleitstelle";Systembetrieb;1
+system operator;"Systemführer; Netzführer";Systembetrieb;2
+operational security;Betriebssicherheit;Systembetrieb;1
+security of supply;Versorgungssicherheit;Systembetrieb;1
+system stability;Systemstabilität;Systembetrieb;1
+frequency stability;Frequenzstabilität;Systembetrieb;1
+voltage stability;Spannungsstabilität;Systembetrieb;1
+transient stability;transiente Stabilität;Systembetrieb;2
+angular stability;Winkelstabilität;Systembetrieb;3
+system inertia;"Systemträgheit; Momentanreserve";Systembetrieb;2
+rate of change of frequency (RoCoF);Frequenzänderungsrate (RoCoF);Systembetrieb;2
+frequency control;Frequenzregelung;Systembetrieb;1
+voltage control;Spannungsregelung;Systembetrieb;1
+reactive power management;Blindleistungsmanagement;Systembetrieb;1
+active power control;Wirkleistungsregelung;Systembetrieb;2
+load flow / power flow;Lastfluss;Systembetrieb;1
+load-flow calculation;Lastflussberechnung;Systembetrieb;1
+grid topology;Netztopologie;Systembetrieb;1
+network model;Netzmodell;Systembetrieb;1
+grid state;Netzzustand;Systembetrieb;1
+system state;Systemzustand;Systembetrieb;1
+normal state;Normalzustand;Systembetrieb;2
+alert state;gefährdeter Zustand;Systembetrieb;2
+emergency state;Notzustand;Systembetrieb;2
+restoration state;Netzwiederaufbauzustand;Systembetrieb;3
+blackout state;Blackout-Zustand;Systembetrieb;3
+contingency;"Ausfall; Ausfallereignis";Systembetrieb;1
+contingency analysis;"Ausfallanalyse; Kontingenzanalyse";Systembetrieb;1
+N-1 criterion;N-1-Kriterium;Systembetrieb;1
+N-1 secure;N-1-sicher;Systembetrieb;1
+security limit;Sicherheitsgrenzwert;Systembetrieb;2
+thermal limit;thermische Belastungsgrenze;Systembetrieb;2
+overload;Überlastung;Systembetrieb;1
+bottleneck;Engpass;Systembetrieb;1
+congestion;Netzengpass;Systembetrieb;1
+congestion management;Engpassmanagement;Systembetrieb;1
+remedial action;Entlastungsmaßnahme;Systembetrieb;1
+preventive remedial action;präventive Entlastungsmaßnahme;Systembetrieb;2
+curative remedial action;kurative Entlastungsmaßnahme;Systembetrieb;2
+redispatch;"Redispatch; Änderung des Kraftwerkseinsatzes";Systembetrieb;1
+Redispatch 2.0;Redispatch 2.0;Systembetrieb;1
+countertrading;"Countertrading; gegenläufige Handelsgeschäfte";Systembetrieb;2
+curtailment;Abregelung;Systembetrieb;1
+load shedding;Lastabwurf;Systembetrieb;1
+dispatch;"Kraftwerkseinsatz; Einsatzplanung";Systembetrieb;1
+dispatch schedule;Einsatzfahrplan;Systembetrieb;2
+schedule;Fahrplan;Systembetrieb;1
+nomination;"Fahrplananmeldung; Nominierung";Systembetrieb;2
+outage;"Ausfall; Abschaltung";Systembetrieb;1
+planned outage;geplante Abschaltung;Systembetrieb;1
+unplanned outage;ungeplanter Ausfall;Systembetrieb;1
+forced outage;Zwangsausfall;Systembetrieb;2
+outage planning;Abschaltplanung;Systembetrieb;2
+availability;Verfügbarkeit;Systembetrieb;1
+unavailability;Nichtverfügbarkeit;Systembetrieb;2
+switching operation;Schalthandlung;Systembetrieb;1
+switching instruction;Schaltanweisung;Systembetrieb;2
+energisation / energization;"unter Spannung setzen; Zuschaltung";Systembetrieb;2
+de-energisation / de-energization;"spannungsfrei schalten; Freischaltung";Systembetrieb;2
+synchronisation / synchronization;Synchronisierung;Systembetrieb;2
+islanding;"Inselnetzbetrieb; Inselbildung";Systembetrieb;2
+system restoration;Netzwiederaufbau;Systembetrieb;1
+black start;Schwarzstart;Systembetrieb;1
+SCADA (supervisory control and data acquisition);Leitsystem zur Überwachung und Datenerfassung;Systembetrieb & Daten;1
+energy management system (EMS);"Energiemanagementsystem; Netzleitsystem";Systembetrieb & Daten;1
+telemetry;"Fernmessung; Telemetrie";Systembetrieb & Daten;1
+remote control;Fernsteuerung;Systembetrieb & Daten;1
+setpoint;Sollwert;Systembetrieb & Daten;1
+measured value;Messwert;Systembetrieb & Daten;1
+real-time data;Echtzeitdaten;Systembetrieb & Daten;1
+alarm;Alarmmeldung;Systembetrieb & Daten;1
+event log;Ereignisprotokoll;Systembetrieb & Daten;2
+fault;"Fehler; Störung";Systembetrieb & Daten;1
+fault clearance;"Fehlerabschaltung; Fehlerbeseitigung";Systembetrieb & Daten;2
+relay trip;Schutzauslösung;Systembetrieb & Daten;2
+balancing;Ausgleich von Erzeugung und Verbrauch;Regelenergie & Märkte;1
+balancing power;Regelleistung;Regelenergie & Märkte;1
+balancing energy;"Regelarbeit; aktivierte Regelenergie";Regelenergie & Märkte;1
+balancing reserve;Regelreserve;Regelenergie & Märkte;1
+reserve capacity;"Reservekapazität; benötigte Regelreservekapazität";Regelenergie & Märkte;1
+reserve activation;Aktivierung von Regelreserve;Regelenergie & Märkte;1
+frequency containment reserve (FCR);"Primärregelleistung; Frequenzhaltungsreserve";Regelenergie & Märkte;1
+automatic frequency restoration reserve (aFRR);"Sekundärregelleistung; automatische Frequenzwiederherstellungsreserve";Regelenergie & Märkte;1
+manual frequency restoration reserve (mFRR);"Minutenreserve; manuelle Frequenzwiederherstellungsreserve";Regelenergie & Märkte;1
+replacement reserve (RR);Ersatzreserve;Regelenergie & Märkte;3
+positive balancing energy;"positive Regelarbeit; positive Regelenergie";Regelenergie & Märkte;2
+negative balancing energy;"negative Regelarbeit; negative Regelenergie";Regelenergie & Märkte;2
+upward regulation;Hochregelung;Regelenergie & Märkte;2
+downward regulation;Herunterregelung;Regelenergie & Märkte;2
+prequalification;Präqualifikation;Regelenergie & Märkte;1
+balancing service provider (BSP);Regelreserveanbieter;Regelenergie & Märkte;2
+balance responsible party (BRP);Bilanzkreisverantwortlicher (BKV);Regelenergie & Märkte;1
+balancing group;Bilanzkreis;Regelenergie & Märkte;1
+balancing group management;Bilanzkreisbewirtschaftung;Regelenergie & Märkte;1
+imbalance;"Bilanzabweichung; Ungleichgewicht";Regelenergie & Märkte;1
+imbalance energy;Ausgleichsenergie;Regelenergie & Märkte;1
+imbalance price;Ausgleichsenergiepreis;Regelenergie & Märkte;1
+imbalance settlement;"Bilanzkreisabrechnung; Abrechnung von Bilanzabweichungen";Regelenergie & Märkte;2
+PICASSO;europäische Plattform für aFRR;Regelenergie & Märkte;2
+MARI;europäische Plattform für mFRR;Regelenergie & Märkte;2
+electricity market;Strommarkt;Strommarkt;1
+wholesale market;Stromgroßhandelsmarkt;Strommarkt;1
+spot market;Spotmarkt;Strommarkt;1
+day-ahead market;"Day-Ahead-Markt; Vortagesmarkt";Strommarkt;1
+intraday market;"Intraday-Markt; untertägiger Markt";Strommarkt;1
+balancing market;Regelenergiemarkt;Strommarkt;1
+bid;Gebot;Strommarkt;1
+offer;Angebot;Strommarkt;1
+auction;Auktion;Strommarkt;1
+tender;Ausschreibung;Strommarkt;1
+procurement;Beschaffung;Strommarkt;1
+market clearing;Markträumung;Strommarkt;1
+clearing price;Markträumungspreis;Strommarkt;2
+marginal price;Grenzpreis;Strommarkt;1
+merit order;"Merit-Order; Einsatzreihenfolge";Strommarkt;1
+bidding zone;Gebotszone;Strommarkt;1
+market area;Marktgebiet;Strommarkt;2
+market coupling;Marktkopplung;Strommarkt;1
+flow-based market coupling;lastflussbasierte Marktkopplung;Strommarkt;2
+cross-zonal capacity;zonenübergreifende Kapazität;Strommarkt;1
+capacity allocation;Kapazitätsvergabe;Strommarkt;2
+interconnector;grenzüberschreitende Verbindungsleitung;Strommarkt;1
+cross-border exchange;grenzüberschreitender Stromaustausch;Strommarkt;1
+net position;Nettoposition;Strommarkt;2
+congestion income / congestion rent;Engpasserlös;Strommarkt;3
+gate closure time;"Handelsschluss; Gate Closure Time";Strommarkt;2
+settlement;Abrechnung;Strommarkt;1
+market participant;Marktteilnehmer;Strommarkt;1
+forecast;Prognose;Prognosen & Zeitreihen;1
+load forecast;Lastprognose;Prognosen & Zeitreihen;1
+generation forecast;Erzeugungsprognose;Prognosen & Zeitreihen;1
+renewable generation forecast;Erneuerbaren-Erzeugungsprognose;Prognosen & Zeitreihen;1
+wind power forecast;Windleistungsprognose;Prognosen & Zeitreihen;1
+solar power forecast;"Solarstromprognose; PV-Erzeugungsprognose";Prognosen & Zeitreihen;1
+forecast error;Prognosefehler;Prognosen & Zeitreihen;1
+time series;Zeitreihe;Prognosen & Zeitreihen;1
+quarter-hourly interval;Viertelstundenintervall;Prognosen & Zeitreihen;1
+metering data;Messdaten;Prognosen & Zeitreihen;1
+metering point;"Messstelle; Messpunkt";Prognosen & Zeitreihen;2
+renewable energy;erneuerbare Energie;Erneuerbare & Speicher;1
+renewable energy source (RES);erneuerbare Energiequelle (RES);Erneuerbare & Speicher;1
+variable renewable energy (VRE);variable erneuerbare Energien;Erneuerbare & Speicher;1
+weather-dependent generation;wetterabhängige Erzeugung;Erneuerbare & Speicher;1
+variability;"Variabilität; Schwankung";Erneuerbare & Speicher;1
+wind power;Windenergie;Erneuerbare & Speicher;1
+onshore wind;Windenergie an Land;Erneuerbare & Speicher;1
+offshore wind;Offshore-Windenergie;Erneuerbare & Speicher;1
+wind turbine;"Windenergieanlage; Windturbine";Erneuerbare & Speicher;1
+wind farm;Windpark;Erneuerbare & Speicher;1
+offshore wind farm;Offshore-Windpark;Erneuerbare & Speicher;1
+solar power;"Solarenergie; Solarstrom";Erneuerbare & Speicher;1
+photovoltaics (PV);Photovoltaik (PV);Erneuerbare & Speicher;1
+solar PV system;Photovoltaikanlage;Erneuerbare & Speicher;1
+inverter;Wechselrichter;Erneuerbare & Speicher;1
+grid-forming inverter;netzbildender Wechselrichter;Erneuerbare & Speicher;2
+grid-following inverter;netzfolgender Wechselrichter;Erneuerbare & Speicher;2
+grid integration;Netzintegration;Erneuerbare & Speicher;1
+feed-in management;"Einspeisemanagement (EinsMan; seit 2021 in Redispatch 2.0 integriert)";Erneuerbare & Speicher;2
+power purchase agreement (PPA);Stromabnahmevertrag (PPA);Erneuerbare & Speicher;2
+energy storage;Energiespeicher;Erneuerbare & Speicher;1
+battery energy storage system (BESS);Batteriespeichersystem (BESS);Erneuerbare & Speicher;1
+grid-scale battery;Großbatteriespeicher;Erneuerbare & Speicher;1
+state of charge (SoC);Ladezustand;Erneuerbare & Speicher;1
+depth of discharge (DoD);Entladetiefe;Erneuerbare & Speicher;2
+charging;Laden;Erneuerbare & Speicher;1
+discharging;Entladen;Erneuerbare & Speicher;1
+round-trip efficiency;"Round-Trip-Wirkungsgrad; Wirkungsgrad über Lade- und Entladezyklus";Erneuerbare & Speicher;2
+storage capacity;"Speicherkapazität; Energiekapazität (MWh)";Erneuerbare & Speicher;1
+power capacity;"Leistungsvermögen; Leistungskapazität (MW)";Erneuerbare & Speicher;2
+flexibility;Flexibilität;Erneuerbare & Speicher;1
+flexible load;flexible Last;Erneuerbare & Speicher;2
+demand response;"Laststeuerung; Nachfragereaktion";Erneuerbare & Speicher;1
+sector coupling;Sektorenkopplung;Erneuerbare & Speicher;2
+electrolysis;Elektrolyse;Erneuerbare & Speicher;2
+electrolyser / electrolyzer;Elektrolyseur;Erneuerbare & Speicher;2
+hydrogen;Wasserstoff;Erneuerbare & Speicher;2
+high-voltage direct current (HVDC);Hochspannungs-Gleichstromübertragung (HGÜ);Offshore & HVDC;1
+high-voltage alternating current (HVAC);Hochspannungs-Wechselstromübertragung;Offshore & HVDC;2
+HVDC link;HGÜ-Verbindung;Offshore & HVDC;1
+converter station;Konverterstation;Offshore & HVDC;1
+converter platform;Konverterplattform;Offshore & HVDC;1
+offshore substation;Offshore-Umspannwerk;Offshore & HVDC;1
+offshore grid connection;Offshore-Netzanbindung;Offshore & HVDC;1
+grid connection system;Netzanbindungssystem;Offshore & HVDC;1
+export cable;"Exportkabel; Netzanbindungskabel";Offshore & HVDC;1
+cable route;Kabeltrasse;Offshore & HVDC;1
+landfall;Kabelanlandung;Offshore & HVDC;2
+offshore platform;Offshore-Plattform;Offshore & HVDC;2
+point-to-point HVDC;Punkt-zu-Punkt-HGÜ;Offshore & HVDC;3
+multi-terminal HVDC;Multi-Terminal-HGÜ;Offshore & HVDC;3
+grid expansion;Netzausbau;Netzplanung & Assets;1
+grid reinforcement;Netzverstärkung;Netzplanung & Assets;1
+network planning;Netzplanung;Netzplanung & Assets;1
+grid development plan;Netzentwicklungsplan (NEP);Netzplanung & Assets;1
+scenario framework;Szenariorahmen;Netzplanung & Assets;1
+Ten-Year Network Development Plan (TYNDP);Zehnjahres-Netzentwicklungsplan;Netzplanung & Assets;2
+new-build project;Neubauprojekt;Netzplanung & Assets;1
+line uprating;Erhöhung der Übertragungskapazität einer Leitung;Netzplanung & Assets;2
+reconductoring;"Neubeseilung; Austausch von Leiterseilen";Netzplanung & Assets;3
+route corridor;Trassenkorridor;Netzplanung & Assets;1
+route planning;Trassenplanung;Netzplanung & Assets;1
+right of way;"Wegerecht; Leitungsrecht";Netzplanung & Assets;2
+easement;"Dienstbarkeit; Leitungsrecht";Netzplanung & Assets;2
+permitting;Genehmigungsverfahren;Netzplanung & Assets;1
+planning approval procedure;Planfeststellungsverfahren;Netzplanung & Assets;1
+spatial planning;"Raumplanung; Raumordnung";Netzplanung & Assets;2
+environmental impact assessment (EIA);Umweltverträglichkeitsprüfung (UVP);Netzplanung & Assets;1
+commissioning;Inbetriebnahme;Netzplanung & Assets;1
+commissioning test;Inbetriebnahmetest;Netzplanung & Assets;2
+acceptance test;Abnahmetest;Netzplanung & Assets;2
+decommissioning;"Außerbetriebnahme; Rückbau";Netzplanung & Assets;2
+asset;"Betriebsmittel; Anlage";Netzplanung & Assets;1
+asset management;"Asset Management; Anlagenmanagement";Netzplanung & Assets;1
+asset condition;Anlagenzustand;Netzplanung & Assets;2
+condition monitoring;Zustandsüberwachung;Netzplanung & Assets;2
+maintenance;"Instandhaltung; Wartung";Netzplanung & Assets;1
+preventive maintenance;vorbeugende Instandhaltung;Netzplanung & Assets;2
+corrective maintenance;"korrektive Instandhaltung; Instandsetzung";Netzplanung & Assets;2
+inspection;Inspektion;Netzplanung & Assets;1
+geographic information system (GIS);Geoinformationssystem (GIS);GIS & Daten;1
+geospatial data;Geodaten;GIS & Daten;1
+spatial data;räumliche Daten;GIS & Daten;1
+coordinate reference system (CRS);"Koordinatenreferenzsystem; Koordinatenbezugssystem (CRS/KBS)";GIS & Daten;1
+map projection;Kartenprojektion;GIS & Daten;2
+vector data;Vektordaten;GIS & Daten;1
+raster data;Rasterdaten;GIS & Daten;1
+point feature;Punktobjekt;GIS & Daten;1
+line feature;Linienobjekt;GIS & Daten;1
+polygon feature;"Flächenobjekt; Polygon";GIS & Daten;1
+layer;"Layer; Ebene";GIS & Daten;1
+feature;"Geoobjekt; Feature";GIS & Daten;1
+attribute;"Attribut; Sachdatenfeld";GIS & Daten;1
+attribute table;Attributtabelle;GIS & Daten;1
+geodatabase;Geodatenbank;GIS & Daten;1
+spatial join;räumliche Verknüpfung;GIS & Daten;2
+buffer;"Puffer; Pufferzone";GIS & Daten;2
+overlay analysis;Überlagerungsanalyse;GIS & Daten;2
+georeferencing;Georeferenzierung;GIS & Daten;2
+Shapefile;"Shapefile; GIS-Dateiformat";GIS & Daten;2
+GeoJSON;"GeoJSON; Geodatenformat";GIS & Daten;2
+Web Map Service (WMS);"Web Map Service; Kartendienst";GIS & Daten;2
+Web Feature Service (WFS);"Web Feature Service; Objektdienst";GIS & Daten;2
+metadata;Metadaten;GIS & Daten;1
+asset registry;Anlagenregister;GIS & Daten;1
+master data;Stammdaten;GIS & Daten;1
+data quality;Datenqualität;GIS & Daten;1
+data governance;"Data Governance; Datensteuerung";GIS & Daten;1
+data lineage;"Datenherkunft; Verarbeitungshistorie";GIS & Daten;2
+data model;Datenmodell;GIS & Daten;1
+database;Datenbank;GIS & Daten;1
+relational database;relationale Datenbank;GIS & Daten;1
+SQL query;SQL-Abfrage;GIS & Daten;1
+application programming interface (API);Programmierschnittstelle (API);GIS & Daten;1
+API endpoint;API-Endpunkt;GIS & Daten;2
+data pipeline;Datenpipeline;GIS & Daten;1
+ETL (extract, transform, load);Extrahieren, Transformieren, Laden;GIS & Daten;1
+data validation;Datenvalidierung;GIS & Daten;1
+data visualisation / visualization;Datenvisualisierung;GIS & Daten;1
+dashboard;"Dashboard; Übersichtsansicht";GIS & Daten;1
+anomaly detection;Anomalieerkennung;GIS & Daten;2
+forecast model;Prognosemodell;GIS & Daten;2
+timestamp;Zeitstempel;GIS & Daten;1
+CSV file;CSV-Datei;GIS & Daten;1
+XML;"XML; erweiterbare Auszeichnungssprache";GIS & Daten;2
+Energy Identification Code (EIC);Energie-Identifikationscode (EIC);GIS & Daten;3
+ENTSO-E;Europäischer Verband der Übertragungsnetzbetreiber;Regulierung & Europa;1
+ACER;Agentur der Europäischen Union für die Zusammenarbeit der Energieregulierungsbehörden;Regulierung & Europa;2
+Federal Network Agency (BNetzA);Bundesnetzagentur (BNetzA);Regulierung & Europa;1
+Energy Industry Act (EnWG);Energiewirtschaftsgesetz (EnWG);Regulierung & Europa;1
+Renewable Energy Sources Act (EEG);Erneuerbare-Energien-Gesetz (EEG);Regulierung & Europa;1
+grid code;"Grid Code; technische Netzregeln; Netzanschlussregeln";Regulierung & Europa;1
+network code;EU-Netzkodex;Regulierung & Europa;2
+System Operation Guideline (SOGL);Leitlinie für den Übertragungsnetzbetrieb (SOGL);Regulierung & Europa;2
+Electricity Balancing Guideline (EBGL);Leitlinie über den Systemausgleich im Elektrizitätsversorgungssystem (EBGL);Regulierung & Europa;2
+Capacity Allocation and Congestion Management (CACM);Leitlinie für die Kapazitätsvergabe und das Engpassmanagement (CACM);Regulierung & Europa;2
+REMIT;EU-Verordnung zur Integrität und Transparenz des Energiegroßhandelsmarkts;Regulierung & Europa;2
+regulator;Regulierungsbehörde;Regulierung & Europa;1
+regulatory requirement;regulatorische Anforderung;Regulierung & Europa;1
+compliance;"Einhaltung von Vorgaben; Compliance";Regulierung & Europa;1
+health, safety and environment (HSE);Gesundheit, Arbeitssicherheit und Umwelt (HSE);Sicherheit;1
+occupational safety;Arbeitssicherheit;Sicherheit;1
+personal protective equipment (PPE);persönliche Schutzausrüstung (PSA);Sicherheit;1
+permit to work;"Arbeitserlaubnis; Freigabeschein";Sicherheit;2
+lockout/tagout (LOTO);Sichern gegen Wiedereinschalten (LOTO);Sicherheit;2
+electrical hazard;elektrische Gefährdung;Sicherheit;1
+high-voltage area;Hochspannungsbereich;Sicherheit;1
+live equipment;"unter Spannung stehende Betriebsmittel; Anlagenteile unter Spannung";Sicherheit;1
+de-energised / de-energized equipment;"spannungsfreie Betriebsmittel; spannungsfreie Anlagenteile";Sicherheit;1
+safe working distance;Sicherheitsabstand;Sicherheit;1
+risk assessment;"Gefährdungsbeurteilung; Risikobewertung";Sicherheit;1
+hazard;Gefährdung;Sicherheit;1
+incident;"Vorfall; Ereignis";Sicherheit;1
+near miss;Beinaheunfall;Sicherheit;1
+emergency response;Notfallmaßnahmen;Sicherheit;2
+stakeholder;"Stakeholder; Interessenvertreter/in; betroffene Interessengruppe";Projekt & Arbeitsalltag;1
+contractor;Auftragnehmer;Projekt & Arbeitsalltag;1
+supplier;Lieferant;Projekt & Arbeitsalltag;1
+project scope;Projektumfang;Projekt & Arbeitsalltag;1
+milestone;Meilenstein;Projekt & Arbeitsalltag;1
+deliverable;"Arbeitsergebnis; Liefergegenstand";Projekt & Arbeitsalltag;1
+requirement;Anforderung;Projekt & Arbeitsalltag;1
+technical specification;technische Spezifikation;Projekt & Arbeitsalltag;1
+interface;Schnittstelle;Projekt & Arbeitsalltag;1
+dependency;Abhängigkeit;Projekt & Arbeitsalltag;1
+handover;Übergabe;Projekt & Arbeitsalltag;1
+approval;"Freigabe; Genehmigung";Projekt & Arbeitsalltag;1
+change request;Änderungsantrag;Projekt & Arbeitsalltag;2
+deviation;Abweichung;Projekt & Arbeitsalltag;1
+root cause analysis;Ursachenanalyse;Projekt & Arbeitsalltag;1
+lessons learned;"gewonnene Erkenntnisse; Lessons Learned";Projekt & Arbeitsalltag;2
+action item;"Aufgabe; vereinbarte Maßnahme";Projekt & Arbeitsalltag;1
+follow-up;"Nachverfolgung; Folgemaßnahme";Projekt & Arbeitsalltag;1
+status update;"Statusmeldung; Statusaktualisierung";Projekt & Arbeitsalltag;1
+shift handover;Schichtübergabe;Projekt & Arbeitsalltag;2
+on-call duty;Rufbereitschaft;Projekt & Arbeitsalltag;2
+operating procedure;"Betriebsanweisung; Betriebsverfahren";Projekt & Arbeitsalltag;2
+work instruction;Arbeitsanweisung;Projekt & Arbeitsalltag;1
+documentation;Dokumentation;Projekt & Arbeitsalltag;1
+coordination;"Koordination; Abstimmung";Projekt & Arbeitsalltag;1
+alignment;"Abstimmung; Ausrichtung";Projekt & Arbeitsalltag;1
+escalation;Eskalation;Projekt & Arbeitsalltag;2
+workload;"Arbeitsbelastung; Arbeitsauslastung";Projekt & Arbeitsalltag;2

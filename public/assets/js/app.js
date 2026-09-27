@@ -424,6 +424,7 @@
         dashDue: document.getElementById('dash-due-value'),
         dashKnown: document.getElementById('dash-known-value'),
         dashKnownFill: document.getElementById('dash-known-fill'),
+        dashUnsure: document.getElementById('dash-unsure-value'),
         dashStreak: document.getElementById('dash-streak-value'),
         dashStreakNote: document.getElementById('dash-streak-note'),
         detailFigureCount: document.getElementById('detail-figure-count'),
@@ -2488,6 +2489,7 @@
 
         elements.dashDue.textContent = String(hasSummary ? (summary.due || 0) : 0);
         elements.dashKnown.textContent = String(hasSummary ? (summary.known || 0) : 0);
+        elements.dashUnsure.textContent = String(hasSummary ? (summary.unsure || 0) : 0);
 
         /* How much of the list already sits is a share, so it gets the small
            track under the number: "1 of 34" is easier to read as a length. */
@@ -2803,8 +2805,13 @@
          * The round plus button is the start page's own action and stays there:
          * on a detail page the way to add the next entry sits in the head, where
          * it is visible without scrolling to the end of the list.
+         *
+         * Without a signed-in person it goes away as well: it creates a learning
+         * area, and an area needs an owner. That is the same reason the empty
+         * start page offers the sign-in instead of that form - a button that can
+         * only end in "no_user_session" has no place in the page.
          */
-        elements.addButton.hidden = level !== 'home';
+        elements.addButton.hidden = level !== 'home' || authState.user === null;
     }
 
     /* The plus button acts on whatever the detail view is showing. */

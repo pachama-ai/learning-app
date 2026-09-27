@@ -1,0 +1,501 @@
+category,front,back,front_de,back_de,front_en,back_en,is_bidirectional
+C1 Vokabelliste,abschaffen,abolish,abschaffen,abolish,abolish,abschaffen,1
+C1 Vokabelliste,Schwangerschaftsabbruch; Abtreibung,abortion,Schwangerschaftsabbruch; Abtreibung,abortion,abortion,Schwangerschaftsabbruch; Abtreibung,1
+C1 Vokabelliste,Abwesenheit,absence,Abwesenheit,absence,absence,Abwesenheit,1
+C1 Vokabelliste,abwesend; fehlend,absent,abwesend; fehlend,absent,absent,abwesend; fehlend,1
+C1 Vokabelliste,absurd; unsinnig,absurd,absurd; unsinnig,absurd,absurd,absurd; unsinnig,1
+C1 Vokabelliste,Fülle; Überfluss,abundance,Fülle; Überfluss,abundance,abundance,Fülle; Überfluss,1
+C1 Vokabelliste,Missbrauch; Misshandlung; missbrauchen,abuse,Missbrauch; Misshandlung; missbrauchen,abuse,abuse,Missbrauch; Misshandlung; missbrauchen,1
+C1 Vokabelliste,Akademie,academy,Akademie,academy,academy,Akademie,1
+C1 Vokabelliste,beschleunigen,accelerate,beschleunigen,accelerate,accelerate,beschleunigen,1
+C1 Vokabelliste,Akzeptanz; Annahme,acceptance,Akzeptanz; Annahme,acceptance,acceptance,Akzeptanz; Annahme,1
+C1 Vokabelliste,zugänglich; erreichbar,accessible,zugänglich; erreichbar,accessible,accessible,zugänglich; erreichbar,1
+C1 Vokabelliste,Leistung; Errungenschaft,accomplishment,Leistung; Errungenschaft,accomplishment,accomplishment,Leistung; Errungenschaft,1
+C1 Vokabelliste,Übereinstimmung,accordance,Übereinstimmung,accordance,accordance,Übereinstimmung,1
+C1 Vokabelliste,Rechenschaftspflicht,accountability,Rechenschaftspflicht,accountability,accountability,Rechenschaftspflicht,1
+C1 Vokabelliste,ansammeln,accumulate,ansammeln,accumulate,accumulate,ansammeln,1
+C1 Vokabelliste,Ansammlung,accumulation,Ansammlung,accumulation,accumulation,Ansammlung,1
+C1 Vokabelliste,Erwerb; Übernahme,acquisition,Erwerb; Übernahme,acquisition,acquisition,Erwerb; Übernahme,1
+C1 Vokabelliste,akut; heftig,acute,akut; heftig,acute,acute,akut; heftig,1
+C1 Vokabelliste,sich halten an; haften,adhere,sich halten an; haften,adhere,adhere,sich halten an; haften,1
+C1 Vokabelliste,verwalten; verabreichen,administer,verwalten; verabreichen,administer,administer,verwalten; verabreichen,1
+C1 Vokabelliste,Verwalter; Administrator,administrator,Verwalter; Administrator,administrator,administrator,Verwalter; Administrator,1
+C1 Vokabelliste,Zulassung; Eingeständnis,admission,Zulassung; Eingeständnis,admission,admission,Zulassung; Eingeständnis,1
+C1 Vokabelliste,Übernahme; Adoption,adoption,Übernahme; Adoption,adoption,adoption,Übernahme; Adoption,1
+C1 Vokabelliste,Befürworter; befürworten,advocate,Befürworter; befürworten,advocate,advocate,Befürworter; befürworten,1
+C1 Vokabelliste,Zuneigung,affection,Zuneigung,affection,affection,Zuneigung,1
+C1 Vokabelliste,Folgen; Nachwirkungen,aftermath,Folgen; Nachwirkungen,aftermath,aftermath,Folgen; Nachwirkungen,1
+C1 Vokabelliste,landwirtschaftlich,agricultural,landwirtschaftlich,agricultural,agricultural,landwirtschaftlich,1
+C1 Vokabelliste,fremd; fremdartig; außerirdisch,alien,fremd; fremdartig; außerirdisch,alien,alien,fremd; fremdartig; außerirdisch,1
+C1 Vokabelliste,ausrichten; abstimmen,align,ausrichten; abstimmen,align,align,ausrichten; abstimmen,1
+C1 Vokabelliste,behaupten,allege,behaupten,allege,allege,behaupten,1
+C1 Vokabelliste,zuteilen,allocate,zuteilen,allocate,allocate,zuteilen,1
+C1 Vokabelliste,Verbündeter,ally,Verbündeter,ally,ally,Verbündeter,1
+C1 Vokabelliste,Amateur,amateur,Amateur,amateur,amateur,Amateur,1
+C1 Vokabelliste,ändern; ergänzen,amend,ändern; ergänzen,amend,amend,ändern; ergänzen,1
+C1 Vokabelliste,Änderung; Zusatz,amendment,Änderung; Zusatz,amendment,amendment,Änderung; Zusatz,1
+C1 Vokabelliste,Analogie; Vergleich,analogy,Analogie; Vergleich,analogy,analogy,Analogie; Vergleich,1
+C1 Vokabelliste,anonym,anonymous,anonym,anonymous,anonymous,anonym,1
+C1 Vokabelliste,ansprechend; attraktiv,appealing,ansprechend; attraktiv,appealing,appealing,ansprechend; attraktiv,1
+C1 Vokabelliste,Appetit,appetite,Appetit,appetite,appetite,Appetit,1
+C1 Vokabelliste,anwendbar,applicable,anwendbar,applicable,applicable,anwendbar,1
+C1 Vokabelliste,Wertschätzung,appreciation,Wertschätzung,appreciation,appreciation,Wertschätzung,1
+C1 Vokabelliste,willkürlich,arbitrary,willkürlich,arbitrary,arbitrary,willkürlich,1
+C1 Vokabelliste,Archiv,archive,Archiv,archive,archive,Archiv,1
+C1 Vokabelliste,wohl; vermutlich,arguably,wohl; vermutlich,arguably,arguably,wohl; vermutlich,1
+C1 Vokabelliste,klar ausdrücken; artikulieren,articulate,klar ausdrücken; artikulieren,articulate,articulate,klar ausdrücken; artikulieren,1
+C1 Vokabelliste,Attentat; Ermordung,assassination,Attentat; Ermordung,assassination,assassination,Attentat; Ermordung,1
+C1 Vokabelliste,zusammenbauen; versammeln,assemble,zusammenbauen; versammeln,assemble,assemble,zusammenbauen; versammeln,1
+C1 Vokabelliste,Versammlung; Montage,assembly,Versammlung; Montage,assembly,assembly,Versammlung; Montage,1
+C1 Vokabelliste,Behauptung,assertion,Behauptung,assertion,assertion,Behauptung,1
+C1 Vokabelliste,Asyl,asylum,Asyl,asylum,asylum,Asyl,1
+C1 Vokabelliste,erreichen,attain,erreichen,attain,attain,erreichen,1
+C1 Vokabelliste,Anwesenheit,attendance,Anwesenheit,attendance,attendance,Anwesenheit,1
+C1 Vokabelliste,authentisch,authentic,authentisch,authentic,authentic,authentisch,1
+C1 Vokabelliste,genehmigen; bevollmächtigen,authorize,genehmigen; bevollmächtigen,authorize,authorize,genehmigen; bevollmächtigen,1
+C1 Vokabelliste,Verfügbarkeit,availability,Verfügbarkeit,availability,availability,Verfügbarkeit,1
+C1 Vokabelliste,Sicherung; Unterstützung,backup,Sicherung; Unterstützung,backup,backup,Sicherung; Unterstützung,1
+C1 Vokabelliste,Kaution,bail,Kaution,bail,bail,Kaution,1
+C1 Vokabelliste,Banner; Transparent,banner,Banner; Transparent,banner,banner,Banner; Transparent,1
+C1 Vokabelliste,Fass,barrel,Fass,barrel,barrel,Fass,1
+C1 Vokabelliste,Begünstigter; Empfänger,beneficiary,Begünstigter; Empfänger,beneficiary,beneficiary,Begünstigter; Empfänger,1
+C1 Vokabelliste,verraten; hintergehen,betray,verraten; hintergehen,betray,betray,verraten; hintergehen,1
+C1 Vokabelliste,Biografie,biography,Biografie,biography,biography,Biografie,1
+C1 Vokabelliste,Klinge,blade,Klinge,blade,blade,Klinge,1
+C1 Vokabelliste,Explosion; sprengen,blast,Explosion; sprengen,blast,blast,Explosion; sprengen,1
+C1 Vokabelliste,Mischung; mischen,blend,Mischung; mischen,blend,blend,Mischung; mischen,1
+C1 Vokabelliste,Segen,blessing,Segen,blessing,blessing,Segen,1
+C1 Vokabelliste,prahlen; sich rühmen,boast,prahlen; sich rühmen,boast,boast,prahlen; sich rühmen,1
+C1 Vokabelliste,Boom; Aufschwung,boom,Boom; Aufschwung,boom,boom,Boom; Aufschwung,1
+C1 Vokabelliste,Grenze,boundary,Grenze,boundary,boundary,Grenze,1
+C1 Vokabelliste,Zusammenbruch; Aufschlüsselung,breakdown,Zusammenbruch; Aufschlüsselung,breakdown,breakdown,Zusammenbruch; Aufschlüsselung,1
+C1 Vokabelliste,Durchbruch,breakthrough,Durchbruch,breakthrough,breakthrough,Durchbruch,1
+C1 Vokabelliste,brutal,brutal,brutal,brutal,brutal,brutal,1
+C1 Vokabelliste,Belastung; Last,burden,Belastung; Last,burden,burden,Belastung; Last,1
+C1 Vokabelliste,Bürokratie,bureaucracy,Bürokratie,bureaucracy,bureaucracy,Bürokratie,1
+C1 Vokabelliste,platzen; bersten; plötzlich hervorbrechen,burst,platzen; bersten; plötzlich hervorbrechen,burst,burst,platzen; bersten; plötzlich hervorbrechen,1
+C1 Vokabelliste,Kabinett; Schrank,cabinet,Kabinett; Schrank,cabinet,cabinet,Kabinett; Schrank,1
+C1 Vokabelliste,Berechnung,calculation,Berechnung,calculation,calculation,Berechnung,1
+C1 Vokabelliste,Fähigkeit; Leistungsvermögen,capability,Fähigkeit; Leistungsvermögen,capability,capability,Fähigkeit; Leistungsvermögen,1
+C1 Vokabelliste,Kapitalismus,capitalism,Kapitalismus,capitalism,capitalism,Kapitalismus,1
+C1 Vokabelliste,kapitalistisch,capitalist,kapitalistisch,capitalist,capitalist,kapitalistisch,1
+C1 Vokabelliste,Fracht; Ladung,cargo,Fracht; Ladung,cargo,cargo,Fracht; Ladung,1
+C1 Vokabelliste,Wagen; Beförderung,carriage,Wagen; Beförderung,carriage,carriage,Wagen; Beförderung,1
+C1 Vokabelliste,schnitzen; schneiden,carve,schnitzen; schneiden,carve,carve,schnitzen; schneiden,1
+C1 Vokabelliste,Opfer; Verletzter,casualty,Opfer; Verletzter,casualty,casualty,Opfer; Verletzter,1
+C1 Vokabelliste,Katalog; Verzeichnis,catalogue,Katalog; Verzeichnis,catalogue,catalogue,Katalog; Verzeichnis,1
+C1 Vokabelliste,Rinder,cattle,Rinder,cattle,cattle,Rinder,1
+C1 Vokabelliste,Vorsicht; Warnung,caution,Vorsicht; Warnung,caution,caution,Vorsicht; Warnung,1
+C1 Vokabelliste,aufhören; einstellen,cease,aufhören; einstellen,cease,cease,aufhören; einstellen,1
+C1 Vokabelliste,Kammer,chamber,Kammer,chamber,chamber,Kammer,1
+C1 Vokabelliste,Chaos,chaos,Chaos,chaos,chaos,Chaos,1
+C1 Vokabelliste,Charme; Reiz,charm,Charme; Reiz,charm,charm,Charme; Reiz,1
+C1 Vokabelliste,chronisch,chronic,chronisch,chronic,chronic,chronisch,1
+C1 Vokabelliste,Zirkulation; Verbreitung,circulation,Zirkulation; Verbreitung,circulation,circulation,Zirkulation; Verbreitung,1
+C1 Vokabelliste,bürgerlich; städtisch,civic,bürgerlich; städtisch,civic,civic,bürgerlich; städtisch,1
+C1 Vokabelliste,Klarheit,clarity,Klarheit,clarity,clarity,Klarheit,1
+C1 Vokabelliste,Klassifizierung,classification,Klassifizierung,classification,classification,Klassifizierung,1
+C1 Vokabelliste,sich festhalten; klammern,cling,sich festhalten; klammern,cling,cling,sich festhalten; klammern,1
+C1 Vokabelliste,Koalition,coalition,Koalition,coalition,coalition,Koalition,1
+C1 Vokabelliste,kognitiv,cognitive,kognitiv,cognitive,cognitive,kognitiv,1
+C1 Vokabelliste,zusammenfallen; übereinstimmen,coincide,zusammenfallen; übereinstimmen,coincide,coincide,zusammenfallen; übereinstimmen,1
+C1 Vokabelliste,kollektiv; gemeinschaftlich,collective,kollektiv; gemeinschaftlich,collective,collective,kollektiv; gemeinschaftlich,1
+C1 Vokabelliste,Kampf; bekämpfen,combat,Kampf; bekämpfen,combat,combat,Kampf; bekämpfen,1
+C1 Vokabelliste,Kommentar; Berichterstattung,commentary,Kommentar; Berichterstattung,commentary,commentary,Kommentar; Berichterstattung,1
+C1 Vokabelliste,Kommentator,commentator,Kommentator,commentator,commentator,Kommentator,1
+C1 Vokabelliste,Beauftragter; Kommissar,commissioner,Beauftragter; Kommissar,commissioner,commissioner,Beauftragter; Kommissar,1
+C1 Vokabelliste,Begleiter,companion,Begleiter,companion,companion,Begleiter,1
+C1 Vokabelliste,vergleichbar,comparable,vergleichbar,comparable,comparable,vergleichbar,1
+C1 Vokabelliste,zwingen,compel,zwingen,compel,compel,zwingen,1
+C1 Vokabelliste,entschädigen; ausgleichen,compensate,entschädigen; ausgleichen,compensate,compensate,entschädigen; ausgleichen,1
+C1 Vokabelliste,Kompetenz,competence,Kompetenz,competence,competence,Kompetenz,1
+C1 Vokabelliste,kompetent,competent,kompetent,competent,competent,kompetent,1
+C1 Vokabelliste,ergänzen; vervollständigen,complement,ergänzen; vervollständigen,complement,complement,ergänzen; vervollständigen,1
+C1 Vokabelliste,Einhaltung,compliance,Einhaltung,compliance,compliance,Einhaltung,1
+C1 Vokabelliste,einhalten; nachkommen,comply,einhalten; nachkommen,comply,comply,einhalten; nachkommen,1
+C1 Vokabelliste,Kompromiss; Kompromiss schließen,compromise,Kompromiss; Kompromiss schließen,compromise,compromise,Kompromiss; Kompromiss schließen,1
+C1 Vokabelliste,Vorstellung; Konzeption,conception,Vorstellung; Konzeption,conception,conception,Vorstellung; Konzeption,1
+C1 Vokabelliste,verleihen; beraten,confer,verleihen; beraten,confer,confer,verleihen; beraten,1
+C1 Vokabelliste,Geständnis,confession,Geständnis,confession,confession,Geständnis,1
+C1 Vokabelliste,beschränken; einsperren,confine,beschränken; einsperren,confine,confine,beschränken; einsperren,1
+C1 Vokabelliste,konfrontieren,confront,konfrontieren,confront,confront,konfrontieren,1
+C1 Vokabelliste,Konfrontation,confrontation,Konfrontation,confrontation,confrontation,Konfrontation,1
+C1 Vokabelliste,bewahren; erhalten,conserve,bewahren; erhalten,conserve,conserve,bewahren; erhalten,1
+C1 Vokabelliste,Bestandteil; Wähler,constituent,Bestandteil; Wähler,constituent,constituent,Bestandteil; Wähler,1
+C1 Vokabelliste,verfassungsrechtlich,constitutional,verfassungsrechtlich,constitutional,constitutional,verfassungsrechtlich,1
+C1 Vokabelliste,erwägen; nachdenken über,contemplate,erwägen; nachdenken über,contemplate,contemplate,erwägen; nachdenken über,1
+C1 Vokabelliste,Verachtung,contempt,Verachtung,contempt,contempt,Verachtung,1
+C1 Vokabelliste,Anwärter; Konkurrent,contender,Anwärter; Konkurrent,contender,contender,Anwärter; Konkurrent,1
+C1 Vokabelliste,entgegengesetzt; Gegenteil,contrary,entgegengesetzt; Gegenteil,contrary,contrary,entgegengesetzt; Gegenteil,1
+C1 Vokabelliste,Umwandlung,conversion,Umwandlung,conversion,conversion,Umwandlung,1
+C1 Vokabelliste,verurteilen,convict,verurteilen,convict,convict,verurteilen,1
+C1 Vokabelliste,zusammenarbeiten,cooperate,zusammenarbeiten,cooperate,cooperate,zusammenarbeiten,1
+C1 Vokabelliste,Koordination,coordination,Koordination,coordination,coordination,Koordination,1
+C1 Vokabelliste,Gegenstück; Amtskollege,counterpart,Gegenstück; Amtskollege,counterpart,counterpart,Gegenstück; Amtskollege,1
+C1 Vokabelliste,unzählig,countless,unzählig,countless,countless,unzählig,1
+C1 Vokabelliste,Höflichkeit,courtesy,Höflichkeit,courtesy,courtesy,Höflichkeit,1
+C1 Vokabelliste,glaubwürdig,credible,glaubwürdig,credible,credible,glaubwürdig,1
+C1 Vokabelliste,Kritik; kritische Analyse,critique,Kritik; kritische Analyse,critique,critique,Kritik; kritische Analyse,1
+C1 Vokabelliste,zerquetschen; vernichten,crush,zerquetschen; vernichten,crush,crush,zerquetschen; vernichten,1
+C1 Vokabelliste,Neugier,curiosity,Neugier,curiosity,curiosity,Neugier,1
+C1 Vokabelliste,zynisch,cynical,zynisch,cynical,cynical,zynisch,1
+C1 Vokabelliste,Damm; Staudamm,dam,Damm; Staudamm,dam,dam,Damm; Staudamm,1
+C1 Vokabelliste,Morgendämmerung; Anbruch,dawn,Morgendämmerung; Anbruch,dawn,dawn,Morgendämmerung; Anbruch,1
+C1 Vokabelliste,Trümmer,debris,Trümmer,debris,debris,Trümmer,1
+C1 Vokabelliste,Debüt,debut,Debüt,debut,debut,Debüt,1
+C1 Vokabelliste,entscheidend; entschlossen,decisive,entscheidend; entschlossen,decisive,decisive,entscheidend; entschlossen,1
+C1 Vokabelliste,engagiert; gewidmet,dedicated,engagiert; gewidmet,dedicated,dedicated,engagiert; gewidmet,1
+C1 Vokabelliste,Engagement; Hingabe,dedication,Engagement; Hingabe,dedication,dedication,Engagement; Hingabe,1
+C1 Vokabelliste,Standard; Versäumnis,default,Standard; Versäumnis,default,default,Standard; Versäumnis,1
+C1 Vokabelliste,Delegierte/r; Abgeordnete/r,delegate,Delegierte/r; Abgeordnete/r,delegate,delegate,Delegierte/r; Abgeordnete/r,1
+C1 Vokabelliste,empfindlich; heikel,delicate,empfindlich; heikel,delicate,delicate,empfindlich; heikel,1
+C1 Vokabelliste,anprangern; verurteilen,denounce,anprangern; verurteilen,denounce,denounce,anprangern; verurteilen,1
+C1 Vokabelliste,Einsatz; Stationierung,deployment,Einsatz; Stationierung,deployment,deployment,Einsatz; Stationierung,1
+C1 Vokabelliste,einzahlen; hinterlegen; ablagern,deposit,einzahlen; hinterlegen; ablagern,deposit,deposit,einzahlen; hinterlegen; ablagern,1
+C1 Vokabelliste,Stellvertreter,deputy,Stellvertreter,deputy,deputy,Stellvertreter,1
+C1 Vokabelliste,hinabsteigen; sinken,descend,hinabsteigen; sinken,descend,descend,hinabsteigen; sinken,1
+C1 Vokabelliste,bestimmen; benennen,designate,bestimmen; benennen,designate,designate,bestimmen; benennen,1
+C1 Vokabelliste,wünschenswert,desirable,wünschenswert,desirable,desirable,wünschenswert,1
+C1 Vokabelliste,sich verschlechtern,deteriorate,sich verschlechtern,deteriorate,deteriorate,sich verschlechtern,1
+C1 Vokabelliste,diagnostizieren,diagnose,diagnostizieren,diagnose,diagnose,diagnostizieren,1
+C1 Vokabelliste,Diagnose,diagnosis,Diagnose,diagnosis,diagnosis,Diagnose,1
+C1 Vokabelliste,Würde,dignity,Würde,dignity,dignity,Würde,1
+C1 Vokabelliste,Dimension,dimension,Dimension,dimension,dimension,Dimension,1
+C1 Vokabelliste,Diplomat,diplomat,Diplomat,diplomat,diplomat,Diplomat,1
+C1 Vokabelliste,diplomatisch,diplomatic,diplomatisch,diplomatic,diplomatic,diplomatisch,1
+C1 Vokabelliste,offenlegen,disclose,offenlegen,disclose,disclose,offenlegen,1
+C1 Vokabelliste,Diskurs; Gespräch,discourse,Diskurs; Gespräch,discourse,discourse,Diskurs; Gespräch,1
+C1 Vokabelliste,Ermessen; Diskretion,discretion,Ermessen; Diskretion,discretion,discretion,Ermessen; Diskretion,1
+C1 Vokabelliste,Entlassung; Zurückweisung,dismissal,Entlassung; Zurückweisung,dismissal,dismissal,Entlassung; Zurückweisung,1
+C1 Vokabelliste,Entsorgung; Verfügung,disposal,Entsorgung; Verfügung,disposal,disposal,Entsorgung; Verfügung,1
+C1 Vokabelliste,Streit; bestreiten,dispute,Streit; bestreiten,dispute,dispute,Streit; bestreiten,1
+C1 Vokabelliste,stören; unterbrechen,disrupt,stören; unterbrechen,disrupt,disrupt,stören; unterbrechen,1
+C1 Vokabelliste,auflösen,dissolve,auflösen,dissolve,dissolve,auflösen,1
+C1 Vokabelliste,charakteristisch; unverwechselbar,distinctive,charakteristisch; unverwechselbar,distinctive,distinctive,charakteristisch; unverwechselbar,1
+C1 Vokabelliste,verzerren,distort,verzerren,distort,distort,verzerren,1
+C1 Vokabelliste,Not; Bedrängnis,distress,Not; Bedrängnis,distress,distress,Not; Bedrängnis,1
+C1 Vokabelliste,Bereich; Domäne,domain,Bereich; Domäne,domain,domain,Bereich; Domäne,1
+C1 Vokabelliste,Spender,donor,Spender,donor,donor,Spender,1
+C1 Vokabelliste,entwässern; entleeren; abfließen lassen,drain,entwässern; entleeren; abfließen lassen,drain,drain,entwässern; entleeren; abfließen lassen,1
+C1 Vokabelliste,doppelt; dual,dual,doppelt; dual,dual,dual,doppelt; dual,1
+C1 Vokabelliste,Dynamik; Wechselwirkung,dynamic,Dynamik; Wechselwirkung,dynamic,dynamic,Dynamik; Wechselwirkung,1
+C1 Vokabelliste,begierig; sehr interessiert,eager,begierig; sehr interessiert,eager,eager,begierig; sehr interessiert,1
+C1 Vokabelliste,Einkommen; Verdienst,earnings,Einkommen; Verdienst,earnings,earnings,Einkommen; Verdienst,1
+C1 Vokabelliste,Leichtigkeit; Erleichterung; erleichtern,ease,Leichtigkeit; Erleichterung; erleichtern,ease,ease,Leichtigkeit; Erleichterung; erleichtern,1
+C1 Vokabelliste,Echo; widerhallen; wiederholen,echo,Echo; widerhallen; wiederholen,echo,echo,Echo; widerhallen; wiederholen,1
+C1 Vokabelliste,ökologisch,ecological,ökologisch,ecological,ecological,ökologisch,1
+C1 Vokabelliste,Pädagoge/Pädagogin; Lehrkraft,educator,Pädagoge/Pädagogin; Lehrkraft,educator,educator,Pädagoge/Pädagogin; Lehrkraft,1
+C1 Vokabelliste,Wirksamkeit,effectiveness,Wirksamkeit,effectiveness,effectiveness,Wirksamkeit,1
+C1 Vokabelliste,Effizienz; Leistungsfähigkeit,efficiency,Effizienz; Leistungsfähigkeit,efficiency,efficiency,Effizienz; Leistungsfähigkeit,1
+C1 Vokabelliste,ausführlich; aufwendig; detailliert,elaborate,ausführlich; aufwendig; detailliert,elaborate,elaborate,ausführlich; aufwendig; detailliert,1
+C1 Vokabelliste,Wahl-; wahlbezogen,electoral,Wahl-; wahlbezogen,electoral,electoral,Wahl-; wahlbezogen,1
+C1 Vokabelliste,berechtigt; infrage kommend,eligible,berechtigt; infrage kommend,eligible,eligible,berechtigt; infrage kommend,1
+C1 Vokabelliste,Elite,elite,Elite,elite,elite,Elite,1
+C1 Vokabelliste,empirisch,empirical,empirisch,empirical,empirical,empirisch,1
+C1 Vokabelliste,erlassen; umsetzen,enact,erlassen; umsetzen,enact,enact,erlassen; umsetzen,1
+C1 Vokabelliste,umfassen,encompass,umfassen,encompass,encompass,umfassen,1
+C1 Vokabelliste,durchsetzen,enforce,durchsetzen,enforce,enforce,durchsetzen,1
+C1 Vokabelliste,Unternehmen; Unternehmung,enterprise,Unternehmen; Unternehmung,enterprise,enterprise,Unternehmen; Unternehmung,1
+C1 Vokabelliste,Einheit; Entität,entity,Einheit; Entität,entity,entity,Einheit; Entität,1
+C1 Vokabelliste,Gleichheit,equality,Gleichheit,equality,equality,Gleichheit,1
+C1 Vokabelliste,eskalieren; verschärfen,escalate,eskalieren; verschärfen,escalate,escalate,eskalieren; verschärfen,1
+C1 Vokabelliste,Wesen; Kern,essence,Wesen; Kern,essence,essence,Wesen; Kern,1
+C1 Vokabelliste,ewig,eternal,ewig,eternal,eternal,ewig,1
+C1 Vokabelliste,hervorrufen,evoke,hervorrufen,evoke,evoke,hervorrufen,1
+C1 Vokabelliste,exklusiv; ausschließlich,exclusive,exklusiv; ausschließlich,exclusive,exclusive,exklusiv; ausschließlich,1
+C1 Vokabelliste,ausführen; hinrichten,execute,ausführen; hinrichten,execute,execute,ausführen; hinrichten,1
+C1 Vokabelliste,ausüben,exert,ausüben,exert,exert,ausüben,1
+C1 Vokabelliste,Ausgaben,expenditure,Ausgaben,expenditure,expenditure,Ausgaben,1
+C1 Vokabelliste,Ausbeutung; Nutzung,exploitation,Ausbeutung; Nutzung,exploitation,exploitation,Ausbeutung; Nutzung,1
+C1 Vokabelliste,erleichtern; ermöglichen,facilitate,erleichtern; ermöglichen,facilitate,facilitate,erleichtern; ermöglichen,1
+C1 Vokabelliste,Fraktion; Gruppierung,faction,Fraktion; Gruppierung,faction,faction,Fraktion; Gruppierung,1
+C1 Vokabelliste,Fakultät; Fähigkeit,faculty,Fakultät; Fähigkeit,faculty,faculty,Fakultät; Fähigkeit,1
+C1 Vokabelliste,verblassen,fade,verblassen,fade,fade,verblassen,1
+C1 Vokabelliste,Fairness; Gerechtigkeit,fairness,Fairness; Gerechtigkeit,fairness,fairness,Fairness; Gerechtigkeit,1
+C1 Vokabelliste,tödlich; verhängnisvoll,fatal,tödlich; verhängnisvoll,fatal,fatal,tödlich; verhängnisvoll,1
+C1 Vokabelliste,Schicksal,fate,Schicksal,fate,fate,Schicksal,1
+C1 Vokabelliste,günstig; vorteilhaft,favourable,günstig; vorteilhaft,favourable,favourable,günstig; vorteilhaft,1
+C1 Vokabelliste,Leistung; Kunststück,feat,Leistung; Kunststück,feat,feat,Leistung; Kunststück,1
+C1 Vokabelliste,feministisch; Feminist,feminist,feministisch; Feminist,feminist,feminist,feministisch; Feminist,1
+C1 Vokabelliste,heftig; erbittert,fierce,heftig; erbittert,fierce,fierce,heftig; erbittert,1
+C1 Vokabelliste,Mangel; Fehler,flaw,Mangel; Fehler,flaw,flaw,Mangel; Fehler,1
+C1 Vokabelliste,Flotte,fleet,Flotte,fleet,fleet,Flotte,1
+C1 Vokabelliste,gedeihen; florieren,flourish,gedeihen; florieren,flourish,flourish,gedeihen; florieren,1
+C1 Vokabelliste,Filmmaterial,footage,Filmmaterial,footage,footage,Filmmaterial,1
+C1 Vokabelliste,schmieden; fälschen,forge,schmieden; fälschen,forge,forge,schmieden; fälschen,1
+C1 Vokabelliste,bevorstehend; entgegenkommend,forthcoming,bevorstehend; entgegenkommend,forthcoming,forthcoming,bevorstehend; entgegenkommend,1
+C1 Vokabelliste,Frustration,frustration,Frustration,frustration,frustration,Frustration,1
+C1 Vokabelliste,Glücksspiel,gambling,Glücksspiel,gambling,gambling,Glücksspiel,1
+C1 Vokabelliste,Versammlung; Treffen,gathering,Versammlung; Treffen,gathering,gathering,Versammlung; Treffen,1
+C1 Vokabelliste,Blick; starren; blicken,gaze,Blick; starren; blicken,gaze,gaze,Blick; starren; blicken,1
+C1 Vokabelliste,Ausrüstung; Gang,gear,Ausrüstung; Gang,gear,gear,Ausrüstung; Gang,1
+C1 Vokabelliste,Völkermord,genocide,Völkermord,genocide,genocide,Völkermord,1
+C1 Vokabelliste,flüchtiger Blick,glimpse,flüchtiger Blick,glimpse,glimpse,flüchtiger Blick,1
+C1 Vokabelliste,Ruhm,glory,Ruhm,glory,glory,Ruhm,1
+C1 Vokabelliste,begreifen; Griff,grasp,begreifen; Griff,grasp,grasp,begreifen; Griff,1
+C1 Vokabelliste,Trauer,grief,Trauer,grief,grief,Trauer,1
+C1 Vokabelliste,brutto; grob,gross,brutto; grob,gross,gross,brutto; grob,1
+C1 Vokabelliste,anhalten; Stillstand,halt,anhalten; Stillstand,halt,halt,anhalten; Stillstand,1
+C1 Vokabelliste,Belästigung,harassment,Belästigung,harassment,harassment,Belästigung,1
+C1 Vokabelliste,Hardware; Geräte,hardware,Hardware; Geräte,hardware,hardware,Hardware; Geräte,1
+C1 Vokabelliste,hart; streng,harsh,hart; streng,harsh,harsh,hart; streng,1
+C1 Vokabelliste,Hass,hatred,Hass,hatred,hatred,Hass,1
+C1 Vokabelliste,Gefahr; Risiko,hazard,Gefahr; Risiko,hazard,hazard,Gefahr; Risiko,1
+C1 Vokabelliste,verstärken; erhöhen,heighten,verstärken; erhöhen,heighten,heighten,verstärken; erhöhen,1
+C1 Vokabelliste,Hierarchie,hierarchy,Hierarchie,hierarchy,hierarchy,Hierarchie,1
+C1 Vokabelliste,Heimatland,homeland,Heimatland,homeland,homeland,Heimatland,1
+C1 Vokabelliste,feindselig,hostile,feindselig,hostile,hostile,feindselig,1
+C1 Vokabelliste,humanitär,humanitarian,humanitär,humanitarian,humanitarian,humanitär,1
+C1 Vokabelliste,Identifizierung; Feststellung der Identität,identification,Identifizierung; Feststellung der Identität,identification,identification,Identifizierung; Feststellung der Identität,1
+C1 Vokabelliste,ideologisch,ideological,ideologisch,ideological,ideological,ideologisch,1
+C1 Vokabelliste,Ideologie,ideology,Ideologie,ideology,ideology,Ideologie,1
+C1 Vokabelliste,Idiot/in,idiot,Idiot/in,idiot,idiot,Idiot/in,1
+C1 Vokabelliste,Unwissenheit,ignorance,Unwissenheit,ignorance,ignorance,Unwissenheit,1
+C1 Vokabelliste,Bildsprache; Bildwelt,imagery,Bildsprache; Bildwelt,imagery,imagery,Bildsprache; Bildwelt,1
+C1 Vokabelliste,immens; enorm,immense,immens; enorm,immense,immense,immens; enorm,1
+C1 Vokabelliste,unmittelbar bevorstehend,imminent,unmittelbar bevorstehend,imminent,imminent,unmittelbar bevorstehend,1
+C1 Vokabelliste,Umsetzung; Implementierung,implementation,Umsetzung; Implementierung,implementation,implementation,Umsetzung; Implementierung,1
+C1 Vokabelliste,inhaftieren,imprison,inhaftieren,imprison,imprison,inhaftieren,1
+C1 Vokabelliste,Unfähigkeit,inability,Unfähigkeit,inability,inability,Unfähigkeit,1
+C1 Vokabelliste,unzureichend; unangemessen,inadequate,unzureichend; unangemessen,inadequate,inadequate,unzureichend; unangemessen,1
+C1 Vokabelliste,unangemessen,inappropriate,unangemessen,inappropriate,inappropriate,unangemessen,1
+C1 Vokabelliste,Häufigkeit; Auftreten,incidence,Häufigkeit; Auftreten,incidence,incidence,Häufigkeit; Auftreten,1
+C1 Vokabelliste,geneigt; dazu neigend,inclined,geneigt; dazu neigend,inclined,inclined,geneigt; dazu neigend,1
+C1 Vokabelliste,Einbeziehung,inclusion,Einbeziehung,inclusion,inclusion,Einbeziehung,1
+C1 Vokabelliste,sich zuziehen; entstehen lassen,incur,sich zuziehen; entstehen lassen,incur,incur,sich zuziehen; entstehen lassen,1
+C1 Vokabelliste,Indikator; Anzeichen,indicator,Indikator; Anzeichen,indicator,indicator,Indikator; Anzeichen,1
+C1 Vokabelliste,bewohnen,inhabit,bewohnen,inhabit,inhabit,bewohnen,1
+C1 Vokabelliste,inhärent; wesentlich,inherent,inhärent; wesentlich,inherent,inherent,inhärent; wesentlich,1
+C1 Vokabelliste,einleiten,initiate,einleiten,initiate,initiate,einleiten,1
+C1 Vokabelliste,Injektion,injection,Injektion,injection,injection,Injektion,1
+C1 Vokabelliste,Inspektion; Prüfung,inspection,Inspektion; Prüfung,inspection,inspection,Inspektion; Prüfung,1
+C1 Vokabelliste,Instinkt,instinct,Instinkt,instinct,instinct,Instinkt,1
+C1 Vokabelliste,institutionell,institutional,institutionell,institutional,institutional,institutionell,1
+C1 Vokabelliste,unzureichend,insufficient,unzureichend,insufficient,insufficient,unzureichend,1
+C1 Vokabelliste,Integrität; Unversehrtheit,integrity,Integrität; Unversehrtheit,integrity,integrity,Integrität; Unversehrtheit,1
+C1 Vokabelliste,Intellektuelle/r,intellectual,Intellektuelle/r,intellectual,intellectual,Intellektuelle/r,1
+C1 Vokabelliste,Intensität,intensity,Intensität,intensity,intensity,Intensität,1
+C1 Vokabelliste,eingreifen; sich einmischen,interfere,eingreifen; sich einmischen,interfere,interfere,eingreifen; sich einmischen,1
+C1 Vokabelliste,Einmischung; Störung,interference,Einmischung; Störung,interference,interference,Einmischung; Störung,1
+C1 Vokabelliste,Eingriff; Intervention,intervention,Eingriff; Intervention,intervention,intervention,Eingriff; Intervention,1
+C1 Vokabelliste,faszinierend; rätselhaft,intriguing,faszinierend; rätselhaft,intriguing,intriguing,faszinierend; rätselhaft,1
+C1 Vokabelliste,Ermittler,investigator,Ermittler,investigator,investigator,Ermittler,1
+C1 Vokabelliste,Beteiligung,involvement,Beteiligung,involvement,involvement,Beteiligung,1
+C1 Vokabelliste,richterlich; Justiz-,judicial,richterlich; Justiz-,judicial,judicial,richterlich; Justiz-,1
+C1 Vokabelliste,Zuständigkeit; Gerichtsbarkeit,jurisdiction,Zuständigkeit; Gerichtsbarkeit,jurisdiction,jurisdiction,Zuständigkeit; Gerichtsbarkeit,1
+C1 Vokabelliste,Gesetzgebung,legislation,Gesetzgebung,legislation,legislation,Gesetzgebung,1
+C1 Vokabelliste,legitim; berechtigt,legitimate,legitim; berechtigt,legitimate,legitimate,legitim; berechtigt,1
+C1 Vokabelliste,Befreiung,liberation,Befreiung,liberation,liberation,Befreiung,1
+C1 Vokabelliste,Freiheit,liberty,Freiheit,liberty,liberty,Freiheit,1
+C1 Vokabelliste,Wahrscheinlichkeit,likelihood,Wahrscheinlichkeit,likelihood,likelihood,Wahrscheinlichkeit,1
+C1 Vokabelliste,Gliedmaße,limb,Gliedmaße,limb,limb,Gliedmaße,1
+C1 Vokabelliste,linear,linear,linear,linear,linear,linear,1
+C1 Vokabelliste,Lese- und Schreibfähigkeit,literacy,Lese- und Schreibfähigkeit,literacy,literacy,Lese- und Schreibfähigkeit,1
+C1 Vokabelliste,Lobby; Lobbyarbeit betreiben,lobby,Lobby; Lobbyarbeit betreiben,lobby,lobby,Lobby; Lobbyarbeit betreiben,1
+C1 Vokabelliste,Maschinen; Maschinerie,machinery,Maschinen; Maschinerie,machinery,machinery,Maschinen; Maschinerie,1
+C1 Vokabelliste,Ausmaß; Größenordnung,magnitude,Ausmaß; Größenordnung,magnitude,magnitude,Ausmaß; Größenordnung,1
+C1 Vokabelliste,Festland,mainland,Festland,mainland,mainland,Festland,1
+C1 Vokabelliste,Mainstream; vorherrschend,mainstream,Mainstream; vorherrschend,mainstream,mainstream,Mainstream; vorherrschend,1
+C1 Vokabelliste,Instandhaltung,maintenance,Instandhaltung,maintenance,maintenance,Instandhaltung,1
+C1 Vokabelliste,manipulieren,manipulate,manipulieren,manipulate,manipulate,manipulieren,1
+C1 Vokabelliste,Manuskript,manuscript,Manuskript,manuscript,manuscript,Manuskript,1
+C1 Vokabelliste,geringfügig; randständig,marginal,geringfügig; randständig,marginal,marginal,geringfügig; randständig,1
+C1 Vokabelliste,Marktplatz; Markt,marketplace,Marktplatz; Markt,marketplace,marketplace,Marktplatz; Markt,1
+C1 Vokabelliste,reif; reifen,mature,reif; reifen,mature,mature,reif; reifen,1
+C1 Vokabelliste,bedeutungsvoll,meaningful,bedeutungsvoll,meaningful,meaningful,bedeutungsvoll,1
+C1 Vokabelliste,verschmelzen; fusionieren,merge,verschmelzen; fusionieren,merge,merge,verschmelzen; fusionieren,1
+C1 Vokabelliste,Methodik,methodology,Methodik,methodology,methodology,Methodik,1
+C1 Vokabelliste,militant; Aktivist,militant,militant; Aktivist,militant,militant,militant; Aktivist,1
+C1 Vokabelliste,Wunder,miracle,Wunder,miracle,miracle,Wunder,1
+C1 Vokabelliste,Änderung; Modifikation,modification,Änderung; Modifikation,modification,modification,Änderung; Modifikation,1
+C1 Vokabelliste,Dynamik; Schwung,momentum,Dynamik; Schwung,momentum,momentum,Dynamik; Schwung,1
+C1 Vokabelliste,kommunal; städtisch,municipal,kommunal; städtisch,municipal,municipal,kommunal; städtisch,1
+C1 Vokabelliste,gegenseitig,mutual,gegenseitig,mutual,mutual,gegenseitig,1
+C1 Vokabelliste,vernachlässigen; Vernachlässigung,neglect,vernachlässigen; Vernachlässigung,neglect,neglect,vernachlässigen; Vernachlässigung,1
+C1 Vokabelliste,Nische,niche,Nische,niche,niche,Nische,1
+C1 Vokabelliste,nominieren,nominate,nominieren,nominate,nominate,nominieren,1
+C1 Vokabelliste,Nominierung,nomination,Nominierung,nomination,nomination,Nominierung,1
+C1 Vokabelliste,dennoch,nonetheless,dennoch,nonetheless,nonetheless,dennoch,1
+C1 Vokabelliste,berüchtigt,notorious,berüchtigt,notorious,notorious,berüchtigt,1
+C1 Vokabelliste,neuartig; neu,novel,neuartig; neu,novel,novel,neuartig; neu,1
+C1 Vokabelliste,Einwand,objection,Einwand,objection,objection,Einwand,1
+C1 Vokabelliste,verpflichten; zwingen,oblige,verpflichten; zwingen,oblige,oblige,verpflichten; zwingen,1
+C1 Vokabelliste,zwanghaft beschäftigen; besessen machen,obsess,zwanghaft beschäftigen; besessen machen,obsess,obsess,zwanghaft beschäftigen; besessen machen,1
+C1 Vokabelliste,Besessenheit; Obsession,obsession,Besessenheit; Obsession,obsession,obsession,Besessenheit; Obsession,1
+C1 Vokabelliste,gelegentlich,occasional,gelegentlich,occasional,occasional,gelegentlich,1
+C1 Vokabelliste,Vorkommen; Ereignis,occurrence,Vorkommen; Ereignis,occurrence,occurrence,Vorkommen; Ereignis,1
+C1 Vokabelliste,Chancen; Wahrscheinlichkeit,odds,Chancen; Wahrscheinlichkeit,odds,odds,Chancen; Wahrscheinlichkeit,1
+C1 Vokabelliste,Angebot; Darbietung,offering,Angebot; Darbietung,offering,offering,Angebot; Darbietung,1
+C1 Vokabelliste,Nachwuchs; Nachkommen,offspring,Nachwuchs; Nachkommen,offspring,offspring,Nachwuchs; Nachkommen,1
+C1 Vokabelliste,betriebsbereit; operativ,operational,betriebsbereit; operativ,operational,operational,betriebsbereit; operativ,1
+C1 Vokabelliste,optisch,optical,optisch,optical,optical,optisch,1
+C1 Vokabelliste,Ausbruch,outbreak,Ausbruch,outbreak,outbreak,Ausbruch,1
+C1 Vokabelliste,Ausblick; Einstellung,outlook,Ausblick; Einstellung,outlook,outlook,Ausblick; Einstellung,1
+C1 Vokabelliste,überwältigen,overwhelm,überwältigen,overwhelm,overwhelm,überwältigen,1
+C1 Vokabelliste,Block; Polster; Unterlage,pad,Block; Polster; Unterlage,pad,pad,Block; Polster; Unterlage,1
+C1 Vokabelliste,Parameter,parameter,Parameter,parameter,parameter,Parameter,1
+C1 Vokabelliste,elterlich,parental,elterlich,parental,parental,elterlich,1
+C1 Vokabelliste,Pfarrei; Kirchengemeinde,parish,Pfarrei; Kirchengemeinde,parish,parish,Pfarrei; Kirchengemeinde,1
+C1 Vokabelliste,parlamentarisch,parliamentary,parlamentarisch,parliamentary,parliamentary,parlamentarisch,1
+C1 Vokabelliste,teilweise,partially,teilweise,partially,partially,teilweise,1
+C1 Vokabelliste,passiv,passive,passiv,passive,passive,passiv,1
+C1 Vokabelliste,Pastor,pastor,Pastor,pastor,pastor,Pastor,1
+C1 Vokabelliste,Weg; Entwicklungspfad,pathway,Weg; Entwicklungspfad,pathway,pathway,Weg; Entwicklungspfad,1
+C1 Vokabelliste,Höhepunkt; Höchststand,peak,Höhepunkt; Höchststand,peak,peak,Höhepunkt; Höchststand,1
+C1 Vokabelliste,andauern; beharren,persist,andauern; beharren,persist,persist,andauern; beharren,1
+C1 Vokabelliste,Petition; Bittschrift,petition,Petition; Bittschrift,petition,petition,Petition; Bittschrift,1
+C1 Vokabelliste,Arzt,physician,Arzt,physician,physician,Arzt,1
+C1 Vokabelliste,Pionier/in; Wegbereiter/in,pioneer,Pionier/in; Wegbereiter/in,pioneer,pioneer,Pionier/in; Wegbereiter/in,1
+C1 Vokabelliste,Bitte; Plädoyer,plea,Bitte; Plädoyer,plea,plea,Bitte; Plädoyer,1
+C1 Vokabelliste,Versprechen; sich verpflichten,pledge,Versprechen; sich verpflichten,pledge,pledge,Versprechen; sich verpflichten,1
+C1 Vokabelliste,stürzen; abstürzen; stark fallen,plunge,stürzen; abstürzen; stark fallen,plunge,plunge,stürzen; abstürzen; stark fallen,1
+C1 Vokabelliste,Portfolio,portfolio,Portfolio,portfolio,portfolio,Portfolio,1
+C1 Vokabelliste,Praktiker; Fachkraft,practitioner,Praktiker; Fachkraft,practitioner,practitioner,Praktiker; Fachkraft,1
+C1 Vokabelliste,Präzedenzfall,precedent,Präzedenzfall,precedent,precedent,Präzedenzfall,1
+C1 Vokabelliste,Präzision,precision,Präzision,precision,precision,Präzision,1
+C1 Vokabelliste,überwiegend,predominantly,überwiegend,predominantly,predominantly,überwiegend,1
+C1 Vokabelliste,Prämisse; Voraussetzung,premise,Prämisse; Voraussetzung,premise,premise,Prämisse; Voraussetzung,1
+C1 Vokabelliste,Aufpreis; Prämie,premium,Aufpreis; Prämie,premium,premium,Aufpreis; Prämie,1
+C1 Vokabelliste,Rezept; Vorschrift,prescription,Rezept; Vorschrift,prescription,prescription,Rezept; Vorschrift,1
+C1 Vokabelliste,annehmen; vermuten,presume,annehmen; vermuten,presume,presume,annehmen; vermuten,1
+C1 Vokabelliste,Verbreitung; Häufigkeit,prevalence,Verbreitung; Häufigkeit,prevalence,prevalence,Verbreitung; Häufigkeit,1
+C1 Vokabelliste,Beute,prey,Beute,prey,prey,Beute,1
+C1 Vokabelliste,Privileg,privilege,Privileg,privilege,privilege,Privileg,1
+C1 Vokabelliste,Untersuchung; untersuchen,probe,Untersuchung; untersuchen,probe,probe,Untersuchung; untersuchen,1
+C1 Vokabelliste,verkünden,proclaim,verkünden,proclaim,proclaim,verkünden,1
+C1 Vokabelliste,tiefgreifend,profound,tiefgreifend,profound,profound,tiefgreifend,1
+C1 Vokabelliste,bedeutend; prominent,prominent,bedeutend; prominent,prominent,prominent,bedeutend; prominent,1
+C1 Vokabelliste,Propaganda,propaganda,Propaganda,propaganda,propaganda,Propaganda,1
+C1 Vokabelliste,strafrechtlich verfolgen,prosecute,strafrechtlich verfolgen,prosecute,prosecute,strafrechtlich verfolgen,1
+C1 Vokabelliste,Staatsanwalt,prosecutor,Staatsanwalt,prosecutor,prosecutor,Staatsanwalt,1
+C1 Vokabelliste,potenziell; zukünftig,prospective,potenziell; zukünftig,prospective,prospective,potenziell; zukünftig,1
+C1 Vokabelliste,Provinz; Bereich,province,Provinz; Bereich,province,province,Provinz; Bereich,1
+C1 Vokabelliste,provozieren; hervorrufen,provoke,provozieren; hervorrufen,provoke,provoke,provozieren; hervorrufen,1
+C1 Vokabelliste,Puls; Impuls,pulse,Puls; Impuls,pulse,pulse,Puls; Impuls,1
+C1 Vokabelliste,Radar,radar,Radar,radar,radar,Radar,1
+C1 Vokabelliste,radikal,radical,radikal,radical,radical,radikal,1
+C1 Vokabelliste,Wut; Zorn,rage,Wut; Zorn,rage,rage,Wut; Zorn,1
+C1 Vokabelliste,Razzia; Überfall; überfallen,raid,Razzia; Überfall; überfallen,raid,raid,Razzia; Überfall; überfallen,1
+C1 Vokabelliste,Kundgebung; sich erholen,rally,Kundgebung; sich erholen,rally,rally,Kundgebung; sich erholen,1
+C1 Vokabelliste,Rangliste; Einstufung,ranking,Rangliste; Einstufung,ranking,ranking,Rangliste; Einstufung,1
+C1 Vokabelliste,Verhältnis; Quote,ratio,Verhältnis; Quote,ratio,ratio,Verhältnis; Quote,1
+C1 Vokabelliste,rational; vernünftig,rational,rational; vernünftig,rational,rational,rational; vernünftig,1
+C1 Vokabelliste,Erkenntnis; Verwirklichung,realization,Erkenntnis; Verwirklichung,realization,realization,Erkenntnis; Verwirklichung,1
+C1 Vokabelliste,Bereich; Reich,realm,Bereich; Reich,realm,realm,Bereich; Reich,1
+C1 Vokabelliste,Argumentation; Schlussfolgerung,reasoning,Argumentation; Schlussfolgerung,reasoning,reasoning,Argumentation; Schlussfolgerung,1
+C1 Vokabelliste,Rebell/in; Aufständische/r,rebel,Rebell/in; Aufständische/r,rebel,rebel,Rebell/in; Aufständische/r,1
+C1 Vokabelliste,Empfänger,recipient,Empfänger,recipient,recipient,Empfänger,1
+C1 Vokabelliste,Wiederaufbau,reconstruction,Wiederaufbau,reconstruction,reconstruction,Wiederaufbau,1
+C1 Vokabelliste,Reflexion; Spiegelbild,reflection,Reflexion; Spiegelbild,reflection,reflection,Reflexion; Spiegelbild,1
+C1 Vokabelliste,Zuflucht,refuge,Zuflucht,refuge,refuge,Zuflucht,1
+C1 Vokabelliste,wiedererlangen,regain,wiedererlangen,regain,regain,wiedererlangen,1
+C1 Vokabelliste,Regime; System,regime,Regime; System,regime,regime,Regime; System,1
+C1 Vokabelliste,Regulierungsbehörde,regulator,Regulierungsbehörde,regulator,regulator,Regulierungsbehörde,1
+C1 Vokabelliste,Relevanz,relevance,Relevanz,relevance,relevance,Relevanz,1
+C1 Vokabelliste,Überreste,remains,Überreste,remains,remains,Überreste,1
+C1 Vokabelliste,Abhilfe; Heilmittel,remedy,Abhilfe; Heilmittel,remedy,remedy,Abhilfe; Heilmittel,1
+C1 Vokabelliste,machen; darstellen,render,machen; darstellen,render,render,machen; darstellen,1
+C1 Vokabelliste,Ersatz,replacement,Ersatz,replacement,replacement,Ersatz,1
+C1 Vokabelliste,Berichten zufolge,reportedly,Berichten zufolge,reportedly,reportedly,Berichten zufolge,1
+C1 Vokabelliste,reproduzieren; fortpflanzen,reproduce,reproduzieren; fortpflanzen,reproduce,reproduce,reproduzieren; fortpflanzen,1
+C1 Vokabelliste,Wohnsitz,residence,Wohnsitz,residence,residence,Wohnsitz,1
+C1 Vokabelliste,Wohn-,residential,Wohn-,residential,residential,Wohn-,1
+C1 Vokabelliste,Rücktritt,resignation,Rücktritt,resignation,resignation,Rücktritt,1
+C1 Vokabelliste,jeweilig,respective,jeweilig,respective,respective,jeweilig,1
+C1 Vokabelliste,Wiederherstellung,restoration,Wiederherstellung,restoration,restoration,Wiederherstellung,1
+C1 Vokabelliste,Rückzug; sich zurückziehen,retreat,Rückzug; sich zurückziehen,retreat,retreat,Rückzug; sich zurückziehen,1
+C1 Vokabelliste,Enthüllung; Offenbarung,revelation,Enthüllung; Offenbarung,revelation,revelation,Enthüllung; Offenbarung,1
+C1 Vokabelliste,umkehren; Gegenteil,reverse,umkehren; Gegenteil,reverse,reverse,umkehren; Gegenteil,1
+C1 Vokabelliste,revolutionär,revolutionary,revolutionär,revolutionary,revolutionary,revolutionär,1
+C1 Vokabelliste,Aufstand; Ausschreitung,riot,Aufstand; Ausschreitung,riot,riot,Aufstand; Ausschreitung,1
+C1 Vokabelliste,robust; widerstandsfähig,robust,robust; widerstandsfähig,robust,robust,robust; widerstandsfähig,1
+C1 Vokabelliste,Urteil; Entscheidung,ruling,Urteil; Entscheidung,ruling,ruling,Urteil; Entscheidung,1
+C1 Vokabelliste,entlassen; feuern,sack,entlassen; feuern,sack,sack,entlassen; feuern,1
+C1 Vokabelliste,heilig,sacred,heilig,sacred,sacred,heilig,1
+C1 Vokabelliste,Opfer; opfern,sacrifice,Opfer; opfern,sacrifice,sacrifice,Opfer; opfern,1
+C1 Vokabelliste,Heilige/r,saint,Heilige/r,saint,saint,Heilige/r,1
+C1 Vokabelliste,Zweck; um ... willen,sake,Zweck; um ... willen,sake,sake,Zweck; um ... willen,1
+C1 Vokabelliste,Sanktion; Genehmigung,sanction,Sanktion; Genehmigung,sanction,sanction,Sanktion; Genehmigung,1
+C1 Vokabelliste,verstreut; vereinzelt,scattered,verstreut; vereinzelt,scattered,scattered,verstreut; vereinzelt,1
+C1 Vokabelliste,skeptisch,sceptical,skeptisch,sceptical,sceptical,skeptisch,1
+C1 Vokabelliste,Umfang; Spielraum,scope,Umfang; Spielraum,scope,scope,Umfang; Spielraum,1
+C1 Vokabelliste,genaue Prüfung; kritische Prüfung,scrutiny,genaue Prüfung; kritische Prüfung,scrutiny,scrutiny,genaue Prüfung; kritische Prüfung,1
+C1 Vokabelliste,Siegel; versiegeln; abdichten,seal,Siegel; versiegeln; abdichten,seal,seal,Siegel; versiegeln; abdichten,1
+C1 Vokabelliste,weltlich; säkular,secular,weltlich; säkular,secular,secular,weltlich; säkular,1
+C1 Vokabelliste,Senator/in,senator,Senator/in,senator,senator,Senator/in,1
+C1 Vokabelliste,Empfindung; Aufsehen,sensation,Empfindung; Aufsehen,sensation,sensation,Empfindung; Aufsehen,1
+C1 Vokabelliste,Sensibilität; Empfindlichkeit,sensitivity,Sensibilität; Empfindlichkeit,sensitivity,sensitivity,Sensibilität; Empfindlichkeit,1
+C1 Vokabelliste,Stimmung; Gefühl; Haltung,sentiment,Stimmung; Gefühl; Haltung,sentiment,sentiment,Stimmung; Gefühl; Haltung,1
+C1 Vokabelliste,Aktionär,shareholder,Aktionär,shareholder,shareholder,Aktionär,1
+C1 Vokabelliste,rein; schier,sheer,rein; schier,sheer,sheer,rein; schier,1
+C1 Vokabelliste,Versand; Schifffahrt,shipping,Versand; Schifffahrt,shipping,shipping,Versand; Schifffahrt,1
+C1 Vokabelliste,Simulation,simulation,Simulation,simulation,simulation,Simulation,1
+C1 Vokabelliste,gleichzeitig,simultaneously,gleichzeitig,simultaneously,simultaneously,gleichzeitig,1
+C1 Vokabelliste,Solidarität,solidarity,Solidarität,solidarity,solidarity,Solidarität,1
+C1 Vokabelliste,Souveränität,sovereignty,Souveränität,sovereignty,sovereignty,Souveränität,1
+C1 Vokabelliste,Zeitraum; umfassen,span,Zeitraum; umfassen,span,span,Zeitraum; umfassen,1
+C1 Vokabelliste,Spezifikation,specification,Spezifikation,specification,specification,Spezifikation,1
+C1 Vokabelliste,Sphäre; Bereich,sphere,Sphäre; Bereich,sphere,sphere,Sphäre; Bereich,1
+C1 Vokabelliste,Rampenlicht,spotlight,Rampenlicht,spotlight,spotlight,Rampenlicht,1
+C1 Vokabelliste,statistisch,statistical,statistisch,statistical,statistical,statistisch,1
+C1 Vokabelliste,steuern; lenken,steer,steuern; lenken,steer,steer,steuern; lenken,1
+C1 Vokabelliste,Anreiz; Reiz,stimulus,Anreiz; Reiz,stimulus,stimulus,Anreiz; Reiz,1
+C1 Vokabelliste,strategisch,strategic,strategisch,strategic,strategic,strategisch,1
+C1 Vokabelliste,auffällig,striking,auffällig,striking,striking,auffällig,1
+C1 Vokabelliste,strukturell,structural,strukturell,structural,structural,strukturell,1
+C1 Vokabelliste,Einreichung; Unterwerfung,submission,Einreichung; Unterwerfung,submission,submission,Einreichung; Unterwerfung,1
+C1 Vokabelliste,Ersatz; ersetzen,substitute,Ersatz; ersetzen,substitute,substitute,Ersatz; ersetzen,1
+C1 Vokabelliste,Abfolge; Nachfolge,succession,Abfolge; Nachfolge,succession,succession,Abfolge; Nachfolge,1
+C1 Vokabelliste,aufeinanderfolgend,successive,aufeinanderfolgend,successive,successive,aufeinanderfolgend,1
+C1 Vokabelliste,Ergänzung; ergänzen,supplement,Ergänzung; ergänzen,supplement,supplement,Ergänzung; ergänzen,1
+C1 Vokabelliste,höchste; oberste,supreme,höchste; oberste,supreme,supreme,höchste; oberste,1
+C1 Vokabelliste,Anstieg; stark steigen,surge,Anstieg; stark steigen,surge,surge,Anstieg; stark steigen,1
+C1 Vokabelliste,symbolisch,symbolic,symbolisch,symbolic,symbolic,symbolisch,1
+C1 Vokabelliste,Ausrüstung; Gerät,tackle,Ausrüstung; Gerät,tackle,tackle,Ausrüstung; Gerät,1
+C1 Vokabelliste,Taktik,tactic,Taktik,tactic,tactic,Taktik,1
+C1 Vokabelliste,taktisch,tactical,taktisch,tactical,tactical,taktisch,1
+C1 Vokabelliste,Steuerzahler/in,taxpayer,Steuerzahler/in,taxpayer,taxpayer,Steuerzahler/in,1
+C1 Vokabelliste,Mieter,tenant,Mieter,tenant,tenant,Mieter,1
+C1 Vokabelliste,Amtszeit; Beschäftigungsdauer,tenure,Amtszeit; Beschäftigungsdauer,tenure,tenure,Amtszeit; Beschäftigungsdauer,1
+C1 Vokabelliste,Gelände,terrain,Gelände,terrain,terrain,Gelände,1
+C1 Vokabelliste,theoretisch,theoretical,theoretisch,theoretical,theoretical,theoretisch,1
+C1 Vokabelliste,Schwelle,threshold,Schwelle,threshold,threshold,Schwelle,1
+C1 Vokabelliste,verschärfen; festziehen,tighten,verschärfen; festziehen,tighten,tighten,verschärfen; festziehen,1
+C1 Vokabelliste,Bauholz,timber,Bauholz,timber,timber,Bauholz,1
+C1 Vokabelliste,tolerieren,tolerate,tolerieren,tolerate,tolerate,tolerieren,1
+C1 Vokabelliste,Folter; foltern,torture,Folter; foltern,torture,torture,Folter; foltern,1
+C1 Vokabelliste,Spur; Anzeichen,trace,Spur; Anzeichen,trace,trace,Spur; Anzeichen,1
+C1 Vokabelliste,Transaktion,transaction,Transaktion,transaction,transaction,Transaktion,1
+C1 Vokabelliste,Transit; Durchreise,transit,Transit; Durchreise,transit,transit,Transit; Durchreise,1
+C1 Vokabelliste,Transparenz,transparency,Transparenz,transparency,transparency,Transparenz,1
+C1 Vokabelliste,transparent,transparent,transparent,transparent,transparent,transparent,1
+C1 Vokabelliste,Vertrag; Abkommen,treaty,Vertrag; Abkommen,treaty,treaty,Vertrag; Abkommen,1
+C1 Vokabelliste,Stammes-,tribal,Stammes-,tribal,tribal,Stammes-,1
+C1 Vokabelliste,Tribut; Würdigung,tribute,Tribut; Würdigung,tribute,tribute,Tribut; Würdigung,1
+C1 Vokabelliste,Triumph,triumph,Triumph,triumph,triumph,Triumph,1
+C1 Vokabelliste,Treuhänder,trustee,Treuhänder,trustee,trustee,Treuhänder,1
+C1 Vokabelliste,Umsatz; Fluktuation,turnover,Umsatz; Fluktuation,turnover,turnover,Umsatz; Fluktuation,1
+C1 Vokabelliste,Student/in im grundständigen Studium; Bachelorstudent/in,undergraduate,Student/in im grundständigen Studium; Bachelorstudent/in,undergraduate,undergraduate,Student/in im grundständigen Studium; Bachelorstudent/in,1
+C1 Vokabelliste,zugrunde liegend,underlying,zugrunde liegend,underlying,underlying,zugrunde liegend,1
+C1 Vokabelliste,untergraben; schwächen,undermine,untergraben; schwächen,undermine,undermine,untergraben; schwächen,1
+C1 Vokabelliste,vereinigen,unify,vereinigen,unify,unify,vereinigen,1
+C1 Vokabelliste,enthüllen,unveil,enthüllen,unveil,unveil,enthüllen,1
+C1 Vokabelliste,Nutzen; Versorgungsunternehmen,utility,Nutzen; Versorgungsunternehmen,utility,utility,Nutzen; Versorgungsunternehmen,1
+C1 Vokabelliste,Gültigkeit,validity,Gültigkeit,validity,validity,Gültigkeit,1
+C1 Vokabelliste,verschwinden,vanish,verschwinden,vanish,vanish,verschwinden,1
+C1 Vokabelliste,Unterfangen; wagen,venture,Unterfangen; wagen,venture,venture,Unterfangen; wagen,1
+C1 Vokabelliste,Urteil,verdict,Urteil,verdict,verdict,Urteil,1
+C1 Vokabelliste,überprüfen,verify,überprüfen,verify,verify,überprüfen,1
+C1 Vokabelliste,Veteran,veteran,Veteran,veteran,veteran,Veteran,1
+C1 Vokabelliste,lebendig; dynamisch,vibrant,lebendig; dynamisch,vibrant,vibrant,lebendig; dynamisch,1
+C1 Vokabelliste,verletzen; verstoßen gegen,violate,verletzen; verstoßen gegen,violate,violate,verletzen; verstoßen gegen,1
+C1 Vokabelliste,Verstoß,violation,Verstoß,violation,violation,Verstoß,1
+C1 Vokabelliste,lautstark; stimmlich,vocal,lautstark; stimmlich,vocal,vocal,lautstark; stimmlich,1
+C1 Vokabelliste,verletzlich; gefährdet,vulnerable,verletzlich; gefährdet,vulnerable,vulnerable,verletzlich; gefährdet,1
+C1 Vokabelliste,Station; Bezirk,ward,Station; Bezirk,ward,ward,Station; Bezirk,1
+C1 Vokabelliste,Lagerhaus,warehouse,Lagerhaus,warehouse,warehouse,Lagerhaus,1
+C1 Vokabelliste,Kriegsführung,warfare,Kriegsführung,warfare,warfare,Kriegsführung,1
+C1 Vokabelliste,rechtfertigen; Haftbefehl,warrant,rechtfertigen; Haftbefehl,warrant,warrant,rechtfertigen; Haftbefehl,1
+C1 Vokabelliste,Rückzug; Abhebung,withdrawal,Rückzug; Abhebung,withdrawal,withdrawal,Rückzug; Abhebung,1
+C1 Vokabelliste,lohnenswert,worthwhile,lohnenswert,worthwhile,worthwhile,lohnenswert,1
+C1 Vokabelliste,Ertrag; nachgeben,yield,Ertrag; nachgeben,yield,yield,Ertrag; nachgeben,1
