@@ -1,42 +1,43 @@
 #!/usr/bin/env bash
 #
-# Starts the development server for this app.
+# Startet den Entwicklungsserver fuer diese Anwendung.
 #
 # ---------------------------------------------------------------------------
-# Why four workers
+# Warum vier Worker
 # ---------------------------------------------------------------------------
-# A subcategory page asks for four things AT THE SAME TIME: the learning areas
-# (for the sidebar), the category itself, its subcategories and its cards.
-# PHP's own development server answers exactly one request at a time with a
-# single worker, so those four requests queue up behind each other and the page
-# waits for the sum of them.
+# Eine Unterkategorie-Seite fragt VIER Dinge gleichzeitig ab: die Lernbereiche
+# (fuer die Seitenleiste), die Kategorie selbst, ihre Unterkategorien und ihre
+# Karten. Der PHP-eigene Entwicklungsserver beantwortet immer nur eine Anfrage
+# auf einmal (ein Worker), also stellen sich diese vier Anfragen hintereinander
+# an und die Seite wartet auf ihre Summe.
 #
-# PHP_CLI_SERVER_WORKERS starts several worker processes, so the four requests
-# are really answered side by side. Measured on this project, the four calls of
-# one detail page:
+# PHP_CLI_SERVER_WORKERS startet mehrere Worker-Prozesse, damit die vier
+# Anfragen wirklich nebeneinander laufen. Auf diesem Projekt gemessen, die vier
+# Aufrufe einer Detailseite:
 #
-#     one worker   91.8 ms
-#     four workers 61.7 ms
+#     ein Worker     91.8 ms
+#     vier Worker    61.7 ms
 #
-# Nothing about the application changes: this only affects the local server.
+# An der Anwendung aendert das nichts: es betrifft nur den lokalen Server.
 #
 # ---------------------------------------------------------------------------
-# Usage
+# Benutzung
 # ---------------------------------------------------------------------------
 #     ./start-dev.sh              -> http://127.0.0.1:8081/
 #     PORT=8082 ./start-dev.sh    -> http://127.0.0.1:8082/
 #
-# Stop it with Ctrl+C. Apache is NOT used by this script; it serves
-# /var/www/html and has nothing to do with this project.
+# Beenden mit Strg+C. Apache wird von diesem Skript NICHT benutzt; der
+# System-Apache liefert /var/www/html aus und hat mit diesem Projekt nichts zu
+# tun.
 
 set -euo pipefail
 
 PORT="${PORT:-8081}"
-# The folder this script sits in, so it works from anywhere.
+# Der Ordner, in dem dieses Skript liegt, damit es von ueberall aus laeuft.
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-# Four workers instead of one. Keep this number at or below the number of CPU
-# cores; more workers only take turns on the same cores.
+# Vier Worker statt einem. Die Zahl sollte nicht groesser sein als die Anzahl
+# der CPU-Kerne; mehr Worker teilen sich nur dieselben Kerne.
 export PHP_CLI_SERVER_WORKERS=4
 
 # Die Sitzungen liegen in DEMSELBEN Ordner wie bei Apache. Das ist wichtiger,
@@ -54,4 +55,6 @@ echo "Sessions are kept in ${SESSION_DIR}."
 echo "Press Ctrl+C to stop it."
 
 cd "$PROJECT_ROOT"
+# -d session.save_path zeigt auf denselben Ordner wie die Apache-Konfiguration
+# (deploy/apache/httpd-user.conf, Zeile 68).
 exec php -S "127.0.0.1:${PORT}" -t public -d session.save_path="$SESSION_DIR"
