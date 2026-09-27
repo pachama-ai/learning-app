@@ -878,6 +878,16 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 absichtlich nicht in diesem Formular.
             -->
             <div class="dialog__actions" id="app-dialog-actions">
+                <!--
+                    Die Tastenkuerzel stehen nur im Kartendialog da - nur dort tun
+                    sie wirklich etwas. Als Chip links in der Fusszeile, damit sie
+                    nicht mit dem Formular mitscrollen.
+                -->
+                <p class="dialog__shortcuts" id="app-dialog-shortcuts" hidden>
+                    <kbd class="dialog__key" data-i18n="dialog.card.shortcutSave"><?= $text('dialog.card.shortcutSave') ?></kbd>
+                    <kbd class="dialog__key" data-i18n="dialog.card.shortcutBack"><?= $text('dialog.card.shortcutBack') ?></kbd>
+                </p>
+
                 <button type="button" class="dialog__button dialog__button--secondary" id="app-dialog-save-next" hidden></button>
                 <button type="submit" class="dialog__button dialog__button--primary" id="app-dialog-submit"></button>
             </div>

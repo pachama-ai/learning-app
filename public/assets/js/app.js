@@ -493,6 +493,7 @@
         dialogMessage: document.getElementById('app-dialog-message'),
         dialogFields: document.getElementById('app-dialog-fields'),
         dialogError: document.getElementById('app-dialog-error'),
+        dialogShortcuts: document.getElementById('app-dialog-shortcuts'),
         dialogClose: document.getElementById('app-dialog-close'),
         dialogSubmit: document.getElementById('app-dialog-submit'),
 
@@ -1272,6 +1273,7 @@
         dialogFields = {};
         elements.dialogSaveNext.hidden = true;
         elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
+        elements.dialogShortcuts.hidden = true;
         elements.dialogSubmit.textContent = t(registering ? 'auth.register' : 'auth.signIn');
         /* setBusy() writes its own word while the request runs and puts this one
            back afterwards, so it has to know it. */
@@ -4002,6 +4004,7 @@
         elements.dialogFields.textContent = '';
         clearDialogErrors();
         elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
+        elements.dialogShortcuts.hidden = true;
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.dataset.busy = t('dialog.saving');
@@ -4100,6 +4103,8 @@
         elements.dialogFields.textContent = '';
         clearDialogErrors();
         elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
+        /* Nur dieser Dialog hat Tastenkuerzel, also zeigt nur er die Chips. */
+        elements.dialogShortcuts.hidden = false;
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
 
@@ -4950,6 +4955,7 @@
         elements.dialogFields.textContent = '';
         clearDialogErrors();
         elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
+        elements.dialogShortcuts.hidden = true;
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.textContent = t('dialog.delete.submit');
 
@@ -5671,13 +5677,14 @@
         var count = el('p', 'dialog__hint', '');
         count.id = 'card-preview-count';
 
-        var hint = el('p', 'dialog__hint', t('dialog.card.hintShortcut'));
-        hint.setAttribute('data-i18n', 'dialog.card.hintShortcut');
-
+        /*
+         * Der Hinweis auf die Tastenkuerzel steht nicht mehr hier, sondern als
+         * Chip in der Fusszeile (siehe index.php): dort bleibt er an seinem
+         * Platz, statt mit dem Formular wegzuscrollen.
+         */
         wrap.appendChild(head);
         wrap.appendChild(card);
         wrap.appendChild(count);
-        wrap.appendChild(hint);
 
         return wrap;
     }
@@ -6966,6 +6973,7 @@
         elements.dialogFields.textContent = '';
         clearDialogErrors();
         elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
+        elements.dialogShortcuts.hidden = true;
         elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
         elements.dialogSubmit.textContent = t('dialog.import.submit');
         elements.dialogSubmit.disabled = true;

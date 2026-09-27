@@ -7433,6 +7433,34 @@ select.count-dialog__input {
     border-radius: 999px;
 }
 
+/*
+ * Die Tastenkuerzel des Kartendialogs: links zwei Chips, rechts die Knoepfe.
+ * "margin-right: auto" schiebt sie an den linken Rand, weil die Fusszeile
+ * ihre Knoepfe nach rechts ausrichtet.
+ */
+.dialog__shortcuts {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 auto 0 0;
+    color: var(--text-faint);
+    font-size: 12px;
+}
+
+/* Ein Chip: kleine Flaeche mit Kante, wie eine Taste auf der Tastatur. */
+.dialog__key {
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background-color: var(--surface-soft);
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
 /* --- drei Zonen in den beiden eigenen Dialogen --------------------------- */
 
 /*
