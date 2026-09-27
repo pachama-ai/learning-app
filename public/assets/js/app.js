@@ -2026,6 +2026,10 @@
             linkedTiles = [];
             elements.grid.textContent = '';
 
+            /* Set again below when the answer really is empty and nobody is
+               signed in (see the welcome state). */
+            elements.homeView.classList.remove('is-welcome');
+
             var highlighted = null;
 
             areas.forEach(function (area, index) {
@@ -2049,6 +2053,14 @@
 
             if (areas.length === 0) {
                 elements.grid.hidden = true;
+
+                /*
+                 * Nothing to browse means no carousel either: the tile row, the
+                 * scroll line under it and the two arrows in the footer belong to
+                 * a row of tiles, and there is none. The class hides the row and
+                 * the line and gives the card the free height of the page.
+                 */
+                elements.homeView.classList.toggle('is-welcome', authState.user === null);
 
                 /*
                  * Who is asking decides what stands here. Signed in, an empty
@@ -2797,9 +2809,10 @@
         /*
          * The two arrows belong to the tile row, so only the start page shows
          * them. Whether they are greyed out as well is decided by
-         * updateTileNavigation().
+         * updateTileNavigation(). Without a signed-in person there is no tile row
+         * to scroll: the welcome state hides it, so the arrows go with it.
          */
-        elements.tilesButtons.hidden = level !== 'home';
+        elements.tilesButtons.hidden = level !== 'home' || authState.user === null;
 
         /*
          * The round plus button is the start page's own action and stays there:

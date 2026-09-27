@@ -209,6 +209,15 @@
     --tile-ink-muted: #24201B;
 
     /*
+     * The counter of a "Study" button. Its badge is always a deep tone of the area
+     * colour and its number always light - in the dark theme as well, where the
+     * button itself is light and a light badge on it would be barely visible.
+     * --panel and --accent-ink change with the theme, so neither can carry this.
+     */
+    --badge-base: #14181F;
+    --badge-ink: #FBF8F3;
+
+    /*
      * The subject drawings are <img> files with baked-in colours, so they cannot
      * use currentColor. The filter is the closest equivalent of "icons in
      * --text": brightness(0) turns the drawing black and invert(17%) lifts that
@@ -547,6 +556,22 @@ img {
      * takes it, which is what keeps the page from scrolling.
      */
     gap: 24px;
+}
+
+/*
+ * The welcome state: nobody is signed in, so there is nothing on this page but
+ * the one card. It takes the free height between the header and the bottom of the
+ * window and sits in the middle of it instead of hanging under the header, and
+ * the tile row with its scroll line and its two arrows - a carousel over nothing
+ * - stays away completely. app.js puts "is-welcome" on the view while that is so.
+ */
+.view--start.is-welcome .notice {
+    margin-block: auto;
+}
+
+.view--start.is-welcome .tiles,
+.view--start.is-welcome .tiles-nav {
+    display: none;
 }
 
 .hairline {
@@ -1481,6 +1506,19 @@ img {
  * then keeps the contrast it already had in both themes, and the colour still
  * says at a glance which area this row belongs to.
  */
+/*
+ * The number of cards that are due, in the counter of the button. The badge is a
+ * deep tone of the area colour and not a wash over the button: on the light
+ * button of the dark theme a wash was almost invisible, and the number on it had
+ * the contrast of a hint. The number itself is always light (--badge-ink), so it
+ * reads the same in both themes.
+ *
+ * Mixed in oklch and not in srgb: srgb would drag every area colour towards the
+ * grey of the base tone, and the badge would stop saying which area it belongs
+ * to. In oklch the hue survives the darkening - Energie stays blue, Geografie
+ * stays rose - and the worst of the eight palette colours still reaches 6.1:1
+ * against the number, well above the 4.5:1 of WCAG AA.
+ */
 .row__learn-badge {
     display: inline-flex;
     align-items: center;
@@ -1489,15 +1527,20 @@ img {
     height: 26px;
     padding: 0 7px;
     border-radius: 999px;
-    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 45%, transparent);
+    background-color: color-mix(in oklch, var(--detail-palette, var(--accent)) 50%, var(--badge-base));
+    color: var(--badge-ink);
     font-family: var(--font-mono);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 
-/* Nothing due: the number stays, the colour goes. A zero is an answer. */
+/*
+ * Nothing due: the number stays, the colour goes. A zero is an answer and not a
+ * call to action, so this one keeps the quiet circle it had.
+ */
 .row__learn-badge--none {
     background-color: color-mix(in srgb, var(--panel) 16%, transparent);
+    color: var(--panel);
 }
 
 /*
