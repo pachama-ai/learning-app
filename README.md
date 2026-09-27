@@ -8,8 +8,8 @@ Inhalt ist in Lernbereiche, Unterkategorien und Karten gegliedert.
 Kein Framework, kein Node.js, kein Bundler, kein Bauschritt – die Dateien werden
 genau so ausgeliefert, wie sie im Editor stehen.
 
-Diese Datei ist absichtlich kurz. Die vollständige technische Erklärung steht in
-**[`docs/technik.md`](docs/technik.md)**.
+Diese Datei ist absichtlich kurz. Was das Projekt ist und wie es grob
+funktioniert, steht in **[`docs/projekt.md`](docs/projekt.md)**.
 
 ## Starten
 
@@ -84,18 +84,18 @@ Dann die sechs Werte eintragen: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
 | `src/services/` | Fachlogik und **alle** SQL-Abfragen |
 | `bin/` | drei CSV-Importe für die Kommandozeile (per URL nicht erreichbar) |
 | `database/` | SQL-Dateien für phpMyAdmin und die CSV-Quelldateien |
-| `docs/` | technische Erklärung, Prüfanleitung, Migrationen, Umgebung |
+| `docs/` | die kurze Projekterklärung für Aussenstehende |
 
 ## Daten (Stand 27.09.2026)
 
 | Tabelle | Zeilen | Inhalt |
 | --- | ---: | --- |
-| `categories` | 57 | 5 Lernbereiche und 52 Unterkategorien; die Symbole der Bereiche stehen in `icon_svg` in der Datenbank |
-| `cards` | 3688 | die Karten, jede auf Deutsch **und** Englisch; 100 davon mit `map_region` (`DE:Bayern`, `EU:FR`, `WORLD:CN`) |
-| `users` | 1 | die Konten; Anmelden und Registrieren laufen über `api/auth.php` |
+| `categories` | 61 | 5 Lernbereiche und 56 Unterkategorien; die Symbole der Bereiche stehen in `icon_svg` in der Datenbank |
+| `cards` | 3772 | die Karten, jede auf Deutsch **und** Englisch; 100 davon mit `map_region` (`DE:Bayern`, `EU:FR`, `WORLD:CN`) |
+| `users` | 1 | die Konten; angemeldet wird mit der E-Mail-Adresse über `api/auth.php` |
 | `user_card_progress` | 29 | ein Datensatz pro Nutzer und Karte |
 | `card_exercises` | 39 | die Übungsaufgabe einer Karte, höchstens eine pro Karte |
-| `study_sessions` | 2 | die Lern-Sitzungen, Grundlage der Tages-Serie |
+| `study_sessions` | 0 | die Lern-Sitzungen, Grundlage der Tages-Serie; bisher ist keine Runde abgeschlossen |
 
 `front`/`back` sind die alten NOT-NULL-Spalten und tragen weiterhin die deutschen
 Texte; die Sprachspalten `front_de`/`back_de`/`front_en`/`back_en` sind das, was
@@ -139,13 +139,9 @@ ausführt; die Anwendung selbst ändert das Schema nie.
 
 | Datei | Inhalt |
 | --- | --- |
-| `docs/technik.md` | alles Technische in einem Dokument: Aufbau, Ablauf einer Anfrage, WSL, Ordner, Dateien, Datenbank samt Migrationen, Lernlogik, Frontend, Startanleitung, Handprüfung, offene Fragen |
+| `docs/projekt.md` | die kurze Erklärung für Aussenstehende: was die Anwendung macht, womit sie gebaut ist, wie das Projekt aufgebaut ist, wie die Lernlogik grob funktioniert und woher der Inhalt kommt |
 | `.github/copilot-instructions.md` | die verbindlichen Regeln für Änderungen am Projekt |
 
 Es gibt bewusst nur diese zwei Dokumente. Ältere Fassungen bleiben in der
-**Git-Historie** erhalten (`git log --oneline -- docs/`), auch wenn eine Datei
-später entfernt wurde.
-
-Ältere Fassungen dieser Dateien und der Dokumentation bleiben in der
 **Git-Historie** erhalten (`git log --oneline -- docs/`), auch wenn eine Datei
 später ersetzt oder entfernt wurde.
