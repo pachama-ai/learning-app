@@ -11,7 +11,7 @@ declare(strict_types=1);
  *
  *   POST api/auth.php
  *        body: { "action": "sign_in" | "register" | "sign_out",
- *                "identifier": "Anna Beispiel" or "anna@example.com",
+ *                "identifier": "anna@example.com" (the e-mail address only),
  *                "password": "...",
  *                "csrf_token": "..." }
  *
