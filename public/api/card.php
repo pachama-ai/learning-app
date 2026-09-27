@@ -3,17 +3,17 @@
 declare(strict_types=1);
 
 /**
- * PATCH  /api/card.php?id=4 -> changes the fields that are sent
- * DELETE /api/card.php?id=4 -> removes one flashcard
+ * PATCH  /api/card.php?id=4 -> ändert die Felder, die mitgeschickt werden
+ * DELETE /api/card.php?id=4 -> entfernt eine Lernkarte
  *
- * PATCH body (only the fields that should change):
+ * Inhalt des PATCH (nur die Felder, die sich ändern sollen):
  *   {"front": "...", "back": "...", "is_bidirectional": true}
  *
- * A single card is not a tree, so deleting it needs no name confirmation: the
- * dialog asks once and then calls this endpoint. The learning progress of the
- * card is removed by the database itself (fk_progress_card is ON DELETE
- * CASCADE); that behaviour is part of the existing structure and was not
- * changed.
+ * Eine einzelne Karte ist kein Baum, beim Löschen braucht es deshalb keine
+ * Bestätigung des Namens: der Dialog fragt einmal und ruft dann diesen Endpunkt.
+ * Der Lernfortschritt der Karte wird von der Datenbank selbst mitgelöscht
+ * (fk_progress_card ist ON DELETE CASCADE); das gehört zur bestehenden Struktur und
+ * wurde nicht geändert.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -30,8 +30,8 @@ if ($method !== 'PATCH' && $method !== 'DELETE') {
 
 $cardId = require_query_id('id');
 /*
- * A DELETE needs no field at all, so an empty request is fine there; a
- * PATCH without a body has nothing to change and is refused.
+ * Ein DELETE braucht kein Feld, dort ist eine leere Anfrage in Ordnung; ein PATCH
+ * ohne Inhalt hat nichts zu ändern und wird abgelehnt.
  */
 $body = read_json_object($method === 'DELETE');
 
@@ -39,8 +39,8 @@ try {
     $pdo = create_database_connection();
     $userId = current_user_id($pdo);
 
-    /* A card belongs to a category, and a category belongs to an account.
-       Changing or deleting one therefore needs that account. */
+    /* Eine Karte gehört zu einer Kategorie, und eine Kategorie gehört einem Konto.
+       Ändern oder löschen braucht deshalb dieses Konto. */
     if ($userId === null) {
         $required = session_user_required_error();
 
@@ -64,10 +64,10 @@ try {
     $changes = [];
 
     /*
-     * The text of every language the table holds. German lives in the two
-     * original columns, English in the two that the migration adds. A language
-     * that the table does not have is refused instead of being dropped without a
-     * word.
+     * Der Text jeder Sprache, die die Tabelle hat. Deutsch steht in den beiden
+     * ursprünglichen Spalten, Englisch in den beiden, die die Migration hinzufügt.
+     * Eine Sprache, die die Tabelle nicht hat, wird abgelehnt statt wortlos
+     * fallengelassen.
      */
     foreach (card_language_columns($columns) as $pair) {
         foreach ($pair as $column) {
@@ -92,9 +92,10 @@ try {
     }
 
     /*
-     * The exercise comes first: it decides whether this card needs a question and
-     * an answer or only a title. A body without "exercise_type" at all leaves the
-     * exercise as it is; an empty or null value takes it away.
+     * Die Aufgabe kommt zuerst: sie entscheidet, ob diese Karte eine Frage und eine
+     * Antwort braucht oder nur eine Überschrift. Ein Inhalt ganz ohne
+     * "exercise_type" lässt die Aufgabe, wie sie ist; ein leerer oder null-Wert
+     * nimmt sie weg.
      */
     if (array_key_exists('exercise_type', $body)) {
         $exerciseRequest = card_exercise_from_request($body);
@@ -120,8 +121,8 @@ try {
     }
 
     /*
-     * At least one language has to be complete afterwards. The card as it would
-     * be is the change on top of what is stored now.
+     * Am Ende muss mindestens eine Sprache vollständig sein. Die Karte, wie sie
+     * wäre, ist die Änderung oben auf dem, was jetzt gespeichert ist.
      */
     $languageColumns = [];
 
@@ -132,8 +133,8 @@ try {
     }
 
     /*
-     * An exercise card keeps its exercise unless the change takes it away, so the
-     * rule to apply is the one of the card as it will be.
+     * Eine Übungskarte behält ihre Aufgabe, solange die Änderung sie nicht wegnimmt;
+     * geprüft wird also nach der Regel für die Karte, wie sie danach aussieht.
      */
     $keepsExercise = array_key_exists('exercise', $changes)
         ? $changes['exercise'] !== null
@@ -165,9 +166,9 @@ try {
     }
 
     /*
-     * The map region can be set, replaced or taken away again. An empty value is
-     * "no map" and is stored as NULL; a value that does not match the pattern is
-     * refused instead of being stored and ignored later.
+     * Die Kartenregion kann gesetzt, ersetzt oder wieder weggenommen werden. Ein
+     * leerer Wert heißt "keine Karte"und wird als NULL gespeichert; ein Wert, der
+     * nicht zum Muster passt, wird abgelehnt statt gespeichert und später ignoriert.
      */
     if (array_key_exists('map_region', $body)) {
         $mapRegion = $body['map_region'] === null ? '' : trim((string) $body['map_region']);
