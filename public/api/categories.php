@@ -3,24 +3,24 @@
 declare(strict_types=1);
 
 /**
- * GET  /api/categories.php              -> the learning areas
- * GET  /api/categories.php?parent_id=2  -> the subcategories of category 2
- * GET  /api/categories.php?id=2         -> one category, plus a delete preview
- * POST /api/categories.php              -> creates a learning area or subcategory
+ * GET  /api/categories.php              -> die Lernbereiche
+ * GET  /api/categories.php?parent_id=2  -> die Unterkategorien von Kategorie 2
+ * GET  /api/categories.php?id=2         -> eine Kategorie samt Löschvorschau
+ * POST /api/categories.php              -> legt einen Lernbereich oder eine Unterkategorie an
  *
- * Body of the POST (all fields except "name" are optional):
+ * Inhalt des POST (alle Felder außer "name" sind freiwillig):
  *   {
- *     "parent_id": 2,                  // omitted or null -> a learning area
- *     "name": "History",
- *     "name_en": "History",            // wording shown in English
- *     "name_de": "Geschichte",         // wording shown in German
+ *     "parent_id": 2,                  // weggelassen oder null -> ein Lernbereich
+ *     "name": "Geschichte",
+ *     "name_en": "History",            // Wortlaut auf Englisch
+ *     "name_de": "Geschichte",         // Wortlaut auf Deutsch
  *     "icon_svg": "<svg ...>",
  *     "icon_scale": 1.15
  *   }
  *
- * Every value is validated before it reaches the database, and the SVG is
- * sanitised (see src/helpers/svg_sanitizer.php). The answer never contains a
- * database error, SQL or credentials.
+ * Jeder Wert wird geprüft, bevor er die Datenbank erreicht, und das SVG wird
+ * entschärft (siehe src/helpers/svg_sanitizer.php). In der Antwort steht nie ein
+ * Datenbankfehler, kein SQL und keine Zugangsdaten.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -37,7 +37,7 @@ if ($method !== 'GET' && $method !== 'POST') {
 }
 
 /* -------------------------------------------------------------------------
-   POST: create a learning area (no parent_id) or a subcategory (parent_id)
+   POST: einen Lernbereich anlegen (ohne parent_id) oder eine Unterkategorie
    ------------------------------------------------------------------------- */
 
 if ($method === 'POST') {
@@ -47,8 +47,9 @@ if ($method === 'POST') {
     $name = require_input_text($body, 'name', CATEGORY_MAX_NAME_LENGTH, 'invalid_name');
     $nameEn = optional_input_text($body, 'name_en', CATEGORY_MAX_NAME_LENGTH, 'invalid_name_en');
     $nameDe = optional_input_text($body, 'name_de', CATEGORY_MAX_NAME_LENGTH, 'invalid_name_de');
-    /* The description columns of this table are not read or written any more, so
-       a request that still carries them simply does not change anything. */
+    /* Die Beschreibungsspalten dieser Tabelle werden nicht mehr gelesen und nicht
+       mehr geschrieben, eine Anfrage, die sie trotzdem mitschickt, ändert also
+       einfach nichts. */
     $iconSvg = optional_svg_icon($body, 'icon_svg', 'invalid_icon');
     $iconScale = optional_icon_scale($body, 'icon_scale', 'invalid_icon_scale');
 
@@ -56,22 +57,23 @@ if ($method === 'POST') {
         $pdo = create_database_connection();
         $userId = current_user_id($pdo);
 
-        /* A category belongs to an account, so creating one needs an account. */
+        /* Eine Kategorie gehört einem Konto, zum Anlegen braucht es also eines. */
         if ($userId === null) {
             $required = session_user_required_error();
 
             send_json_error($required['code'], $required['message'], $required['status']);
         }
 
-        // A subcategory needs a parent that really exists - and it has to be a
-        // parent of this account.
+        // Eine Unterkategorie braucht einen Elternteil, den es wirklich gibt -
+        // und der zu diesem Konto gehört.
         if ($parentId !== null && !category_exists($pdo, $parentId, $userId)) {
             send_json_error('parent_not_found', 'The parent category does not exist.', 404);
         }
 
-        // There is no unique index on the name column and the structure must not
-        // be changed, so the duplicate check happens here. Two categories with
-        // the same name may exist in different places, but not under one parent.
+        // Auf der Spalte name liegt kein eindeutiger Index und die Struktur darf
+        // nicht geändert werden, die Doppelprüfung passiert also hier. Zwei
+        // Kategorien mit demselben Namen dürfen an verschiedenen Stellen stehen,
+        // aber nicht unter demselben Elternteil.
         if (category_sibling_name_exists($pdo, $name, $parentId, $userId)) {
             send_json_error('category_exists', 'A category with this name already exists here.', 409);
         }
@@ -79,10 +81,11 @@ if ($method === 'POST') {
         $fields = ['parent_id' => $parentId, 'name' => $name];
 
         /*
-         * The icon scale is automatic: a drawing is normalised before it is
-         * stored, so it always fills its circle at scale 1. The value is only
-         * written when an icon really is part of this request, and an explicit
-         * value from an older client is still accepted.
+         * Der Maßstab des Symbols ist automatisch: eine Zeichnung wird vor dem
+         * Speichern normalisiert, sie füllt ihren Kreis also immer bei Maßstab 1.
+         * Geschrieben wird der Wert nur, wenn wirklich ein Symbol Teil dieser
+         * Anfrage ist; ein ausdrücklich mitgeschickter Wert aus einer älteren
+         * Fassung der Oberfläche wird weiterhin angenommen.
          */
         foreach ([
             'name_en' => $nameEn,
@@ -103,7 +106,8 @@ if ($method === 'POST') {
 
         send_json_success($created, 201);
     } catch (Throwable $error) {
-        // Details go to the server log only; the browser gets a generic message.
+        // Einzelheiten gehören nur ins Server-Protokoll, der Browser bekommt
+        // einen allgemeinen Satz.
         error_log('Creating a category failed: ' . $error->getMessage());
 
         send_json_error('category_create_failed', 'The category could not be saved.', 500);
@@ -111,15 +115,16 @@ if ($method === 'POST') {
 }
 
 /* -------------------------------------------------------------------------
-   GET: list the learning areas, list the subcategories or read one category
+   GET: die Lernbereiche auflisten, die Unterkategorien auflisten oder eine
+   einzelne Kategorie lesen
    ------------------------------------------------------------------------- */
 
 $categoryId = null;
 $rawId = $_GET['id'] ?? null;
 
 if ($rawId !== null && $rawId !== '') {
-    // is_string() also rejects array input such as ?id[]=1. Without it an array
-    // would reach ctype_digit() and then the database layer.
+    // is_string() weist auch Array-Eingaben wie ?id[]=1 ab. Ohne die Prüfung
+    // erreichte ein Array ctype_digit() und danach die Datenbankschicht.
     if (!is_string($rawId) || !ctype_digit($rawId) || (int) $rawId < 1) {
         send_json_error('invalid_id', 'The id parameter must be a positive integer.', 400);
     }
@@ -130,8 +135,8 @@ if ($rawId !== null && $rawId !== '') {
 $parentId = null;
 $rawParentId = $_GET['parent_id'] ?? null;
 
-// An empty parameter means "no filter" and returns the main categories, which
-// keeps ?parent_id= harmless in a hand-typed URL.
+// Ein leerer Parameter heißt "kein Filter" und liefert die Hauptkategorien;
+// damit bleibt ?parent_id= in einer von Hand getippten Adresse harmlos.
 if ($rawParentId !== null && $rawParentId !== '') {
     if (!is_string($rawParentId) || !ctype_digit($rawParentId) || (int) $rawParentId < 1) {
         send_json_error(
@@ -149,10 +154,11 @@ try {
     $userId = current_user_id($pdo);
 
     /*
-     * A category belongs to an account, so a signed-out visitor has nothing to
-     * list and nothing to read. The list answers empty with 200 so the start page
-     * can show its welcome state instead of an error; a single id answers 404,
-     * because "not yours" and "does not exist" have to look the same.
+     * Eine Kategorie gehört einem Konto, ein abgemeldeter Besucher hat also nichts
+     * aufzulisten und nichts zu lesen. Die Liste antwortet leer mit 200, damit die
+     * Startseite ihren Begrüßungszustand zeigen kann statt eines Fehlers; eine
+     * einzelne Id antwortet mit 404, denn "nicht deine" und "gibt es nicht" müssen
+     * gleich aussehen.
      */
     if ($userId === null) {
         if ($categoryId !== null) {
@@ -176,12 +182,14 @@ try {
         ? find_main_categories($pdo, $userId)
         : find_subcategories($pdo, $parentId, $userId);
 
-    // An empty result is a valid answer and is returned as an empty array, so
-    // the frontend can show its empty state instead of treating it as an error.
+    // Ein leeres Ergebnis ist eine gültige Antwort und kommt als leeres Array
+    // zurück, damit die Oberfläche ihren leeren Zustand zeigen kann und das nicht
+    // für einen Fehler hält.
     send_json_success($categories);
 } catch (Throwable $error) {
-    // The real reason goes to the server log only. It can contain the password,
-    // the connection string or SQL, so the browser only gets a generic message.
+    // Der echte Grund gehört nur ins Server-Protokoll. Darin können das Passwort,
+    // die Verbindungszeichenfolge oder SQL stehen, der Browser bekommt deshalb
+    // nur einen allgemeinen Satz.
     error_log('Loading categories failed: ' . $error->getMessage());
 
     send_json_error(
