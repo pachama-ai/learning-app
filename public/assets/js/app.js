@@ -493,7 +493,7 @@
         dialogMessage: document.getElementById('app-dialog-message'),
         dialogFields: document.getElementById('app-dialog-fields'),
         dialogError: document.getElementById('app-dialog-error'),
-        dialogCancel: document.getElementById('app-dialog-cancel'),
+        dialogClose: document.getElementById('app-dialog-close'),
         dialogSubmit: document.getElementById('app-dialog-submit'),
 
         /* The short message, its text and the button that can belong to it. */
@@ -1271,7 +1271,7 @@
         clearDialogErrors();
         dialogFields = {};
         elements.dialogSaveNext.hidden = true;
-        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
         elements.dialogSubmit.textContent = t(registering ? 'auth.register' : 'auth.signIn');
         /* setBusy() writes its own word while the request runs and puts this one
            back afterwards, so it has to know it. */
@@ -4001,7 +4001,7 @@
         elements.dialogMessage.hidden = true;
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.dataset.busy = t('dialog.saving');
@@ -4099,7 +4099,7 @@
         elements.dialogMessage.hidden = true;
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
         elements.dialogSubmit.textContent = t('dialog.save');
         elements.dialogSubmit.disabled = false;
 
@@ -4949,7 +4949,7 @@
 
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.textContent = t('dialog.delete.submit');
 
@@ -4966,7 +4966,7 @@
         elements.dialogMessage.hidden = false;
 
         openDialog();
-        elements.dialogCancel.focus();
+        elements.dialogClose.focus();
     }
 
     /* ----------------------------------------------------------------------
@@ -4975,7 +4975,7 @@
 
     function setBusy(busy) {
         elements.dialogSubmit.disabled = busy;
-        elements.dialogCancel.disabled = busy;
+        elements.dialogClose.disabled = busy;
         elements.dialogSubmit.textContent = busy
             ? t('dialog.saving')
             : (elements.dialogSubmit.dataset.idleLabel || t('dialog.save'));
@@ -5384,7 +5384,7 @@
          */
         window.addEventListener('pagehide', flushPendingDelete);
 
-        elements.dialogCancel.addEventListener('click', function () {
+        elements.dialogClose.addEventListener('click', function () {
             closeDialog();
         });
 
@@ -6965,7 +6965,7 @@
 
         elements.dialogFields.textContent = '';
         clearDialogErrors();
-        elements.dialogCancel.textContent = t('dialog.cancel');
+        elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
         elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
         elements.dialogSubmit.textContent = t('dialog.import.submit');
         elements.dialogSubmit.disabled = true;

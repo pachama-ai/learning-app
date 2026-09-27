@@ -858,17 +858,26 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     -->
     <dialog class="dialog" id="app-dialog" aria-labelledby="app-dialog-title">
         <form class="dialog__form" id="app-dialog-form" novalidate>
+            <!--
+                Das X oben rechts ist der Weg aus jedem Dialog heraus; Escape tut
+                dasselbe. Einen zweiten Knopf dafuer gibt es bewusst nicht: ein
+                Weg, der immer gleich aussieht, statt zwei, die auseinander
+                laufen koennen.
+            -->
+            <button type="button" class="dialog__close" id="app-dialog-close"
+                    aria-label="<?= $text('dialog.close') ?>"
+                    data-i18n-label="dialog.close">&#215;</button>
+
             <h2 class="dialog__title" id="app-dialog-title"></h2>
             <p class="dialog__message" id="app-dialog-message" hidden></p>
             <div class="dialog__fields" id="app-dialog-fields"></div>
             <p class="dialog__error" id="app-dialog-error" role="alert" hidden></p>
             <!--
-                Cancel and save, and nothing else. Deleting an entry has its place in
-                the three-dots menu of its tile or its row and deliberately not in this
-                form: one way to an action instead of two that can drift apart.
+                Nur die Knoepfe, die etwas abschliessen. Loeschen hat seinen
+                Platz im Drei-Punkte-Menue seiner Kachel oder Zeile und
+                absichtlich nicht in diesem Formular.
             -->
-            <div class="dialog__actions">
-                <button type="button" class="dialog__button--text" id="app-dialog-cancel"></button>
+            <div class="dialog__actions" id="app-dialog-actions">
                 <button type="button" class="dialog__button dialog__button--secondary" id="app-dialog-save-next" hidden></button>
                 <button type="submit" class="dialog__button dialog__button--primary" id="app-dialog-submit"></button>
             </div>

@@ -3265,30 +3265,11 @@ html.is-theme-switching::view-transition-new(root) {
     cursor: default;
 }
 
-.dialog__button--text {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 10px 8px;
-    border: 0;
-    border-radius: 10px;
-    background: none;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.98rem;
-    letter-spacing: 0;
-    cursor: pointer;
-    transition: color 200ms var(--ease), background-color 200ms var(--ease);
-}
-
-.dialog__button--text:hover {
-    background-color: var(--tile-bg-hover);
-    color: var(--text);
-}
-
-.dialog__button--text:hover {
-    color: var(--text);
-}
+/*
+ * Die Regel fuer den frueheren Text-Knopf "Abbrechen" ist weg: den Knopf gibt
+ * es nicht mehr, seit das X im Kopf den Dialog schliesst. Eine Regel ohne
+ * Element waere nur noch Ballast.
+ */
 
 .dialog__actions {
     display: flex;
@@ -7162,4 +7143,359 @@ select {
     .row__name {
         font-size: 14px;
     }
+}
+
+/* ==========================================================================
+   Dialoge: ein X im Kopf, gleiche Felder, drei Zonen
+
+   Diese Regeln stehen absichtlich am ENDE der Datei. Sie gelten fuer alle drei
+   Dialoge (Karten-Dialog, Konto-Fenster, Frage nach den neuen Karten) und
+   ueberschreiben die aelteren Werte weiter oben. So steht jede Zahl - Radius,
+   Feldhoehe, Fokusring - nur an einer Stelle.
+   ========================================================================== */
+
+/* --- Huelle und X-Knopf -------------------------------------------------- */
+
+.dialog,
+.account-dialog,
+.count-dialog {
+    max-height: calc(100dvh - 48px);
+    border-radius: 16px;
+    /* Der Dialog rollt nicht mehr selbst: das erledigt innen die mittlere Zone.
+       Deshalb bleiben Kopf und Fuss an ihrem Platz. */
+    overflow: hidden;
+}
+
+/*
+ * Der X-Knopf sitzt in der Ecke des Kopfes. Er gehoert zum Dialog selbst und
+ * nicht in die Fusszeile: dort stehen nur die Knoepfe, die etwas abschliessen,
+ * und Escape tut ohnehin dasselbe wie das X.
+ */
+.dialog__close,
+.account-dialog__close,
+.count-dialog__close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background-color: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 19px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), color 160ms var(--ease);
+}
+
+.dialog__close:hover,
+.account-dialog__close:hover,
+.count-dialog__close:hover {
+    background-color: var(--surface-soft);
+    color: var(--text);
+}
+
+.dialog__close:focus-visible,
+.account-dialog__close:focus-visible,
+.count-dialog__close:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.dialog__close[disabled] {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/*
+ * Die Ueberschrift endet vor dem X, damit ein langer Name nicht darunter
+ * durchlaeuft. Groesse und Schrift sind fuer alle drei Dialoge dieselben: die
+ * Serifenschrift, 24 px.
+ */
+.dialog__title,
+.account-dialog__title,
+.count-dialog__title {
+    padding-right: 56px;
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+/* --- Felder, Beschriftungen, Hilfetexte ---------------------------------- */
+
+/* Der Abstand zwischen zwei Feldgruppen. */
+.dialog__fields {
+    gap: 20px;
+}
+
+/*
+ * Ein Feld ist 40 px hoch, hat eine Kante rundherum und beim Fokus einen Ring
+ * in der Akzentfarbe. Vorher war nur eine Unterkante da; bei mehreren Feldern
+ * untereinander sieht man damit schlechter, wo ein Feld anfaengt und aufhoert.
+ */
+.dialog__input,
+.dialog__input--area,
+.account-dialog__input,
+.count-dialog__input {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.4;
+    transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+
+.dialog__input:hover,
+.dialog__input--area:hover,
+.account-dialog__input:hover,
+.count-dialog__input:hover {
+    border-color: var(--border-strong);
+}
+
+.dialog__input:focus,
+.dialog__input--area:focus,
+.account-dialog__input:focus,
+.count-dialog__input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+    outline: none;
+}
+
+/* Vorderseite und Rueckseite sind mehrzeilig und wachsen mit ihrem Text. */
+.dialog__input--area {
+    min-height: 88px;
+    padding: 10px 12px;
+}
+
+/*
+ * Ein Auswahlfeld bekommt rechts Platz fuer den Pfeil, den wir selbst malen:
+ * so sieht es in beiden Themen gleich aus und die Browser-eigenen Pfeile
+ * verschwinden.
+ */
+select.dialog__input,
+select.count-dialog__input {
+    appearance: none;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A8A85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+    cursor: pointer;
+}
+
+/* Beschriftungen: kleine Kapitaelchen ueber dem Feld. */
+.dialog__label,
+.account-dialog__label,
+.count-dialog__label {
+    color: var(--text-faint);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Hilfetext und Feldfehler sind eine Zeile klein. */
+.dialog__hint,
+.dialog__field-error,
+.account-dialog__hint,
+.count-dialog__hint {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Der Zeichenzaehler steht rechtsbuendig direkt unter seinem Feld. */
+#card-preview-count {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Fehlermeldungen: nur Text in einem Rot, das auf beiden Flaechen lesbar ist.
+ * Der frueher rote Balken links ist weg - die Meldung steht direkt unter dem
+ * Feld, das sie betrifft.
+ */
+.dialog__error,
+.account-dialog__error,
+.count-dialog__error {
+    padding: 0;
+    border-left: 0;
+    color: #B3261E;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+[data-theme="dark"] .dialog__error,
+[data-theme="dark"] .account-dialog__error,
+[data-theme="dark"] .count-dialog__error {
+    color: #F2B8B5;
+}
+
+/*
+ * Das Kaestchen ist 18 px gross, und das Haekchen malen wir selbst als SVG.
+ * Ein eigenes Kaestchen bedeutet: es sieht in beiden Themen gleich aus und
+ * passt zur Hoehe der Beschriftung daneben.
+ */
+.dialog__check {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background-color: var(--surface);
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.dialog__check:checked {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5l5.2 5.2L20 6.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px 12px;
+}
+
+.dialog__check:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* --- der Sprachumschalter als Segment-Schalter --------------------------- */
+
+/*
+ * Die Sprachwahl ist EIN Schalter mit zwei Segmenten und nicht zwei einzelne
+ * Pillen: eine gemeinsame Flaeche mit einer Kante, und das gewaehlte Segment
+ * liegt sichtbar darin.
+ */
+.lang-tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 0;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background-color: var(--surface-soft);
+}
+
+.lang-tab {
+    padding: 7px 16px;
+    border: 0;
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.lang-tab:hover {
+    border-color: transparent;
+    color: var(--text);
+}
+
+.lang-tab.is-active {
+    background-color: var(--text);
+    color: var(--panel);
+}
+
+/* --- die Vorschau: eine ruhige Flaeche mit einer Kante ------------------- */
+
+.card-preview {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background-color: var(--surface);
+}
+
+/* --- Fusszeile: eine Knopfhoehe fuer alle drei Dialoge ------------------- */
+
+.dialog__actions .dialog__button,
+.account-dialog__actions .account-dialog__button,
+.count-dialog__actions .count-dialog__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 18px;
+    border-radius: 999px;
+}
+
+/* --- drei Zonen in den beiden eigenen Dialogen --------------------------- */
+
+/*
+ * Das Konto-Fenster und die Frage nach den neuen Karten bekommen denselben
+ * Aufbau wie der Karten-Dialog: der Kopf bleibt beim Rollen stehen, der Fuss
+ * klebt unten.
+ */
+.account-dialog__panel,
+.count-dialog__panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 48px);
+    /* Die Abstaende tragen jetzt die Zonen selbst. */
+    padding: 0;
+    border-radius: 16px;
+    overflow-y: auto;
+}
+
+.account-dialog__title,
+.count-dialog__title {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    /* Rechts bleibt Platz fuer das X, das ueber dem Kopf sitzt. */
+    padding: 26px 56px 10px 32px;
+    background-color: var(--panel);
+}
+
+/* Der Inhalt des Kontofensters: der zweite Schritt braucht hier den Fuss. */
+.account-dialog__view {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 32px 8px;
+}
+
+/* Die Felder der Frage nach den neuen Karten bekommen denselben Rand. */
+.count-dialog__hint,
+.count-dialog__quick,
+.count-dialog__field,
+.count-dialog__error {
+    margin-left: 32px;
+    margin-right: 32px;
+}
+
+/*
+ * Der Fuss klebt unten und traegt dieselbe feine Linie wie im Karten-Dialog.
+ * Im Kontofenster zieht er sich mit negativen Raendern ueber die ganze Breite,
+ * weil sein Elternteil den seitlichen Rand schon hat.
+ */
+.account-dialog__actions,
+.count-dialog__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+    padding: 18px 32px 22px;
+    border-top: 1px solid var(--border);
+    background-color: var(--panel);
+}
+
+.account-dialog__actions {
+    margin-right: -32px;
+    margin-left: -32px;
 }
