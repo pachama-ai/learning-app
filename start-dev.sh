@@ -39,8 +39,19 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 # cores; more workers only take turns on the same cores.
 export PHP_CLI_SERVER_WORKERS=4
 
+# Die Sitzungen liegen in DEMSELBEN Ordner wie bei Apache. Das ist wichtiger,
+# als es aussieht: der Browser legt das Sitzungs-Cookie pro Rechner ab, nicht pro
+# Port. Wer 8081 und 8082 gleichzeitig offen hat, schickt also dieselbe
+# Sitzungs-Kennung an beide Server. Lagen die Sitzungen in zwei verschiedenen
+# Ordnern, kannte jeder Server nur seine eigene Haelfte davon - und die
+# Anwendung meldete "The page was open for too long", weil der CSRF-Token nicht
+# mehr zu der Sitzung passte, die der andere Server angelegt hatte.
+SESSION_DIR="$PROJECT_ROOT/deploy/apache/sessions"
+mkdir -p "$SESSION_DIR"
+
 echo "Learning app starts on http://127.0.0.1:${PORT}/ with ${PHP_CLI_SERVER_WORKERS} workers."
+echo "Sessions are kept in ${SESSION_DIR}."
 echo "Press Ctrl+C to stop it."
 
 cd "$PROJECT_ROOT"
-exec php -S "127.0.0.1:${PORT}" -t public
+exec php -S "127.0.0.1:${PORT}" -t public -d session.save_path="$SESSION_DIR"
