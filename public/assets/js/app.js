@@ -2217,8 +2217,26 @@
         button.setAttribute('aria-haspopup', 'true');
         button.setAttribute('aria-expanded', 'false');
         button.setAttribute('aria-label', t('action.more', { name: label }));
-        /* The three dots, written as one character so no icon file is needed. */
-        button.textContent = '\u22EF';
+        /*
+         * Die drei Punkte als Zeichnung und nicht als Textzeichen: ein Zeichen
+         * sitzt in jeder Schrift anders, und der Knopf muss genau mittig sein.
+         * Die Farbe kommt aus CSS (fill: currentColor).
+         */
+        var dots = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        dots.setAttribute('viewBox', '0 0 24 24');
+        dots.setAttribute('width', '16');
+        dots.setAttribute('height', '16');
+        dots.setAttribute('aria-hidden', 'true');
+
+        [6, 12, 18].forEach(function (x) {
+            var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', String(x));
+            dot.setAttribute('cy', '12');
+            dot.setAttribute('r', '1.75');
+            dots.appendChild(dot);
+        });
+
+        button.appendChild(dots);
 
         var menu = document.createElement('span');
         menu.className = 'menu';
