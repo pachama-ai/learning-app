@@ -3,21 +3,22 @@
 declare(strict_types=1);
 
 /**
- * Changing something about the account itself.
+ * Etwas am Konto selbst ändern.
  *
  *   POST api/account.php
  *     { "action": "delete", "password": "...", "csrf_token": "..." }
- *         deletes the account together with its learning progress and its learning
- *         sessions
+ *         löscht das Konto samt Lernfortschritt und Lern-Sitzungen
  *
- * The action needs a signed-in account, the token that api/auth.php hands out and
- * the password of that account, so it cannot be triggered from another site and
- * not by somebody who only walks past an open page.
+ * Die Aktion braucht ein angemeldetes Konto, den Token aus api/auth.php und das
+ * Passwort dieses Kontos. Deshalb kann sie weder von einer anderen Seite
+ * ausgelöst werden noch von jemandem, der nur an einem offenen Bildschirm
+ * vorbeigeht.
  *
- * This file stays thin, like every endpoint here: read the request, check what is
- * obvious, call src/services/user_service.php and answer as JSON. Every SQL
- * statement lives in the service, every one of them is prepared, and nothing here
- * ever names a password, a connection string or a file path.
+ * Diese Datei bleibt dünn, wie jeder Endpunkt hier: Anfrage lesen, das
+ * Offensichtliche prüfen, src/services/user_service.php aufrufen und als JSON
+ * antworten. Jede SQL-Anweisung liegt im Service, jede ist vorbereitet, und hier
+ * wird nie ein Passwort, eine Verbindungszeichenfolge oder ein Dateipfad
+ * genannt.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -26,9 +27,10 @@ require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/services/user_service.php';
 
 /*
- * Everything runs inside this guard: without it an unexpected database error would
- * end the request as an HTML page and the browser would show its generic sentence
- * instead of an answer it can read. The reason goes to the server log.
+ * Alles läuft in diesem Schutz: ohne ihn würde ein unerwarteter Datenbankfehler
+ * die Anfrage als HTML-Seite beenden, und der Browser zeigte seinen allgemeinen
+ * Satz statt einer Antwort, die er lesen kann. Der Grund geht ins
+ * Server-Protokoll.
  */
 try {
     handle_account_request($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -38,7 +40,7 @@ try {
     send_json_error('server_error', 'This request could not be handled.', 500);
 }
 
-/** The one entry point of this endpoint. */
+/** Der eine Einstiegspunkt dieses Endpunkts. */
 function handle_account_request(string $method): void
 {
     if ($method !== 'POST') {
@@ -48,7 +50,7 @@ function handle_account_request(string $method): void
 
     $body = read_json_object();
 
-    /* The token first: without it nothing else in this file runs. */
+    /* Zuerst der Token: ohne ihn läuft in dieser Datei nichts weiter. */
     if (user_csrf_valid(optional_input_text($body, 'csrf_token', 128, 'invalid_token')) !== true) {
         send_json_error(
             'invalid_token',
@@ -78,13 +80,15 @@ function handle_account_request(string $method): void
         }
 
         /*
-         * The decision is made HERE and not in the browser: a hand written request
-         * cannot skip the password by leaving the field out, and nothing that is
-         * only hidden in the page can delete an account.
+         * Die Entscheidung fällt HIER und nicht im Browser: eine von Hand
+         * geschriebene Anfrage kann das Passwort nicht überspringen, indem sie das
+         * Feld weglässt, und nichts, was nur in der Seite versteckt ist, kann ein
+         * Konto löschen.
          *
-         * Why the password and not a typed name (as an earlier version asked): the
-         * name of the person stands openly in the header, so it is no proof at all
-         * for somebody who is sitting in front of the open page. The password is.
+         * Warum das Passwort und nicht ein eingetippter Name (wie es eine frühere
+         * Fassung verlangte): der Name der Person steht offen in der Kopfzeile, er
+         * beweist also gar nichts, wenn jemand vor dem offenen Bildschirm sitzt.
+         * Das Passwort beweist etwas.
          */
         if (user_password_matches($pdo, $userId, $password) !== true) {
             send_json_error('wrong_password', 'This password does not belong to this account.', 400);
@@ -94,8 +98,8 @@ function handle_account_request(string $method): void
             send_json_error('account_not_found', 'This account does not exist (any more).', 404);
         }
 
-        /* The session is ended last: after the row is gone there is nothing left
-           to be signed in to. */
+        /* Die Sitzung wird zuletzt beendet: nachdem die Zeile weg ist, gibt es
+           nichts mehr, womit man angemeldet sein könnte. */
         user_sign_out_session();
 
         send_json_success(['deleted' => true]);

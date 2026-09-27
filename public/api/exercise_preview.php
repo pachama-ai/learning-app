@@ -5,35 +5,40 @@ declare(strict_types=1);
 /**
  * POST /api/exercise_preview.php
  *
- * Builds ONE example of a generated task, from the kind of task and the numbers
- * the card dialog is holding right now, so the form can show what it is about to
- * save.
+ * Baut EIN Beispiel einer erzeugten Aufgabe, aus der Art der Aufgabe und den
+ * Zahlen, die der Kartendialog gerade hält - damit das Formular zeigen kann, was
+ * es gleich speichert.
  *
- * Why the browser does not roll the example itself: the numbers are drawn in
- * exactly one place, src/services/exercise_service.php (exercise_build_task()).
- * A second generator in the browser would be a second truth to keep in step, and
- * the example could then differ from the task the card really shows. This
- * endpoint uses the same function the card reads use, so the example in the
- * dialog, the task in the card list and the task in the learning view can only
- * ever come from the same place.
+ * Warum der Browser das Beispiel nicht selbst würfelt: die Zahlen werden an
+ * genau einer Stelle gezogen, in src/services/exercise_service.php
+ * (exercise_build_task()). Ein zweiter Erzeuger im Browser wäre eine zweite
+ * Wahrheit, die man im Gleichschritt halten müsste, und das Beispiel könnte dann
+ * von der Aufgabe abweichen, die die Karte wirklich zeigt. Dieser Endpunkt
+ * benutzt dieselbe Funktion wie das Lesen der Karten, deshalb können das Beispiel
+ * im Dialog, die Aufgabe in der Kartenliste und die Aufgabe in der Lernansicht
+ * nur aus derselben Quelle kommen.
  *
- * What it does NOT do
- *   * it writes nothing: no INSERT, no UPDATE, no DELETE, no temporary table
- *   * it touches no table at all - the database is not needed for a task, so this
- *     endpoint does not even open a connection
- *   * it stores nothing about the request: the numbers are built and forgotten
+ * Was er NICHT tut
+ *   * er schreibt nichts: kein INSERT, kein UPDATE, kein DELETE, keine
+ *     temporäre Tabelle
+ *   * er berührt überhaupt keine Tabelle - für eine Aufgabe wird die Datenbank
+ *     nicht gebraucht, deshalb öffnet dieser Endpunkt nicht einmal eine
+ *     Verbindung
+ *   * er merkt sich nichts über die Anfrage: die Zahlen werden gebaut und
+ *     vergessen
  *
- * Being reachable without being signed in is deliberate and harmless for the same
- * reason: it needs no database access and returns nothing that is not already on
- * the screen of whoever is editing the card.
+ * Dass er ohne Anmeldung erreichbar ist, ist aus demselben Grund Absicht und
+ * harmlos: er braucht keinen Datenbankzugriff und gibt nichts zurück, was nicht
+ * ohnehin auf dem Bildschirm dessen steht, der die Karte bearbeitet.
  */
 
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/services/exercise_service.php';
 
-// This endpoint only answers POST requests. send_json_error() ends the request,
-// so the code below is not reached when the method is wrong.
+// Dieser Endpunkt beantwortet nur POST-Anfragen. send_json_error() beendet die
+// Anfrage, deshalb wird der Code darunter bei einer falschen Methode gar nicht
+// erreicht.
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     send_json_error('method_not_allowed', 'Only POST requests are allowed.', 405);
 }
@@ -42,11 +47,12 @@ try {
     $body = read_json_object();
 
     /*
-     * Batch form: the card list needs one fresh set of numbers per exercise card
-     * it is about to show. One request instead of one per card, built by the very
-     * same function - so a list can never show a task the card itself would not
-     * build. A card whose kind of task cannot be built answers with null instead
-     * of failing the whole request.
+     * Die Listenform: die Kartenliste braucht einen frischen Satz Zahlen pro
+     * Übungskarte, die sie gleich zeigt. Eine Anfrage statt einer pro Karte,
+     * gebaut von derselben Funktion - so kann eine Liste nie eine Aufgabe zeigen,
+     * die die Karte selbst nicht bauen würde. Eine Karte, deren Aufgabenart sich
+     * nicht bauen lässt, antwortet mit null, statt die ganze Anfrage scheitern zu
+     * lassen.
      */
     $items = $body['items'] ?? null;
 
@@ -84,10 +90,11 @@ try {
     }
 
     /*
-     * The numbers are not refused here, they are pulled into their limits: while
-     * somebody is typing a range, the example should follow instead of
-     * complaining. A missing or unusable value falls back to the default of its
-     * field, which is the same rule a stored card follows when it is read.
+     * Die Zahlen werden hier nicht abgelehnt, sondern in ihre Grenzen gezogen:
+     * während jemand einen Bereich tippt, soll das Beispiel folgen statt sich zu
+     * beschweren. Ein fehlender oder unbrauchbarer Wert fällt auf den Standardwert
+     * seines Feldes zurück - dieselbe Regel gilt beim Lesen einer gespeicherten
+     * Karte.
      */
     $raw = $body['exercise_params'] ?? [];
 
@@ -109,8 +116,8 @@ try {
         'task' => $task,
     ]);
 } catch (Throwable $error) {
-    // The real reason goes to the server log only; it could name a file or a
-    // line of code, which nobody outside needs.
+    // Der echte Grund geht nur ins Server-Protokoll; er könnte eine Datei oder
+    // eine Codezeile nennen, was draußen niemand braucht.
     error_log('Exercise preview failed: ' . $error->getMessage());
 
     send_json_error('exercise_preview_failed', 'The example could not be built.', 500);
