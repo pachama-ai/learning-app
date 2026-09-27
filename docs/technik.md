@@ -239,7 +239,7 @@ diesen drei Stellen vor:
 
 | Stelle | Bedeutung |
 | --- | --- |
-| `docs/development-environment.md` | die Anleitung zum WSL-Aufbau und zum „WSL: Disconnected“-Problem |
+| Abschnitt 3.4 dieser Datei | der Abbruch der Verbindung, wenn Windows in den Standby geht |
 | `.vscode/settings.json` | erklärt, warum die PHP-Prüfung in VS Code aus ist: der Ordner ist über `\\wsl.localhost\…` geöffnet, VS Code sucht PHP dann unter Windows und findet keins. Geprüft wird stattdessen mit `php -l` im Linux-Terminal |
 | `README.md` / diese Datei | Hinweise darauf, dass im Linux gearbeitet wird |
 
@@ -256,9 +256,24 @@ praktische Grund, warum das Projekt in WSL liegt.
 ### 3.4 Wenn „WSL: Disconnected“ erscheint
 
 Diese Meldung ist **kein Fehler der Anwendung**: Wenn Windows in den Standby geht,
-wird die WSL2-Maschine angehalten, und VS Code verliert die Verbindung. Die
-Ursache, der `powercfg`-Befehl zum Abschalten der Standby-Zeit und die Diagnose
-stehen ausführlich in `docs/development-environment.md`.
+wird die WSL2-Maschine angehalten, und VS Code verliert die Verbindung. Ein
+„Reload Window“ hilft, aber es kommt wieder. Abschalten lässt sich die Ursache so
+(Windows-Terminal, ohne Administrator):
+
+```bash
+powercfg.exe /change standby-timeout-ac 0      # nie schlafen, am Netz
+powercfg.exe /change standby-timeout-dc 0      # nie schlafen, im Akku
+powercfg.exe /change hibernate-timeout-ac 0    # nie hibernieren
+```
+
+Prüfen: `powercfg.exe /q SCHEME_CURRENT SUB_SLEEP` → `STANDBYIDLE` muss für AC
+**und** DC `0x00000000` sein. Achtung: die Werte hängen am **aktiven**
+Energiesparplan – ein Planwechsel setzt die alten Zeiten zurück.
+
+Nachweis, falls es wieder auftritt: das Windows-Ereignisprotokoll zeigt
+`Power-Troubleshooter` (id 1) mit Schlaf- und Wachzeit, das VS-Code-Protokoll
+`renderer.log` zeigt `socket timeout event`. Beide Zeiten liegen sekundengenau
+übereinander – warum es passiert, lässt sich damit beweisen statt vermuten.
 
 ---
 
@@ -490,6 +505,25 @@ aufgelistet, damit niemand sie für aktiv hält:
 | `categories.description_en`, `description_de` | Werden nicht gelesen und nicht geschrieben. |
 | `users.role` | Wird beim Anlegen gefüllt, nie gelesen. |
 | `card_exercises.range_min`, `range_max` | Existieren im Schema, kommen im Code nicht vor. |
+
+### 6.6 Die Migrationen
+
+Das Schema wurde von Hand in phpMyAdmin geändert. Zu jeder Änderung gibt es eine
+SQL-Datei in `database/`, die man selbst ausführt – die Anwendung führt **keine**
+Schemaänderung aus. Die 19 CSV-Dateien in `database/import/` gehören zum
+Repository: sie sind der Inhalt, mit dem die Karten einmal eingelesen wurden.
+
+| Datei | Was sie tut |
+| --- | --- |
+| `initial_categories.sql` | legt die fünf Lernbereiche und ihre Unterkategorien an |
+| `add_category_content.sql` | die Spalten für Beschreibung und Symbol (`icon_svg`, `icon_scale`) |
+| `add_category_owner.sql` | eine Kategorie gehört einem Konto (`user_id`) |
+| `assign_category_owner.sql` | verteilt die vorhandenen Kategorien auf ihr Konto (Daten, kein Schema) |
+| `add_card_exercises.sql` | die Tabelle `card_exercises` – die zweite Kartenart |
+| `add_exercise_params.sql` | die Zahlen, aus denen eine Aufgabe gebaut wird (`kind`, `params`) |
+| `add_user_auth.sql` | die Spalten, die `users` für die Anmeldung braucht |
+| `add_study_sessions.sql` | die Tabelle `study_sessions`: wie viel heute gelernt wurde |
+| `add_session_category.sql` | die Kategorie, zu der eine Lernrunde gehört |
 
 ---
 
@@ -777,6 +811,28 @@ den Lernbereichen. Ein Bereich (`index.php?category=3`), eine Unterkategorie
 aber nichts wird gespeichert: Bewerten antwortet mit `403 no_user_session`. Über
 die Kopfzeile anmelden oder ein Konto anlegen.
 
+### 9.1 Handprüfung (kurz)
+
+Nach einer Änderung reicht diese Runde. Erwartet ist jeweils das, was in der
+letzten Spalte steht; alles andere ist ein Fehler.
+
+| # | Was tun | Was passieren muss |
+| --- | --- | --- |
+| 1 | Startseite öffnen | fünf Kacheln in der Reihenfolge ihrer Id, keine Meldung in der Browser-Konsole |
+| 2 | Auf eine Kachel schauen | Anzahl Unterkategorien und Karten stimmen; die Zeichnung aus `categories.icon_svg` ist da |
+| 3 | Sprache umschalten (DE/EN) | alle Beschriftungen wechseln ohne Neuladen; die Wahl bleibt nach F5 |
+| 4 | Thema umschalten | hell ↔ dunkel wechselt vollständig, die Wahl bleibt nach F5 |
+| 5 | Bereich öffnen (`?category=3`) | Kopf mit Symbol und Namen, links die Bereiche, jede Zeile mit „Lernen“ und der Zahl fälliger Karten |
+| 6 | Unterkategorie öffnen (`?category=101`) | drei Kennzahl-Kacheln, darunter die Kartenliste |
+| 7 | Statuswort einer Karte | „Neu“, „Unsicher“ oder „Gewusst“ – mit Punkt in der Statusfarbe |
+| 8 | Adresse direkt aufrufen (F5) | jede Ansicht lädt richtig |
+| 9 | „+ Karte“ | Pflichtfelder werden geprüft, Sprach-Reiter und optionales Symbol sind da |
+| 10 | Karte anlegen und löschen | Zähler der Unterkategorie ändert sich und wieder zurück |
+| 11 | „Lernen“ | Frage, Antwort, vier Bewertungsknöpfe; bewerten, rückgängig, Escape schließt |
+| 12 | CSV importieren | Vorschau zeigt Zeilen und Probleme, „Importieren“ legt nur fehlerfreie Zeilen an |
+| 13 | Abmelden | zurück zur Startseite; Bewerten antwortet mit `403` |
+| 14 | `api/health.php` | `{"success":true,…}` |
+
 **Ohne Skript** geht es auch direkt:
 
 ```bash
@@ -816,6 +872,7 @@ ist dabei unter anderem `chmod o+x /home/user`, damit der Benutzer `www-data`
 | Tote Datei | `public/assets/icons/informatik.svg` (keine Referenz im Repository). Das Symbol der Kategorie kommt aus `categories.icon_svg` und wird weiterhin geladen. |
 | Widersprüchliche Regeln | `.area-card`, `.detail__head`, `.heading--detail` und die Hover-Regeln stehen jetzt je in **einer** Regel, mit genau den Werten, die vorher galten; die vollständig überschriebene Regel für `.detail__head` in Abschnitt 7 ist weg. Gemessen: kein einziger der geprüften 1584 Einzelwerte hat sich geändert. |
 | Ältere Dokumente | Die überholten Fassungen von `project-brief.md` und `verification.md` sind aus dem Repository entfernt. Sie bleiben über die **Git-Historie** einsehbar (`git log --diff-filter=D -- docs/`). |
+| Nur noch ein Dokument | `docs/` enthält jetzt nur diese Datei. Die WSL-Diagnose, die Migrationsliste und die Handprüfung sind hierher gewandert (3.4, 6.6, 9.1); `project-brief.md`, `verification.md`, `migrations.md`, `development-environment.md` und `umbenennung.md` sind gelöscht. Alles bleibt in der Git-Historie. |
 | Zugangsdaten | Die Werte standen in `src/config/database.local.php` (nicht im Git). Jetzt stehen sie in der Datei **`.env`** im Projektstamm, gelesen von `src/helpers/env.php`; Vorlage ohne echte Werte: `.env.example`. Beide alten Konfigurationsdateien (`database.local.php`, `database.example.php`) sind entfernt, damit es nur **eine** Stelle mit Werten gibt. Nachgemessen: Passwort und Benutzername kommen in genau einer Datei vor (`.env`), und `.env` ist über HTTP nicht erreichbar. |
 | Hover der Startseiten-Kacheln | Jede Position hat jetzt drei eigene Farben (`--kategorie-tint`, `--kategorie-icon-kreis`, `--kategorie-akzent`). Beim Überfahren und beim Tastatur-Fokus wird die Fläche eine Spur kräftiger, die Kante und der Schatten bekommen einen Hauch der Akzentfarbe, der Kreis wird dunkler, der Pfeil färbt sich und rückt 4 px nach rechts; die Bewegung fällt kleiner aus als vorher (2 px statt 3 px) und dauert 180 ms. Der Fokus bekommt zusätzlich einen Rahmen in der Akzentfarbe. Nachgemessen: im dunklen Thema sind von 145 geprüften Einzelwerten **0** anders als vorher; im hellen Thema ändern sich nur der Übergang, der Menü-Knopf und der neue Hover beziehungsweise Fokus. |
 

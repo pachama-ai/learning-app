@@ -139,11 +139,12 @@ ausführt; die Anwendung selbst ändert das Schema nie.
 
 | Datei | Inhalt |
 | --- | --- |
-| `docs/technik.md` | die vollständige technische Erklärung: Aufbau, Ablauf einer Anfrage, Datenbank, Lernlogik, Frontend, Startanleitung |
-| `docs/verification.md` | die Handprüfung: was anklicken, was eingeben, was erwarten |
-| `docs/migrations.md` | jede SQL-Datei in `database/` und was sie geändert hat |
-| `docs/development-environment.md` | die WSL-/VS-Code-Umgebung und das „WSL: Disconnected“-Problem |
+| `docs/technik.md` | alles Technische in einem Dokument: Aufbau, Ablauf einer Anfrage, WSL, Ordner, Dateien, Datenbank samt Migrationen, Lernlogik, Frontend, Startanleitung, Handprüfung, offene Fragen |
 | `.github/copilot-instructions.md` | die verbindlichen Regeln für Änderungen am Projekt |
+
+Es gibt bewusst nur diese zwei Dokumente. Ältere Fassungen bleiben in der
+**Git-Historie** erhalten (`git log --oneline -- docs/`), auch wenn eine Datei
+später entfernt wurde.
 
 Ältere Fassungen dieser Dateien und der Dokumentation bleiben in der
 **Git-Historie** erhalten (`git log --oneline -- docs/`), auch wenn eine Datei
