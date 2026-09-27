@@ -2458,8 +2458,10 @@ html.is-theme-switching::view-transition-new(root) {
     gap: 12px;
 }
 
-/* Die rechte Spalte der Zeile: Merker, Status, Menue - von oben nach unten,
-   rechtsbuendig, und immer gleich breit. */
+/* Die rechte Spalte der Zeile: in der ersten Zeile die Merker und der Status
+   nebeneinander, darunter der "..."-Knopf. Alles rechtsbuendig, und die erste
+   Zeile beginnt immer an derselben Stelle - deshalb sitzt der Status unabhaengig
+   davon gleich hoch, ob ein Merker da ist oder nicht. */
 .row__meta {
     display: flex;
     flex-direction: column;
@@ -2467,6 +2469,18 @@ html.is-theme-switching::view-transition-new(root) {
     gap: 6px;
     flex: 0 0 auto;
     margin-left: auto;
+}
+
+/* Merker und Status in einer Reihe. Die feste Mindesthoehe haelt die Reihe
+   gleich hoch, auch wenn nur der Status darin steht; der Status wird darin
+   mittig gesetzt und sitzt damit in jeder Zeile auf derselben Hoehe. */
+.row__meta-line {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 23px;
 }
 
 /* Front and back of a card share one cell, one above the other. */
@@ -3780,6 +3794,8 @@ html.is-theme-switching::view-transition-new(root) {
     align-items: center;
     gap: 7px;
     flex: 0 0 auto;
+    /* Gleiche Hoehe wie ein Merker, damit die Reihe darin nicht springt. */
+    min-height: 23px;
     /*
      * One width for all three words. With "flex: 0 0 auto" the box was exactly as
      * wide as its own word - "NEW" is short, "UNSURE" long - so the dot and the

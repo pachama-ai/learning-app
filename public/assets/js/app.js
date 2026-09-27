@@ -2519,14 +2519,24 @@
          */
         var metaColumn = document.createElement('span');
         metaColumn.className = 'row__meta';
-        metaColumn.appendChild(badge);
+
+        /*
+         * Merker und Status stehen nebeneinander in EINER Zeile. Dadurch sitzt
+         * der Status in jeder Zeile gleich hoch - vorher standen sie
+         * untereinander, und eine Zeile mit Merker hatte den Status 29 px tiefer
+         * als eine ohne.
+         */
+        var metaLine = document.createElement('span');
+        metaLine.className = 'row__meta-line';
+        metaLine.appendChild(badge);
 
         if (exerciseBadge !== null) {
-            metaColumn.appendChild(exerciseBadge);
+            metaLine.appendChild(exerciseBadge);
         }
 
-        metaColumn.appendChild(languageBadge);
-        metaColumn.appendChild(status);
+        metaLine.appendChild(languageBadge);
+        metaLine.appendChild(status);
+        metaColumn.appendChild(metaLine);
         metaColumn.appendChild(buildMenu([
             {
                 label: t('action.edit'),
