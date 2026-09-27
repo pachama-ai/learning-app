@@ -227,8 +227,10 @@
     --radius-control: 2px;
     --radius-tile: 12px;
 
-    /* Warm and light: the page behind a dialog stays visible. */
-    --backdrop: rgba(43, 38, 34, 0.26);
+    /* Warm und hell: die Seite hinter einem Dialog bleibt zu sehen, aber der
+       Dialog selbst steht klar davor. Deshalb ein etwas kraeftigerer Ton als
+       frueher, dafuer nur wenig Weichzeichnung. */
+    --backdrop: rgba(28, 28, 26, 0.32);
 
     /*
      * A dialog, a menu and the feedback pill are panels and not the page, so
@@ -360,7 +362,9 @@
     --blob-b: rgba(86, 150, 214, 0.45);
     --blob-c: rgba(128, 144, 214, 0.28);
 
-    --backdrop: rgba(8, 10, 20, 0.42);
+    /* Im dunklen Thema darf der Schleier ruhig schwaerzer sein, weil die Seite
+       ohnehin dunkel ist und der Dialog sich so besser abhebt. */
+    --backdrop: rgba(0, 0, 0, 0.5);
 
     /*
      * A panel is a surface too, so it takes the same value as every other surface
@@ -3031,9 +3035,11 @@ html.is-theme-switching::view-transition-new(root) {
     width: min(520px, calc(100vw - 32px));
     max-height: calc(100dvh - 48px);
     padding: 0;
-    overflow-y: auto;
+    /* Der Dialog selbst rollt nicht mehr: das erledigt die mittlere Zone im
+       Formular. So bleiben Kopf und Fuss immer stehen. */
+    overflow: hidden;
     border: 0;
-    border-radius: 26px;
+    border-radius: 16px;
     background-color: var(--panel);
     box-shadow: var(--dialog-shadow);
     color: var(--text);
@@ -3055,7 +3061,7 @@ html.is-theme-switching::view-transition-new(root) {
  */
 .dialog::backdrop {
     background-color: var(--backdrop);
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(3px);
     opacity: 0;
     transition: opacity 200ms var(--ease);
 }
@@ -3065,14 +3071,28 @@ html.is-theme-switching::view-transition-new(root) {
     transition-duration: 320ms;
 }
 
+/*
+ * Das Formular besteht aus drei Zonen:
+ *   1. der Kopf mit der Ueberschrift und dem Hinweistext,
+ *   2. der mittlere Teil mit den Feldern, der als einziger rollt,
+ *   3. der Fuss mit den Knoepfen, der unten kleben bleibt.
+ *
+ * Vorher rollte der ganze Dialog: bei einem langen Formular verschwand die
+ * Ueberschrift nach oben und die Knoepfe rutschten aus dem Bild. Jetzt bleibt
+ * der Kopf stehen und der Fuss ist immer erreichbar.
+ */
 .dialog__form {
     display: flex;
     flex-direction: column;
-    gap: 26px;
-    padding: 34px 34px 30px;
+    gap: 0;
+    padding: 0;
+    max-height: calc(100dvh - 48px);
+    overflow: hidden;
 }
 
 .dialog__title {
+    flex: 0 0 auto;
+    padding: 28px 32px 0;
     font-family: "Inter Tight", system-ui, sans-serif;
     font-size: 1.45rem;
     font-weight: 300;
@@ -3081,17 +3101,45 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .dialog__message {
-    margin-top: -8px;
+    flex: 0 0 auto;
+    padding: 8px 32px 0;
     color: var(--muted);
     font-size: 0.95rem;
     line-height: 1.5;
 }
 
+/*
+ * Die mittlere Zone rollt. "min-height: 0" muss dabeistehen, weil ein Flex-Kind
+ * sonst nicht unter seine Inhaltshoehe schrumpfen kann - ohne die Zeile waere
+ * der Fuss wieder aus dem Fenster geschoben.
+ */
 .dialog__fields {
     display: flex;
     flex-direction: column;
     /* The distance between two field groups. */
     gap: 26px;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 26px 32px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Die Fehlermeldung gehoert zum Fuss und nicht in die rollende Zone. */
+.dialog__error {
+    flex: 0 0 auto;
+    padding: 0 32px 18px;
+}
+
+/*
+ * Der Fuss: eine feine Linie trennt ihn vom Inhalt, und die Flaeche ist die des
+ * Dialogs, damit nichts durchscheint, wenn darunter etwas vorbeizieht.
+ */
+.dialog__actions {
+    flex: 0 0 auto;
+    padding: 20px 32px 24px;
+    border-top: 1px solid var(--line);
+    background-color: var(--panel);
 }
 
 .dialog__field {
@@ -3385,7 +3433,7 @@ html.is-theme-switching::view-transition-new(root) {
         max-width: none;
         margin: 0;
         max-height: calc(100dvh - 32px);
-        border-radius: 18px 18px 0 0;
+        border-radius: 16px 16px 0 0;
         border-bottom: 0;
         transform: translateY(100%);
     }
@@ -3394,8 +3442,29 @@ html.is-theme-switching::view-transition-new(root) {
         transform: translateY(0);
     }
 
+    /* Auf schmalen Bildschirmen ruecken die drei Zonen naeher an den Rand. */
     .dialog__form {
-        padding: 24px 20px 28px;
+        max-height: calc(100dvh - 32px);
+    }
+
+    .dialog__title {
+        padding: 22px 20px 0;
+    }
+
+    .dialog__message {
+        padding: 8px 20px 0;
+    }
+
+    .dialog__fields {
+        padding: 22px 20px;
+    }
+
+    .dialog__error {
+        padding: 0 20px 14px;
+    }
+
+    .dialog__actions {
+        padding: 16px 20px 20px;
     }
 }
 
