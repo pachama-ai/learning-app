@@ -285,7 +285,7 @@ Nachweis, falls es wieder auftritt: das Windows-Ereignisprotokoll zeigt
 | `public/api/` | Ein Endpunkt pro Datei, jeweils dünn: Methode prüfen → Felder prüfen → Service aufrufen → JSON senden. |
 | `public/assets/css/` | `app.css` (das ganze Design) und `boot.css` (nur der Ladebildschirm). |
 | `public/assets/js/` | `app.js` – das gesamte Frontend, eine einzige Datei. |
-| `public/assets/fonts/` | Die selbst gehostete Schriftdatei Inter Tight (eine Variable-Font-Datei). |
+| `public/assets/fonts/` | Die Schriftdateien, die die Seite selbst ausliefert: Inter (400/500/600) und Source Serif 4 (500/600) als lateinische woff2-Dateien, dazu Inter Tight als Rückfall. Mit dabei: die beiden OFL-Lizenztexte. |
 | `public/assets/icons/` | Favicon und ein einzelnes SVG; die Bereichs-Symbole liegen in der Datenbank. |
 | `public/assets/maps/` | Drei SVG-Landkarten (Deutschland, Europa, Welt) für Karten mit `map_region`. |
 | `public/assets/samples/` | Die Beispiel-CSV, die der Import-Dialog anbietet. |
@@ -678,10 +678,18 @@ Farben mitbringen – sie werden deshalb über `--icon-filter` umgefärbt statt 
 `currentColor`.
 
 **Schrift.** Die Oberfläche benutzt „Inter“ mit „Inter Tight“ als lokal
-mitgeliefertem Rückfall, Überschriften „Source Serif 4“. Inter und Source Serif 4
-werden per `@import` von Google Fonts geladen; mitgeliefert wird nur Inter Tight
-(`public/assets/fonts/`). Ohne Internet funktioniert die Seite, sieht aber anders
-aus. Ist das nicht gewollt, ist das eine offene Frage (siehe Abschnitt 10).
+mitgeliefertem Rückfall, Überschriften „Source Serif 4“. Alle drei liegen als
+woff2-Datei in `public/assets/fonts/` und werden per `@font-face` mit
+`font-display: swap` eingebunden – die Seite fragt **keinen** fremden Dienst mehr.
+Es gibt nur das lateinische Subset (mit Umlauten); Zeichen außerhalb fallen auf
+Inter Tight beziehungsweise Georgia zurück. Die Regeln hängen nicht am Thema:
+hell und dunkel benutzen dieselben Dateien.
+
+Vorher kam „Inter“ und „Source Serif 4“ per `@import` von Google Fonts. Die jetzt
+mitgelieferten Dateien sind genau die, die der Dienst ausgeliefert hat – eine
+variable Datei je Familie, deshalb zeigt pro Schnitt eine eigene Regel auf
+dieselbe Datei. Damit sieht die Seite aus wie vorher, nur ohne die Anfrage nach
+außen.
 
 Zwei Variablen, die von keiner Regel gelesen wurden, sind am 27.09.2026 entfernt
 worden (`--cat-default`, `--accent-soft`, dazu `--warn-soft`, `--background` und
@@ -875,32 +883,30 @@ ist dabei unter anderem `chmod o+x /home/user`, damit der Benutzer `www-data`
 | Nur noch ein Dokument | `docs/` enthält jetzt nur diese Datei. Die WSL-Diagnose, die Migrationsliste und die Handprüfung sind hierher gewandert (3.4, 6.6, 9.1); `project-brief.md`, `verification.md`, `migrations.md`, `development-environment.md` und `umbenennung.md` sind gelöscht. Alles bleibt in der Git-Historie. |
 | Zugangsdaten | Die Werte standen in `src/config/database.local.php` (nicht im Git). Jetzt stehen sie in der Datei **`.env`** im Projektstamm, gelesen von `src/helpers/env.php`; Vorlage ohne echte Werte: `.env.example`. Beide alten Konfigurationsdateien (`database.local.php`, `database.example.php`) sind entfernt, damit es nur **eine** Stelle mit Werten gibt. Nachgemessen: Passwort und Benutzername kommen in genau einer Datei vor (`.env`), und `.env` ist über HTTP nicht erreichbar. |
 | Hover der Startseiten-Kacheln | Jede Position hat jetzt drei eigene Farben (`--kategorie-tint`, `--kategorie-icon-kreis`, `--kategorie-akzent`). Beim Überfahren und beim Tastatur-Fokus wird die Fläche eine Spur kräftiger, die Kante und der Schatten bekommen einen Hauch der Akzentfarbe, der Kreis wird dunkler, der Pfeil färbt sich und rückt 4 px nach rechts; die Bewegung fällt kleiner aus als vorher (2 px statt 3 px) und dauert 180 ms. Der Fokus bekommt zusätzlich einen Rahmen in der Akzentfarbe. Nachgemessen: im dunklen Thema sind von 145 geprüften Einzelwerten **0** anders als vorher; im hellen Thema ändern sich nur der Übergang, der Menü-Knopf und der neue Hover beziehungsweise Fokus. |
+| Menü-Knopf vereinheitlicht | Die Größe steht nur noch in der Basisregel: **32 px** in beiden Themes. Vier Wiederholungen (30, 36, 40, 34 px) und die 40 px des Detail-Menüs sind weg. Die eine Ausnahme ist ausgeschrieben: der „…“-Knopf auf den Kacheln der Startseite ist im hellen Thema 28 px und schwarz mit weißer Schrift. |
+| Schriften lokal | „Inter“ (400/500/600) und „Source Serif 4“ (500/600) liegen als woff2 in `public/assets/fonts/` (lateinisches Subset, mit Umlauten) samt OFL-Lizenztexten und werden per `@font-face` mit `font-display: swap` eingebunden. Der `@import` von Google Fonts ist weg. Nachgemessen: keine Anfrage mehr an `fonts.googleapis.com` oder `fonts.gstatic.com`, die drei Dateien kommen lokal mit 200 an. |
 
 ### 10.2 Weiter offen
 
-1. **Externe Schriften.** `app.css` lädt „Inter“ und „Source Serif 4“ per
-   `@import` von Google Fonts. Das ist die einzige Anfrage an einen fremden Dienst.
-   Sollen die Dateien lokal mitgeliefert oder die beiden Schnitte aus dem Stapel
-   entfernt werden?
-2. **`bin/import_english_csv.php`** benutzt durchgehend deutsche Funktionsnamen
+1. **`bin/import_english_csv.php`** benutzt durchgehend deutsche Funktionsnamen
    und arbeitet ab etwa Zeile 390 im Top-Level-Code statt in Funktionen. Das
    widerspricht der Namensregel und ist schwer testbar.
-3. **Fehlende Stile.** Für ein paar Klassen aus dem HTML oder aus `app.js` gibt es
+2. **Fehlende Stile.** Für ein paar Klassen aus dem HTML oder aus `app.js` gibt es
    keine Regel in `app.css`: `learn__action--ghost`, `account-dialog__view`,
    `card-tools__search`, `view`, `import__state`, `import__error`,
    `row__status-text`, `has-file`, `row__learn-badge--some`, `learn__bar--hard`,
    `import__row--ok`. Einige sind reine Merker für JavaScript; bei den anderen
    fehlt die Gestaltung.
-4. **Spalten, die derzeit ungenutzt sind (nichts geändert).** `categories.color`,
+3. **Spalten, die derzeit ungenutzt sind (nichts geändert).** `categories.color`,
    `categories.description_en`, `categories.description_de`, `users.role`,
    `card_exercises.range_min`, `card_exercises.range_max` stehen im Schema,
    werden aber von keiner Stelle gelesen (siehe 6.5). Sie bleiben unangetastet,
    bis entschieden ist, was damit passieren soll – das Schema darf nur nach
    Absprache geändert werden.
-5. **Der Filmkorn-Effekt fehlt jetzt ganz.** Seine Regeln waren toter Code (kein
+4. **Der Filmkorn-Effekt fehlt jetzt ganz.** Seine Regeln waren toter Code (kein
    Element trug die Klasse) und sind entfernt. Wenn die Textur zurückkommen soll,
    braucht sie ein Element im Markup **und** die Regeln dazu.
-6. **Laufzeitdaten in `deploy/apache/`.** Logs, `apache.pid` und die
+5. **Laufzeitdaten in `deploy/apache/`.** Logs, `apache.pid` und die
    Sitzungsdateien wurden am 27.09.2026 geleert; beide Pfade stehen in
    `.gitignore`. Die Dateien entstehen beim nächsten Serverstart neu (ein bereits
    laufender Apache schreibt weiter in die geöffneten Dateien, deren Namen nicht
