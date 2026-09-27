@@ -3,31 +3,32 @@
 declare(strict_types=1);
 
 /**
- * POST /api/import_cards.php -> checks a CSV file, or imports its cards
+ * POST /api/import_cards.php -> prüft eine CSV-Datei oder legt ihre Karten an
  *
- * The request is multipart/form-data and carries
+ * Die Anfrage ist multipart/form-data und trägt
  *
- *   file         the CSV file (required, .csv, at most 1 MB)
- *   category_id  the subcategory the cards belong to (required)
- *   mode         "preview" (default) or "import"
+ *   file         die CSV-Datei (nötig, .csv, höchstens 1 MB)
+ *   category_id  die Unterkategorie, zu der die Karten gehören (nötig)
+ *   mode         "preview" (Vorgabe) oder "import"
  *
- * Preview mode changes nothing: it reads the file, checks every row and answers
- * with the summary, the error list and the first rows - that is what the dialog
- * shows before anything is stored.
+ * Der Vorschaumodus ändert nichts: er liest die Datei, prüft jede Zeile und antwortet
+ * mit der Auswertung, der Fehlerliste und den ersten Zeilen - genau das zeigt der
+ * Dialog, bevor etwas gespeichert wird.
  *
- * The header may carry one more, optional column besides the five required ones:
- * "exercise" names a generated task instead of a fixed card, for example
- * "times_table:min=2,max=20". It is checked with exercise_parse_cell() from
- * src/services/exercise_service.php, the same function the command line importer
- * and the card dialog use. A file without that column behaves exactly as before.
+ * Die Kopfzeile darf neben den fünf nötigen Spalten eine weitere, freiwillige tragen:
+ * "exercise" benennt eine erzeugte Aufgabe statt einer festen Karte, zum Beispiel
+ * "times_table:min=2,max=20". Geprüft wird sie mit exercise_parse_cell() aus
+ * src/services/exercise_service.php, derselben Funktion, die auch der Import auf der
+ * Kommandozeile und der Kartendialog benutzen. Eine Datei ohne diese Spalte verhält
+ * sich genau wie vorher.
  *
- * Import mode repeats the whole check on the server (the preview in the browser
- * is only comfort) and then writes all rows in ONE transaction. A file with a
- * single bad row is refused completely, so there is no such thing as half an
- * import.
+ * Der Importmodus wiederholt die ganze Prüfung auf dem Server (die Vorschau im Browser
+ * ist nur Bequemlichkeit) und schreibt dann alle Zeilen in EINER Transaktion. Eine
+ * Datei mit einer einzigen schlechten Zeile wird komplett abgelehnt, einen halben
+ * Import gibt es also nicht.
  *
- * The endpoint never writes into another category than the one that was sent,
- * never touches the table structure and never creates a progress row.
+ * Der Endpunkt schreibt nie in eine andere Kategorie als die mitgeschickte, rührt die
+ * Tabellenstruktur nicht an und legt keine Fortschrittszeile an.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -38,7 +39,7 @@ require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
 require_once __DIR__ . '/../../src/services/card_import_service.php';
 
-/** How many rows the preview table shows. The dialog says "and N more". */
+/** Wie viele Zeilen die Vorschauliste zeigt. Der Dialog sagt "und N weitere". */
 const CARD_IMPORT_PREVIEW_ROWS = 10;
 
 $method = $_SERVER['REQUEST_METHOD'] ?? '';
@@ -52,9 +53,9 @@ $mode = ($_POST['mode'] ?? 'preview') === 'import' ? 'import' : 'preview';
 /* ------------------------------------------------------------------ upload */
 
 /*
- * A request that is bigger than post_max_size arrives with empty $_POST and
- * $_FILES. The length header is the only thing left to tell "no file" and "file
- * far too big" apart, so it is checked first.
+ * Eine Anfrage, die größer ist als post_max_size, kommt mit leerem $_POST und $_FILES
+ * an. Die Längenangabe im Kopf ist dann das Einzige, was "keine Datei" und "Datei viel
+ * zu groß" noch unterscheidet, deshalb wird sie zuerst geprüft.
  */
 $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
 $file = $_FILES['file'] ?? null;
@@ -90,7 +91,7 @@ if ($size > CARD_IMPORT_MAX_BYTES) {
 $name = basename((string) ($file['name'] ?? ''));
 $extension = mb_strtolower((string) pathinfo($name, PATHINFO_EXTENSION));
 
-/* Only .csv is accepted, and only a file that really came through a POST. */
+/* Nur .csv wird angenommen, und nur eine Datei, die wirklich per POST kam. */
 if ($extension !== 'csv') {
     send_json_error('file_type', 'Only .csv files are accepted.', 400);
 }
@@ -113,7 +114,7 @@ try {
     $pdo = create_database_connection();
     $userId = current_user_id($pdo);
 
-    /* Imported cards land in a category of an account, so an import needs one. */
+    /* Importierte Karten landen in einer Kategorie eines Kontos, dafür braucht es eines. */
     if ($userId === null) {
         $required = session_user_required_error();
 
@@ -130,8 +131,9 @@ try {
 
     if ($fatal === null) {
         /*
-         * Whether this installation can store exercises at all - a database that
-         * never ran database/add_exercise_params.sql can still import fixed cards.
+         * Ob diese Installation überhaupt Aufgaben speichern kann - eine Datenbank, in
+         * der database/add_exercise_params.sql nie gelaufen ist, kann trotzdem feste
+         * Karten importieren.
          */
         $exercisesPossible = card_exercise_table_available($pdo) && card_exercise_params_available($pdo);
         $checked = card_import_validate($read, card_import_existing_fronts($pdo, $categoryId, $userId), $tableColumns, $exercisesPossible);
@@ -181,7 +183,7 @@ try {
         'row_count' => $read['data_rows'],
     ], 201);
 } catch (Throwable $error) {
-    /* The reason is written into the log; the answer stays generic. */
+    /* Der Grund landet im Protokoll, die Antwort bleibt allgemein. */
     error_log('Importing cards failed: ' . $error->getMessage());
 
     send_json_error('import_failed', 'The cards could not be imported. Nothing was saved.', 500);

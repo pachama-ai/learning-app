@@ -3,32 +3,34 @@
 declare(strict_types=1);
 
 /**
- * GET /api/bootstrap.php -> everything the interface needs for its first view
+ * GET /api/bootstrap.php -> alles, was die Oberfläche für ihren ersten Aufbau braucht
  *
- * One answer instead of one request per view: the learning areas, their
- * subcategories and the cards of every subcategory, each card with the status it
- * has for the signed-in user. The browser keeps this answer in memory and renders
- * the other views out of it, so walking through the app costs no further request.
+ * Eine Antwort statt einer Anfrage pro Ansicht: die Lernbereiche, ihre Unterkategorien
+ * und die Karten jeder Unterkategorie, jede Karte mit dem Stand, den sie für das
+ * angemeldete Konto hat. Der Browser behält diese Antwort im Speicher und baut die
+ * übrigen Ansichten daraus auf, das Durchwandern der Anwendung kostet also keine
+ * weitere Anfrage.
  *
- * What is NOT part of this answer, on purpose:
+ * Was absichtlich NICHT in dieser Antwort steckt:
  *
- *   - the generated task of an exercise card. Its numbers are drawn when the card
- *     is read, so caching them would show the same numbers again and again. The
- *     answer carries the kind of task and its numbers, and the browser asks for a
- *     fresh task when it really displays such a card (api/exercise_preview.php).
- *   - the drawings of the categories and the maps. They have their own fetch and
- *     their own cache in the browser and are served by api/category_icon.php and
- *     the files in public/assets/maps.
+ *   - die erzeugte Aufgabe einer Übungskarte. Ihre Zahlen werden gezogen, während
+ *     die Karte gelesen wird; sie mitzuschicken würde immer dieselben Zahlen zeigen.
+ *     Die Antwort nennt nur die Art der Aufgabe und ihre Zahlen, und der Browser holt
+ *     sich eine frische Aufgabe, wenn er so eine Karte wirklich anzeigt
+ *     (api/exercise_preview.php).
+ *   - die Zeichnungen der Kategorien und die Kartenbilder. Die haben ihren eigenen
+ *     Abruf und ihren eigenen Speicher im Browser und kommen aus
+ *     api/category_icon.php und den Dateien in public/assets/maps.
  *
- * The answer is read-only: it starts no transaction, changes nothing and creates
- * no progress row. Without a signed-in user every card is "new", which is the
- * truth - without a user id there can be no progress.
+ * Die Antwort liest nur: sie beginnt keine Transaktion, ändert nichts und legt keine
+ * Fortschrittszeile an. Ohne angemeldetes Konto ist jede Karte "neu", und das stimmt
+ * auch so - ohne Konto-Id kann es keinen Fortschritt geben.
  *
- * The response is intentionally one flat object:
+ * Die Antwort ist absichtlich ein flaches Objekt:
  *   {
- *     "areas":       [ ... the same shape as GET /api/categories.php ... ],
- *     "children":    { "2": [ ... subcategories of 2 ... ], ... },
- *     "cards":       { "85": [ ... cards of 85, each with "progress" ... ], ... },
+ *     "areas":       [ ... dieselbe Form wie GET /api/categories.php ... ],
+ *     "children":    { "2": [ ... Unterkategorien von 2 ... ], ... },
+ *     "cards":       { "85": [ ... Karten von 85, jede mit "progress" ... ], ... },
  *     "summaries":   { "85": { "total": 15, "due": 15, ... }, ... },
  *     "has_user":    true|false,
  *     "content_languages": ["de"],
@@ -46,10 +48,10 @@ require_once __DIR__ . '/../../src/services/dashboard_service.php';
 require_once __DIR__ . '/../../src/services/review_service.php';
 
 /*
- * This is the biggest single answer the application sends (~750 KB of JSON), and
- * JSON of card texts compresses very well. Every browser asks for gzip, so the
- * first view transfers a fraction of that. The setting has to be made before
- * anything is written, which is why it stands here and not further down.
+ * Das ist die größte einzelne Antwort der Anwendung (rund 750 KB JSON), und JSON aus
+ * Kartentexten lässt sich sehr gut zippen. Jeder Browser bittet um gzip, der erste
+ * Aufbau überträgt also nur einen Bruchteil davon. Die Einstellung muss stehen, bevor
+ * etwas geschrieben wird, deshalb steht sie hier und nicht weiter unten.
  */
 if (!headers_sent() && extension_loaded('zlib')) {
     @ini_set('zlib.output_compression', '1');
@@ -62,7 +64,7 @@ if ($method !== 'GET') {
     send_json_error('method_not_allowed', 'Only GET requests are allowed.', 405);
 }
 
-/* The interface says which of its two languages it is showing. */
+/* Die Oberfläche sagt, welche ihrer beiden Sprachen sie gerade zeigt. */
 $language = optional_query_language();
 
 try {
@@ -71,9 +73,9 @@ try {
     $columns = card_columns($pdo);
 
     /*
-     * Categories belong to an account, so a signed-out visitor has nothing to
-     * receive. The answer keeps its exact shape and is simply empty - that is
-     * what the start page reads to show its welcome state.
+     * Kategorien gehören einem Konto, ein abgemeldeter Besucher hat hier also nichts
+     * zu bekommen. Die Antwort behält trotzdem ihre genaue Form und ist nur leer -
+     * daraus liest die Startseite ihren Begrüßungszustand.
      */
     if ($userId === null) {
         send_json_success([
@@ -90,10 +92,10 @@ try {
     $areas = find_main_categories($pdo, $userId);
 
     /*
-     * The subcategories of every area, and - should there ever be a third level -
-     * the subcategories of a subcategory as well. The walk only asks for the
-     * children of categories that really have some, so a two-level tree costs one
-     * query per area and nothing more.
+     * Die Unterkategorien jedes Bereichs und - falls es je eine dritte Ebene gibt -
+     * die Unterkategorien einer Unterkategorie. Gefragt wird nur für Kategorien, die
+     * wirklich welche haben, ein zweistufiger Baum kostet also eine Abfrage pro
+     * Bereich und keine mehr.
      */
     $children = [];
     $level = array_map(static fn (array $area): int => (int) $area['id'], $areas);
@@ -114,12 +116,13 @@ try {
         $level = $next;
     }
 
-    /* Every card of every category in one read, grouped by category. */
+    /* Alle Karten aller Kategorien in einem Lesevorgang, nach Kategorie gruppiert. */
     $all = review_cards_all_categories($pdo, $userId, $language);
 
     /*
-     * The task of an exercise card is left out: it is drawn when the card is
-     * displayed, so a cached task would freeze numbers that must change.
+     * Die Aufgabe einer Übungskarte bleibt weg: sie wird gezeichnet, während die Karte
+     * gezeigt wird; eine mitgeschickte Aufgabe würde Zahlen festhalten, die sich
+     * ändern müssen.
      */
     foreach ($all['cards'] as $categoryId => $list) {
         foreach ($list as $index => $card) {
@@ -135,18 +138,18 @@ try {
         'cards' => $all['cards'],
         'summaries' => $all['summaries'],
         /*
-         * How many days in a row this person studied (see
+         * Wie viele Tage in Folge diese Person gelernt hat (siehe
          * src/services/dashboard_service.php).
          *
-         * It travels with the bootstrap because the first view of a page is drawn
-         * out of this answer alone - without it the streak tile had nothing to show
-         * until a write made the browser ask for its cards again.
+         * Sie reist mit dem Aufbau mit, weil die erste Ansicht einer Seite allein aus
+         * dieser Antwort entsteht - ohne sie hätte die Kachel "Serie" nichts zu zeigen,
+         * bis ein Schreibvorgang den Browser die Karten neu holen ließe.
          */
         'streak' => $userId === null ? ['available' => false, 'days' => 0] : dashboard_streak($pdo, $userId),
         /*
-         * The same number per subcategory, so the streak tile of whichever page is
-         * opened first can show ITS days and not the ones of the whole person. Null
-         * when the category column does not exist yet (see
+         * Dieselbe Zahl je Unterkategorie, damit die Kachel der zuerst geöffneten
+         * Seite IHRE Tage zeigen kann und nicht die der ganzen Person. Null, solange
+         * es die Kategorie-Spalte noch nicht gibt (siehe
          * src/services/dashboard_service.php).
          */
         'streaks' => $userId === null ? null : dashboard_streaks_by_category($pdo, $userId),
@@ -155,7 +158,7 @@ try {
         'language' => $language,
     ]);
 } catch (Throwable $error) {
-    /* The reason goes to the server log; the browser gets a generic message. */
+    /* Der Grund gehört ins Server-Protokoll, der Browser bekommt einen allgemeinen Satz. */
     error_log('Building the bootstrap failed: ' . $error->getMessage());
 
     send_json_error('bootstrap_unavailable', 'The application could not be loaded.', 500);
