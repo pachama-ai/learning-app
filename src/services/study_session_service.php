@@ -3,55 +3,55 @@
 declare(strict_types=1);
 
 /**
- * The learning session as a row: when it began, when it ended, how much happened.
+ * Die Lernsitzung als Zeile: wann sie anfing, wann sie endete, wie viel passiert ist.
  *
- * The table and the meaning of every column come from
- * database/add_study_sessions.sql - nothing here invents a column:
+ * Tabelle und Bedeutung jeder Spalte kommen aus database/add_study_sessions.sql -
+ * hier wird keine Spalte erfunden:
  *
- *   started_at     the moment of the FIRST answer of a run. A run that is opened
- *                  and closed again without answering anything leaves no row.
- *   ended_at       set when the learning view is closed, NULL while the run is on
- *   cards_studied  how many answers were given (a card answered twice counts
- *                  twice, which is what the counter in the view shows)
- *   cards_known    how many of them were "Good" or "Easy"
+ *   started_at     der Moment der ERSTEN Antwort einer Runde. Eine Runde, die
+ *                  geöffnet und ohne Antwort geschlossen wird, hinterlässt keine Zeile.
+ *   ended_at       wird beim Schließen der Lernansicht gesetzt, NULL solange sie läuft
+ *   cards_studied  wie viele Antworten gegeben wurden (eine zweimal beantwortete Karte
+ *                  zählt zweimal - das zeigt auch der Zähler in der Ansicht)
+ *   cards_known    wie viele davon "Gut" oder "Einfach" waren
  *
- * Why these rows are needed at all: the number of days in a row on a subcategory
- * page counts the days that hold at least one session (see dashboard_service.php).
- * Without a writer for this table that number can only ever be zero.
+ * Warum es diese Zeilen überhaupt braucht: die Serie auf einer Unterseite zählt die
+ * Tage mit mindestens einer Sitzung (siehe dashboard_service.php). Ohne einen
+ * Schreiber für diese Tabelle wäre die Zahl immer null.
  *
- * Two rules this file keeps:
+ * Zwei Regeln hält diese Datei ein:
  *
- *   - The clock is PHP's, never NOW() or CURDATE() of the database. The streak
- *     compares the dates in PHP's time zone, so both sides read the same clock and
- *     can never disagree about which day a session belongs to.
- *   - Every statement is prepared and bound. No value of a request is ever put
- *     into SQL text.
+ *   - Die Uhr ist PHPs, nie NOW() oder CURDATE() der Datenbank. Die Serie vergleicht
+ *     die Daten in PHPs Zeitzone, beide Seiten lesen also dieselbe Uhr und können sich
+ *     nie darüber uneinig sein, zu welchem Tag eine Sitzung gehört.
+ *   - Jede Anweisung ist vorbereitet und gebunden. Kein Wert aus einer Anfrage landet
+ *     je im SQL-Text.
  */
 
 /**
- * The two answers that mean "I knew it": "Good" and "Easy".
+ * Die zwei Antworten, die "konnte ich" bedeuten: "Gut" und "Einfach".
  *
- * "Hard" deliberately does not count - it is a success for the interval, but not
- * the answer of somebody who knew the card (see the migration).
+ * "Schwer" zählt absichtlich nicht - für das Intervall ist es ein Erfolg, aber nicht
+ * die Antwort von jemandem, der die Karte wusste (siehe Migration).
  */
 const STUDY_SESSION_KNOWN_RATINGS = [3, 4];
 
-/** The timestamp format of the columns - the same one the progress rows use. */
+/** Das Zeitstempelformat der Spalten - dasselbe wie bei den Fortschrittszeilen. */
 function study_session_timestamp(int $now): string
 {
     return date('Y-m-d H:i:s', $now);
 }
 
 /**
- * Whether the table has the category column yet.
+ * Ob die Tabelle die Kategorie-Spalte schon hat.
  *
- * The column comes from database/add_session_category.sql, a structure change that
- * has to be run by hand like every other one. Until then the application works
- * exactly as before: a run is written without a place, and the number of days in a
- * row counts the whole person instead of one subcategory.
+ * Die Spalte kommt aus database/add_session_category.sql, einer Schemaänderung, die wie
+ * jede andere von Hand ausgeführt werden muss. Bis dahin läuft die Anwendung genau wie
+ * vorher: eine Runde wird ohne Ort geschrieben, und die Serie zählt die ganze Person
+ * statt einer Unterkategorie.
  *
- * The question is asked once per request and remembered, so the column list is
- * read once and not on every single answer.
+ * Die Frage wird einmal pro Anfrage gestellt und gemerkt, die Spaltenliste wird also
+ * einmal gelesen und nicht bei jeder Antwort.
  */
 function study_session_has_category(PDO $pdo): bool
 {
@@ -66,19 +66,19 @@ function study_session_has_category(PDO $pdo): bool
 }
 
 /**
- * Writes one answer into the running session and answers with its id.
+ * Schreibt eine Antwort in die laufende Sitzung und gibt deren id zurück.
  *
- * The browser sends the id of the run it is in, or NULL with the FIRST answer of
- * a run - that is the moment the row is created, so a run without a single answer
- * leaves nothing behind.
+ * Der Browser schickt die id der Runde, in der er ist - oder NULL bei der ERSTEN
+ * Antwort einer Runde. Das ist der Moment, in dem die Zeile entsteht; eine Runde ohne
+ * eine einzige Antwort hinterlässt also nichts.
  *
- * An id that does not belong to this person, one of a run that was already closed
- * or one of a run in ANOTHER subcategory is treated like a first answer: a new row
- * starts. So a lost or stale id can never write into somebody else's run, into an
- * old one, or into the wrong place.
+ * Eine id, die nicht dieser Person gehört, zu einer schon geschlossenen Runde gehört
+ * oder zu einer Runde in einer ANDEREN Unterkategorie, wird wie eine erste Antwort
+ * behandelt: es beginnt eine neue Zeile. Eine verlorene oder veraltete id kann also nie
+ * in eine fremde Runde, in eine alte oder an die falsche Stelle schreiben.
  *
- * @param int|null $categoryId the subcategory this answer was given in
- * @return int the id of the run this answer belongs to
+ * @param int|null $categoryId die Unterkategorie, in der diese Antwort gegeben wurde
+ * @return int die id der Runde, zu der diese Antwort gehört
  */
 function study_session_record_rating(PDO $pdo, int $userId, ?int $categoryId, ?int $sessionId, int $rating, int $now): int
 {
@@ -88,9 +88,9 @@ function study_session_record_rating(PDO $pdo, int $userId, ?int $categoryId, ?i
 
     if ($open === null) {
         /*
-         * Two fixed variants of the same statement, chosen by the structure of the
-         * table - and not one text that a value is put into: what stands here is
-         * written in this file and nowhere else.
+         * Zwei feste Varianten derselben Anweisung, ausgewählt nach der Struktur der
+         * Tabelle - und nicht ein Text, in den ein Wert eingesetzt wird: was hier steht,
+         * steht in dieser Datei und nirgends sonst.
          */
         $statement = $pdo->prepare(
             $withCategory
@@ -127,14 +127,14 @@ function study_session_record_rating(PDO $pdo, int $userId, ?int $categoryId, ?i
 }
 
 /**
- * The id of a running session of this person, or null when there is none.
+ * Die id einer laufenden Sitzung dieser Person, oder null, wenn es keine gibt.
  *
- * "Running" means ended_at IS NULL. A row with an end is finished and is never
- * written into again.
+ * "Laufend" heißt ended_at IS NULL. Eine Zeile mit Ende ist fertig und wird nie wieder
+ * beschrieben.
  *
- * With a category the row has to belong to the same subcategory. A row from
- * before the migration carries none, and it stays for ever what it is - a day of
- * learning without a place - instead of swallowing the answers of a later run.
+ * Mit einer Kategorie muss die Zeile zur selben Unterkategorie gehören. Eine Zeile von
+ * vor der Migration trägt keine und bleibt für immer, was sie ist - ein Lerntag ohne
+ * Ort -, statt die Antworten einer späteren Runde zu schlucken.
  */
 function study_session_find_open(PDO $pdo, int $userId, int $sessionId, ?int $categoryId = null): ?int
 {
@@ -162,16 +162,16 @@ function study_session_find_open(PDO $pdo, int $userId, int $sessionId, ?int $ca
 }
 
 /**
- * Closes the run: ended_at is set once and never again.
+ * Schließt die Runde: ended_at wird einmal gesetzt und nie wieder.
  *
- * A session without an id was never started (nothing was answered), so there is
- * nothing to close and the answer is false.
+ * Eine Sitzung ohne id wurde nie gestartet (es wurde nichts beantwortet), es gibt also
+ * nichts zu schließen und die Antwort ist false.
  *
- * A run whose tab was simply killed stays open for ever. That is harmless: the
- * streak counts by started_at, and an open row counts like any other. Nothing is
- * guessed and nothing is repaired behind your back.
+ * Eine Runde, deren Tab einfach abgeschossen wurde, bleibt für immer offen. Das ist
+ * harmlos: die Serie zählt nach started_at, und eine offene Zeile zählt wie jede
+ * andere. Es wird nichts geraten und nichts hinter deinem Rücken repariert.
  *
- * @return bool whether a running row was really closed
+ * @return bool ob wirklich eine laufende Zeile geschlossen wurde
  */
 function study_session_close(PDO $pdo, int $userId, ?int $sessionId, int $now): bool
 {
@@ -193,13 +193,13 @@ function study_session_close(PDO $pdo, int $userId, ?int $sessionId, int $now): 
 }
 
 /**
- * Takes one answer back out of the run, so the counters keep matching what the
- * learning view shows after an undo.
+ * Nimmt eine Antwort wieder aus der Runde heraus, damit die Zähler nach einem
+ * Rückgängigmachen zu dem passen, was die Lernansicht zeigt.
  *
- * Both numbers are floored at zero: the columns are unsigned, and a counter that
- * would go below zero is not a reason to fail a request.
+ * Beide Zahlen bleiben bei mindestens null: die Spalten sind unsigned, und ein Zähler,
+ * der unter null rutschen würde, ist kein Grund, eine Anfrage scheitern zu lassen.
  *
- * @return bool whether a row was changed
+ * @return bool ob eine Zeile geändert wurde
  */
 function study_session_take_back_rating(PDO $pdo, int $userId, ?int $sessionId, int $rating): bool
 {

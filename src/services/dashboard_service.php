@@ -3,61 +3,60 @@
 declare(strict_types=1);
 
 /**
- * The running number the start view shows: how many days in a row somebody
- * studied.
+ * Die laufende Nummer der Startansicht: wie viele Tage jemand in Folge gelernt hat.
  *
- * It lives in a file of its own because it is the only question left that needs
- * `study_sessions`: the view that used to read that table is gone, and with it
- * its service.
+ * Sie steht in einer eigenen Datei, weil sie die einzige Frage ist, die noch
+ * `study_sessions` braucht: die Ansicht, die diese Tabelle früher las, gibt es nicht
+ * mehr, und ihren Service damit auch nicht.
  *
- * This file only reads. It writes nothing, so no call of it can change a card, a
- * category or a progress row, and the database structure is not touched anywhere
- * in here.
+ * Diese Datei liest nur. Sie schreibt nichts, kein Aufruf kann also eine Karte, eine
+ * Kategorie oder eine Fortschrittszeile ändern, und die Datenbankstruktur wird hier
+ * nirgends angefasst.
  */
 
 require_once __DIR__ . '/study_session_service.php';
 
 /**
- * How far back the streak is counted, at most.
+ * So weit zurück wird die Serie höchstens gezählt.
  *
- * This is a limit and not a rule of the game: it only says that the loop below
- * may never run forever, whatever the table holds. Nobody reaches it in practice.
+ * Das ist eine Obergrenze und keine Spielregel: sie sagt nur, dass die Schleife unten
+ * nie endlos läuft, egal was in der Tabelle steht. In der Praxis erreicht sie niemand.
  */
 const DASHBOARD_STREAK_MAX_DAYS = 400;
 
 /**
- * How many days in a row this person studied, counting back from today.
+ * Wie viele Tage in Folge diese Person gelernt hat, von heute rückwärts gezählt.
  *
- * A day counts when `study_sessions` holds at least one row for this person whose
- * `started_at` falls on that day - the moment the session really began, see
- * database/add_study_sessions.sql. Two sessions on the same day are still one
- * day, which is why the query asks for the distinct dates.
+ * Ein Tag zählt, wenn `study_sessions` mindestens eine Zeile für diese Person hat, deren
+ * `started_at` auf diesen Tag fällt - der Moment, in dem die Sitzung wirklich begann,
+ * siehe database/add_study_sessions.sql. Zwei Sitzungen am selben Tag sind trotzdem ein
+ * Tag, deshalb fragt die Abfrage nach den verschiedenen Daten.
  *
- * With a category the question is about ONE subcategory: the days in a row that
- * this subcategory was studied, whether or not the person studied somewhere else
- * in between. Before the migration that adds `category_id`
- * (database/add_session_category.sql) there is no place in a row, and the answer
- * is the number for the whole person - the caller does not have to know which of
- * the two it gets.
+ * Mit einer Kategorie geht es um EINE Unterkategorie: die Tage in Folge, an denen diese
+ * Unterkategorie gelernt wurde - egal ob die Person dazwischen woanders gelernt hat. Vor
+ * der Migration, die `category_id` bringt (database/add_session_category.sql), gibt es
+ * keinen Ort in einer Zeile, und die Antwort ist die Zahl für die ganze Person; der
+ * Aufrufer muss nicht wissen, welche der beiden er bekommt.
  *
- * The streak counts back from TODAY and stops at the first day without a row. So
- * somebody who studied yesterday but not today has 0 days, not 1: only a row for
- * today makes a streak a running one. That is the honest answer - "yesterday" is
- * not a streak.
+ * Gezählt wird von HEUTE rückwärts und beim ersten Tag ohne Zeile gestoppt. Wer gestern
+ * gelernt hat, heute aber nicht, hat also 0 Tage und nicht 1: nur eine Zeile für heute
+ * macht aus einer Serie eine laufende. Das ist die ehrliche Antwort - "gestern" ist
+ * keine Serie.
  *
- * `available` tells the two zeroes apart:
- *   - false -> there are no sessions for this person (or this subcategory) at all
- *     ("nothing learned yet" is not the same as "0 days in a row")
- *   - true  -> there are sessions, and `days` is the real count (possibly 0)
+ * `available` unterscheidet die zwei Nullen:
+ *   - false -> es gibt für diese Person (oder diese Unterkategorie) überhaupt keine
+ *     Sitzungen ("noch nichts gelernt" ist nicht dasselbe wie "0 Tage in Folge")
+ *   - true  -> es gibt Sitzungen, und `days` ist die echte Zahl (auch 0 möglich)
  *
- * The read may fail: the table comes from a migration that has to be run by hand
- * (database/add_study_sessions.sql), so it can be missing on a machine where that
- * step was not done. That is not an error the interface has to report - it simply
- * has nothing to show, which is the same answer as "no sessions yet".
+ * Das Lesen kann scheitern: die Tabelle kommt aus einer Migration, die von Hand
+ * ausgeführt werden muss (database/add_study_sessions.sql), sie kann auf einem Rechner
+ * also fehlen, wo dieser Schritt nicht gemacht wurde. Das ist kein Fehler, den die
+ * Oberfläche melden muss - sie hat dann einfach nichts zu zeigen, was dieselbe Antwort
+ * ist wie "noch keine Sitzungen".
  *
- * Note on the clock: the dates are compared in PHP's time zone, the same clock
- * PHP uses when it writes `started_at` (see review_due_timestamp() one file over).
- * MySQL is never asked for CURDATE(), so both sides can never disagree.
+ * Zur Uhr: die Daten werden in PHPs Zeitzone verglichen, derselben Uhr, mit der PHP
+ * `started_at` schreibt (siehe review_due_timestamp() eine Datei weiter). MySQL wird nie
+ * nach CURDATE() gefragt, beide Seiten können sich also nicht widersprechen.
  *
  * @return array{available: bool, days: int}
  */
@@ -67,9 +66,9 @@ function dashboard_streak(PDO $pdo, int $userId, ?int $categoryId = null): array
 
     try {
         /*
-         * One row per day instead of one row per session: DISTINCT on the date
-         * lets the database do the grouping. The LIMIT bounds what PHP has to
-         * read even for somebody who studied every single day for years.
+         * Eine Zeile pro Tag statt einer pro Sitzung: DISTINCT auf dem Datum lässt die
+         * Datenbank gruppieren. Das LIMIT begrenzt, was PHP lesen muss - auch für
+         * jemanden, der jahrelang jeden Tag gelernt hat.
          */
         $sql = 'SELECT DISTINCT DATE(started_at) AS studied_on
                   FROM study_sessions
@@ -87,8 +86,8 @@ function dashboard_streak(PDO $pdo, int $userId, ?int $categoryId = null): array
         $statement->execute();
 
         /*
-         * The dates become the KEYS of this array, so the walk below is a lookup
-         * and not a search through a list - that is what keeps it cheap.
+         * Die Daten werden die SCHLÜSSEL dieses Arrays, der Durchlauf unten ist also ein
+         * Nachschlagen und keine Suche in einer Liste - das hält es billig.
          */
         $studiedDays = [];
 
@@ -102,8 +101,8 @@ function dashboard_streak(PDO $pdo, int $userId, ?int $categoryId = null): array
 
         return ['available' => true, 'days' => dashboard_streak_days($studiedDays)];
     } catch (Throwable $error) {
-        /* Missing table, no right to read it, server gone: the interface shows
-           nothing instead of an error, exactly like an empty table. */
+        /* Fehlende Tabelle, kein Leserecht, Server weg: die Oberfläche zeigt nichts
+           statt eines Fehlers, genau wie bei einer leeren Tabelle. */
         error_log('Reading the study streak failed: ' . $error->getMessage());
 
         return ['available' => false, 'days' => 0];
@@ -111,16 +110,16 @@ function dashboard_streak(PDO $pdo, int $userId, ?int $categoryId = null): array
 }
 
 /**
- * The same number for every subcategory at once, for the first view of a page.
+ * Dieselbe Zahl für jede Unterkategorie auf einmal, für die erste Ansicht einer Seite.
  *
- * The first view is drawn out of api/bootstrap.php alone, so the answer has to
- * carry the streak of the category the page is about - otherwise the tile has
- * nothing to show until something is written.
+ * Die erste Ansicht wird allein aus api/bootstrap.php gezeichnet, die Antwort muss die
+ * Serie der Kategorie also mitbringen, um die es auf der Seite geht - sonst hätte die
+ * Kachel nichts zu zeigen, bis etwas geschrieben wird.
  *
  * @return array<string, array{available: bool, days: int}>|null
- *         one entry per subcategory that was ever studied, or null when the
- *         category column does not exist (then there is only the number for the
- *         whole person, see dashboard_streak())
+ *         ein Eintrag pro Unterkategorie, in der je gelernt wurde, oder null, wenn es die
+ *         Kategorie-Spalte nicht gibt (dann gibt es nur die Zahl für die ganze Person,
+ *         siehe dashboard_streak())
  */
 function dashboard_streaks_by_category(PDO $pdo, int $userId): ?array
 {
@@ -130,9 +129,9 @@ function dashboard_streaks_by_category(PDO $pdo, int $userId): ?array
 
     try {
         /*
-         * One read for all of them instead of one read per subcategory. The date
-         * bound is the same limit the walk below keeps: older days could never
-         * change the answer, so they are not read at all.
+         * Ein Lesevorgang für alle statt einer pro Unterkategorie. Die Datumsgrenze ist
+         * dieselbe Obergrenze, die der Durchlauf unten einhält: ältere Tage könnten die
+         * Antwort nie ändern, sie werden also gar nicht gelesen.
          */
         $since = (new DateTimeImmutable('today'))
             ->modify('-' . DASHBOARD_STREAK_MAX_DAYS . ' days')
@@ -172,11 +171,11 @@ function dashboard_streaks_by_category(PDO $pdo, int $userId): ?array
 }
 
 /**
- * Counts the days in a row from a set of studied days, starting at today.
+ * Zählt die Tage in Folge aus einer Menge gelernter Tage, beginnend bei heute.
  *
- * The set has the dates as its keys, so every step of the walk is a lookup. The
- * loop is bounded by the same limit the rest of this file uses, so it can never
- * run forever, whatever the table holds.
+ * Die Menge hat die Daten als Schlüssel, jeder Schritt des Durchlaufs ist also ein
+ * Nachschlagen. Die Schleife ist durch dieselbe Obergrenze begrenzt wie der Rest der
+ * Datei, sie kann also nie endlos laufen, egal was in der Tabelle steht.
  *
  * @param array<string, true> $studiedDays
  */
