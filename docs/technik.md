@@ -501,7 +501,7 @@ aufgelistet, damit niemand sie für aktiv hält:
 
 | Spalte | Stand |
 | --- | --- |
-| `categories.color` | Wird von keiner Stelle gelesen. Die Farben der Kacheln und Punkte kommen heute aus einer festen Palette nach Position (`--palette-1` … `--palette-8`). Nur `bin/import_cards_csv.php` schreibt die Spalte noch, wenn man `--color` übergibt. |
+| `categories.color` | Wird von keiner Stelle gelesen. Die Farben der Kacheln und Punkte kommen aus einer festen Palette nach Position (`--palette-1` … `--palette-8`). Beim Anlegen einer Kategorie wird die Spalte auch nicht mehr gefüllt: die Option `--color` in `bin/import_cards_csv.php` ist entfernt, sie bekommt also nur noch ihren Standardwert `NULL`. Die Spalte bleibt vorerst im Schema, damit die Struktur nicht angerührt wird. |
 | `categories.description_en`, `description_de` | Werden nicht gelesen und nicht geschrieben. |
 | `users.role` | Wird beim Anlegen gefüllt, nie gelesen. |
 | `card_exercises.range_min`, `range_max` | Existieren im Schema, kommen im Code nicht vor. |

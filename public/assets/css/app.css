@@ -2421,12 +2421,15 @@ html.is-theme-switching::view-transition-new(root) {
     white-space: nowrap;
 }
 
-/* The overflow menu: one small round button per row. */
+/* Das Ueberlauf-Menue: ein kleiner runder Knopf. Die Groesse steht nur hier,
+   damit sie nicht an vier Stellen anders lautet. Die eine Ausnahme steht weiter
+   unten: der "..."-Knopf auf den Kacheln der Startseite ist im hellen Thema
+   28 px und schwarz. */
 .menu-button {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     border: 1px solid transparent;
     border-radius: var(--radius-control);
@@ -2836,11 +2839,9 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .tile-menu .menu-button {
-    width: 28px;
-    height: 28px;
     border-radius: 50%;
-    /* It sits on a coloured tile in the light theme, so it carries its own
-       surface instead of relying on the tile behind it. */
+    /* Im hellen Thema sitzt er auf einer farbigen Kachel und traegt deshalb seine
+       eigene Flaeche, statt sich auf die Kachel dahinter zu verlassen. */
     background-color: color-mix(in srgb, var(--panel) 78%, transparent);
     color: var(--text);
     border-color: transparent;
@@ -2854,28 +2855,27 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 /*
- * Auf der hellen Kachel sitzt der Knopf auf einer farbigen Flaeche. Statt einer
- * eigenen Flaeche (die den Kachellton verdeckt) traegt er einen milchigen
- * Weiss-Schleier ohne Kante; beim Ueberfahren wird er deckender. 28 px bleiben
- * 28 px, weil box-sizing: border-box fuer alle Elemente gilt.
+ * Die eine Ausnahme von den 32 px: auf den Kacheln der Startseite sitzt der
+ * Knopf auf einer kraeftig gefaerbten Flaeche und ist dort im hellen Thema
+ * kleiner und schwarz, damit er als eigener Knopf lesbar bleibt. Im dunklen
+ * Thema gilt die Basisgroesse.
  *
- * Nur das helle Thema: im dunklen bleibt der Knopf, wie er war.
- *
- * Die Groesse muss hier stehen, weil die Regel "[data-theme=\"light\"] .menu-button"
- * weiter unten 32 px setzt und mehr wiegt als die 28 px aus dem Kachel-Abschnitt.
+ * Nur die Kacheln der Startseite (`.area-grid > .area-card-slot`), nicht jede
+ * Kachel: die Unterkategorien einer Seite stehen in einer Liste.
  */
-[data-theme="light"] .tile-menu .menu-button {
+[data-theme="light"] .area-grid > .area-card-slot .tile-menu .menu-button {
     width: 28px;
     height: 28px;
     border: 0;
-    background-color: rgba(255, 255, 255, 0.5);
-    color: var(--text);
-    backdrop-filter: blur(6px);
+    background-color: var(--text);
+    color: var(--surface);
 }
 
-[data-theme="light"] .tile-menu .menu-button:hover,
-[data-theme="light"] .tile-menu .menu-button[aria-expanded="true"] {
-    background-color: rgba(255, 255, 255, 0.8);
+[data-theme="light"] .area-grid > .area-card-slot .tile-menu .menu-button:hover,
+[data-theme="light"] .area-grid > .area-card-slot .tile-menu .menu-button[aria-expanded="true"] {
+    background-color: var(--text);
+    color: var(--surface);
+    opacity: 0.85;
 }
 
 /*
@@ -3351,8 +3351,6 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .detail__menu .menu-button {
-    width: 40px;
-    height: 40px;
     border-radius: 50%;
     background-color: color-mix(in srgb, var(--panel) 70%, transparent);
     border-color: transparent;
@@ -3556,18 +3554,10 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 /*
- * The three-dot menu: one size everywhere. On a tile it stays a little smaller,
- * because it sits on a coloured surface in the corner.
+ * Die Groesse des Menue-Knopfes steht ganz oben bei .menu-button (32 px) und
+ * gilt ueberall - auch auf einer Kachel. Eine zweite Groesse hier hat es
+ * frueher gegeben, sie war nur eine Wiederholung.
  */
-.menu-button {
-    width: 40px;
-    height: 40px;
-}
-
-.tile-menu .menu-button {
-    width: 36px;
-    height: 36px;
-}
 
 /*
  * A step back in the breadcrumb. The letters stay small - that is the design -
@@ -6345,7 +6335,6 @@ button,
 .learn__close,
 .feedback__action,
 .theme-toggle,
-.menu-button,
 .tiles-nav__button {
     height: 34px;
     padding: 0 14px;
@@ -6444,13 +6433,12 @@ button,
 }
 
 /* Runde Icon-Knoepfe: Theme-Umschalter, "..."-Menue, Pfeile der Kachelreihe,
-   das Schliessen der Lernansicht. */
+   das Schliessen der Lernansicht. Die Groesse kommt von .menu-button oben
+   (32 px) und steht hier nicht noch einmal. */
 [data-theme="light"] .theme-toggle,
 [data-theme="light"] .menu-button,
 [data-theme="light"] .tiles-nav__button,
 [data-theme="light"] .learn__close {
-    width: 32px;
-    height: 32px;
     padding: 0;
     background-color: transparent;
     border: 1px solid var(--border);

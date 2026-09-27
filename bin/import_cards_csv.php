@@ -59,11 +59,11 @@ const CARD_CSV_SAMPLES = 2;
    -------------------------------------------------------------------------- */
 
 /**
- * Reads --owner, --area, --file, --create-area, --icon, --color, --expect,
- * --dry-run and --execute.
+ * Reads --owner, --area, --file, --create-area, --icon, --expect, --dry-run and
+ * --execute.
  *
  * @return array{owner: int, area: string, files: list<string>, createArea: bool,
- *     icon: string|null, color: string|null, expect: int|null, execute: bool}|null
+ *     icon: string|null, expect: int|null, execute: bool}|null
  */
 function import_arguments(array $argv, string $projectRoot): ?array
 {
@@ -72,7 +72,6 @@ function import_arguments(array $argv, string $projectRoot): ?array
     $files = [];
     $createArea = false;
     $icon = null;
-    $color = null;
     $expect = null;
     $execute = false;
     $modeGiven = false;
@@ -113,19 +112,6 @@ function import_arguments(array $argv, string $projectRoot): ?array
             $icon = preg_match('/^([a-zA-Z]:|[\/\\\\])/', $candidate) === 1
                 ? $candidate
                 : $projectRoot . '/' . $candidate;
-            continue;
-        }
-
-        if (strpos($argument, '--color=') === 0) {
-            $value = substr($argument, 8);
-
-            if (preg_match('/^#[0-9A-Fa-f]{6}$/', $value) !== 1) {
-                echo "The value of --color must look like #C3C8DB.\n";
-
-                return null;
-            }
-
-            $color = $value;
             continue;
         }
 
@@ -185,7 +171,6 @@ function import_arguments(array $argv, string $projectRoot): ?array
         'files' => $files,
         'createArea' => $createArea,
         'icon' => $icon,
-        'color' => $color,
         'expect' => $expect,
         'execute' => $execute,
     ];
@@ -223,7 +208,6 @@ function import_print_usage(): void
     echo "  --area=<name>      the learning area the cards go into, required\n";
     echo "  --create-area      create that area when it does not exist yet\n";
     echo "  --icon=<path>      the drawing of a new area (svg file)\n";
-    echo "  --color=<#RRGGBB>  the stored colour of a new area\n";
     echo "  --file=<path>      one CSV file, may be given several times\n";
     echo "  --dry-run          read and report, write nothing (default)\n";
     echo "  --execute          really import, all of it or none of it\n";
@@ -701,14 +685,13 @@ function import_main(array $argv, string $projectRoot): int
             $icon = $options['icon'] === null ? null : (string) file_get_contents($options['icon']);
 
             $createArea = $pdo->prepare(
-                'INSERT INTO categories (parent_id, name, name_en, name_de, owner_user_id, color, icon_svg, icon_scale)
-                 VALUES (NULL, :name, :name_en, :name_de, :owner_user_id, :color, :icon_svg, 1.00)'
+                'INSERT INTO categories (parent_id, name, name_en, name_de, owner_user_id, icon_svg, icon_scale)
+                 VALUES (NULL, :name, :name_en, :name_de, :owner_user_id, :icon_svg, 1.00)'
             );
             $createArea->bindValue(':name', $options['area'], PDO::PARAM_STR);
             $createArea->bindValue(':name_en', $options['area'], PDO::PARAM_STR);
             $createArea->bindValue(':name_de', $options['area'], PDO::PARAM_STR);
             $createArea->bindValue(':owner_user_id', $options['owner'], PDO::PARAM_INT);
-            $createArea->bindValue(':color', $options['color'], $options['color'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $createArea->bindValue(':icon_svg', $icon, $icon === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $createArea->execute();
 
