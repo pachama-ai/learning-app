@@ -532,7 +532,11 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
         return ['ok' => false, 'code' => 'invalid_rating', 'message' => 'The rating must be 1, 2, 3 or 4.'];
     }
 
-    $card = find_card($pdo, $cardId);
+    /*
+     * The owner is part of the lookup: find_card() only answers with a card of a
+     * category this person owns, so a foreign card id ends here as "not found".
+     */
+    $card = find_card($pdo, $cardId, $userId);
 
     if ($card === null) {
         return ['ok' => false, 'code' => 'card_not_found', 'message' => 'This flashcard does not exist.'];
@@ -682,7 +686,8 @@ function review_store_progress(PDO $pdo, int $userId, int $cardId, array $values
  */
 function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previous, int $categoryId): array
 {
-    $card = find_card($pdo, $cardId);
+    /* Same owner check as the rating itself, see review_rate_card(). */
+    $card = find_card($pdo, $cardId, $userId);
 
     if ($card === null || (int) $card['category_id'] !== $categoryId) {
         return ['ok' => false, 'code' => 'card_not_found', 'message' => 'This flashcard does not exist.'];
