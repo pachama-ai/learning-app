@@ -38,3 +38,25 @@
         ExpiresDefault "access plus 7 days"
     </FilesMatch>
 </IfModule>
+
+#
+# Zugangsdaten und Verzeichnislisten gehoeren nicht ins Netz.
+#
+# Der DocumentRoot ist public/ - die Datei .env liegt im Projektstamm, also
+# schon ausserhalb und ist deshalb gar nicht erreichbar. Diese Sperre ist die
+# zweite Sicherung, falls public/ einmal versehentlich auf den Projektstamm
+# zeigt. Nichts an der Anwendung haengt davon ab, deshalb sind die Regeln
+# unschaedlich.
+#
+# Hinweis: Ohne "-Indexes" koennte ein Ordner ohne index.php seinen Inhalt
+# auflisten. mod_authz_core ist in Apache 2.4 eingebaut; fehlt es, greift der
+# Block nicht und die Anwendung laeuft trotzdem.
+#
+<IfModule mod_authz_core.c>
+    <FilesMatch "^\.(env|git|htpasswd|htaccess|DS_Store)">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Keine Verzeichnisauflistung und keine Verarbeitung von SSI.
+Options -Indexes -Includes

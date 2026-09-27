@@ -71,11 +71,16 @@ public/               ← das Einzige, was der Webserver ausliefert
    └── api/*.php      ein Endpunkt pro Datei: prüfen → Service → JSON
    ▼
 src/                  ← liegt außerhalb des Web-Roots, ist per URL nicht erreichbar
-   ├── helpers/       kleine Funktionen (JSON-Antwort, Eingabeprüfung, Sprachen)
+   ├── helpers/       kleine Funktionen (JSON-Antwort, Eingabeprüfung, Sprachen, .env lesen)
    ├── services/      Fachlogik und ALLE SQL-Abfragen
-   └── config/        Zugangsdaten (database.local.php, nicht im Git)
+   └── config/        baut die Datenbankverbindung; die Werte kommen aus .env
    ▼
 MySQL/MariaDB (Datenbank learning_app)
+```
+
+```
+.env                  ← im Projektstamm, ebenfalls außerhalb des Web-Roots
+   (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, DB_CHARSET)
 ```
 
 Zwei Regeln erklären fast den ganzen Aufbau:
@@ -269,7 +274,7 @@ stehen ausführlich in `docs/development-environment.md`.
 | `public/assets/icons/` | Favicon und ein einzelnes SVG; die Bereichs-Symbole liegen in der Datenbank. |
 | `public/assets/maps/` | Drei SVG-Landkarten (Deutschland, Europa, Welt) für Karten mit `map_region`. |
 | `public/assets/samples/` | Die Beispiel-CSV, die der Import-Dialog anbietet. |
-| `src/config/` | Die Datenbankverbindung. `database.local.php` enthält die echten Zugangsdaten und ist **nicht** im Git; `database.example.php` ist die Vorlage. |
+| `src/config/` | Baut die Verbindung zur Datenbank. Die Werte selbst stehen **nicht** hier, sondern in der Datei `.env` im Projektstamm. |
 | `src/helpers/` | Kleine, zustandslose Funktionen: JSON-Antworten, Eingabeprüfung, SVG-Prüfung, Sprache, HTML-Escaping. |
 | `src/services/` | Die Fachlogik und **alle** SQL-Abfragen: Kategorien, Karten, Lernen, Serie, Benutzer, Import, Übungsaufgaben. |
 | `bin/` | Drei Kommandozeilen-Skripte für CSV-Importe. Sie liegen außerhalb des Web-Roots und sind per URL nicht erreichbar. |
@@ -288,9 +293,7 @@ durchgehend prozedural – Funktionen und Konstanten, keine Objektorientierung,
 kein Autoloader, kein Namespace, kein Composer. Wer eine Klasse sucht, findet
 keine; wer eine anlegt, sollte das absprechen.
 
-Von 35 PHP-Dateien beginnen 33 mit `declare(strict_types=1)`; die beiden Ausnahmen
-sind die Konfigurationsdateien `database.example.php` und `database.local.php`,
-die nur ein Array zurückgeben.
+Von 34 PHP-Dateien beginnen alle 34 mit `declare(strict_types=1)`.
 
 ### 5.1 Die Endpunkte in `public/api/`
 
@@ -338,7 +341,8 @@ Alle Endpunkte antworten mit demselben Umschlag:
 | `exercise_service.php` | Katalog der 20 Übungstypen: Parameter, Prüfung, Aufbau der Aufgabe | `exercise_catalog()`, `exercise_normalise_params()`, `exercise_build_task()` | `exercise_preview.php`, `card_service.php`, `index.php`, `app.js` |
 | `exercise_tasks.php` | 11 Aufgabengeneratoren (Rechnen, Prozent, Gleichungen, Pythagoras) | `exercise_task_times_table()`, `exercise_task_percent()`, … | werden **dynamisch** über `exercise_build_task()` gerufen |
 | `exercise_tasks_energy.php` | 10 Aufgabengeneratoren zum Thema Energie (Einheiten, Wirkungsgrad, Statistik) | `exercise_task_unit_conversion()`, `exercise_task_efficiency()`, … | wie oben |
-| `config/database.php` | baut die PDO-Verbindung, liest die Zugangsdaten aus `database.local.php` | `create_database_connection()` | allen Endpunkten und `bin/*` |
+| `helpers/env.php` | liest die Datei `.env` im Projektstamm; `env()` und `env_required()` | `env_load()`, `env()`, `env_required()` | `config/database.php` |
+| `config/database.php` | baut die PDO-Verbindung, holt die Zugangsdaten über `env_required()` | `create_database_connection()` | allen Endpunkten und `bin/*` |
 
 Die Datei `exercise_tasks.php` und `exercise_tasks_energy.php` erzeugen Aufgaben
 so, dass sie bei jedem Aufruf **neue Zahlen** ziehen; gespeichert wird nur die Art
@@ -363,8 +367,9 @@ außerhalb des Web-Roots liegt.
 ## 6. Datenbank
 
 * Datenbank: **`learning_app`**, Zeichensatz `utf8mb4`, Collation `utf8mb4_unicode_ci`
-* Verbindung: konfiguriert in `src/config/database.local.php` (`host`, `port`,
-  `database`, `username`, `password`, `charset`)
+* Verbindung: konfiguriert in der Datei **`.env`** im Projektstamm (`DB_HOST`,
+  `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_CHARSET`); eingelesen von
+  `src/helpers/env.php`
 * Zugriff: ausschließlich über PDO mit Prepared Statements. Weil
   `EMULATE_PREPARES = false` gesetzt ist, bereitet der Datenbankserver die Anweisung
   vor – deshalb darf jeder Platzhalter in einer Anweisung **nur einmal**
@@ -706,8 +711,34 @@ verschwindet.
 Voraussetzungen: WSL2/Ubuntu mit PHP 8.5 und einer laufenden MySQL/MariaDB, sowie
 eine Datenbank `learning_app` mit den sechs Tabellen.
 
-**Schritt 1 – Zugangsdaten prüfen.** Es muss `src/config/database.local.php`
-existieren. Fehlt sie, `src/config/database.example.php` kopieren und ausfüllen.
+**Schritt 1 – Zugangsdaten prüfen.** Es muss die Datei **`.env`** im Projektstamm
+liegen. Fehlt sie, `.env.example` kopieren (`cp .env.example .env`) und ausfüllen.
+
+#### Was in `.env` steht
+
+Die Datei `.env` liegt im Projektstamm, also **neben** `public/` und damit
+autßerhalb des Web-Roots. Sie enthält sechs Zeilen, je eine pro Wert:
+
+| Name | Bedeutung | Beispiel lokal |
+| --- | --- | --- |
+| `DB_HOST` | Rechner der Datenbank | `localhost` |
+| `DB_PORT` | Port der Datenbank | `3306` |
+| `DB_NAME` | Name der Datenbank | `learning_app` |
+| `DB_USER` | Benutzer der Datenbank | der eigene Benutzer, **nicht** `root` |
+| `DB_PASS` | Passwort dieses Benutzers | – |
+| `DB_CHARSET` | Zeichensatz der Verbindung | `utf8mb4` |
+
+Regeln der Datei: Leerzeilen und Zeilen, die mit `#` beginnen, werden
+übersprungen; Werte dürfen in `"..."` oder `'...'` stehen; eine
+Umgebungsvariable, die der Server schon gesetzt hat, wird **nicht** überschrieben.
+
+Warum es die Datei gibt: Zugangsdaten sollen nicht im Quelltext stehen, wo sie
+versehentlich mit ins Git wandern. `.env` ist in `.gitignore` eingetragen, im Git
+liegt nur `.env.example` **ohne** echte Werte. Gelesen wird die Datei von
+`src/helpers/env.php`: `env('DB_PORT', '3306')` liefert den Wert oder den
+Standard, `env_required('DB_PASS')` bricht mit einer klaren Meldung im
+Fehlerprotokoll ab, wenn der Wert fehlt – **ohne** den Wert oder den Dateiinhalt
+in die Antwort an den Browser zu schreiben.
 
 **Schritt 2 – Datenbank prüfen.**
 
@@ -784,6 +815,7 @@ ist dabei unter anderem `chmod o+x /home/user`, damit der Benutzer `www-data`
 | Tote Datei | `public/assets/icons/informatik.svg` (keine Referenz im Repository). Das Symbol der Kategorie kommt aus `categories.icon_svg` und wird weiterhin geladen. |
 | Widersprüchliche Regeln | `.area-card`, `.detail__head`, `.heading--detail` und die Hover-Regeln stehen jetzt je in **einer** Regel, mit genau den Werten, die vorher galten; die vollständig überschriebene Regel für `.detail__head` in Abschnitt 7 ist weg. Gemessen: kein einziger der geprüften 1584 Einzelwerte hat sich geändert. |
 | Ältere Dokumente | Die überholten Fassungen von `project-brief.md` und `verification.md` sind aus dem Repository entfernt. Sie bleiben über die **Git-Historie** einsehbar (`git log --diff-filter=D -- docs/`). |
+| Zugangsdaten | Die Werte standen in `src/config/database.local.php` (nicht im Git). Jetzt stehen sie in der Datei **`.env`** im Projektstamm, gelesen von `src/helpers/env.php`; Vorlage ohne echte Werte: `.env.example`. Beide alten Konfigurationsdateien (`database.local.php`, `database.example.php`) sind entfernt, damit es nur **eine** Stelle mit Werten gibt. Nachgemessen: Passwort und Benutzername kommen in genau einer Datei vor (`.env`), und `.env` ist über HTTP nicht erreichbar. |
 
 ### 10.2 Weiter offen
 

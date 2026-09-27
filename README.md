@@ -42,12 +42,29 @@ Erwartet: `{"success":true,"data":{"database":"learning_app", ...}}`.
 In Produktion läuft die Anwendung unter Apache mit `public/` als DocumentRoot;
 die Datenbank heißt `learning_app`.
 
-## Konfiguration
+## Konfiguration (.env)
 
-`src/config/database.local.php` enthält die Zugangsdaten (Host, Port, Datenbank,
-Benutzer, Passwort, Zeichensatz). Die Datei ist **nicht** im Git und nicht über
-den Browser erreichbar. Fehlt sie, `src/config/database.example.php` kopieren und
-ausfüllen. Alles unter `src/` liegt absichtlich außerhalb des Web-Roots.
+Alle Zugangsdaten stehen in der Datei **`.env`** im Projektstamm — neben `public/`,
+also außerhalb des Web-Roots. Angelegt wird sie aus der Vorlage:
+
+```bash
+cp .env.example .env
+```
+
+Dann die sechs Werte eintragen: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
+`DB_PASS`, `DB_CHARSET`. `DB_CHARSET` und `DB_PORT` haben einen Standardwert
+(`utf8mb4`, `3306`) und dürfen fehlen.
+
+- `.env` ist in `.gitignore` eingetragen und gehört **nicht** ins Git. Im Git liegt
+  nur `.env.example` **ohne** echte Werte.
+- Gelesen wird die Datei von `src/helpers/env.php` (`env()` und `env_required()`),
+  benutzt von `src/config/database.php`. Beide liegen unter `src/`, also außerhalb
+  des Web-Roots.
+- Fehlt ein Pflichtwert, wird die Verbindung abgelehnt: im Fehlerprotokoll steht
+  eine klare Meldung, der Browser bekommt nur „The database connection could not be
+  established.“ — niemals einen Wert, einen Pfad oder einen Stacktrace.
+- Nichts anderes im Projekt enthält Zugangsdaten. Wenn du irgendwo einen zweiten
+  Satz Werte siehst, ist das ein Fehler.
 
 - PDO läuft mit `ERRMODE_EXCEPTION`, `DEFAULT_FETCH_MODE = FETCH_ASSOC` und
   `EMULATE_PREPARES = false`. Der letzte Punkt bedeutet: die Datenbank bereitet

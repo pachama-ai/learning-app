@@ -16,13 +16,12 @@ desktop.ini
 *.sublime-workspace
 
 # --- Secrets / environment ---
+# Die echten Zugangsdaten stehen in .env im Projektstamm. Nur die Vorlage
+# .env.example ist im Git, und in ihr stehen keine echten Werte.
 .env
 .env.*
 !.env.example
 src/config/config.local.php
-
-# Local credential files. database.example.php is committed; the *.local.php
-# copies hold real values and stay on this machine only.
 src/config/database.local.php
 src/config/*.local.php
 
@@ -31,6 +30,24 @@ src/config/*.local.php
 logs/
 tmp/
 cache/
+
+# Laufende Dienste und fertige Sitzungsdateien: der Dateiname enthaelt eine
+# Sitzungs-Kennung und gehoert nicht ins Repository.
+*.pid
+sess_*
+
+# Sicherungen und Datenbank-Abzuege. Sie enthalten echte Daten und duerfen
+# niemals mit hochgeladen werden.
+*.bak
+*.backup
+*.sql.bak
+*.sql.gz
+*.dump
+*_backup/
+backups/
+dumps/
+*.orig
+*.rej
 
 # --- Dependencies (reserved, none installed yet) ---
 /vendor/
