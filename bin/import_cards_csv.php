@@ -106,8 +106,8 @@ function import_arguments(array $argv, string $projectRoot): ?array
         }
 
         if (strpos($argument, '--file=') === 0) {
-            /* A path with a drive letter or a leading slash is taken as it is;
-               everything else is read from the project folder. */
+            /* Ein Pfad mit Laufwerksbuchstaben oder führendem Schrägstrich wird genommen,
+               wie er ist; alles andere wird vom Projektordner aus gelesen. */
             $candidate = substr($argument, 7);
             $files[] = preg_match('/^([a-zA-Z]:|[\/\\\\])/', $candidate) === 1
                 ? $candidate
@@ -190,7 +190,7 @@ function import_arguments(array $argv, string $projectRoot): ?array
     ];
 }
 
-/** Reads one "--name=<positive whole number>" argument, if it is the one at hand. */
+/** Liest ein "--name=<positive ganze Zahl>"-Argument, wenn es gerade das vorliegende ist. */
 function import_int_option(string $argument, string $prefix, ?int &$target): bool
 {
     if (strpos($argument, $prefix) !== 0) {
@@ -203,7 +203,8 @@ function import_int_option(string $argument, string $prefix, ?int &$target): boo
         echo 'The value of ' . $prefix . ' must be a positive whole number.' . "\n";
         $target = null;
 
-        /* The caller stops on a null, so a bad value is not silently ignored. */
+        /* Der Aufrufer hält bei einem null an, ein schlechter Wert wird also nicht
+           stillschweigend übergangen. */
         return true;
     }
 
@@ -231,22 +232,22 @@ function import_print_usage(): void
 }
 
 /* --------------------------------------------------------------------------
-   Reading the files
+   Die Dateien lesen
    -------------------------------------------------------------------------- */
 
-/** Takes a byte order mark off the first cell of a header. */
+/** Nimmt eine Bytereihenfolge-Markierung von der ersten Zelle einer Kopfzeile ab. */
 function import_strip_bom(string $value): string
 {
     return strpos($value, "\xEF\xBB\xBF") === 0 ? substr($value, 3) : $value;
 }
 
 /**
- * Reads one record of a CSV file.
+ * Liest einen Datensatz einer CSV-Datei.
  *
- * fgetcsv() is used and not a split by line: a quoted cell may contain a line
- * break, and zeitformen.csv does. Splitting the file by hand would tear such a
- * row into two and turn the second half into a row of its own - which is exactly
- * what happened the first time this tool ran.
+ * Benutzt wird fgetcsv() und kein Aufteilen nach Zeilen: eine Zelle in Anführungszeichen
+ * darf einen Zeilenumbruch enthalten, und zeitformen.csv tut das. Die Datei von Hand
+ * aufzuteilen würde so eine Zeile in zwei reißen und die zweite Hälfte zu einer eigenen
+ * Zeile machen - genau das ist beim ersten Lauf dieses Werkzeugs passiert.
  */
 function import_read_record($handle): array|false
 {
@@ -256,7 +257,7 @@ function import_read_record($handle): array|false
 }
 
 /**
- * Reads one file and validates every row.
+ * Liest eine Datei und prüft jede Zeile.
  *
  * @return array{name: string, rows: list<array<string, string>>, problems: list<string>, fatal: string|null}
  */
@@ -310,10 +311,10 @@ function import_read_csv(string $path): array
         $record++;
 
         /*
-         * The number a person sees in their spreadsheet: the header is row 1, so
-         * the first record is row 2. It counts RECORDS and not lines of the
-         * file, which is the same thing as long as no cell contains a break -
-         * and the spreadsheet counts records as well.
+         * Die Zahl, die eine Person in ihrer Tabellenkalkulation sieht: die Kopfzeile ist
+         * Zeile 1, der erste Datensatz ist also Zeile 2. Gezählt werden DATENSÄTZE und
+         * nicht Zeilen der Datei, was dasselbe ist, solange keine Zelle einen Umbruch
+         * enthält - und die Tabellenkalkulation zählt auch Datensätze.
          */
         $number = $record + 1;
 
@@ -355,8 +356,8 @@ function import_read_csv(string $path): array
 }
 
 /**
- * Groups the rows of all files by the subcategory they name, and looks for two
- * rows that would become the same card.
+ * Gruppiert die Zeilen aller Dateien nach der Unterkategorie, die sie nennen, und sucht
+ * zwei Zeilen, die dieselbe Karte würden.
  *
  * @param list<array{name: string, rows: list<array<string, string>>, problems: list<string>, fatal: string|null}> $files
  * @return array{groups: array<string, array{rows: list<array<string, string>>, files: list<string>}>, problems: list<string>}
@@ -382,8 +383,9 @@ function import_group_rows(array $files): array
         }
     }
 
-    /* Two rows with the same front in one subcategory would be two cards nobody
-       can tell apart, so they stop the run instead of being written twice. */
+    /* Zwei Zeilen mit derselben Vorderseite in einer Unterkategorie wären zwei Karten,
+       die niemand auseinanderhalten kann, sie brechen den Lauf also ab, statt zweimal
+       geschrieben zu werden. */
     foreach ($groups as $name => $group) {
         $seen = [];
 
