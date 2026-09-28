@@ -2872,16 +2872,16 @@
             elements.detailActions.hidden = false;
 
             if (isSubcategory) {
-                /* The tiles come first: they are the numbers of the work this page
-                   is for, and the counts and the buttons follow them. */
+                /* Die Kacheln kommen zuerst: sie sind die Zahlen der Arbeit, für die diese
+                   Seite da ist, die Zählungen und die Knöpfe folgen ihnen. */
                 renderDashboard(openCardSummary, openCardStreak);
                 renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
                 renderCardTools(openCardSummary);
                 showHeadActions('card', current.id, currentEntryCards.length, currentEntryCards.length > 0);
 
                 if (currentEntryCards.length === 0) {
-                    /* Nothing to learn, nothing to search: the header stays away
-                       and the page offers the one useful step. */
+                    /* Nichts zu lernen, nichts zu suchen: der Kopf bleibt weg, und die Seite
+                       bietet den einen sinnvollen Schritt an. */
                     elements.entryList.textContent = '';
                     openCards = [];
 
@@ -2895,19 +2895,19 @@
                     renderCardList(current.id);
                 }
 
-                /* The learning area section belongs to the level above. */
+                /* Der Lernkarten-Abschnitt gehört zur Ebene darüber. */
                 elements.areaCards.hidden = true;
                 return;
             }
 
-            /* A learning area holds subcategories and not cards, so it has
-               neither a dashboard nor a header of its own. */
+            /* Ein Lernbereich enthält Unterkategorien und keine Karten, er hat also
+               weder ein Zahlenfeld noch einen eigenen Kopf. */
             renderDashboard(null, null);
             renderCardTools(null);
             openCards = [];
 
-            /* Everything below this area can be studied in one session, so the
-               button is there as soon as the branch holds a single card. */
+            /* Alles unterhalb dieses Bereichs lässt sich in einer Einheit lernen, der Knopf
+               ist also da, sobald der Zweig eine einzige Karte enthält. */
             showHeadActions(
                 'area',
                 current.id,
@@ -2936,16 +2936,16 @@
     }
 
     /*
-     * The breadcrumb is a list of steps now: "START - Mathematics" on a learning
-     * area, "START - Mathematics - Number systems" on a subcategory. A step with
-     * an href is a link back, the last step is plain text.
+     * Die Brotkrume ist jetzt eine Liste von Schritten: "START - Mathematik" bei einem
+     * Lernbereich, "START - Mathematik - Zahlensysteme" bei einer Unterkategorie. Ein Schritt
+     * mit href ist ein Verweis zurück, der letzte Schritt ist reiner Text.
      *
-     * The home page passes null and shows no label at all: it is the top of the
-     * tree, so there is nothing above it to link back to.
+     * Die Startseite übergibt null und zeigt gar keine Beschriftung: sie ist die Spitze des
+     * Baums, es gibt also nichts darüber, wohin man zurückverweisen könnte.
      */
     /*
-     * The plus and the edit button mean different things on each level, so they
-     * are labelled for what they will do in the view that is open.
+     * Der Plus-Knopf und der Bearbeiten-Knopf bedeuten auf jeder Ebene etwas anderes, sie
+     * werden also danach beschriftet, was sie in der gerade offenen Ansicht tun werden.
      */
     function updateFooterControls(level) {
         var addKey = 'footer.addAria';
@@ -2960,22 +2960,22 @@
         elements.addButton.setAttribute('data-i18n-label', addKey);
 
         /*
-         * The two arrows belong to the tile row, so only the start page shows
-         * them. Whether they are greyed out as well is decided by
-         * updateTileNavigation(). Without a signed-in person there is no tile row
-         * to scroll: the welcome state hides it, so the arrows go with it.
+         * Die beiden Pfeile gehören zur Kachelreihe, sie erscheinen also nur auf der
+         * Startseite. Ob sie zusätzlich ausgegraut sind, entscheidet updateTileNavigation().
+         * Ohne angemeldete Person gibt es keine Kachelreihe zum Schieben: der
+         * Willkommenszustand blendet sie aus, die Pfeile gehen also mit ihr.
          */
         elements.tilesButtons.hidden = level !== 'home' || authState.user === null;
 
         /*
-         * The round plus button is the start page's own action and stays there:
-         * on a detail page the way to add the next entry sits in the head, where
-         * it is visible without scrolling to the end of the list.
+         * Der runde Plus-Knopf ist die eigene Aktion der Startseite und bleibt dort: auf einer
+         * Detailseite sitzt der Weg zum nächsten Eintrag im Kopf, wo er zu sehen ist, ohne ans
+         * Ende der Liste zu blättern.
          *
-         * Without a signed-in person it goes away as well: it creates a learning
-         * area, and an area needs an owner. That is the same reason the empty
-         * start page offers the sign-in instead of that form - a button that can
-         * only end in "no_user_session" has no place in the page.
+         * Ohne angemeldete Person verschwindet er ebenfalls: er legt einen Lernbereich an,
+         * und ein Bereich braucht einen Besitzer. Das ist derselbe Grund, aus dem die leere
+         * Startseite die Anmeldung anbietet statt dieses Formulars - ein Knopf, der nur in
+         * "no_user_session" enden kann, hat auf der Seite keinen Platz.
          */
         elements.addButton.hidden = level !== 'home' || authState.user === null;
     }
