@@ -4838,15 +4838,15 @@
     }
 
     /*
-     * A message for the page that is still being loaded: it is handed over in the
-     * session store and picked up exactly once by showPendingNote(). This is the
-     * only case in which a sign-out loads the page - see goToStartPage.
+     * Eine Meldung für die Seite, die gerade geladen wird: sie wird im Sitzungsspeicher übergeben
+     * und von showPendingNote() genau einmal abgeholt. Das ist der einzige Fall, in dem ein
+     * Abmelden die Seite lädt - siehe goToStartPage.
      */
     function setPendingNote(key) {
         try {
             window.sessionStorage.setItem(NOTE_STORAGE_KEY, String(key));
         } catch (error) {
-            /* Without storage the line is simply gone; nothing fails because of it. */
+            /* Ohne Speicher ist die Zeile einfach weg; daran scheitert nichts. */
         }
     }
 
@@ -4869,9 +4869,9 @@
     }
 
     /*
-     * The window listens to everything a window has to listen to: the X, a click on
-     * the dark background, Escape, the two buttons of the second step, and Enter in
-     * the password field.
+     * Das Fenster hört auf alles, worauf ein Fenster hören muss: das X, einen Klick auf den
+     * dunklen Hintergrund, Escape, die beiden Knöpfe des zweiten Schritts und Enter im
+     * Passwortfeld.
      */
     function wireAccountDialog() {
         var dialog = elements.accountDialog;
@@ -4886,7 +4886,7 @@
             showAccountStep('confirm');
         });
 
-        /* "Cancel" is not a closed window: it goes back to the account itself. */
+        /* "Abbrechen" ist kein geschlossenes Fenster: es geht zurück zum Konto selbst. */
         elements.accountCancel.addEventListener('click', function () {
             showAccountStep('data');
         });
@@ -4905,7 +4905,7 @@
             elements.accountPassword.classList.remove('is-invalid');
         });
 
-        /* A click on the dialog element itself - not on its content - is the backdrop. */
+        /* Ein Klick auf das Fensterelement selbst - nicht auf seinen Inhalt - ist der Hintergrund. */
         dialog.addEventListener('click', function (event) {
             if (event.target === dialog) {
                 closeAccountDialog();
@@ -4913,9 +4913,9 @@
         });
 
         /*
-         * Escape is handled twice on purpose, like in the form dialog: "cancel" is
-         * the native event of a modal dialog, and the key handler covers every
-         * situation in which that event does not arrive.
+         * Escape wird absichtlich doppelt behandelt, wie im Formularfenster: "cancel" ist das
+         * eigene Ereignis eines modalen Fensters, und der Tastaturhandler deckt jede Situation
+         * ab, in der dieses Ereignis nicht ankommt.
          */
         dialog.addEventListener('cancel', function (event) {
             event.preventDefault();
@@ -4929,7 +4929,7 @@
             }
         });
 
-        /* Closed is closed: the next open starts at the account itself again. */
+        /* Geschlossen ist geschlossen: das nächste Öffnen beginnt wieder beim Konto selbst. */
         dialog.addEventListener('close', function () {
             dialog.classList.remove('is-open');
             showAccountStep('data');
@@ -4964,8 +4964,8 @@
         elements.dialogSubmit.disabled = false;
         elements.dialogSubmit.textContent = t('dialog.delete.submit');
 
-        /* The only red button of the application, and only while this question
-           is open: closeDialog() takes the class away again. */
+        /* Der einzige rote Knopf der Anwendung, und nur solange diese Frage offen ist:
+           closeDialog() nimmt die Klasse wieder weg. */
         elements.dialogSubmit.classList.add('dialog__button--danger-pill');
 
         var parts = deletePreviewParts(knownDependents(target) || { categories: 0, cards: 0 });
@@ -4981,7 +4981,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Saving and deleting through the one submit handler
+       Speichern und Löschen über den einen Absende-Handler
        ---------------------------------------------------------------------- */
 
     function setBusy(busy) {
