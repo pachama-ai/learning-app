@@ -35,7 +35,7 @@ header('Cache-Control: no-store, must-revalidate');
 $translations = learning_app_translations();
 $defaultLocale = 'en';
 
-// The id only decides which view is built.
+// Die Id entscheidet nur, welche Ansicht gebaut wird.
 $requestedCategoryId = null;
 $rawCategoryId = $_GET['category'] ?? null;
 
@@ -43,12 +43,12 @@ if (is_string($rawCategoryId) && ctype_digit($rawCategoryId) && (int) $rawCatego
     $requestedCategoryId = (int) $rawCategoryId;
 }
 
-// Everything the browser needs. It contains no credentials, no connection
-// details and no server file paths.
+// Alles, was der Browser braucht. Darin stehen keine Zugangsdaten, keine
+// Verbindungsdaten und keine Server-Dateipfade.
 $appConfig = [
     'endpoints' => [
         'categories' => 'api/categories.php',
-        /* Everything the first view needs, in one answer. */
+        /* Alles, was die erste Ansicht braucht, in einer Antwort. */
         'bootstrap' => 'api/bootstrap.php',
         'category' => 'api/category.php',
         'cards' => 'api/cards.php',
@@ -56,46 +56,45 @@ $appConfig = [
         'review' => 'api/review.php',
         'importCards' => 'api/import_cards.php',
         'auth' => 'api/auth.php',
-        /* The account itself: the shape of its symbol and its end. */
+        /* Das Konto selbst: die Form seines Symbols und sein Ende. */
         'account' => 'api/account.php',
-        /* The one example the card dialog shows while a kind of task is being
-           chosen. It is built on the server, so the dialog and the card never
-           draw their numbers from two different generators. */
+        /* Das eine Beispiel, das der Kartendialog zeigt, während eine Aufgabenart
+           gewählt wird. Es entsteht auf dem Server, damit Dialog und Karte ihre
+           Zahlen nie aus zwei verschiedenen Erzeugern ziehen. */
         'exercisePreview' => 'api/exercise_preview.php',
     ],
 
-    // The sample file the import dialog offers, and nothing else.
+    // Die Beispieldatei, die der Importdialog anbietet, und sonst nichts.
     'sampleCsv' => 'assets/samples/cards-import-sample.csv',
     'storageKeys' => [
         'theme' => 'lernkartei.theme',
         'language' => 'lernkartei.language',
     ],
     'limits' => [
-        // Must match the limits the API enforces.
+        // Muss zu den Grenzen passen, die die API durchsetzt.
         'name' => 100,
         'cardText' => 2000,
-        /* Must match SVG_MAX_UPLOAD_BYTES on the server (350 KB). */
+        /* Muss zu SVG_MAX_UPLOAD_BYTES auf dem Server passen (350 KB). */
         'iconBytes' => 358400,
-        /* Must match CARD_IMPORT_MAX_BYTES and CARD_IMPORT_MAX_ROWS in
-           src/services/card_import_service.php. */
+        /* Muss zu CARD_IMPORT_MAX_BYTES und CARD_IMPORT_MAX_ROWS in
+           src/services/card_import_service.php passen. */
         'importBytes' => 1048576,
         'importRows' => 1000,
     ],
     /*
-     * The three map files and the sixteen German states. The states carry the id
-     * that germany.svg uses (that is the value the database stores) and a
-     * translation key, so the picker can offer a readable name in both languages.
-     * Never a second list of ids somewhere else.
+     * Die drei Kartendateien und die sechzehn deutschen Länder. Die Länder tragen die
+     * Id, die germany.svg benutzt (das ist der Wert, den die Datenbank speichert) und
+     * einen Übersetzungsschlüssel, damit die Auswahl in beiden Sprachen einen lesbaren
+     * Namen anbieten kann. Nirgendwo sonst steht eine zweite Liste von Ids.
      */
     /*
-     * The map files an area name stands for. The key is the first half of a
-     * map_region, the value is the file the browser fetches for it.
+     * Die Kartendateien, für die ein Gebietsname steht. Der Schlüssel ist die erste
+     * Hälfte einer map_region, der Wert ist die Datei, die der Browser dafür holt.
      *
-     * This list is the single source of truth for the picker in the card dialog:
-     * the picker offers exactly the areas that have a file here. Should an area
-     * ever be taken out, it is simply not offered any more, and a card that still
-     * carries such a region keeps its stored value (see dialogMapValue() in
-     * app.js).
+     * Diese Liste ist die einzige Quelle für die Auswahl im Kartendialog: angeboten
+     * wird genau das, wofür es hier eine Datei gibt. Nimmt man ein Gebiet heraus, wird
+     * es einfach nicht mehr angeboten, und eine Karte, die so eine Region noch trägt,
+     * behält ihren gespeicherten Wert (siehe dialogMapValue() in app.js).
      */
     'maps' => [
         'DE' => 'assets/maps/germany.svg',
@@ -103,10 +102,10 @@ $appConfig = [
         'WORLD' => 'assets/maps/world.svg',
     ],
     /*
-     * The kinds of task an exercise card can show, straight from
-     * exercise_catalog(): the card dialog may only offer what the generator really
-     * knows. The names are translation keys, like every other text of this
-     * interface.
+     * Die Aufgabenarten, die eine Übungskarte zeigen kann, direkt aus
+     * exercise_catalog(): der Kartendialog darf nur anbieten, was der Erzeuger
+     * wirklich kennt. Die Namen sind Übersetzungsschlüssel, wie jeder andere Text
+     * dieser Oberfläche.
      */
     'exerciseTypes' => exercise_catalog(),
     'germanStates' => [
@@ -204,10 +203,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
     <script>
         /*
-         * Applies the saved theme before the page is painted, so the browser
-         * never shows light colours first and then jumps to dark ones.
-         * This has to run inline in the head, because app.js loads too late.
-         * The localStorage behaviour is unchanged.
+         * Setzt das gespeicherte Erscheinungsbild, bevor die Seite gezeichnet wird,
+         * damit der Browser nie zuerst helle Farben zeigt und dann auf dunkle springt.
+         * Das muss inline im Kopf laufen, weil app.js zu spät geladen wird.
+         * Am Verhalten von localStorage ändert sich nichts.
          */
         (function () {
             var storageKey = 'lernkartei.theme';
@@ -215,7 +214,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             try {
                 storageKey = JSON.parse(document.getElementById('app-config').textContent).storageKeys.theme;
             } catch (error) {
-                /* Keep the key above when the config block cannot be read. */
+                /* Den Schlüssel oben behalten, wenn sich der Konfigurationsblock
+                   nicht lesen lässt. */
             }
 
             var saved = null;
@@ -223,7 +223,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             try {
                 saved = window.localStorage.getItem(storageKey);
             } catch (error) {
-                /* Private mode can block localStorage; the system setting is used then. */
+                /* Der private Modus kann localStorage sperren; dann gilt die
+                   Einstellung des Systems. */
             }
 
             if (saved !== 'light' && saved !== 'dark') {
@@ -297,31 +298,31 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
     <script>
         /*
-         * Shows and hides the overlay above. Deliberately its own little script
-         * and not a part of app.js: a broken application script must still end in
-         * the message with the retry button, never in an animation that runs
-         * forever.
+         * Zeigt und versteckt die Überlagerung oben. Absichtlich ein eigenes kleines
+         * Skript und kein Teil von app.js: ein kaputtes Anwendungsskript muss immer
+         * noch bei der Meldung mit dem Knopf "Erneut versuchen" enden, nie in einer
+         * Animation, die ewig läuft.
          *
-         * Rules, all of them cheap:
-         *   - it stands there from the very first painted line, so the page is
-         *     never seen uncovered - not even for one frame
-         *   - it disappears as soon as real content is there, in a 240 ms fade
-         *   - nothing after 8 seconds means: something is wrong, so the message
-         *     with the retry button appears instead - and if the answer arrives
-         *     anyway, later, the overlay goes away as usual
-         *   - if any of this fails, the page simply stays as it is: the overlay
-         *     is never shown and nothing is blocked
+         * Die Regeln, alle billig:
+         *   - sie steht von der allerersten gezeichneten Zeile an da, die Seite ist
+         *     also nie unbedeckt zu sehen - nicht einmal für ein Bild
+         *   - sie verschwindet, sobald echter Inhalt da ist, in einem 240 ms langen
+         *     Ausblenden
+         *   - nichts nach 8 Sekunden heißt: etwas stimmt nicht, dann erscheint die
+         *     Meldung mit dem Knopf "Erneut versuchen" - und kommt die Antwort
+         *     trotzdem, später, verschwindet die Überlagerung wie gewohnt
+         *   - scheitert etwas davon, bleibt die Seite einfach, wie sie ist: die
+         *     Überlagerung wird nie gezeigt und nichts blockiert
          */
         (function () {
             /*
-             * The loading screen of the first load, and nothing else: a click
-             * inside the application never shows it again, because the page is not
-             * loaded again.
+             * Der Ladebildschirm des ersten Aufbaus und sonst nichts: ein Klick in der
+             * Anwendung zeigt ihn nie wieder, weil die Seite nicht erneut geladen wird.
              *
-             * It goes away as soon as the first view really stands, in a 240ms
-             * fade. Nothing after eight seconds means: something is wrong, and the
-             * message with the retry button appears - a load that succeeds after
-             * that message still ends the overlay.
+             * Er verschwindet, sobald die erste Ansicht wirklich steht, in einem 240 ms
+             * langen Ausblenden. Nichts nach acht Sekunden heißt: etwas stimmt nicht, und
+             * die Meldung mit dem Knopf "Erneut versuchen" erscheint - ein Aufbau, der
+             * danach doch gelingt, beendet die Überlagerung trotzdem.
              */
             var overlay = document.getElementById('boot-overlay');
 
@@ -329,13 +330,15 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 return;
             }
 
-            /* The texts follow the saved language, like the theme further up. */
+            /* Die Texte folgen der gespeicherten Sprache, wie das Erscheinungsbild
+               weiter oben. */
             var language = 'en';
 
             try {
                 language = window.localStorage.getItem('lernkartei.language') === 'de' ? 'de' : 'en';
             } catch (error) {
-                /* Private mode can block localStorage; English is the default. */
+                /* Der private Modus kann localStorage sperren; Englisch ist die
+                   Vorgabe. */
             }
 
             Array.prototype.forEach.call(document.querySelectorAll('[data-text-' + language + ']'), function (node) {
@@ -343,23 +346,25 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             });
 
             /*
-             * The document carries the language of the page from PHP, which is the
-             * default and not the choice of this person. app.js corrects it later -
-             * this overlay is on screen before that happens, so it says it itself:
-             * a German loading line belongs in a German document.
+             * Das Dokument trägt die Sprache der Seite von PHP aus, und das ist die
+             * Vorgabe und nicht die Wahl dieser Person. app.js korrigiert das später -
+             * diese Überlagerung ist vorher auf dem Bildschirm, sie sagt es also selbst:
+             * eine deutsche Ladezeile gehört in ein deutsches Dokument.
              */
             document.documentElement.setAttribute('lang', language);
 
-            /* Set while the message with the retry button is on screen. It only
-               says "the message has been shown" and not "this is over": a load
-               that succeeds afterwards still ends the overlay. */
+            /* Gesetzt, solange die Meldung mit dem Knopf "Erneut versuchen" auf dem
+               Bildschirm steht. Das sagt nur "die Meldung wurde gezeigt" und nicht
+               "das ist vorbei": ein Aufbau, der danach gelingt, beendet die
+               Überlagerung trotzdem. */
             var failed = false;
             var finished = false;
 
             /*
-             * Eight seconds without a first view mean: something is wrong. Then
-             * the message with the retry button takes over. It is no final state -
-             * an answer that arrives afterwards still ends the overlay.
+             * Acht Sekunden ohne erste Ansicht heißen: etwas stimmt nicht. Dann
+             * übernimmt die Meldung mit dem Knopf "Erneut versuchen". Sie ist kein
+             * Endzustand - eine Antwort, die danach eintrifft, beendet die
+             * Überlagerung trotzdem.
              */
             var failTimer = window.setTimeout(function () {
                 if (!isReady()) {
@@ -368,23 +373,23 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             }, 8000);
 
             /*
-             * Ready means: the first view really stands there - a tile, a row, a
-             * subcategory or the empty state. "The document has finished loading"
-             * is NOT enough: all files can be there while the first answer of
-             * api/bootstrap.php is still on its way, and the static markup of the
-             * page is there from the first moment anyway.
+             * Fertig heißt: die erste Ansicht steht wirklich da - eine Kachel, eine
+             * Zeile, eine Unterkategorie oder der leere Zustand. "Das Dokument ist
+             * geladen" reicht NICHT: alle Dateien können da sein, während die erste
+             * Antwort von api/bootstrap.php noch unterwegs ist, und das feste Markup
+             * der Seite ist ohnehin vom ersten Moment an da.
              *
-             * The case "the application script never gets that far" stays covered:
-             * the message with the retry button once the three passes are over and
-             * nothing is there to show.
+             * Der Fall "das Anwendungsskript kommt nie so weit" bleibt abgedeckt:
+             * die Meldung mit dem Knopf "Erneut versuchen", sobald die drei
+             * Durchläufe vorbei sind und nichts zu sehen ist.
              */
             function isReady() {
                 /*
-                 * The empty notice (#empty-state on the start page, #entry-empty in
-                 * the detail view) is in the markup from the first moment, only
-                 * hidden. So it may count only while it is really shown: without the
-                 * "not hidden" the loading screen would be gone before the first
-                 * answer of the server arrived.
+                 * Der leere Hinweis (#empty-state auf der Startseite, #entry-empty in
+                 * der Detailansicht) steht vom ersten Moment an im Markup, nur
+                 * versteckt. Er darf also nur zählen, solange er wirklich gezeigt wird:
+                 * ohne das "nicht versteckt" wäre der Ladebildschirm schon weg, bevor
+                 * die erste Antwort des Servers eingetroffen ist.
                  */
                 return document.querySelector('.area-card, .row--card, .row--category, .learn-stage, .notice:not([hidden])') !== null;
             }
@@ -398,8 +403,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 window.clearTimeout(failTimer);
 
                 /*
-                 * A fading overlay may not swallow clicks and it is not failed any
-                 * more either - it is going away.
+                 * Eine ausblendende Überlagerung darf keine Klicks schlucken, und sie
+                 * ist auch nicht mehr gescheitert - sie geht gerade weg.
                  */
                 overlay.classList.remove('is-failed');
                 overlay.classList.add('is-hiding');
@@ -407,7 +412,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 window.setTimeout(function () {
                     overlay.hidden = true;
 
-                    /* And now the page underneath may be seen. */
+                    /* Und jetzt darf die Seite darunter gesehen werden. */
                     document.documentElement.classList.remove('is-booting');
                 }, 260);
             }
@@ -420,9 +425,9 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 failed = true;
                 overlay.classList.add('is-failed');
                 /*
-                 * The loading line of the older overlay is gone - the stations
-                 * themselves say what is happening. It is hidden only if it is
-                 * still there, so this never throws.
+                 * Die Ladezeile der älteren Überlagerung ist weg - die Stationen sagen
+                 * selbst, was gerade passiert. Sie wird nur versteckt, wenn es sie noch
+                 * gibt, damit das hier nie einen Fehler wirft.
                  */
                 var loadingLine = document.getElementById('boot-text');
 
@@ -435,16 +440,16 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             }
 
             /*
-             * Every "the first view is there" signal ends here: as soon as the page
-             * really stands, the overlay fades away - it is there for the load, not
-             * for a fixed number of seconds.
+             * Jedes Signal "die erste Ansicht ist da" endet hier: sobald die Seite
+             * wirklich steht, blendet die Überlagerung weg - sie ist für das Laden da,
+             * nicht für eine feste Zahl von Sekunden.
              */
             function onReadySignal() {
                 if (!isReady() || finished) {
                     return;
                 }
 
-                /* The answer arrived after the message: the page is shown now. */
+                /* Die Antwort kam nach der Meldung: jetzt wird die Seite gezeigt. */
                 if (failed) {
                     hide();
 
@@ -460,7 +465,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             try {
                 observer.observe(document.documentElement, { childList: true, subtree: true });
             } catch (error) {
-                /* No observer: the load event below still ends the overlay. */
+                /* Kein Beobachter: das load-Ereignis weiter unten beendet die
+                   Überlagerung trotzdem. */
             }
             document.addEventListener('lernkartei:ready', onReadySignal);
 
