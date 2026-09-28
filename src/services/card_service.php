@@ -649,7 +649,7 @@ function card_language_columns(array $columns = []): array
         'en' => ['front_en', 'back_en'],
     ];
 
-    /* Without a column list the app asks for every language it knows. */
+    /* Ohne Spaltenliste fragt die Anwendung jede Sprache ab, die sie kennt. */
     if ($columns === []) {
         return $known;
     }
@@ -663,8 +663,8 @@ function card_language_columns(array $columns = []): array
     }
 
     /*
-     * A table from before the language columns: the German text sits in front
-     * and back, under the names this app has always used.
+     * Eine Tabelle von vor den Sprachspalten: der deutsche Text steht in front und back,
+     * unter den Namen, die diese Anwendung schon immer benutzt hat.
      */
     if (!isset($pairs['de'])) {
         $pairs['de'] = ['front', 'back'];
@@ -674,10 +674,10 @@ function card_language_columns(array $columns = []): array
 }
 
 /**
- * The names of the columns that really exist in the `cards` table.
+ * Die Namen der Spalten, die es in der Tabelle `cards` wirklich gibt.
  *
- * Read from the metadata of a query that returns no rows: the names are part of
- * the answer, so the table does not have to be described twice.
+ * Gelesen aus den Angaben zu einer Abfrage, die keine Zeilen liefert: die Namen sind
+ * Teil der Antwort, die Tabelle muss also nicht zweimal beschrieben werden.
  *
  * @return list<string>
  */
@@ -716,8 +716,8 @@ function card_column_available(array $columns, string $column): bool
 }
 
 /**
- * The languages a card can have in this table: "de" always, "en" once the
- * migration has been run.
+ * Die Sprachen, die eine Karte in dieser Tabelle haben kann: "de" immer, "en" sobald die
+ * Migration gelaufen ist.
  *
  * @param list<string> $columns
  * @return list<string>
@@ -728,9 +728,9 @@ function card_content_languages(array $columns): array
 }
 
 /**
- * Every column a card read needs: the fixed ones plus the question and the answer
- * of every language the table has. front and back stay in the list because the
- * older shape of a card row still uses them.
+ * Jede Spalte, die ein Kartenlesen braucht: die festen plus Frage und Antwort jeder
+ * Sprache, die die Tabelle hat. front und back bleiben in der Liste, weil die ältere
+ * Form einer Kartenzeile sie noch benutzt.
  *
  * @return list<string>
  */
@@ -738,15 +738,15 @@ function card_read_columns(PDO $pdo): array
 {
     $columns = ['id', 'category_id', 'is_bidirectional', 'front', 'back'];
 
-    /* The map region only travels along when the table really has the column. */
+    /* Die Kartenregion reist nur mit, wenn die Tabelle die Spalte wirklich hat. */
     if (card_column_available(card_columns($pdo), 'map_region')) {
         $columns[] = 'map_region';
     }
 
     /*
-     * The exercise of a card sits in a table of its own, so its three values only
-     * travel along when that table exists. They are renamed here: in a joined
-     * query the plain names could be read twice.
+     * Die Aufgabe einer Karte liegt in einer eigenen Tabelle, ihre zwei Werte reisen also
+     * nur mit, wenn es diese Tabelle gibt. Sie werden hier umbenannt: in einer
+     * verbundenen Abfrage könnten die schlichten Namen zweimal gelesen werden.
      */
     if (card_exercise_table_available($pdo) && card_exercise_params_available($pdo)) {
         $columns[] = 'card_exercises.exercise_type AS exercise_type';
