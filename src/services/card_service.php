@@ -763,7 +763,7 @@ function card_read_columns(PDO $pdo): array
 }
 
 /**
- * Reports whether one language of a card is complete (question AND answer).
+ * Ob eine Sprache einer Karte vollständig ist (Frage UND Antwort).
  *
  * @param array<string, mixed> $texts
  */
@@ -780,18 +780,18 @@ function card_language_is_complete(array $texts, string $language, array $column
 }
 
 /**
- * The text of one card in the language that should be shown, with the marker that
- * tells the browser when the other language had to be used.
+ * Der Text einer Karte in der Sprache, die gezeigt werden soll, mit dem Merker, der dem
+ * Browser sagt, wann auf die andere Sprache ausgewichen werden musste.
  *
- * A card may be German only, English only or both. The rule is simple and the
- * same everywhere:
+ * Eine Karte kann nur deutsch, nur englisch oder beides sein. Die Regel ist einfach und
+ * überall dieselbe:
  *
- *   1. the language that was asked for, when it is complete,
- *   2. otherwise the other one, when THAT one is complete - marked as the
- *      language it really is,
- *   3. otherwise whatever text there is, in the language that was asked for.
+ *   1. die gefragte Sprache, wenn sie vollständig ist,
+ *   2. sonst die andere, wenn DIE vollständig ist - gekennzeichnet als die Sprache,
+ *      die sie wirklich ist,
+ *   3. sonst der Text, den es gibt, in der gefragten Sprache.
  *
- * @param array<string, mixed> $row the row, with the language columns if they exist
+ * @param array<string, mixed> $row die Zeile, mit den Sprachspalten, wenn es sie gibt
  * @param list<string> $columns
  * @return array<string, mixed>
  */
@@ -801,9 +801,9 @@ function card_localized_text(array $row, array $columns, string $language): arra
     $languages = array_keys($pairs);
 
     /*
-     * One flat table "column => text". Completeness is asked per language, and
-     * that question is about the real columns, not about the words "front" and
-     * "back".
+     * Eine flache Tabelle "Spalte => Text". Die Vollständigkeit wird je Sprache gefragt,
+     * und diese Frage geht über die echten Spalten und nicht über die Wörter "front"
+     * und "back".
      */
     $texts = [];
 
@@ -814,15 +814,15 @@ function card_localized_text(array $row, array $columns, string $language): arra
     }
 
     /*
-     * The language that was asked for, when this table has it at all. A table
-     * with one language can never answer a request for the other one, and saying
-     * so is what makes the interface show "German only".
+     * Die gefragte Sprache, wenn diese Tabelle sie überhaupt hat. Eine Tabelle mit einer
+     * Sprache kann nie eine Anfrage nach der anderen beantworten, und genau das zu sagen
+     * bringt die Oberfläche dazu, "nur Deutsch" anzuzeigen.
      */
     /*
-     * An exercise card stores no answer: its answer is built at the moment the
-     * card is displayed. "Complete" therefore means "carries a title" for that
-     * kind of card, and a card whose answer column is empty must not be marked as
-     * being in the wrong language - nothing about it is missing.
+     * Eine Übungskarte speichert keine Antwort: ihre Antwort entsteht in dem Moment, in
+     * dem die Karte gezeigt wird. "Vollständig" heißt bei dieser Art Karte also "trägt
+     * eine Überschrift", und eine Karte mit leerer Antwortspalte darf nicht als
+     * "falsche Sprache" gekennzeichnet werden - an ihr fehlt nichts.
      */
     $isExercise = trim((string) ($row['exercise_type'] ?? '')) !== '';
     $filled = static function (string $code) use ($texts, $columns, $isExercise): bool {
@@ -849,7 +849,7 @@ function card_localized_text(array $row, array $columns, string $language): arra
             $shown = $other;
         }
 
-        /* The text that is shown is not in the language that was asked for. */
+        /* Der gezeigte Text ist nicht in der Sprache, die gefragt war. */
         $missing = true;
     }
 
@@ -860,8 +860,8 @@ function card_localized_text(array $row, array $columns, string $language): arra
         'missing_language' => $missing,
     ];
 
-    /* Both languages travel with the card, so the dialog can edit both sides
-       without asking again. */
+    /* Beide Sprachen reisen mit der Karte mit, damit der Dialog beide Seiten
+       bearbeiten kann, ohne erneut zu fragen. */
     foreach ($languages as $code) {
         $result['front_' . $code] = $texts[$pairs[$code][0]] ?? '';
         $result['back_' . $code] = $texts[$pairs[$code][1]] ?? '';
@@ -871,8 +871,8 @@ function card_localized_text(array $row, array $columns, string $language): arra
 }
 
 /**
- * Reads the text fields of a card from a request body, in every language the
- * table supports.
+ * Liest die Textfelder einer Karte aus einem Anfrage-Inhalt, in jeder Sprache, die die
+ * Tabelle unterstützt.
  *
  * @param array<string, mixed> $body
  * @param list<string> $columns
@@ -891,9 +891,9 @@ function card_texts_from_body(array $body, array $columns): array
     }
 
     /*
-     * The dialog sends "front" and "back" as well when a card has one language:
-     * they are the German text under its original name. A table without the
-     * front_de/back_de columns keeps the German text there alone.
+     * Der Dialog schickt "front" und "back" auch dann mit, wenn eine Karte nur eine
+     * Sprache hat: sie sind der deutsche Text unter seinem ursprünglichen Namen. Eine
+     * Tabelle ohne die Spalten front_de/back_de behält den deutschen Text allein dort.
      */
     foreach (['front', 'back'] as $column) {
         if (array_key_exists($column, $body) && trim((string) ($texts[$column] ?? '')) === '') {
@@ -905,14 +905,14 @@ function card_texts_from_body(array $body, array $columns): array
 }
 
 /**
- * Inserts a card with the text of every language the table supports.
+ * Legt eine Karte an, mit dem Text jeder Sprache, die die Tabelle unterstützt.
  *
- * The caller has to make sure that $categoryId belongs to $ownerUserId - both
- * callers do, with category_exists() before they get here. The owner is used
- * for the read-back, so this function can never hand back a card of somebody
- * else even if that check were ever forgotten.
+ * Der Aufrufer muss dafür sorgen, dass $categoryId zu $ownerUserId gehört - beide
+ * Aufrufer tun das mit category_exists(), bevor sie hier ankommen. Der Besitzer wird
+ * für das Zurücklesen benutzt, diese Funktion kann also nie die Karte von jemand
+ * anderem zurückgeben, selbst wenn diese Prüfung einmal vergessen würde.
  *
- * @param array<string, string> $texts keyed by column name
+ * @param array<string, string> $texts nach Spaltenname abgelegt
  * @param list<string> $columns
  * @return array<string, mixed>
  */
@@ -945,9 +945,9 @@ function create_card_translated(
     }
 
     /*
-     * front and back are NOT NULL and older readers still use them, so the German
-     * text is written there as well whenever they are not the German columns
-     * themselves.
+     * front und back sind NOT NULL und ältere Leser benutzen sie noch, der deutsche Text
+     * wird also auch dort hineingeschrieben, wo sie nicht selbst die deutschen Spalten
+     * sind.
      */
     $legacy = [];
 
@@ -964,9 +964,9 @@ function create_card_translated(
     }
 
     /*
-     * The card and its exercise are written together or not at all. A transaction
-     * that the caller has already started is not touched: the import writes many
-     * cards inside one.
+     * Die Karte und ihre Aufgabe werden zusammen geschrieben oder gar nicht. Eine
+     * Transaktion, die der Aufrufer schon begonnen hat, wird nicht angefasst: der Import
+     * schreibt viele Karten in einer.
      */
     $ownsTransaction = !$pdo->inTransaction();
 
@@ -1032,9 +1032,9 @@ function delete_cards_of_categories(PDO $pdo, array $categoryIds, int $ownerUser
         return 0;
     }
 
-    // The ids come from the database (they were read, not typed by a person),
-    // and each one is cast to an integer, so nothing but numbers reaches the
-    // placeholder list.
+    // Die Ids kommen aus der Datenbank (sie wurden gelesen, nicht von einer Person
+    // eingetippt), und jede wird in eine ganze Zahl umgewandelt, in die Platzhalterliste
+    // gelangt also nichts als Zahlen.
     $placeholders = [];
     $ids = [];
 
@@ -1043,9 +1043,9 @@ function delete_cards_of_categories(PDO $pdo, array $categoryIds, int $ownerUser
         $ids[':id' . $index] = (int) $categoryId;
     }
 
-    /* The second half of the condition is the lock described in
-       delete_progress_of_categories(): these ids, and they must belong to this
-       account. */
+    /* Die zweite Hälfte der Bedingung ist die Absicherung, die in
+       delete_progress_of_categories() beschrieben ist: diese Ids, und sie müssen zu
+       diesem Konto gehören. */
     $statement = $pdo->prepare(
         'DELETE FROM cards'
         . ' WHERE category_id IN (' . implode(', ', $placeholders) . ')'
