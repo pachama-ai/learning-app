@@ -4135,8 +4135,8 @@
             }
         };
 
-        /* The language of the interface opens first, so nobody has to switch
-           before typing. */
+        /* Die Sprache der Oberfläche öffnet zuerst, niemand muss also vor dem Tippen
+           umschalten. */
         cardTab = cardContentLanguages.indexOf(locale) === -1 ? cardContentLanguages[0] : locale;
 
         if (cardContentLanguages.length > 1) {
@@ -4144,8 +4144,8 @@
         }
 
         /*
-         * The kind of card comes first: it decides what the rest of the form asks
-         * for, and the two kinds are the same card in the same table.
+         * Die Kartenart kommt zuerst: sie entscheidet, wonach der Rest des Formulars fragt,
+         * und die beiden Arten sind dieselbe Karte in derselben Tabelle.
          */
         addField('card_kind', 'select', {
             labelKey: 'dialog.card.kindLabel',
@@ -4179,7 +4179,7 @@
             value: cardDraft[cardTab].back
         });
 
-        /* The optional map: area, region, and the marked map underneath. */
+        /* Die freiwillige Landkarte: Bereich, Region und die markierte Karte darunter. */
         addMapField(card !== null && typeof card.map_region === 'string' ? card.map_region : null);
 
         addField('is_bidirectional', 'checkbox', {
@@ -4187,20 +4187,20 @@
             checked: card !== null && card.is_bidirectional === true
         });
 
-        /* The live preview: the same card shape the study session shows. */
+        /* Die lebende Vorschau: dieselbe Kartenform, die die Lerneinheit zeigt. */
         elements.dialogFields.appendChild(buildCardPreview());
 
         /*
-         * A new card can be typed one after another: the second button saves and
-         * keeps the dialog open. While an existing card is edited there is no
-         * "next" card, so the button stays away.
+         * Eine neue Karte lässt sich eine nach der anderen tippen: der zweite Knopf speichert
+         * und lässt das Fenster offen. Während eine vorhandene Karte bearbeitet wird, gibt es
+         * keine "nächste" Karte, der Knopf bleibt also weg.
          */
         cardSaveAndNext = false;
         elements.dialogSaveNext.hidden = card !== null;
         elements.dialogSaveNext.textContent = t('dialog.card.saveNext');
         elements.dialogSaveNext.disabled = false;
 
-        /* Which fields are visible follows from the kind that was just set. */
+        /* Welche Felder zu sehen sind, folgt aus der Art, die gerade gesetzt wurde. */
         setCardKind(dialogFields.card_kind.control.value);
 
         wireCardDialogShortcuts();
@@ -4211,7 +4211,7 @@
     }
 
     function validateCardForm() {
-        /* What is in the fields belongs to the language that is open. */
+        /* Was in den Feldern steht, gehört zu der Sprache, die offen ist. */
         if (cardDraft !== null) {
             cardDraft[cardTab].front = dialogFields.front.control.value;
             cardDraft[cardTab].back = dialogFields.back.control.value;
@@ -4219,14 +4219,14 @@
 
         var payload = {
             is_bidirectional: dialogFields.is_bidirectional.control.checked,
-            /* null means "no map": the column is empty then. */
+            /* null heißt "keine Landkarte": die Spalte ist dann leer. */
             map_region: dialogMapValue()
         };
 
         /*
-         * An exercise card sends the kind of task and the numbers its task may
-         * use; an empty exercise_type is how the dialog says "this is not an
-         * exercise", which is also how an exercise is taken away again.
+         * Eine Übungskarte schickt die Aufgabenart und die Zahlen, die ihre Aufgabe benutzen
+         * darf; ein leeres exercise_type ist die Art, wie das Fenster "das ist keine Übung"
+         * sagt, und genauso wird eine Übung auch wieder weggenommen.
          */
         var exercise = cardKindValue() === 'exercise';
 
@@ -4234,9 +4234,8 @@
 
         if (exercise) {
             /*
-             * The quick check in the browser, so the answer does not have to wait
-             * for a request. The server checks the same thing again and is the one
-             * that counts.
+             * Die schnelle Prüfung im Browser, damit die Antwort nicht auf eine Anfrage warten
+             * muss. Der Server prüft dasselbe noch einmal und ist der, auf den es ankommt.
              */
             var read = readExerciseParams(payload.exercise_type);
 
@@ -4245,7 +4244,7 @@
 
                 var wrongField = dialogFields[read.error.name];
 
-                /* A group of boxes has no single input to focus. */
+                /* Eine Gruppe von Kästchen hat kein einzelnes Feld, das den Fokus bekommen könnte. */
                 if (wrongField !== undefined && wrongField.boxes === undefined) {
                     wrongField.control.focus();
                 }
@@ -4265,7 +4264,7 @@
             payload['front_' + code] = front;
             payload['back_' + code] = back;
 
-            /* An exercise card needs a title, not an answer. */
+            /* Eine Übungskarte braucht einen Titel, keine Antwort. */
             var filled = exercise ? front !== '' : front !== '' && back !== '';
 
             if (filled) {
@@ -4278,9 +4277,9 @@
         });
 
         /*
-         * The two original columns of the table carry the German text, so the
-         * same value travels under both names. A card may be German only,
-         * English only or both.
+         * Die beiden ursprünglichen Spalten der Tabelle tragen den deutschen Text, derselbe
+         * Wert reist also unter beiden Namen. Eine Karte darf nur deutsch, nur englisch oder
+         * beides sein.
          */
         if (cardContentLanguages.indexOf('de') !== -1) {
             payload.front = payload.front_de;
@@ -4288,9 +4287,9 @@
         }
 
         /*
-         * A language that has only one of its two sides is the one mistake that
-         * would store a card nobody can answer. The tab of that language opens,
-         * so the missing side is right there.
+         * Eine Sprache, die nur eine ihrer beiden Seiten hat, ist der eine Fehler, der eine
+         * Karte speichern würde, die niemand beantworten kann. Der Reiter dieser Sprache
+         * öffnet sich, die fehlende Seite ist also direkt da.
          */
         if (half.length > 0 && complete === 0) {
             var broken = half[0];
