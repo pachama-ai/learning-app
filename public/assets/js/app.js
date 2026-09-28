@@ -4472,13 +4472,13 @@
     }
 
     /*
-     * The page is being left while a deletion is still waiting.
+     * Die Seite wird verlassen, während ein Löschen noch wartet.
      *
-     * The waiting request is sent once more, this time with "keepalive", which
-     * lets the browser finish it after the page is gone. Without this a closed
-     * tab could leave an entry that the person was told is deleted. The message
-     * is taken away before, because a button that leads nowhere must not stay on
-     * the screen.
+     * Die wartende Anfrage wird ein letztes Mal geschickt, diesmal mit "keepalive", damit der
+     * Browser sie noch zu Ende bringt, wenn die Seite schon weg ist. Ohne das könnte ein
+     * geschlossener Reiter einen Eintrag hinterlassen, von dem der Person gesagt wurde, dass er
+     * gelöscht ist. Die Meldung wird vorher weggenommen, denn ein Knopf, der ins Leere führt,
+     * darf nicht auf dem Bildschirm bleiben.
      */
     function flushPendingDelete() {
         if (pendingDelete === null) {
@@ -4495,17 +4495,16 @@
             headers: { Accept: 'application/json' },
             keepalive: true
         }).catch(function () {
-            /* The page is going away; there is nothing left to show. */
+            /* Die Seite geht gerade weg, es gibt nichts mehr zu zeigen. */
         });
     }
 
     /*
-     * The one place that really deletes something.
+     * Die eine Stelle, die wirklich etwas löscht.
      *
-     * $confirm is true only when the person agreed in the dialog, and it is what
-     * the server asks for when subcategories or cards depend on the category.
-     * $quiet suppresses the message, because the waiting deletion has already
-     * shown its own.
+     * $confirm ist nur dann true, wenn die Person im Fenster zugestimmt hat, und genau das
+     * verlangt der Server, wenn Unterkategorien oder Karten an der Kategorie hängen. $quiet
+     * unterdrückt die Meldung, weil das wartende Löschen seine eigene schon gezeigt hat.
      */
     function sendDelete(kind, target, confirm, quiet) {
         var isCategory = kind === 'category';
@@ -4518,10 +4517,10 @@
             .then(function (result) {
                 if (!result.ok) {
                     /*
-                     * The page knew less than the database: something sits inside
-                     * this category after all. The category is read again - that
-                     * answer carries the counts of the whole subtree - and the
-                     * question is asked once more with the right numbers.
+                     * Die Seite wusste weniger als die Datenbank: es liegt doch etwas in dieser
+                     * Kategorie. Sie wird noch einmal gelesen - die Antwort trägt die Zahlen des
+                     * ganzen Teilbaums - und die Frage wird mit den richtigen Zahlen erneut
+                     * gestellt.
                      */
                     if (result.code === 'confirm_required') {
                         bootstrapDropAll();
@@ -4531,10 +4530,10 @@
                     }
 
                     /*
-                     * A delete that answers 404 is not a failure of the request:
-                     * the row really is gone (somebody else deleted it, or it was
-                     * already removed). The page is reloaded so it shows the
-                     * truth instead of an entry that can never be deleted.
+                     * Ein Löschen, das 404 antwortet, ist kein Fehlschlag der Anfrage: die
+                     * Zeile ist wirklich weg (jemand anders hat sie gelöscht, oder sie war
+                     * schon entfernt). Die Seite wird neu geladen, damit sie die Wahrheit zeigt
+                     * statt eines Eintrags, der nie gelöscht werden kann.
                      */
                     if (result.status === 404) {
                         bootstrapDropAll();
@@ -4544,9 +4543,9 @@
                     }
 
                     /*
-                     * The row is still in the database and was taken off the
-                     * screen while the request was on its way, so the page is
-                     * built again from the API.
+                     * Die Zeile steht noch in der Datenbank und wurde vom Bildschirm genommen,
+                     * während die Anfrage unterwegs war, die Seite wird also wieder aus der API
+                     * aufgebaut.
                      */
                     bootstrapDropAll();
                     render();
@@ -4554,13 +4553,13 @@
                     return;
                 }
 
-                /* Everything the page shows comes from the API again. */
+                /* Alles, was die Seite zeigt, kommt wieder aus der API. */
                 /* Nur die Karten dieser Kategorie und die Zaehlungen am Baum. */
                 bootstrapDropCards(config.categoryId);
                 bootstrapDropCategories();
 
                 if (wasOpen) {
-                    /* The page itself is gone, so the browser goes up one level. */
+                    /* Die Seite selbst ist weg, der Browser geht also eine Ebene höher. */
                     window.location.href = target.parent_id === null
                         ? 'index.php'
                         : 'index.php?category=' + encodeURIComponent(target.parent_id);
@@ -4575,7 +4574,7 @@
             });
     }
 
-    /* Reads the category again and asks with the numbers that are true now. */
+    /* Liest die Kategorie neu und fragt mit den Zahlen, die jetzt stimmen. */
     function askDeleteAgain(kind, target) {
         apiRequest(config.endpoints.categories + '?id=' + encodeURIComponent(target.id), 'GET')
             .then(function (result) {
@@ -4588,27 +4587,14 @@
             });
     }
 
-    /*
-     * The one question this app asks before something with content disappears.
-     *
-     * Only a category that still has subcategories or cards reaches this
-     * function - a card and an empty category are deleted without a question
-     * (see requestDelete) - so the sentence always has numbers to name.
-     *
-     * It names the entry and, in the same sentence, what would go with it: the
-     * counts from the database and the word "permanently". Nothing has to be
-     * typed and there is no checkbox: the red button is the answer, and the
-     * focus starts on Cancel, so the safe answer is the one that is already
-     * selected.
-     */
     /* ---------------------------------------------------------------------------
-       The account: the header text, the window and the quiet line
+       Das Konto: der Text im Kopf, das Fenster und die leise Zeile
        --------------------------------------------------------------------------- */
 
     var pageNoteTimer = null;
     var NOTE_STORAGE_KEY = 'lernkartei.note';
 
-    /* The one request of this block: it changes the account itself. */
+    /* Die eine Anfrage dieses Blocks: sie ändert das Konto selbst. */
     function accountFetch(payload) {
         return window.fetch(config.endpoints.account, {
             method: 'POST',
@@ -4951,6 +4937,18 @@
         });
     }
 
+    /*
+     * Die eine Frage, die diese Anwendung stellt, bevor etwas mit Inhalt verschwindet.
+     *
+     * Nur eine Kategorie, in der noch Unterkategorien oder Karten liegen, kommt überhaupt bis
+     * hierher - eine Karte und eine leere Kategorie werden ohne Frage gelöscht (siehe
+     * requestDelete) - der Satz hat also immer Zahlen zu nennen.
+     *
+     * Er nennt den Eintrag und im selben Satz, was mit ihm ginge: die Zahlen aus der Datenbank
+     * und das Wort "endgültig". Es muss nichts getippt werden und es gibt kein Kästchen zum
+     * Ankreuzen: der rote Knopf ist die Antwort, und der Fokus steht zu Beginn auf Abbrechen,
+     * die sichere Antwort ist also die schon ausgewählte.
+     */
     function openDeleteDialog(kind, target, node) {
         dialogKind = 'delete';
         dialogEntry = { kind: kind, target: target, node: node };
