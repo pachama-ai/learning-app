@@ -5451,13 +5451,13 @@
     }
 
     /*
-     * The language this person chose, or the language that is on screen now.
+     * Die Sprache, die diese Person gewählt hat, oder die Sprache, die gerade auf dem Bildschirm
+     * ist.
      *
-     * It is read before anything is asked for: the first answer carries the card
-     * texts and the names of the areas in ONE language, and it must be the right
-     * one. Reading it here instead of inside init() was the reason a German
-     * interface showed English cards: the first answer was already on its way
-     * when init() learned about the choice.
+     * Sie wird gelesen, bevor irgendetwas angefordert wird: die erste Antwort trägt die
+     * Kartentexte und die Namen der Bereiche in EINER Sprache, und das muss die richtige sein.
+     * Sie hier statt in init() zu lesen war der Grund, warum eine deutsche Oberfläche englische
+     * Karten zeigte: die erste Antwort war schon unterwegs, als init() von der Wahl erfuhr.
      */
     function storedLocale() {
         var saved = readStorage(config.storageKeys.language);
@@ -5466,12 +5466,12 @@
     }
 
     function init() {
-        /* The boot script in the head already applied the theme. */
+        /* Das Startskript im Kopf hat das Erscheinungsbild schon gesetzt. */
         theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 
         locale = storedLocale();
 
-        /* Running order for the two static blocks above the grid. */
+        /* Ablaufreihenfolge für die beiden festen Blöcke über dem Raster. */
         applyRevealOrder(document.querySelectorAll('.view--start .reveal'), 0);
 
         wireEvents();
@@ -5480,8 +5480,8 @@
 
         applyLocale(locale, false);
 
-        /* A line that was meant for the page that has just been loaded: the sign-out
-           or the deletion that happened right before it. */
+        /* Eine Zeile, die für die gerade geladene Seite gedacht war: das Abmelden oder das
+           Löschen, das direkt davor passiert ist. */
         showPendingNote();
     }
 
@@ -5489,14 +5489,13 @@
        The card list of a subcategory
        ---------------------------------------------------------------------- */
 
-    /* Which subcategory a "save and next card" belongs to. */
+    /* Zu welcher Unterkategorie ein "Speichern und nächste Karte" gehört. */
     var cardSubmitCategoryId = null;
 
     /*
-     * The three statuses a card can have, with the wording and the class name
-     * that belongs to each. The status itself comes from the API: it counts what
-     * is in the database, incl. whether a card is due, and the browser only
-     * repeats it.
+     * Die drei Zustände, die eine Karte haben kann, mit der Formulierung und dem Klassennamen,
+     * der zu jedem gehört. Der Zustand selbst kommt aus der API: sie zählt, was in der Datenbank
+     * steht, inklusive ob eine Karte fällig ist, und der Browser wiederholt es nur.
      */
     function cardStatusMeta(card) {
         var status = card.progress && typeof card.progress.status === 'string' ? card.progress.status : 'new';
@@ -5504,9 +5503,8 @@
         var hint = t('cards.status.' + name + 'Hint');
 
         /*
-         * A card that is due says since when. The date is shown in the language
-         * that is switched on, and it is only a hint: the word next to the dot
-         * already says that something has to be done.
+         * Eine fällige Karte sagt, seit wann. Das Datum wird in der eingestellten Sprache gezeigt,
+         * und es ist nur ein Hinweis: das Wort neben dem Punkt sagt schon, dass etwas zu tun ist.
          */
         if (card.progress && card.progress.is_due === true && typeof card.progress.due_at === 'string') {
             hint = hint + ' · ' + t('cards.dueHint', { date: formatDueDate(card.progress.due_at) });
@@ -5520,7 +5518,7 @@
         };
     }
 
-    /* Turns "2026-09-21 15:04:05" into a short date in the current language. */
+    /* Macht aus "2026-09-21 15:04:05" ein kurzes Datum in der aktuellen Sprache. */
     function formatDueDate(value) {
         var parsed = new Date(String(value).replace(' ', 'T'));
 
@@ -5536,10 +5534,10 @@
     }
 
     /*
-     * The header of a card list: how many cards there are, how many of them are
-     * waiting, and the bar that shows the three statuses as shares.
+     * Der Kopf einer Kartenliste: wie viele Karten es gibt, wie viele davon warten, und der
+     * Streifen, der die drei Zustände als Anteile zeigt.
      *
-     * null means "this page has no card list", and then the whole header goes.
+     * null heißt "diese Seite hat keine Kartenliste", dann geht der ganze Kopf weg.
      */
     function renderCardTools(summary) {
         var usable = summary !== null
@@ -5548,10 +5546,10 @@
             && summary.total > 0;
 
         /*
-         * The numbers of this list stand in the tiles under the head now, so the
-         * only thing this strip still carries is the search field - and a search
-         * over three cards is more work than looking at them, so it only appears
-         * from about fifteen cards on. Without it the strip stays away entirely.
+         * Die Zahlen dieser Liste stehen jetzt in den Kacheln unter dem Kopf, das Einzige, was
+         * dieser Streifen noch trägt, ist also das Suchfeld - und eine Suche über drei Karten ist
+         * mehr Arbeit, als sie anzusehen, es erscheint deshalb erst ab etwa fünfzehn Karten. Ohne
+         * es bleibt der Streifen ganz weg.
          */
         var withSearch = usable && summary.total >= cardSearchMin;
 
@@ -5567,11 +5565,11 @@
     }
 
     /*
-     * Builds the rows that are visible right now.
+     * Baut die Zeilen, die gerade sichtbar sind.
      *
-     * The filter runs over the list that is already loaded and asks the server
-     * for nothing: a search is a view of the same data, and no query is built
-     * from what somebody typed.
+     * Der Filter läuft über die Liste, die schon geladen ist, und fragt den Server nach nichts:
+     * eine Suche ist eine Ansicht derselben Daten, und aus dem Getippten wird keine Abfrage
+     * gebaut.
      */
     function renderCardList(categoryId) {
         var query = cardSearchQuery.trim().toLowerCase();
@@ -5586,7 +5584,7 @@
             }
         }
 
-        /* Nothing matches the search: that is not "no cards yet". */
+        /* Nichts passt zur Suche: das ist nicht "noch keine Karten". */
         elements.cardSearchEmpty.textContent = query === '' ? '' : t('cards.searchEmpty');
         elements.cardSearchEmpty.hidden = query === '' || visible.length > 0;
 
