@@ -1082,16 +1082,30 @@ img {
 }
 
 /*
- * The two arrows of the tile row. They live in the footer, to the left of the
- * plus button; the track above the footer is the line they belong to.
+ * Die beiden Pfeile der Kachelreihe.
+ *
+ * Sie sind RUNDE ICON-KNOEPFE und stehen deshalb NICHT in der Pillen-Regel
+ * weiter unten (die "..."-Gruppe mit .dialog__button und den Textknoepfen):
+ * dort bekamen sie 14 px Innenabstand seitlich, 34 px Hoehe und einen Radius
+ * von 6 px. Bei 32 px Breite blieb damit ein Inhaltskasten von 2 px, das Symbol
+ * lief rechts heraus und stand 8 px neben der Mitte.
+ *
+ * Aufgefallen ist das nur im dunklen Thema, weil es fuer .tiles-nav__button
+ * eine [data-theme="light"]-Regel gab, die den Innenabstand zurueck auf 0
+ * setzte - im hellen Thema also repariert, im dunklen nicht.
+ *
+ * Deshalb jetzt dieselbe Rezeptur wie beim Theme-Umschalter: inline-grid mit
+ * place-items, kein Innenabstand, keine Zeilenhoehe, feste Groesse, voller
+ * Radius - und ohne jede Themenabhaengigkeit.
  */
 .tiles-nav__button {
-    display: grid;
+    display: inline-grid;
     place-items: center;
     flex: 0 0 auto;
     width: 32px;
     height: 32px;
     padding: 0;
+    line-height: 0;
     border: 1px solid var(--line-strong);
     border-radius: 50%;
     background: transparent;
@@ -4040,13 +4054,20 @@ body.is-learning {
     padding: 18px 22px;
 }
 
+/*
+ * Das Schliessen der Lernansicht: ein runder Icon-Knopf wie der Theme-Umschalter
+ * und die Pfeile der Kachelreihe, nur groesser - er muss mit der Maus und mit
+ * dem Finger leicht zu treffen sein. Dieselbe Rezeptur: inline-grid mit
+ * place-items, kein Innenabstand, keine Zeilenhoehe, voller Radius.
+ */
 .learn__close {
     appearance: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-grid;
+    place-items: center;
     width: 42px;
     height: 42px;
+    padding: 0;
+    line-height: 0;
     border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
     border-radius: 50%;
     background-color: transparent;
@@ -6559,10 +6580,7 @@ button,
 .account-dialog__button,
 .learn__action,
 .learn__button,
-.learn__close,
-.feedback__action,
-.theme-toggle,
-.tiles-nav__button {
+.feedback__action {
     height: 34px;
     padding: 0 14px;
     border-radius: 6px;
@@ -6660,13 +6678,15 @@ button,
 }
 
 /* Runde Icon-Knoepfe: Theme-Umschalter, Pfeile der Kachelreihe, das Schliessen
-   der Lernansicht. Der Menue-Knopf hat seine eigene Basisregel (.menu-button
-   oben) und steht deshalb nicht mehr in dieser Liste - dort waren ihm eine
-   weisse Kante und eine eigene Flaeche verpasst worden. */
+   der Lernansicht. Sie bringen ihre Groesse, ihren Radius und ihre Mitte selbst
+   mit und stehen deshalb NICHT in der Pillen-Regel weiter oben - die hatte ihnen
+   Innenabstand, Hoehe und Radius der Textknoepfe verpasst. Hier bleibt nur, was
+   sich mit dem Thema aendert: Kante, Flaeche und Schriftfarbe.
+   Das padding: 0, das hier frueher stand, ist weg: es setzte nur den Schaden
+   der Pillen-Regel im hellen Thema zurueck und verdeckte ihn damit. */
 [data-theme="light"] .theme-toggle,
 [data-theme="light"] .tiles-nav__button,
 [data-theme="light"] .learn__close {
-    padding: 0;
     background-color: transparent;
     border: 1px solid var(--border);
     color: var(--text);

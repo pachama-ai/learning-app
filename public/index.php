@@ -844,7 +844,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                              stroke-linejoin="round" focusable="false" aria-hidden="true">
-                            <path d="M14 6l-6 6 6 6"/>
+                            <path d="M15 6l-6 6 6 6"/>
                         </svg>
                     </button>
 
@@ -853,7 +853,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                              stroke-linejoin="round" focusable="false" aria-hidden="true">
-                            <path d="M10 6l6 6-6 6"/>
+                            <path d="M9 6l6 6-6 6"/>
                         </svg>
                     </button>
                 </div>
