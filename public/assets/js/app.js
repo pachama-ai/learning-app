@@ -3311,8 +3311,8 @@
         }, true);
 
         /*
-         * The width of the column changes with the window and with the scrollbar,
-         * so the thumb is recalculated whenever the row is resized.
+         * Die Breite der Spalte ändert sich mit dem Fenster und mit der Bildlaufleiste, der
+         * Griff wird also neu gerechnet, sobald die Reihe ihre Größe ändert.
          */
         if (typeof window.ResizeObserver === 'function') {
             tileObserver = new window.ResizeObserver(scheduleTileNavigation);
@@ -3342,28 +3342,28 @@
     }
 
     /* ----------------------------------------------------------------------
-       ONE dialog for every form and every confirmation
+       EIN Fenster für jedes Formular und jede Rückfrage
        ---------------------------------------------------------------------- */
 
     /*
-     * Everything the open dialog needs to know about itself lives in these
-     * variables. They are filled while it opens and read by the one submit
-     * handler, so opening, validating, saving and closing happen in exactly one
-     * place - whatever form is on screen.
+     * Alles, was das geöffnete Fenster über sich selbst wissen muss, steckt in diesen
+     * Variablen. Sie werden beim Öffnen gefüllt und von dem einen Absende-Handler gelesen,
+     * Öffnen, Prüfen, Speichern und Schließen passieren also an genau einer Stelle - egal,
+     * welches Formular gerade auf dem Bildschirm ist.
      */
     var dialogKind = null;      // 'category' | 'card' | 'delete'
-    var dialogEntry = null;     // the row that is being edited or deleted
-    var dialogParentId = null;  // where a new entry belongs
-    var dialogOpener = null;    // the element that opened it (the focus goes back)
-    var dialogUsed = false;     // true as soon as a field was touched
+    var dialogEntry = null;     // die Zeile, die gerade bearbeitet oder gelöscht wird
+    var dialogParentId = null;  // wohin ein neuer Eintrag gehört
+    var dialogOpener = null;    // das Element, das geöffnet hat (dorthin geht der Fokus zurück)
+    var dialogUsed = false;     // true, sobald ein Feld berührt wurde
     var dialogIcon = null;      // { svg, name, removed, storedUrl, preview }
-    var dialogFields = {};      // name -> { control, error, wrap }
-    var dialogRound = 0;        // which dialogue is the open one, see closeDialog()
+    var dialogFields = {};      // Name -> { control, error, wrap }
+    var dialogRound = 0;        // welches Fenster das offene ist, siehe closeDialog()
 
     /*
-     * Lets a textarea grow with its content. The height is set from the scroll
-     * height after every change, so nothing is ever cut off and no scrollbar
-     * appears inside the field.
+     * Lässt ein Textfeld mit seinem Inhalt wachsen. Die Höhe wird nach jeder Änderung aus der
+     * Scrollhöhe gesetzt, es wird also nie etwas abgeschnitten und es erscheint keine
+     * Bildlaufleiste im Feld.
      */
     function growTextarea(control) {
         if (!control || control.offsetParent === null) {
@@ -3374,7 +3374,7 @@
         control.style.height = (control.scrollHeight + 2) + 'px';
     }
 
-    /* A tiny element factory: shorter than createElement + className + text. */
+    /* Eine winzige Element-Fabrik: kürzer als createElement + className + text. */
     function el(tag, className, text) {
         var node = document.createElement(tag);
 
@@ -3389,10 +3389,10 @@
         return node;
     }
 
-    /* Opens the shared dialog and lets it animate in. */
+    /* Öffnet das gemeinsame Fenster und lässt es einfliegen. */
     function openDialog() {
-        /* A new dialogue: the clean-up of the previous one must not run any
-           more, whatever it was still waiting for. */
+        /* Ein neues Fenster: die Aufräumarbeit des vorigen darf nicht mehr laufen,
+           worauf sie auch immer noch wartet. */
         dialogRound++;
 
         if (typeof elements.dialog.showModal === 'function') {
@@ -3407,21 +3407,21 @@
     }
 
     /*
-     * Closes the dialog and hands the focus back to whatever opened it.
+     * Schließt das Fenster und gibt den Fokus an das zurück, was es geöffnet hat.
      *
-     * The wait is the closing animation (200ms, 0 with reduced motion); without
-     * it the panel would disappear in one frame.
+     * Das Warten ist die Schließanimation (200 ms, 0 bei reduzierter Bewegung); ohne sie
+     * würde die Fläche in einem Bild verschwinden.
      */
     function closeDialog() {
         elements.dialog.classList.remove('is-open');
         elements.dialogSubmit.classList.remove('dialog__button--danger-pill');
 
-        /* Which dialogue this clean-up belongs to. */
+        /* Zu welchem Fenster diese Aufräumarbeit gehört. */
         var round = dialogRound;
 
         window.setTimeout(function () {
-            /* A newer dialogue is open: this one is long gone and must leave
-               the fields, the focus and the exercise of the new one alone. */
+            /* Ein neueres Fenster ist offen: dieses ist längst weg und muss die Felder,
+               den Fokus und die Aufgabenstellung des neuen in Ruhe lassen. */
             if (round !== dialogRound) {
                 return;
             }
