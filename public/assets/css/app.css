@@ -5370,3 +5370,246 @@ select.count-dialog__input {
     margin-right: -32px;
     margin-left: -32px;
 }
+
+/* ---------------- Karten-Dialog: Felder, Zaehler, Vorschau ---------------- */
+
+/* Eingabefelder und Auswahlfelder: gleicher Rahmen, gleiche Breite, gleicher Fokusring */
+.dialog__input,
+.dialog__field textarea,
+.dialog__field select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+/* Fokusring in der Akzentfarbe, damit man das Feld beim Tippen sofort findet */
+.dialog__input:focus-visible,
+.dialog__field textarea:focus-visible,
+.dialog__field select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* Textfelder: ruhige Standardhoehe, sie wachsen mit dem Inhalt mit */
+.dialog__field textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Vorschau: eigene Flaeche, damit sie sich vom Formular abhebt */
+.dialog__field--preview .card-preview {
+    margin-top: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background-color: var(--bg);
+    box-shadow: none;
+}
+
+/* Vorschau, solange nichts geschrieben ist: kompakter */
+.dialog__field--preview .card-preview:has(.card-preview__text.is-empty) {
+    padding: 10px 16px;
+}
+
+/* Beschriftung und Sprache in einer Zeile, Sprache rechts */
+.dialog__preview-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Beschriftung der Vorschau: das Label bleibt links stehen */
+.dialog__preview-head .dialog__label {
+    margin-bottom: 0;
+}
+
+/* Sprache der Vorschau */
+.dialog__preview-language {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+/* Fusszeile: Tastenkuerzel links, Knoepfe rechts, in einer Zeile */
+.dialog__actions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+/* Der Speichern-Knopf bleibt einzeilig */
+.dialog__button {
+    white-space: nowrap;
+}
+
+/* ---------------- Handy (bis 480px) ---------------- */
+
+/* Startseite: statt des Karussells eine Liste untereinander */
+@media (max-width: 480px) {
+    .area-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .area-card-slot {
+        width: 100%;
+        flex: 0 0 auto;
+    }
+
+    /* Pfeile und Fortschrittslinie braucht die Liste nicht */
+    #tiles-nav,
+    #tiles-nav-buttons {
+        display: none;
+    }
+
+    /* Icon-Flaeche der Kachel kompakter */
+    .area-card {
+        padding: 14px 16px;
+    }
+
+    .area-card__icon,
+    .area-card__circle {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* Kopfbereich: der Name darf nicht verschwinden, der Pfad darf umbrechen */
+@media (max-width: 900px) {
+    .site-header__inner,
+    .site-header {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+
+    .crumb {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    /* Themengebiete als waagerecht scrollbare Leiste statt abgeschnitten */
+    .sidebar__nav {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+    }
+
+    .sidebar__link {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+}
+
+/* Statistik-Kacheln: zwei mal zwei statt vier in einer Reihe */
+@media (max-width: 900px) {
+    .dash,
+    .dash__grid {
+        grid-template-columns: 1fr 1fr;
+        flex-wrap: wrap;
+    }
+
+    .dash__label {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Kartenliste: Zeile stapeln, Menue hinter den Status */
+@media (max-width: 480px) {
+    .row {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+
+    .row__main,
+    .row__text {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .row__menu--leading {
+        order: 3;
+    }
+
+    .row__status {
+        order: 2;
+    }
+
+    .row__back {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Lernbildschirm: Bewertungen gross genug fuer den Daumen */
+@media (max-width: 480px) {
+    .learn__buttons {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .learn__button {
+        min-height: 56px;
+    }
+}
+
+/* Tablet: zwei Kacheln pro Reihe, etwas niedriger */
+@media (min-width: 481px) and (max-width: 900px) {
+    .area-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    .area-card-slot {
+        width: auto;
+    }
+
+    .area-card {
+        min-height: 132px;
+    }
+}
+
+/* Touchziele: mindestens 44px hoch, auf allen groesseren Fingergeraeten */
+@media (hover: none), (pointer: coarse) {
+    .menu-button,
+    .tiles-nav__button,
+    .theme-toggle,
+    .lang-switch__option,
+    .icon-row__button,
+    .row__menu {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* Dialoge auf dem Handy: von unten, Felder und Knoepfe gut tippbar */
+@media (max-width: 480px) {
+    .dialog {
+        width: 100%;
+        max-width: 100%;
+        margin: auto 0 0;
+        border-radius: 16px 16px 0 0;
+        max-height: 92vh;
+    }
+
+    .dialog__fields {
+        padding: 18px 16px;
+    }
+
+    .dialog__button,
+    .account-dialog__button,
+    .count-dialog__button {
+        min-height: 48px;
+    }
+}
