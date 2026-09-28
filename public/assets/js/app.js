@@ -1132,8 +1132,8 @@
         var person = el('div', 'account__person');
 
         /*
-         * The name carries no data-i18n: it is data and not a sentence, so the
-         * language switch has to leave it exactly as it stands.
+         * Der Name trägt kein data-i18n: er ist eine Angabe und kein Satz, der
+         * Sprachumschalter muss ihn also genau so lassen, wie er dasteht.
          */
         var name = el('button', 'account__name', authState.user.name);
         name.type = 'button';
@@ -1160,8 +1160,8 @@
     }
 
     /*
-     * Signing out: the session ends, the screen stops pretending, and the page
-     * goes back to its start - with one quiet line that says what happened.
+     * Abmelden: die Sitzung endet, der Bildschirm tut nicht länger so, und die Seite geht
+     * zurück zu ihrem Anfang - mit einer leisen Zeile, die sagt, was passiert ist.
      */
     function signOut() {
         authFetch({ action: 'sign_out', csrf_token: authState.csrfToken }).then(function (result) {
@@ -1178,16 +1178,16 @@
     }
 
     /*
-     * The start page, without loading the page again: the address is changed and
-     * the view is drawn from the store, the same way a click on a card does it.
+     * Die Startseite, ohne die Seite neu zu laden: die Adresse wird geändert und die
+     * Ansicht aus dem Speicher gezeichnet, genau wie es ein Klick auf eine Karte tut.
      *
-     * Why the store is dropped first: it still holds the progress of the person who
-     * just left (or whose account was just deleted), and every list built from it
-     * would show numbers that belong to nobody any more.
+     * Warum der Speicher zuerst fallengelassen wird: er trägt noch den Fortschritt der
+     * Person, die gerade gegangen ist (oder deren Konto gerade gelöscht wurde), und jede
+     * daraus gebaute Liste würde Zahlen zeigen, die niemandem mehr gehören.
      *
-     * One case keeps the old way and loads the page: while a study session is
-     * running. Its queue was built from the state before, and those answers belong
-     * to that state - the message then waits for the page that follows.
+     * Ein Fall behält den alten Weg und lädt die Seite: während eine Lerneinheit läuft.
+     * Ihre Schlange entstand aus dem Zustand davor, und diese Antworten gehören zu diesem
+     * Zustand - die Meldung wartet dann auf die Seite, die folgt.
      */
     function goToStartPage(noteKey) {
         if (learnSession !== null) {
@@ -1205,7 +1205,7 @@
         try {
             window.history.pushState({ categoryId: null }, '', 'index.php');
         } catch (error) {
-            /* Not being able to change the address is not worth a message. */
+            /* Eine Adresse, die sich nicht ändern lässt, ist keine Meldung wert. */
         }
 
         clearOverlaysForNavigation();
@@ -1216,21 +1216,21 @@
         }
     }
 
-    /* Which sentence the quiet line carries - the key decides it. */
+    /* Welchen Satz die leise Zeile trägt - der Schlüssel entscheidet es. */
     function accountNoteText(noteKey) {
         return noteKey === 'deleted' ? t('account.deleted') : t('account.signedOut');
     }
 
     /*
-     * Signing in or out changes what the server knows about EVERY card - its
-     * progress - so nothing in the store may be kept: it is dropped and asked for
-     * again, exactly as a language switch does it, and the view that is open is
-     * drawn from the fresh answer. The page is not loaded again, which is what
-     * used to bring the loading screen for seconds after a sign-in.
+     * An- oder Abmelden ändert, was der Server über JEDE Karte weiß - ihren Fortschritt -,
+     * im Speicher darf also nichts bleiben: er wird fallengelassen und neu erfragt, genau
+     * wie es ein Sprachwechsel tut, und die offene Ansicht wird aus der frischen Antwort
+     * gezeichnet. Die Seite wird nicht neu geladen, und genau das brachte früher nach dem
+     * Anmelden für Sekunden den Ladebildschirm.
      *
-     * One case keeps the old way: while a study session is running. Its queue was
-     * built from the state before, and the answers of that session belong to that
-     * state - there the page is loaded again, exactly as it always was.
+     * Ein Fall behält den alten Weg: während eine Lerneinheit läuft. Ihre Schlange entstand
+     * aus dem Zustand davor, und die Antworten dieser Einheit gehören zu diesem Zustand -
+     * dort wird die Seite neu geladen, genau wie immer.
      */
     function refreshAfterAuthChange() {
         if (learnSession !== null) {
@@ -1244,7 +1244,7 @@
         render();
     }
 
-    /* The sign-in dialog is the same dialog block as every other form. */
+    /* Der Anmeldedialog ist derselbe Dialogblock wie jedes andere Formular. */
     function openAuthDialog(mode) {
         dialogKind = 'auth';
         dialogEntry = null;
@@ -1267,9 +1267,9 @@
     }
 
     /*
-     * Fills the dialog for one of the two modes. Switching between them only
-     * rewrites the fields, so the box keeps its size and its place: both modes
-     * carry exactly two fields and one link.
+     * Füllt den Dialog für einen der beiden Modi. Ein Wechsel zwischen ihnen schreibt nur
+     * die Felder neu, die Box behält also ihre Größe und ihren Platz: beide Modi tragen
+     * genau zwei Felder und einen Verweis.
      */
     function renderAuthDialog(mode) {
         authMode = mode === 'register' ? 'register' : 'sign_in';
@@ -1285,8 +1285,8 @@
         elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
         elements.dialogShortcuts.hidden = true;
         elements.dialogSubmit.textContent = t(registering ? 'auth.register' : 'auth.signIn');
-        /* setBusy() writes its own word while the request runs and puts this one
-           back afterwards, so it has to know it. */
+        /* setBusy() schreibt während der Anfrage sein eigenes Wort und setzt danach
+           dieses zurück, es muss es also kennen. */
         elements.dialogSubmit.dataset.idleLabel = elements.dialogSubmit.textContent;
         elements.dialogSubmit.disabled = false;
 
