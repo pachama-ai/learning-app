@@ -3610,6 +3610,24 @@
             wrap.appendChild(hint);
         }
 
+        /*
+         * Zeichenzähler direkt unter dem Feld: er hängt an demselben Feld, damit
+         * niemand suchen muss, welcher Zähler zu welchem Text gehört, und er zählt
+         * beim Tippen mit.
+         */
+        if (settings.counter === true && settings.maxLength) {
+            var counter = el('p', 'dialog__counter', '');
+            var zeigeZaehler = function () {
+                counter.textContent = t('dialog.card.frontCount', {
+                    count: control.value.length,
+                    max: settings.maxLength
+                });
+            };
+            zeigeZaehler();
+            control.addEventListener('input', zeigeZaehler);
+            wrap.appendChild(counter);
+        }
+
         dialogFields[name] = { control: control, error: error, wrap: wrap };
 
         /* Die Übersetzungen kommen stattdessen in ihre eigene Gruppe, damit die Felder
@@ -4173,6 +4191,7 @@
             placeholderKey: 'dialog.card.frontPlaceholder',
             maxLength: config.limits.cardText,
             rows: 2,
+            counter: true,
             value: cardDraft[cardTab].front
         });
 
@@ -4183,6 +4202,7 @@
             placeholderKey: 'dialog.card.backPlaceholder',
             maxLength: config.limits.cardText,
             rows: 2,
+            counter: true,
             value: cardDraft[cardTab].back
         });
 
@@ -5760,8 +5780,7 @@
         card.appendChild(frontSide);
         card.appendChild(backSide);
 
-        var count = el('p', 'dialog__hint', '');
-        count.id = 'card-preview-count';
+        var count = null;
 
         /*
          * Der Hinweis auf die Tastenkuerzel steht nicht mehr hier, sondern als
@@ -5770,7 +5789,6 @@
          */
         wrap.appendChild(head);
         wrap.appendChild(card);
-        wrap.appendChild(count);
 
         return wrap;
     }
@@ -5783,26 +5801,28 @@
 
         var front = document.getElementById('card-preview-front');
         var back = document.getElementById('card-preview-back');
-        var count = document.getElementById('card-preview-count');
 
+        /*
+         * Solange nichts geschrieben ist, steht in der Vorschau ein leiser
+         * Platzhalter, damit die Fläche nicht leer und rätselhaft aussieht.
+         */
         if (front !== null) {
-            front.textContent = dialogFields.front.control.value;
-            front.classList.toggle('is-empty', dialogFields.front.control.value.trim() === '');
+            var frontLeer = dialogFields.front.control.value.trim() === '';
+            front.textContent = frontLeer
+                ? t('dialog.card.previewFrontEmpty')
+                : dialogFields.front.control.value;
+            front.classList.toggle('is-empty', frontLeer);
         }
 
         if (back !== null) {
-            back.textContent = dialogFields.back.control.value;
-            back.classList.toggle('is-empty', dialogFields.back.control.value.trim() === '');
+            var backLeer = dialogFields.back.control.value.trim() === '';
+            back.textContent = backLeer
+                ? t('dialog.card.previewBackEmpty')
+                : dialogFields.back.control.value;
+            back.classList.toggle('is-empty', backLeer);
         }
 
         showMap(document.getElementById('card-preview-map'), dialogMapValue(), 'card-map card-map--preview');
-
-        if (count !== null) {
-            count.textContent = t('dialog.card.frontCount', {
-                count: dialogFields.front.control.value.length,
-                max: config.limits.cardText
-            });
-        }
 
         var language = document.getElementById('card-preview-language');
 

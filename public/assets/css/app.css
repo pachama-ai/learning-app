@@ -5203,10 +5203,6 @@ select.count-dialog__input {
     line-height: 1.5;
 }
 /* ohne Beschreibung */
-#card-preview-count {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
 /* Dialog-Fehler · und Varianten */
 .dialog__error,
 .account-dialog__error,
@@ -5400,6 +5396,16 @@ select.count-dialog__input {
 .dialog__field textarea {
     min-height: 80px;
     resize: vertical;
+}
+
+/* Zaehler unter einem Textfeld: klein, rechtsbuendig, Ziffern gleich breit */
+.dialog__counter {
+    margin: 6px 0 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+    text-align: right;
 }
 
 /* Vorschau: eigene Flaeche, damit sie sich vom Formular abhebt */
