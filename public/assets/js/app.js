@@ -6902,7 +6902,7 @@
         dialogFields.front.control.focus();
     }
 
-    /* Marks which language is open and which one still needs work. */
+    /* Markiert, welche Sprache offen ist und welche noch Arbeit braucht. */
     function updateCardLanguageTabs() {
         if (cardDraft === null) {
             return;
@@ -6933,33 +6933,34 @@
     }
 
     /* ----------------------------------------------------------------------
-       The two actions in the head of an entry
+       Die beiden Aktionen im Kopf eines Eintrags
        ---------------------------------------------------------------------- */
 
     /*
-     * Fills the head of the detail view.
+     * Füllt den Kopf der Detailansicht.
      *
-     * level      'card' for a subcategory, 'area' for a learning area
-     * cardCount  how many cards can be studied (the whole branch for an area)
-     * hasEntries whether the list below has rows - if it has none, the empty
-     *            state already offers the step of adding one, and a second
-     *            button for the same thing would be one too many
+     * level      'card' bei einer Unterkategorie, 'area' bei einem Lernbereich
+     * cardCount  wie viele Karten gelernt werden können (beim Bereich der ganze Zweig)
+     * hasEntries ob die Liste darunter Zeilen hat - hat sie keine, bietet der leere Zustand schon
+     *            den Schritt an, einen Eintrag anzulegen, und ein zweiter Knopf für dieselbe
+     *            Sache wäre einer zu viel
      */
     /* ----------------------------------------------------------------------
-       Importing cards from a CSV file
+       Karten aus einer CSV-Datei einlesen
        ---------------------------------------------------------------------- */
 
     /*
-     * The import writes into the subcategory that is open, so the button only
-     * exists on a subcategory page. The dialog has two steps:
+     * Der Import schreibt in die Unterkategorie, die offen ist, der Knopf existiert also nur auf
+     * einer Unterkategorieseite. Das Fenster hat zwei Schritte:
      *
-     *   1. choose a file   -> the server reads it and answers with the summary,
-     *                         the first rows and every row it cannot import
-     *   2. press the button -> the same file is uploaded again, the server checks
-     *                         it once more and writes all rows in ONE transaction
+     *   1. eine Datei wählen  -> der Server liest sie und antwortet mit der Zusammenfassung, den
+     *                            ersten Zeilen und jeder Zeile, die er nicht einlesen kann
+     *   2. den Knopf drücken  -> dieselbe Datei wird noch einmal hochgeladen, der Server prüft
+     *                            sie erneut und schreibt alle Zeilen in EINER Transaktion
      *
-     * Nothing is stored before step 2. A file with a single bad row is refused as
-     * a whole, and the dialog says so before the button can be pressed at all.
+     * Vor Schritt 2 wird nichts gespeichert. Eine Datei mit einer einzigen schlechten Zeile wird
+     * als Ganze abgelehnt, und das Fenster sagt das, bevor der Knopf überhaupt gedrückt werden
+     * kann.
      */
     function openImportDialog(categoryId) {
         dialogKind = 'import';
@@ -6988,11 +6989,11 @@
     }
 
     /*
-     * The dashed area, the format hint and the link to the sample file.
+     * Die gestrichelte Fläche, der Format-Hinweis und der Verweis auf die Beispieldatei.
      *
-     * The area is ONE button: a click, Enter and Space open the file chooser, and
-     * a file can be dropped on it as well. The file input itself is invisible but
-     * real - it is what the browser needs to hand a file over.
+     * Die Fläche ist EIN Knopf: ein Klick, Enter und die Leertaste öffnen die Dateiauswahl, und
+     * eine Datei lässt sich auch darauf ablegen. Das Dateifeld selbst ist unsichtbar, aber
+     * wirklich da - der Browser braucht es, um eine Datei zu übergeben.
      */
     function buildImportPanel() {
         var wrap = el('div', 'import');
