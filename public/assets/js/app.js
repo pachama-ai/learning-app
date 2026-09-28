@@ -1962,11 +1962,11 @@
         var meta = categoryMeta(area);
 
         /*
-         * One tile needs two elements, because the menu in the corner is a real
-         * <button> and a button inside a link is neither valid markup nor
-         * clickable in a dependable way. The slot carries the width of a tile and
-         * the position that gives the tile its colour, the link inside it stays
-         * exactly what it was.
+         * Eine Kachel braucht zwei Elemente, weil das Menü in der Ecke ein echtes
+         * <button> ist und ein Knopf in einem Verweis weder gültiges Markup noch
+         * zuverlässig anklickbar ist. Der Platzhalter trägt die Breite einer Kachel und die
+         * Position, die der Kachel ihre Farbe gibt, der Verweis darin bleibt genau, was er
+         * war.
          */
         var slot = document.createElement('div');
         slot.className = 'area-card-slot';
@@ -1978,25 +1978,26 @@
         link.setAttribute('data-area-id', String(area.id));
         link.setAttribute('aria-label', t('area.open', { name: meta.title }));
 
-        /* Blob on the left, the menu on the right. */
+        /* Kreis links, das Menü rechts. */
         var head = document.createElement('span');
         head.className = 'area-card__head';
 
         var blob = document.createElement('span');
         blob.className = 'blob';
         /*
-         * The drawing is filled in later, when this tile is in the document - see
-         * the note in renderHome. An <img> that is given its address while it is
-         * still detached is fetched a SECOND time the moment it is attached; that
-         * was the duplicate the area drawings cost (measured: eight requests for
-         * four tiles, the second four with 0 bytes straight from the cache).
+         * Die Zeichnung wird später gefüllt, wenn diese Kachel im Dokument steht - siehe
+         * die Anmerkung in renderHome. Ein <img>, das seine Adresse bekommt, während es noch
+         * abgehängt ist, wird in dem Moment ein ZWEITES Mal geholt, in dem es eingehängt
+         * wird; das war das Doppel, das die Bereichszeichnungen kosteten (gemessen: acht
+         * Anfragen für vier Kacheln, die zweiten vier mit 0 Bytes direkt aus dem
+         * Browser-Speicher).
          */
 
         head.appendChild(blob);
 
         var name = document.createElement('span');
         name.className = 'area-card__name';
-        /* textContent, never innerHTML: the name comes from the database. */
+        /* textContent, nie innerHTML: der Name kommt aus der Datenbank. */
         name.textContent = meta.title;
 
         var foot = document.createElement('span');
@@ -2013,9 +2014,8 @@
         foot.appendChild(arrow);
 
         /*
-         * The head keeps the icon at the top, the title and the information line
-         * form one block at the bottom. The height between the two is the air a
-         * taller tile gains.
+         * Der Kopf behält das Symbol oben, Titel und Informationszeile bilden unten einen
+         * Block. Die Höhe dazwischen ist die Luft, die eine höhere Kachel gewinnt.
          */
         var bottom = document.createElement('span');
         bottom.className = 'area-card__bottom';
@@ -2023,11 +2023,11 @@
         bottom.appendChild(foot);
 
         /*
-         * No label above the tile any more. There used to be a small box with the
-         * name and the count, and because a tile row clips everything that leaves
-         * it, only the lower edge of that box stayed visible on hover: a short line
-         * that explained nothing. The same information is already written on the
-         * tile itself, in the stat line under the title.
+         * Kein Schild über der Kachel mehr. Früher stand dort eine kleine Box mit Name und
+         * Anzahl, und weil eine Kachelreihe alles abschneidet, was sie verlässt, blieb beim
+         * Überfahren nur der untere Rand dieser Box sichtbar: eine kurze Linie, die nichts
+         * erklärte. Dieselbe Angabe steht schon auf der Kachel selbst, in der Zeile unter dem
+         * Titel.
          */
         link.appendChild(head);
         link.appendChild(bottom);
@@ -2035,9 +2035,9 @@
         slot.appendChild(link);
 
         /*
-         * The menu of this tile. It is always in the markup and only becomes
-         * visible while the edit mode is on (see the stylesheet), so switching
-         * the mode never has to rebuild the row.
+         * Das Menü dieser Kachel. Es steht immer im Markup und wird nur sichtbar, solange
+         * der Bearbeitungsmodus an ist (siehe das Stylesheet), das Umschalten des Modus muss
+         * die Reihe also nie neu bauen.
          */
         var menu = buildMenu([
             {
