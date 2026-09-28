@@ -367,6 +367,15 @@ function learning_app_translations(): array
             'import.error.import_failed' => 'The cards could not be imported. Nothing was saved.',
             'import.error.category_not_found' => 'This subcategory does not exist any more.',
             /*
+             * Die zwei Codes, für die kein Satz da war. Sie kommen nicht aus
+             * einer Zeile der Datei, sondern aus dem Endpunkt selbst: eine
+             * Anfrage ohne brauchbare Kategorie, und eine Anfrage, die nicht
+             * POST ist. Ohne diese Sätze zeigte der Dialog die allgemeine
+             * Meldung.
+             */
+            'import.error.invalid_category_id' => 'No subcategory was chosen for the import.',
+            'import.error.method_not_allowed' => 'The import only answers POST requests.',
+            /*
              * Die vier Fehler der Datei selbst (kein Zeilenfehler). Der
              * Import-Endpunkt schickt diese Codes, und app.js sucht jeden
              * Import-Code unter "import.error." - vor diesen Schlüsseln fand es
@@ -886,6 +895,8 @@ function learning_app_translations(): array
             'import.error.nothing_to_import' => 'Jede Zeile dieser Datei gibt es in dieser Unterkategorie schon.',
             'import.error.import_failed' => 'Der Import ist fehlgeschlagen. Es wurde nichts gespeichert.',
             'import.error.category_not_found' => 'Diese Unterkategorie gibt es nicht mehr.',
+            'import.error.invalid_category_id' => 'Für den Import wurde keine Unterkategorie gewählt.',
+            'import.error.method_not_allowed' => 'Der Import beantwortet nur POST-Anfragen.',
             /* Die vier Fehler der Datei selbst (kein Zeilenfehler) - siehe oben. */
             'import.error.read_failed' => 'Die Datei konnte nicht gelesen werden.',
             'import.error.header_unknown' => 'Die Kopfzeile enthält unbekannte Spalten: {columns}',
