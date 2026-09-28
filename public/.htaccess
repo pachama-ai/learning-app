@@ -1,22 +1,23 @@
-# Performance settings for Apache.
+# Leistungseinstellungen für Apache.
 #
-# This file is ignored by PHP's own development server ("php -S"), which is how
-# the app is usually started locally, so nothing changes there. It only takes
-# effect when Apache serves THIS folder as its DocumentRoot and the server has
-# "AllowOverride" enabled for it.
+# Diese Datei wird vom Entwicklungsserver von PHP ("php -S") ignoriert, mit dem die
+# Anwendung lokal meist gestartet wird, dort ändert sich also nichts. Sie wirkt nur,
+# wenn Apache DIESEN Ordner als DocumentRoot ausliefert und der Server "AllowOverride"
+# dafür eingeschaltet hat.
 #
-# Nothing in here changes a page, a script, a stylesheet or a drawing: files are
-# only compressed on the way out, and the two kinds of file that never change
-# while the app runs get a browser cache hint. Every block sits inside
-# <IfModule>, so a server without that module ignores the block instead of
-# failing.
+# Nichts hier drin ändert eine Seite, ein Skript, ein Stylesheet oder eine Zeichnung:
+# Dateien werden nur auf dem Weg nach draußen komprimiert, und die zwei Sorten Datei, die
+# sich während des Betriebs nie ändern, bekommen einen Hinweis für den Browser-Speicher.
+# Jeder Block steht in <IfModule>, ein Server ohne dieses Modul ignoriert den Block also,
+# statt zu scheitern.
 #
-# Measured on this project, so the numbers below are real and not estimates:
-#   app.css    91 KB -> 23 KB
-#   app.js    117 KB -> 27 KB
-#   the HTML   31 KB ->  8 KB
-#   browser icon 41 KB -> 10 KB
-# WOFF2 fonts are compressed already and are deliberately not touched.
+# Auf diesem Projekt gemessen, die Zahlen unten sind also echt und keine Schätzung
+# (gzip -9, Stand 2026-09-28):
+#   app.css       212 KB -> 55 KB
+#   app.js        323 KB -> 76 KB
+#   die HTML-Seite 111 KB -> 28 KB
+#   Browser-Symbol 41 KB -> 10 KB
+# WOFF2-Schriften sind schon komprimiert und werden absichtlich nicht angefasst.
 
 <IfModule mod_deflate.c>
     <IfModule mod_filter.c>
@@ -27,10 +28,10 @@
     </IfModule>
 </IfModule>
 
-# The font and the icons are the same for a long time, so the browser may keep
-# them for a week. CSS and JavaScript are deliberately NOT cached that long:
-# they are edited while the app is being worked on, and a stale copy that is
-# half an hour old would be confusing.
+# Die Schrift und die Symbole bleiben lange gleich, der Browser darf sie also eine Woche
+# behalten. CSS und JavaScript werden absichtlich NICHT so lange gespeichert: sie werden
+# bearbeitet, während an der Anwendung gearbeitet wird, und eine halbe Stunde alte Kopie
+# wäre verwirrend.
 <IfModule mod_expires.c>
     ExpiresActive On
 
@@ -43,14 +44,14 @@
 # Zugangsdaten und Verzeichnislisten gehoeren nicht ins Netz.
 #
 # Der DocumentRoot ist public/ - die Datei .env liegt im Projektstamm, also
-# schon ausserhalb und ist deshalb gar nicht erreichbar. Diese Sperre ist die
+# schon außerhalb und ist deshalb gar nicht erreichbar. Diese Sperre ist die
 # zweite Sicherung, falls public/ einmal versehentlich auf den Projektstamm
-# zeigt. Nichts an der Anwendung haengt davon ab, deshalb sind die Regeln
-# unschaedlich.
+# zeigt. Nichts an der Anwendung hängt davon ab, deshalb sind die Regeln
+# unschädlich.
 #
-# Hinweis: Ohne "-Indexes" koennte ein Ordner ohne index.php seinen Inhalt
+# Hinweis: Ohne "-Indexes" könnte ein Ordner ohne index.php seinen Inhalt
 # auflisten. mod_authz_core ist in Apache 2.4 eingebaut; fehlt es, greift der
-# Block nicht und die Anwendung laeuft trotzdem.
+# Block nicht und die Anwendung läuft trotzdem.
 #
 <IfModule mod_authz_core.c>
     <FilesMatch "^\.(env|git|htpasswd|htaccess|DS_Store)">
