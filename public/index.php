@@ -3,19 +3,20 @@
 declare(strict_types=1);
 
 /**
- * Front controller for the learning area browser.
+ * Einstiegspunkt für den Karten-Browser.
  *
- * Routes:
- *   index.php              -> the learning areas (home)
- *   index.php?category=3   -> what is inside category 3: the subcategories of a
- *                             learning area, or the flashcards of a subcategory
+ * Adressen:
+ *   index.php              -> die Lernbereiche (Startseite)
+ *   index.php?category=3   -> was in Kategorie 3 liegt: die Unterkategorien eines
+ *                             Lernbereichs oder die Lernkarten einer Unterkategorie
  *
- * This file only builds the HTML shell. It prints every visible string through
- * the translation system and hands the same translations plus the API URLs to
- * JavaScript as JSON. The rows come from the API, so PHP never writes database
- * rows into the markup and nothing that a person typed can end up in the HTML.
+ * Diese Datei baut nur die HTML-Hülle. Jeden sichtbaren Text gibt sie über die
+ * Übersetzungen aus und reicht dieselben Übersetzungen samt der API-Adressen als JSON
+ * an JavaScript weiter. Die Zeilen kommen aus der API, PHP schreibt also nie
+ * Datenbankzeilen ins Markup, und nichts, was eine Person eingetippt hat, kann im HTML
+ * landen.
  *
- * The API, the services and the database are not touched by this file.
+ * Die API, die Services und die Datenbank werden von dieser Datei nicht angefasst.
  */
 
 require_once __DIR__ . '/../src/helpers/html.php';
@@ -23,11 +24,11 @@ require_once __DIR__ . '/../src/helpers/translations.php';
 require_once __DIR__ . '/../src/services/exercise_service.php';
 
 /*
- * Diese Seite darf der Browser nicht zwischenspeichern. Sie traegt die
- * Uebersetzungen und die Versionsnummern der Dateien; eine alte Kopie zeigt
+ * Diese Seite darf der Browser nicht zwischenspeichern. Sie trägt die
+ * Übersetzungen und die Versionsnummern der Dateien; eine alte Kopie zeigt
  * genau die alten Texte, obwohl im Code schon neue stehen. Das ist passiert, als
  * die Anmeldung von "Name oder E-Mail" auf "E-Mail" umgestellt wurde: der Server
- * lieferte laengst "E-Mail", der Browser zeigte weiter den alten Text.
+ * lieferte längst "E-Mail", der Browser zeigte weiter den alten Text.
  */
 header('Cache-Control: no-store, must-revalidate');
 
