@@ -1,46 +1,47 @@
 /*
- * Lernkartei - learning area browser
+ * Lernkartei - der Karten-Browser
  *
- * The start page asks one existing endpoint for real data and renders it:
- *   api/categories.php -> the learning areas with colour and counts
+ * Die Startseite fragt einen vorhandenen Endpunkt nach echten Daten und zeigt sie an:
+ *   api/categories.php -> die Lernbereiche mit Farbe und Zählungen
  *
- * Nothing is invented here: every number on the page is a value the API really
- * returned. The start page asks for exactly what it shows and nothing else.
+ * Hier wird nichts erfunden: jede Zahl auf der Seite ist ein Wert, den die API wirklich
+ * zurückgegeben hat. Die Startseite fragt genau das ab, was sie zeigt, und sonst nichts.
  */
 (function () {
     'use strict';
 
-    /* A thin stroke arrow, drawn inline so no extra icon file is needed.
-       "currentColor" makes it follow the theme. */
+    /* Ein dünner Strichpfeil, direkt gezeichnet, damit keine eigene Symboldatei nötig
+       ist. "currentColor" lässt ihn dem Erscheinungsbild folgen. */
 
-    /* The arrow that points into the drop zone of the import dialog. Like every
-       other icon of this file it is written with innerHTML, because the string is
-       a constant of this script - a name or a text from the database never is. */
+    /* Der Pfeil, der in die Ablagefläche des Importdialogs zeigt. Wie jedes andere
+       Symbol dieser Datei entsteht er mit innerHTML, weil die Zeichenkette eine
+       Konstante dieses Skripts ist - ein Name oder ein Text aus der Datenbank ist das
+       nie. */
     var UPLOAD_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 15.5v2A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-2"/></svg>';
 
     var ARROW_SVG = '<svg class="arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
 
     /*
-     * There is no placeholder drawing any more. A category without a drawing of
-     * its own shows the first letter of the name it is displayed under - in the
-     * tile and in the preview of the upload field alike (see fillIconCircle).
+     * Eine Platzhalterzeichnung gibt es nicht mehr. Eine Kategorie ohne eigene Zeichnung
+     * zeigt den ersten Buchstaben des Namens, unter dem sie erscheint - in der Kachel
+     * genauso wie in der Vorschau des Uploadfelds (siehe fillIconCircle).
      */
     /*
-     * There is deliberately NO table of categories in this file.
+     * Hier steht ABSICHTLICH keine Tabelle der Kategorien.
      *
-     * An earlier version carried a list of the known learning areas with
-     * their name, their icon file, their icon size, their colour and their
-     * wording in both languages. Every one of those values is a column of
-     * the `categories` table now and is read from the API:
+     * Eine frühere Fassung trug eine Liste der bekannten Lernbereiche mit ihrem Namen,
+     * ihrer Symboldatei, ihrer Symbolgröße, ihrer Farbe und ihrem Wortlaut in beiden
+     * Sprachen. Jeder dieser Werte ist heute eine Spalte der Tabelle `categories` und wird
+     * über die API gelesen:
      *
-     *   the name of a category   -> name, name_en, name_de
-     *   its drawing              -> icon_svg, served by api/category_icon.php
-     *   the size of the drawing  -> icon_scale
-     *   its colour               -> color
-     *   how much is inside it    -> subcategory_count, card_count (SQL counts)
+     *   der Name einer Kategorie -> name, name_en, name_de
+     *   ihre Zeichnung           -> icon_svg, ausgeliefert von api/category_icon.php
+     *   die Größe der Zeichnung  -> icon_scale
+     *   ihre Farbe               -> color
+     *   wie viel darin liegt     -> subcategory_count, card_count (Zählungen in SQL)
      *
-     * Only two things are still written down here: the arrow shape and the
-     * neutral placeholder above. Neither of them is application data.
+     * Nur zwei Dinge stehen hier noch: die Form des Pfeils und der neutrale Platzhalter
+     * oben. Keines von beiden sind Daten der Anwendung.
      */
 
     var config = JSON.parse(document.getElementById('app-config').textContent);
@@ -48,23 +49,24 @@
     var locale = config.defaultLocale;
     var theme = 'light';
 
-    /* Answers are kept for this page load, so switching the language does not
-       send the same request again. Emptied after a new area is created. */
+    /* Antworten werden für diesen Seitenaufbau behalten, ein Sprachwechsel schickt also
+       nicht dieselbe Anfrage noch einmal. Geleert, sobald ein neuer Bereich angelegt
+       wird. */
     var responseCache = {};
 
     /* ----------------------------------------------------------------------
-       The first load: the whole application in one answer
+       Der erste Aufbau: die ganze Anwendung in einer Antwort
        ---------------------------------------------------------------------- */
 
     /*
-     * api/bootstrap.php sends the learning areas, their subcategories and every
-     * card in one answer. It is kept here, and the views are drawn out of it - so
-     * walking through the application costs no further request.
+     * api/bootstrap.php schickt die Lernbereiche, ihre Unterkategorien und jede Karte in
+     * einer Antwort. Sie wird hier behalten, und die Ansichten entstehen daraus - das
+     * Durchwandern der Anwendung kostet also keine weitere Anfrage.
      *
-     * What is NOT in here, on purpose: the generated task of an exercise card (its
-     * numbers have to be new on every display) and the drawings of the categories
-     * and maps (they have their own fetch and their own cache). Both are fetched
-     * when they are really needed.
+     * Was absichtlich NICHT darin steckt: die erzeugte Aufgabe einer Übungskarte (ihre
+     * Zahlen müssen bei jedem Anzeigen neu sein) und die Zeichnungen der Kategorien und
+     * Kartenbilder (die haben ihren eigenen Abruf und ihren eigenen Speicher). Beides
+     * wird geholt, wenn es wirklich gebraucht wird.
      */
     var bootstrapCache = {
         promise: null,       // die erste Abfrage
@@ -81,8 +83,9 @@
     };
 
     /*
-     * Loads the bootstrap once per page view. A failure is not a problem: the
-     * promise is dropped, and every view loads its own data exactly as before.
+     * Lädt den Aufbau einmal je Seitenansicht. Ein Fehlschlag ist kein Problem: das
+     * Versprechen wird fallengelassen, und jede Ansicht lädt ihre Daten genau wie vorher
+     * selbst.
      */
     function loadBootstrap() {
         if (bootstrapCache.promise !== null) {
@@ -104,10 +107,10 @@
                 bootstrapCache.hasUser = data.has_user === true;
 
                 /*
-                 * Which categories this answer really covers - including the ones
-                 * without cards of their own. The card query behind this answer had
-                 * no filter, so a category that is missing from the card list really
-                 * has no cards: the empty list is the answer, not a request.
+                 * Welche Kategorien diese Antwort wirklich abdeckt - auch die ohne eigene
+                 * Karten. Die Kartenabfrage hinter dieser Antwort hatte keinen Filter, eine
+                 * in der Kartenliste fehlende Kategorie hat also wirklich keine Karten: die
+                 * leere Liste ist die Antwort, keine Anfrage.
                  */
                 bootstrapCache.known = {};
 
