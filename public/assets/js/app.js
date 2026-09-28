@@ -5867,6 +5867,20 @@
 
     var learnTimer = null;
 
+    /*
+     * Der Faden, an dem der Hinweis unten hängt.
+     *
+     * Er wird für beide Phasen benutzt: die Standzeit und das Ausfaden. Wichtig
+     * ist, dass JEDER Aufruf von showLearnNotice ihn zuerst löscht - sonst könnte
+     * eine neue Meldung, die gerade während des Ausfadens der vorigen kommt, vom
+     * noch laufenden alten Zeitgeber sofort wieder versteckt werden.
+     */
+    var learnNoticeTimer = null;
+
+    /* Wie lange der Hinweis steht und wie lange er zum Verschwinden braucht. */
+    var LEARN_NOTICE_MS = 2700;
+    var LEARN_NOTICE_FADE_MS = 300;
+
 
     /* Öffnet die Einheit für die offene Unterkategorie. */
     function startLearning(mode, targetCategoryId, label) {
@@ -6190,7 +6204,8 @@
         elements.learnSummary.hidden = true;
         elements.learnStage.hidden = false;
         elements.learnAsk.hidden = true;
-        elements.learnNotice.hidden = true;
+        /* Kein Rest der vorigen Einheit, kein laufender Zeitgeber. */
+        resetLearnNotice();
         document.body.classList.add('is-learning');
 
         /* Der Fokus geht in die Einheit, die Tastatur funktioniert also sofort. */
@@ -6396,7 +6411,8 @@
         }
 
         if (learnSession.hasUser !== true) {
-            showLearnNotice(t('learn.noUser'));
+            /* Bleibt stehen: es erklärt, warum der Klick nichts bewirkt. */
+            showLearnNotice(t('learn.noUser'), true);
             return;
         }
 
@@ -6431,8 +6447,9 @@
 
             if (!result.ok) {
                 /* Die Antwort wurde NICHT gespeichert, die Karte bleibt also, wo sie ist, und
-                   die Meldung sagt, warum. */
-                showLearnNotice(errorMessage(result.code));
+                   die Meldung sagt, warum. Sie bleibt stehen: ein Fehlschlag darf nicht von
+                   selbst verschwinden. */
+                showLearnNotice(errorMessage(result.code), true);
                 return;
             }
 
@@ -6541,7 +6558,8 @@
             learnSession.busy = false;
 
             if (!result.ok) {
-                showLearnNotice(errorMessage(result.code));
+                /* Auch die Rücknahme darf scheitern - und das muss zu lesen bleiben. */
+                showLearnNotice(errorMessage(result.code), true);
                 return;
             }
 
@@ -6678,7 +6696,7 @@
 
         elements.learn.hidden = true;
         elements.learnAsk.hidden = true;
-        elements.learnNotice.hidden = true;
+        resetLearnNotice();
         elements.learnCard.classList.remove('is-flipped', 'is-leaving-left', 'is-entering-right');
         document.body.classList.remove('is-learning');
 
@@ -6712,12 +6730,83 @@
         elements.learnAskCancel.focus();
     }
 
-    function showLearnNotice(message, show) {
-        elements.learnNotice.textContent = message;
-        elements.learnNotice.hidden = show === false;
+    /*
+     * Der Hinweis unten in der Lernansicht.
+     *
+     * Es gibt zwei Sorten, und der Unterschied ist wichtig:
+     *
+     *   showLearnNotice(text)        eine Rückmeldung zum Bewerten ("Die Karte kommt
+     *                                in dieser Sitzung wieder."). Sie fadet nach
+     *                                2,7 s von selbst aus.
+     *   showLearnNotice(text, true)  eine Erklärung, die STEHEN BLEIBEN muss: dass ohne
+     *                                Konto nicht bewertet wird, oder dass eine Antwort
+     *                                NICHT gespeichert werden konnte. So eine Zeile darf
+     *                                nicht von selbst verschwinden, sonst hält man einen
+     *                                Fehlschlag für einen Erfolg.
+     *
+     * Vorher gab es überhaupt keinen Zeitgeber: der Hinweis erschien und blieb stehen,
+     * bis irgendwann eine Antwort mit einer anderen Bewertung kam, die ihn beiseite
+     * schob.
+     */
+    function showLearnNotice(message, sticky) {
+        var notice = elements.learnNotice;
+
+        if (notice === null) {
+            return;
+        }
+
+        if (learnNoticeTimer !== null) {
+            window.clearTimeout(learnNoticeTimer);
+            learnNoticeTimer = null;
+        }
+
+        notice.textContent = message;
+        notice.hidden = false;
+
+        /* Das Lesen eines Layoutwerts startet das Einblenden neu, wenn dieselbe
+           Zeile zweimal hintereinander erscheint. */
+        void notice.offsetWidth;
+        notice.classList.add('is-visible');
+
+        if (sticky !== true) {
+            learnNoticeTimer = window.setTimeout(hideLearnNotice, LEARN_NOTICE_MS);
+        }
     }
 
+    /* Blendet den Hinweis aus: erst sichtbar weg, dann aus dem Baum. */
     function hideLearnNotice() {
+        var notice = elements.learnNotice;
+
+        if (learnNoticeTimer !== null) {
+            window.clearTimeout(learnNoticeTimer);
+            learnNoticeTimer = null;
+        }
+
+        if (notice === null || notice.hidden) {
+            return;
+        }
+
+        notice.classList.remove('is-visible');
+
+        learnNoticeTimer = window.setTimeout(function () {
+            learnNoticeTimer = null;
+            notice.hidden = true;
+            notice.textContent = '';
+        }, prefersReducedMotion() ? 0 : LEARN_NOTICE_FADE_MS);
+    }
+
+    /*
+     * Nimmt den Hinweis sofort weg, ohne Ausfaden. Für das Öffnen und Schließen der
+     * Lernansicht: dort ist der Hinweis der vorigen Einheit nur noch ein Rest, und
+     * ein noch laufender Zeitgeber darf nicht in die nächste Einheit hineinragen.
+     */
+    function resetLearnNotice() {
+        if (learnNoticeTimer !== null) {
+            window.clearTimeout(learnNoticeTimer);
+            learnNoticeTimer = null;
+        }
+
+        elements.learnNotice.classList.remove('is-visible');
         elements.learnNotice.hidden = true;
         elements.learnNotice.textContent = '';
     }
@@ -6754,6 +6843,13 @@
         });
 
         elements.learnClose.addEventListener('click', askBeforeClosingLearn);
+
+        /*
+         * Ein Klick nimmt den Hinweis sofort weg. Nötig ist das nicht - er geht von
+         * selbst - aber wer ihn schon gelesen hat, soll ihn wegtippen können, statt
+         * darauf zu warten.
+         */
+        elements.learnNotice.addEventListener('click', hideLearnNotice);
         elements.learnAskCancel.addEventListener('click', function () {
             elements.learnAsk.hidden = true;
             elements.learnCard.focus();

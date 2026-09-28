@@ -4482,11 +4482,25 @@ body.is-learning {
 
 /* --- a short note inside the session -------------------------------------- */
 
+/*
+ * Der Hinweis unten in der Lernansicht: eine Pille in der Mitte, ueber allem.
+ *
+ * Er wird nicht einfach ein- und ausgeblendet, sondern FADET: showLearnNotice()
+ * haengt "is-visible" an, hideLearnNotice() nimmt es wieder weg und wartet dann
+ * das Ausfaden ab, bevor es das Element versteckt. Ohne diese beiden Klassen
+ * waere es ein hartes Erscheinen und Verschwinden.
+ *
+ * Die Mittelstellung sitzt im transform und muss deshalb in jeder Fassung
+ * mitgeschrieben werden; das Verschieben um 6px kommt einfach dazu. Beim
+ * Ausblenden wandert die Pille also wieder ein Stueck nach unten.
+ *
+ * Der Zeiger ist ein Finger, weil ein Klick ihn sofort wegnimmt - noetig ist das
+ * nicht, er geht von selbst.
+ */
 .learn__notice {
     position: fixed;
     left: 50%;
     bottom: 26px;
-    transform: translateX(-50%);
     z-index: 1250;
     margin: 0;
     padding: 11px 20px;
@@ -4494,6 +4508,23 @@ body.is-learning {
     background-color: var(--panel);
     box-shadow: var(--panel-shadow, 0 14px 32px rgba(0, 0, 0, 0.16));
     font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+    transition: opacity 300ms var(--ease), transform 300ms var(--ease);
+}
+
+.learn__notice[hidden] {
+    display: none;
+}
+
+.learn__notice.is-visible {
+    opacity: 1;
+    transform: translateX(-50%);
+}
+
+.learn__notice:hover {
+    background-color: var(--surface-soft);
 }
 
 /* --- small screens: the card is almost without a margin ------------------- */
