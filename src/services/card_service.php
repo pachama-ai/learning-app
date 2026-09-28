@@ -3,41 +3,41 @@
 declare(strict_types=1);
 
 /**
- * Database queries for the `cards` table (the flashcards).
+ * Die Datenbankabfragen zur Tabelle `cards` (den Lernkarten).
  *
- * Verified structure (checked with SHOW COLUMNS):
- *   id               int unsigned, NOT NULL, primary key, auto_increment
- *   category_id      int unsigned, NOT NULL, foreign key to categories.id
+ * Geprüfte Struktur (mit SHOW COLUMNS nachgesehen):
+ *   id               int unsigned, NOT NULL, Primärschlüssel, auto_increment
+ *   category_id      int unsigned, NOT NULL, Fremdschlüssel auf categories.id
  *   front            text, NOT NULL
  *   back             text, NOT NULL
- *   is_bidirectional tinyint(1), NOT NULL, default 0
+ *   is_bidirectional tinyint(1), NOT NULL, Vorgabe 0
  *
- * There is no timestamp column, so the order of the list is the order of the
- * ids: the card that was added first is shown first.
+ * Eine Spalte mit Zeitstempel gibt es nicht, die Reihenfolge der Liste ist also die
+ * Reihenfolge der Ids: die zuerst angelegte Karte steht vorn.
  *
- * The foreign key fk_cards_category is ON DELETE RESTRICT, which means the
- * database itself refuses to delete a category that still holds cards. That is
- * why deleting a category deletes its cards first (see category_service.php).
+ * Der Fremdschlüssel fk_cards_category ist ON DELETE RESTRICT, die Datenbank weigert
+ * sich also selbst, eine Kategorie zu löschen, in der noch Karten liegen. Deshalb
+ * löscht das Löschen einer Kategorie zuerst ihre Karten (siehe category_service.php).
  *
- * user_card_progress references a card with ON DELETE CASCADE, so the learning
- * progress of a card disappears together with the card. That rule is part of
- * the existing structure and was not changed.
+ * user_card_progress zeigt mit ON DELETE CASCADE auf eine Karte, der Lernfortschritt
+ * einer Karte verschwindet also zusammen mit der Karte. Diese Regel gehört zur
+ * bestehenden Struktur und wurde nicht geändert.
  *
- * A card may also be an exercise card: instead of a question and an answer that
- * somebody wrote, it shows a task that is built when the card is displayed, with
- * numbers that are drawn again every time. That belongs to the table
- * `card_exercises`, which is read and written below.
+ * Eine Karte kann auch eine Übungskarte sein: statt einer Frage und einer Antwort, die
+ * jemand geschrieben hat, zeigt sie eine Aufgabe, die beim Anzeigen der Karte gebaut
+ * wird, mit Zahlen, die jedes Mal neu gezogen werden. Das gehört zur Tabelle
+ * `card_exercises`, die unten gelesen und geschrieben wird.
  */
 
 require_once __DIR__ . '/exercise_service.php';
 require_once __DIR__ . '/category_service.php';
 require_once __DIR__ . '/../helpers/request_input.php';
 
-/** Longest text accepted for the front or the back of a card. */
+/** Längster Text, der für die Vorderseite oder die Rückseite einer Karte angenommen wird. */
 const CARD_MAX_TEXT_LENGTH = 2000;
 
 /**
- * Converts a database row into the shape the API promises.
+ * Macht aus einer Datenbankzeile die Form, die die API verspricht.
  *
  * @param array<string, mixed> $row
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}
@@ -49,23 +49,23 @@ function normalize_card_row(array $row): array
         'category_id' => (int) $row['category_id'],
         'front' => (string) $row['front'],
         'back' => (string) $row['back'],
-        // JSON has real booleans, so the tinyint becomes true or false here.
+        // JSON hat echte Wahrheitswerte, das tinyint wird hier also zu true oder false.
         'is_bidirectional' => (int) $row['is_bidirectional'] === 1,
         /*
-         * The map region is either a key like "DE:Bayern" or nothing at all - an
-         * empty column and a value that does not pass the pattern both mean "no
-         * map". The value is never interpreted as markup anywhere; it is only
-         * used to look up one element in a static map file.
+         * Die Kartenregion ist entweder ein Schlüssel wie "DE:Bayern" oder gar nichts -
+         * eine leere Spalte und ein Wert, der nicht zum Muster passt, heißen beide
+         * "keine Karte". Der Wert wird nirgends als Markup gedeutet; er dient nur dazu,
+         * ein Element in einer festen Kartendatei zu suchen.
          */
         'map_region' => isset($row['map_region']) && card_map_region_is_valid((string) $row['map_region'])
             ? (string) $row['map_region']
             : null,
         /*
-         * An exercise, or nothing at all. The task itself is stored nowhere: it is
-         * built here from the kind of task and the range, so its numbers are new
-         * on every read. A row whose exercise_type is not one of the kinds of task
-         * this application knows (an older row, or one edited by hand) is a card
-         * without an exercise and is simply shown as a fixed card.
+         * Eine Aufgabe oder gar nichts. Die Aufgabe selbst wird nirgends gespeichert:
+         * sie entsteht hier aus der Art der Aufgabe und dem Bereich, ihre Zahlen sind
+         * also bei jedem Lesen neu. Eine Zeile, deren exercise_type keine der Arten ist,
+         * die diese Anwendung kennt (eine ältere Zeile oder eine von Hand geänderte),
+         * ist eine Karte ohne Aufgabe und wird einfach als feste Karte gezeigt.
          */
         'exercise' => card_exercise_from_row($row),
     ];
@@ -77,11 +77,11 @@ function normalize_card_row(array $row): array
  */
 
 /**
- * Returns one card of this account, or null when it does not exist there.
+ * Liefert eine Karte dieses Kontos oder null, wenn es sie dort nicht gibt.
  *
- * `cards` has no owner column of its own on purpose: a card always sits in
- * exactly one category, so the owner of the category is already the owner of
- * the card. One truth instead of two that can drift apart.
+ * `cards` hat absichtlich keine eigene Besitzerspalte: eine Karte liegt immer in genau
+ * einer Kategorie, der Besitzer der Kategorie ist also schon der Besitzer der Karte.
+ * Eine Wahrheit statt zweier, die auseinanderlaufen können.
  *
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}|null
  */
@@ -103,15 +103,15 @@ function find_card(PDO $pdo, int $cardId, int $ownerUserId): ?array
 }
 
 /**
- * Updates the given fields of one card.
+ * Ändert die angegebenen Felder einer Karte.
  *
- * Only the keys that really exist as columns are accepted, so a value from the
- * request body can never become part of the SQL text. An empty list of changes
- * simply returns the card unchanged.
+ * Angenommen werden nur Schlüssel, die es wirklich als Spalte gibt; ein Wert aus dem
+ * Anfrage-Inhalt kann also nie Teil des SQL-Textes werden. Eine leere Liste von
+ * Änderungen liefert die Karte einfach unverändert zurück.
  *
- * @param array<string, mixed> $changes Values keyed by column name. The key
- *        "exercise" is the one exception: it is not a column of this table but
- *        the exercise that belongs to the card.
+ * @param array<string, mixed> $changes Werte, nach Spaltenname abgelegt. Der Schlüssel
+ *        "exercise" ist die eine Ausnahme: er ist keine Spalte dieser Tabelle,
+ *        sondern die Aufgabe, die zu der Karte gehört.
  * @return array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}|null
  */
 function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?array
@@ -143,9 +143,9 @@ function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?
     }
 
     /*
-     * A change to the German side is mirrored into front and back: those two are
-     * NOT NULL and older readers still use them, so leaving them behind would make
-     * the two versions of the German text drift apart.
+     * Eine Änderung der deutschen Seite wird auf front und back gespiegelt: die beiden
+     * sind NOT NULL und ältere Leser benutzen sie noch, sie einfach liegen zu lassen
+     * würde die beiden Fassungen des deutschen Textes auseinanderlaufen lassen.
      */
     foreach (['front' => 0, 'back' => 1] as $column => $index) {
         $germanColumn = $pairs['de'][$index] ?? null;
@@ -161,9 +161,9 @@ function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?
     }
 
     /*
-     * An exercise is not a column of this table, so it never appears in the
-     * assignment list. A card whose exercise is the only thing that changes must
-     * not be skipped here.
+     * Eine Aufgabe ist keine Spalte dieser Tabelle, sie taucht in der Zuweisungsliste
+     * also nie auf. Eine Karte, bei der sich nur die Aufgabe ändert, darf hier nicht
+     * übersprungen werden.
      */
     $exerciseChange = array_key_exists('exercise', $changes);
 
@@ -173,9 +173,9 @@ function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?
 
 
     /*
-     * The columns and the exercise are written together or not at all: a change
-     * that half succeeded would leave a card that shows neither the old nor the
-     * new. A transaction the caller has already started is left alone.
+     * Die Spalten und die Aufgabe werden zusammen geschrieben oder gar nicht: eine
+     * halb gelungene Änderung hinterließe eine Karte, die weder das Alte noch das Neue
+     * zeigt. Eine Transaktion, die der Aufrufer schon begonnen hat, bleibt in Ruhe.
      */
     $ownsTransaction = !$pdo->inTransaction();
 
@@ -199,7 +199,7 @@ function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?
                     continue;
                 }
 
-                /* An empty map_region means "no map" and has to be NULL, not "". */
+                /* Eine leere map_region heißt "keine Karte" und muss NULL sein, nicht "". */
                 if ($column === 'map_region') {
                     if ($value === null || $value === '' || !card_map_region_is_valid((string) $value)) {
                         $statement->bindValue(':' . $column, null, PDO::PARAM_NULL);
@@ -238,10 +238,10 @@ function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?
 
 
 /**
- * Deletes one card. Returns false when there was nothing to delete.
+ * Löscht eine Karte. Liefert false, wenn es nichts zu löschen gab.
  *
- * The learning progress rows of this card are removed by the database itself
- * (fk_progress_card is ON DELETE CASCADE).
+ * Die Fortschrittszeilen dieser Karte entfernt die Datenbank selbst
+ * (fk_progress_card ist ON DELETE CASCADE).
  */
 function delete_card(PDO $pdo, int $cardId, int $ownerUserId): bool
 {
@@ -258,20 +258,20 @@ function delete_card(PDO $pdo, int $cardId, int $ownerUserId): bool
 }
 
 /**
- * Deletes the learning progress of every card of the given categories.
+ * Löscht den Lernfortschritt aller Karten der angegebenen Kategorien.
  *
- * This is the first step of deleting a category. The foreign key on
- * user_card_progress.card_id is ON DELETE CASCADE and would remove these rows by
- * itself, but the order is written out and executed explicitly: whoever deletes
- * a category should be able to read the whole order in one place, and a database
- * without that cascade behaves the same way.
+ * Das ist der erste Schritt beim Löschen einer Kategorie. Der Fremdschlüssel auf
+ * user_card_progress.card_id ist ON DELETE CASCADE und würde diese Zeilen von selbst
+ * entfernen, die Reihenfolge wird aber ausgeschrieben und ausdrücklich ausgeführt:
+ * wer eine Kategorie löscht, soll die ganze Reihenfolge an einer Stelle lesen können,
+ * und eine Datenbank ohne diese Kaskade verhält sich genauso.
  *
- * Runs inside the transaction of the caller. Only the progress rows of the cards
- * in the given categories are touched - never the progress of another card and
- * never a user.
+ * Läuft in der Transaktion des Aufrufers. Angefasst werden nur die Fortschrittszeilen
+ * der Karten in den angegebenen Kategorien - nie der Fortschritt einer anderen Karte
+ * und nie ein Konto.
  *
  * @param list<int> $categoryIds
- * @return int How many progress rows were removed.
+ * @return int Wie viele Fortschrittszeilen entfernt wurden.
  */
 function delete_progress_of_categories(PDO $pdo, array $categoryIds, int $ownerUserId): int
 {
@@ -288,13 +288,14 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds, int $ownerU
     }
 
     /*
-     * The subquery names the cards of the subtree, so only their progress rows
-     * are part of this statement.
+     * Die Unterabfrage benennt die Karten des Teilbaums, nur deren Fortschrittszeilen
+     * sind also Teil dieser Anweisung.
      *
-     * It also joins the category of every card, although the ids already come
-     * from a subtree that was read for this account. That second lock is on
-     * purpose: a delete is the one operation that cannot be undone by a later
-     * check, so it does not rely on its caller having filtered correctly.
+     * Sie verbindet außerdem die Kategorie jeder Karte, obwohl die Ids schon aus einem
+     * Teilbaum kommen, der für dieses Konto gelesen wurde. Diese zweite Absicherung ist
+     * Absicht: ein Löschen ist der eine Vorgang, den eine spätere Prüfung nicht mehr
+     * rückgängig machen kann, es verlässt sich also nicht darauf, dass sein Aufrufer
+     * richtig gefiltert hat.
      */
     $statement = $pdo->prepare(
         'DELETE FROM user_card_progress'
@@ -319,35 +320,35 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds, int $ownerU
 }
 
 /**
- * Deletes every card of the given categories and reports how many were removed.
+ * Löscht jede Karte der angegebenen Kategorien und meldet, wie viele entfernt wurden.
  *
- * The second step of deleting a category: the cards have to go before the
- * categories, because fk_cards_category is ON DELETE RESTRICT.
+ * Der zweite Schritt beim Löschen einer Kategorie: die Karten müssen vor den Kategorien
+ * weg, weil fk_cards_category ON DELETE RESTRICT ist.
  *
  * @param list<int> $categoryIds
  */
 
 /* -------------------------------------------------------------------------
-   The exercise of a card
+   Die Aufgabe einer Karte
    ------------------------------------------------------------------------- */
 
 /*
- * A card may carry an exercise instead of a question and an answer that somebody
- * wrote. Which kind of task it is and between which numbers it lives sit in the
- * table `card_exercises`: one row per card at most, because card_id is the
- * primary key of that table.
+ * Eine Karte kann eine Aufgabe tragen statt einer Frage und einer Antwort, die jemand
+ * geschrieben hat. Welche Art von Aufgabe es ist und zwischen welchen Zahlen sie lebt,
+ * steht in der Tabelle `card_exercises`: höchstens eine Zeile je Karte, weil card_id
+ * der Primärschlüssel dieser Tabelle ist.
  *
- * The table is optional in this sense: an installation that has not run
- * database/add_card_exercises.sql yet works exactly as before. That is why it is
- * looked for once per request, and why the read queries only join it when it is
- * really there.
+ * Die Tabelle ist in dem Sinn freiwillig: eine Installation, in der
+ * database/add_card_exercises.sql noch nicht gelaufen ist, arbeitet genau wie vorher.
+ * Deshalb wird einmal je Anfrage nachgesehen, und deshalb verbinden die Leseabfragen
+ * sie nur, wenn es sie wirklich gibt.
  */
 
 /**
- * Whether the table `card_exercises` exists in this database.
+ * Ob die Tabelle `card_exercises` in dieser Datenbank existiert.
  *
- * Asked once per request and then remembered, like the optional columns of
- * `cards` and `categories`.
+ * Einmal je Anfrage gefragt und dann gemerkt, wie die freiwilligen Spalten von `cards`
+ * und `categories`.
  */
 function card_exercise_table_available(PDO $pdo): bool
 {
@@ -368,12 +369,13 @@ function card_exercise_table_available(PDO $pdo): bool
 }
 
 /**
- * Whether the column that holds the numbers of a task exists.
+ * Ob die Spalte existiert, die die Zahlen einer Aufgabe hält.
  *
- * The numbers came later than the table: an installation that has run
- * database/add_card_exercises.sql but not database/add_exercise_params.sql can
- * still read its cards (a card then shows its task with the default numbers), but
- * it cannot store an exercise. Asked once per request, like the table itself.
+ * Die Zahlen kamen später als die Tabelle: eine Installation, in der
+ * database/add_card_exercises.sql, aber nicht database/add_exercise_params.sql gelaufen
+ * ist, kann ihre Karten weiterhin lesen (eine Karte zeigt ihre Aufgabe dann mit den
+ * Vorgabezahlen), sie kann eine Aufgabe aber nicht speichern. Einmal je Anfrage
+ * gefragt, wie die Tabelle selbst.
  */
 function card_exercise_params_available(PDO $pdo): bool
 {
@@ -395,12 +397,12 @@ function card_exercise_params_available(PDO $pdo): bool
 }
 
 /**
- * The join that brings the exercise of a card into a query.
+ * Die Verbindung (JOIN), die die Aufgabe einer Karte in eine Abfrage holt.
  *
- * An empty string when the table is not there, so one query text works with and
- * without the migration. The name of the card table is checked against the two
- * spellings this application uses, so nothing that comes from a request can ever
- * reach the query text.
+ * Eine leere Zeichenkette, wenn es die Tabelle nicht gibt, ein Abfragetext arbeitet also
+ * mit und ohne die Migration. Der Name der Kartentabelle wird gegen die zwei
+ * Schreibweisen geprüft, die diese Anwendung benutzt, nichts aus einer Anfrage kann also
+ * je in den Abfragetext gelangen.
  */
 function card_exercise_join(PDO $pdo, string $cardTable = 'cards'): string
 {
@@ -414,7 +416,7 @@ function card_exercise_join(PDO $pdo, string $cardTable = 'cards'): string
 }
 
 /**
- * The exercise of one card row, or null when the card is a fixed card.
+ * Die Aufgabe einer Kartenzeile oder null, wenn die Karte eine feste Karte ist.
  *
  * @param array<string, mixed> $row
  * @return array<string, mixed>|null
@@ -423,15 +425,15 @@ function card_exercise_from_row(array $row): ?array
 {
     $type = isset($row['exercise_type']) ? (string) $row['exercise_type'] : '';
 
-    /* An unknown key is not an error: the card is shown as a fixed card. */
+    /* Ein unbekannter Schlüssel ist kein Fehler: die Karte wird als feste Karte gezeigt. */
     if ($type === '' || !exercise_type_is_known($type)) {
         return null;
     }
 
     /*
-     * The numbers in use, not the raw column: a value that was edited by hand or
-     * that is older than the limits of its kind of task is pulled into them, and
-     * the interface shows what the task really works with.
+     * Die Zahlen, die wirklich gelten, nicht die rohe Spalte: ein von Hand geänderter
+     * Wert oder einer, der älter ist als die Grenzen seiner Aufgabenart, wird in diese
+     * hineingezogen, und die Oberfläche zeigt, womit die Aufgabe wirklich arbeitet.
      */
     $params = exercise_normalise_params($type, card_exercise_params_from_row($row));
 
@@ -439,17 +441,16 @@ function card_exercise_from_row(array $row): ?array
         'type' => $type,
         'label' => exercise_type_label($type),
         'params' => $params,
-        /* Built here and now, so the numbers are new on every read. */
+        /* Hier und jetzt gebaut, die Zahlen sind bei jedem Lesen also neu. */
         'task' => exercise_build_task($type, $params),
     ];
 }
 
 /**
- * The numbers of an exercise row, as they were stored.
+ * Die Zahlen einer Aufgaben-Zeile, so wie sie gespeichert wurden.
  *
- * Anything that is not a JSON object is treated as "nothing stored": the defaults
- * of that kind of task then apply, which is what a row from before the migration
- * looks like.
+ * Alles, was kein JSON-Objekt ist, gilt als "nichts gespeichert": dann greifen die
+ * Vorgaben dieser Aufgabenart, und genau so sieht eine Zeile von vor der Migration aus.
  *
  * @param array<string, mixed> $row
  * @return array<string, mixed>
@@ -468,20 +469,20 @@ function card_exercise_params_from_row(array $row): array
 }
 
 /**
- * Writes, replaces or removes the exercise of one card.
+ * Schreibt, ersetzt oder entfernt die Aufgabe einer Karte.
  *
- * An exercise is not a column of `cards`, so it needs its own statement. Deleting
- * and inserting instead of an "insert or update" is one statement more, but it
- * always ends with exactly one row and cannot leave half of an old exercise
- * behind - and it means the same thing in every database.
+ * Eine Aufgabe ist keine Spalte von `cards`, sie braucht also ihre eigene Anweisung.
+ * Löschen und Einfügen statt eines "einfügen oder ändern" ist eine Anweisung mehr, endet
+ * aber immer bei genau einer Zeile und kann keine halbe alte Aufgabe zurücklassen -
+ * und es bedeutet in jeder Datenbank dasselbe.
  *
- * A kind of task this application does not know is never stored, whatever the
- * caller sends: the key in that column can only ever be one of the keys in
- * exercise_service.php.
+ * Eine Aufgabenart, die diese Anwendung nicht kennt, wird nie gespeichert, egal was der
+ * Aufrufer schickt: der Schlüssel in dieser Spalte kann immer nur einer der Schlüssel
+ * aus exercise_service.php sein.
  *
- * Runs inside the transaction of the caller.
+ * Läuft in der Transaktion des Aufrufers.
  *
- * @param array<string, mixed>|null $exercise null means "no exercise"
+ * @param array<string, mixed>|null $exercise null heißt "keine Aufgabe"
  */
 function save_card_exercise(PDO $pdo, int $cardId, ?array $exercise): void
 {
@@ -523,11 +524,11 @@ function save_card_exercise(PDO $pdo, int $cardId, ?array $exercise): void
 }
 
 /**
- * Whether one language of a card carries a question.
+ * Ob eine Sprache einer Karte eine Frage trägt.
  *
- * A fixed card needs both sides. An exercise card does not: its answer comes from
- * the generator, so only the question side has to be filled - and that is where
- * the title of the exercise stands.
+ * Eine feste Karte braucht beide Seiten. Eine Übungskarte nicht: ihre Antwort kommt aus
+ * dem Erzeuger, es muss also nur die Frageseite gefüllt sein - und dort steht die
+ * Überschrift der Aufgabe.
  *
  * @param array<string, mixed> $texts
  * @param list<string> $columns
@@ -544,22 +545,22 @@ function card_language_has_question(array $texts, string $language, array $colum
 }
 
 /**
- * Reads the exercise out of a request body and checks it.
+ * Liest die Aufgabe aus einem Anfrage-Inhalt und prüft sie.
  *
- * Three cases, and they are told apart on purpose:
+ * Drei Fälle, und die werden absichtlich auseinandergehalten:
  *
- *   - the body says nothing about an exercise  -> null, no error
- *   - the body says "no exercise" (an empty or null exercise_type) -> null
- *   - the body names a kind of task -> that exercise, after checking its range
+ *   - der Inhalt sagt nichts über eine Aufgabe -> null, kein Fehler
+ *   - der Inhalt sagt "keine Aufgabe" (exercise_type leer oder null) -> null
+ *   - der Inhalt nennt eine Aufgabenart -> diese Aufgabe, nach Prüfung ihres Bereichs
  *
- * The answer is a pair of "what" and "what went wrong", so the endpoint can
- * answer with the right error code: a kind of task this application does not know
- * gives "invalid_exercise_type", a range that does not fit it gives
- * "invalid_exercise_range".
+ * Die Antwort ist ein Paar aus "was" und "was schiefging", damit der Endpunkt mit dem
+ * richtigen Fehlercode antworten kann: eine Aufgabenart, die diese Anwendung nicht
+ * kennt, ergibt "invalid_exercise_type"; ein Bereich, der nicht dazu passt, ergibt
+ * "invalid_exercise_params".
  *
- * Nothing that arrives here is ever worked out as a formula: the type only has to
- * be one of the keys in exercise_service.php, and the numbers only have to be
- * whole numbers inside the limits of that kind of task.
+ * Nichts, was hier ankommt, wird je als Formel ausgerechnet: die Art muss nur einer
+ * der Schlüssel aus exercise_service.php sein, und die Zahlen müssen ganze Zahlen
+ * innerhalb der Grenzen dieser Aufgabenart sein.
  *
  * @param array<string, mixed> $body
  * @return array{exercise: array<string, int|string>|null, error: string|null}
@@ -572,7 +573,7 @@ function card_exercise_from_request(array $body): array
 
     $type = $body['exercise_type'] === null ? '' : trim((string) $body['exercise_type']);
 
-    /* An empty type is how the dialog says "this is not an exercise card". */
+    /* Eine leere Art ist die Art, wie der Dialog "das ist keine Übungskarte" sagt. */
     if ($type === '') {
         return ['exercise' => null, 'error' => null];
     }
@@ -582,9 +583,9 @@ function card_exercise_from_request(array $body): array
     }
 
     /*
-     * The numbers of the task. Saying nothing about them is allowed: the defaults
-     * of that kind of task then apply. Saying something that is not an object of
-     * known names and allowed values is not.
+     * Die Zahlen der Aufgabe. Nichts über sie zu sagen ist erlaubt: dann greifen die
+     * Vorgaben dieser Aufgabenart. Etwas zu sagen, das kein Objekt aus bekannten Namen
+     * und erlaubten Werten ist, ist es nicht.
      */
     $params = $body['exercise_params'] ?? null;
 
@@ -603,34 +604,34 @@ function card_exercise_from_request(array $body): array
 }
 
 /* -------------------------------------------------------------------------
-   The two languages of a card
+   Die zwei Sprachen einer Karte
    ------------------------------------------------------------------------- */
 
 /*
- * A card carries its German text in the two original columns (`front`, `back`)
- * and, once the migration in database/add_card_english_columns.sql has been run,
- * its English text in `front_en` and `back_en`.
+ * Eine Karte trägt ihren deutschen Text in den beiden ursprünglichen Spalten (`front`,
+ * `back`) und, sobald die Migration in database/add_card_english_columns.sql gelaufen
+ * ist, ihren englischen Text in `front_en` und `back_en`.
  *
- * Which of those columns really exist is asked once per request and then
- * remembered - exactly like the optional columns of `categories`. Everything
- * below works with one language as well as with two, so the application is
- * correct before and after the migration.
+ * Welche dieser Spalten es wirklich gibt, wird einmal je Anfrage gefragt und dann
+ * gemerkt - genau wie die freiwilligen Spalten von `categories`. Alles hier unten
+ * arbeitet mit einer Sprache genauso wie mit zweien, die Anwendung ist also vor und nach
+ * der Migration richtig.
  */
 
 /**
- * What a map_region value may look like.
+ * Wie ein map_region-Wert aussehen darf.
  *
- * AREA is one of three names and decides the file (DE -> germany.svg, EU ->
- * europe.svg, WORLD -> world.svg). REGION is the id of one element in that file:
- * a German state name, an ISO country code, or - for Baden-Württemberg - the id
- * that file uses for it. Anything else never reaches the database, and a value
- * that is already stored but does not match is simply ignored when a card is
- * shown. Nowhere is the value interpreted as markup: it is only used to look up
- * one element in a static application asset.
+ * AREA ist einer von drei Namen und entscheidet die Datei (DE -> germany.svg, EU ->
+ * europe.svg, WORLD -> world.svg). REGION ist die Id eines Elements in dieser Datei:
+ * ein Name eines deutschen Bundeslandes, ein ISO-Ländercode oder - bei
+ * Baden-Württemberg - die Id, die diese Datei dafür benutzt. Alles andere erreicht die
+ * Datenbank nie, und ein bereits gespeicherter Wert, der nicht passt, wird beim Anzeigen
+ * einer Karte einfach übergangen. Nirgends wird der Wert als Markup gedeutet: er dient
+ * nur dazu, ein Element in einer festen Datei der Anwendung zu suchen.
  */
 const CARD_MAP_REGION_PATTERN = '/^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/u';
 
-/** The longest map_region value (the column is varchar(40)). */
+/** Der längste map_region-Wert (die Spalte ist varchar(40)). */
 const CARD_MAP_REGION_MAX_LENGTH = 40;
 
 function card_map_region_is_valid(string $value): bool
