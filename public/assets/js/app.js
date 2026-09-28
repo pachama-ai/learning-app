@@ -5149,10 +5149,10 @@
 
             if (!result.ok) {
                 /*
-                 * A delete that answers 404 is not a failure of the request: the
-                 * row really is gone (somebody else deleted it, or it was already
-                 * removed). The list is reloaded so the page shows the truth
-                 * instead of a tile that can never be deleted.
+                 * Ein Löschen, das 404 antwortet, ist kein Fehlschlag der Anfrage: die Zeile ist
+                 * wirklich weg (jemand anders hat sie gelöscht, oder sie war schon entfernt).
+                 * Die Liste wird neu geladen, damit die Seite die Wahrheit zeigt statt einer
+                 * Kachel, die nie gelöscht werden kann.
                  */
                 if (isDelete && result.status === 404) {
                     closeDialog();
@@ -5167,8 +5167,8 @@
             }
 
             /*
-             * Everything the page shows comes from the API again, so a saved row
-             * is really there and an edited one really shows its new text.
+             * Alles, was die Seite zeigt, kommt wieder aus der API, eine gespeicherte Zeile ist
+             * also wirklich da und eine bearbeitete zeigt wirklich ihren neuen Text.
              */
             /* Die Karten der gezeigten Kategorie und die Zaehlungen am Baum. */
             bootstrapDropCards(config.categoryId);
@@ -5187,7 +5187,7 @@
                 showFeedback(t('feedback.deleted', { name: removedLabel }));
 
                 if (removedOpenEntry) {
-                    /* The page itself is gone, so the browser goes up one level. */
+                    /* Die Seite selbst ist weg, der Browser geht also eine Ebene höher. */
                     window.location.href = removedTarget.parent_id === null
                         ? 'index.php'
                         : 'index.php?category=' + encodeURIComponent(removedTarget.parent_id);
@@ -5217,9 +5217,9 @@
             }
 
             /*
-             * "Save and next card": the list is rebuilt from the API first, so the
-             * card that was just saved really is in it, and then the empty form
-             * opens again for the same subcategory.
+             * "Speichern und nächste Karte": die Liste wird zuerst aus der API neu aufgebaut,
+             * damit die gerade gespeicherte Karte wirklich darin steht, und dann öffnet sich das
+             * leere Formular wieder für dieselbe Unterkategorie.
              */
             if (isCard && cardSaveAndNext) {
                 cardSaveAndNext = false;
@@ -5242,14 +5242,14 @@
 
 
     /* ----------------------------------------------------------------------
-       Walking through the application without loading the page again
+       Wandern durch die Anwendung, ohne die Seite neu zu laden
        ---------------------------------------------------------------------- */
 
     /*
-     * Every view has a real address, and the links keep their real href: a middle
-     * click, a right click, "open in a new tab" and a crawler all behave as they
-     * did. Only a plain left click is taken over - then the view is drawn out of
-     * the store instead of loading the whole page again.
+     * Jede Ansicht hat eine echte Adresse, und die Verweise behalten ihr echtes href: ein Klick
+     * mit der mittleren Maustaste, ein Rechtsklick, "in neuem Reiter öffnen" und ein Suchroboter
+     * verhalten sich wie bisher. Übernommen wird nur ein einfacher Linksklick - dann wird die
+     * Ansicht aus dem Speicher gezeichnet, statt die ganze Seite neu zu laden.
      */
     function routeFromUrl() {
         var match = /[?&]category=(\d+)/.exec(window.location.search);
@@ -5258,7 +5258,7 @@
         config.categoryId = value === null || !isFinite(value) ? null : value;
     }
 
-    /* Is this one of our own view addresses? */
+    /* Ist das eine der eigenen Ansichtsadressen? */
     function isOwnViewLink(link) {
         if (link.origin !== window.location.origin) {
             return false;
@@ -5272,15 +5272,15 @@
             return true;
         }
 
-        /* "index.php" as a folder index is the same page. */
+        /* "index.php" als Ordnerindex ist dieselbe Seite. */
         return link.search.indexOf('category=') !== -1;
     }
 
     /*
-     * Whatever is on top of the page goes away before another view appears: an
-     * open dialog, an open row menu, a running learning session. The session is
-     * left without the usual question here, because the address has already
-     * changed - the stored answers keep their rows.
+     * Was über der Seite liegt, verschwindet, bevor eine andere Ansicht erscheint: ein offenes
+     * Fenster, ein offenes Zeilenmenü, eine laufende Lerneinheit. Die Einheit wird hier ohne die
+     * übliche Frage verlassen, weil die Adresse schon gewechselt hat - die gespeicherten
+     * Antworten behalten ihre Zeilen.
      */
     function clearOverlaysForNavigation() {
         if (elements.dialog.open) {
