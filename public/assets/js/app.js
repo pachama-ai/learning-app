@@ -3449,9 +3449,9 @@
             dialogOpener = null;
             dialogUsed = false;
             dialogFields = {};
-            /* The waiting example: with the fields gone there is nothing left
-               to build it from, and an answer that arrives later would write
-               into a dialog that is already closed. */
+            /* Das wartende Beispiel: ohne die Felder gibt es nichts mehr, woraus es sich
+               bauen ließe, und eine Antwort, die später ankommt, würde in ein längst
+               geschlossenes Fenster schreiben. */
             dialogExerciseField = null;
             importState = null;
             importPanel = null;
@@ -3464,9 +3464,8 @@
     }
 
     /*
-     * A field level error. The message appears directly under the field that
-     * caused it and the field itself is marked, so nobody has to guess which
-     * input is meant.
+     * Ein Fehler an einem Feld. Die Meldung erscheint direkt unter dem Feld, das ihn ausgelöst
+     * hat, und das Feld selbst wird markiert, niemand muss also raten, welche Eingabe gemeint ist.
      */
     function setFieldError(name, message) {
         var field = dialogFields[name];
@@ -3497,7 +3496,7 @@
         });
     }
 
-    /* Adds one labelled field to the open dialog and remembers it by name. */
+    /* Fügt dem offenen Fenster ein beschriftetes Feld hinzu und merkt es sich unter seinem Namen. */
     function addField(name, kind, options) {
         var settings = options || {};
         var control;
@@ -3506,8 +3505,8 @@
         if (kind === 'textarea') {
             control = el('textarea', 'dialog__input dialog__input--area');
             control.rows = settings.rows || 2;
-            /* No native drag handle: the field grows with what is written, so
-               the whole text is always visible without scrolling inside a box. */
+            /* Kein Ziehgriff vom Browser: das Feld wächst mit dem, was geschrieben wird, der
+               ganze Text ist also immer zu sehen, ohne in einem Kasten zu scrollen. */
             control.addEventListener('input', function () {
                 growTextarea(control);
             });
@@ -3526,8 +3525,8 @@
         } else if (kind === 'number') {
             control = el('input', 'dialog__input dialog__input--number');
             control.type = 'number';
-            /* A phone shows a keypad for a number field, and the browser refuses
-               anything that is not a number - so the field is a real one. */
+            /* Ein Telefon zeigt für ein Zahlenfeld den Ziffernblock, und der Browser weist
+               alles ab, was keine Zahl ist - das Feld ist also ein echtes Zahlenfeld. */
             control.setAttribute('inputmode', 'numeric');
 
             if (settings.min !== undefined) {
@@ -3585,7 +3584,7 @@
         error.setAttribute('role', 'alert');
 
         if (kind === 'checkbox') {
-            /* The design puts the box before its label. */
+            /* Das Aussehen setzt den Kasten vor seine Beschriftung. */
             wrap.classList.add('dialog__field--check');
             wrap.appendChild(control);
             wrap.appendChild(label);
@@ -3594,8 +3593,8 @@
             wrap.appendChild(control);
         }
 
-        /* The message of this field comes first: it belongs to the input right
-           above it, and the quiet hint follows below. */
+        /* Die Meldung dieses Feldes kommt zuerst: sie gehört zu der Eingabe direkt darüber,
+           der leise Hinweis folgt darunter. */
         wrap.appendChild(error);
 
         if (settings.hintKey) {
@@ -3606,8 +3605,8 @@
 
         dialogFields[name] = { control: control, error: error, wrap: wrap };
 
-        /* The translations are appended into their own group instead, so the
-           fields really sit inside the collapsed part. */
+        /* Die Übersetzungen kommen stattdessen in ihre eigene Gruppe, damit die Felder
+           wirklich im eingeklappten Teil liegen. */
         var container = settings.container || elements.dialogFields;
 
         container.appendChild(wrap);
@@ -3615,7 +3614,7 @@
         return control;
     }
 
-    /* The collapsible "Translations (optional)" group. */
+    /* Die einklappbare Gruppe "Übersetzungen (optional)". */
     function addTranslationGroup(entry) {
         var details = el('details', 'dialog__group');
         var summary = el('summary', 'dialog__summary', t('dialog.translations'));
@@ -3630,9 +3629,9 @@
         var grid = el('div', 'dialog__grid');
 
         /*
-         * One name per language, nothing else. The description columns are still
-         * in the table, but no part of the application reads or writes them any
-         * more (see the note in category_service.php).
+         * Ein Name pro Sprache, sonst nichts. Die Beschreibungsspalten stehen noch in der
+         * Tabelle, aber kein Teil der Anwendung liest oder schreibt sie noch (siehe den
+         * Hinweis in category_service.php).
          */
         [
             { name: 'name_en', labelKey: 'dialog.category.nameEn' },
@@ -3653,20 +3652,20 @@
     }
 
     /* ----------------------------------------------------------------------
-       The icon field: click, drag and drop, preview, remove
+       Das Zeichnungsfeld: Klicken, Ziehen und Ablegen, Vorschau, Entfernen
        ---------------------------------------------------------------------- */
 
     /*
-     * Rewrites an SVG so that every drawing fills the same circle.
+     * Schreibt ein SVG so um, dass jede Zeichnung denselben Kreis füllt.
      *
-     * The browser measures the real bounding box of the drawing (getBBox), and
-     * the viewBox is replaced by a SQUARE around that box with a small margin.
-     * Different viewBox sizes, drawing dimensions, aspect ratios and empty
-     * whitespace around the drawing therefore end up looking identical inside
-     * the circle - without a single number having to be typed in by hand.
+     * Der Browser misst den echten Rahmen der Zeichnung (getBBox), und der viewBox wird durch
+     * ein QUADRAT um diesen Rahmen mit einem kleinen Rand ersetzt. Unterschiedliche
+     * viewBox-Größen, Zeichnungsmaße, Seitenverhältnisse und leerer Weißraum um die Zeichnung
+     * sehen im Kreis dadurch gleich aus - ohne dass eine einzige Zahl von Hand eingetippt
+     * werden muss.
      *
-     * Nothing is inserted with innerHTML: the text is parsed by DOMParser, which
-     * produces an inert document, and only attributes are changed.
+     * Nichts wird mit innerHTML eingefügt: der Text wird von DOMParser gelesen, das ein
+     * inaktives Dokument erzeugt, und es werden nur Attribute geändert.
      */
     function normaliseIconSvg(text) {
         return new Promise(function (resolve) {
@@ -3678,8 +3677,8 @@
                 return;
             }
 
-            /* Belt and braces: the server sanitises again before it stores the
-               drawing, but nothing risky is ever put into the page here either. */
+            /* Doppelt gesichert: der Server prüft die Zeichnung vor dem Speichern noch
+               einmal, aber auch hier kommt nichts Riskantes in die Seite. */
             Array.prototype.forEach.call(parsed.querySelectorAll('script, foreignObject, iframe, image, use'), function (node) {
                 node.remove();
             });
@@ -3701,9 +3700,9 @@
                 var height = parseFloat(root.getAttribute('height')) || 0;
 
                 if (width <= 0 || height <= 0) {
-                    /* Without a viewBox and without a size there is nothing to
-                       measure, so the drawing is refused instead of being stored
-                       in a shape nobody can predict. */
+                    /* Ohne viewBox und ohne Größe gibt es nichts zu messen, die Zeichnung
+                       wird also abgelehnt, statt in einer Form gespeichert zu werden, die
+                       niemand vorhersagen kann. */
                     resolve({ ok: false });
                     return;
                 }
@@ -3715,8 +3714,8 @@
             root.removeAttribute('width');
             root.removeAttribute('height');
 
-            /* Measured in a hidden box that is in the document, because getBBox
-               only answers for a drawing that is really laid out. */
+            /* Gemessen wird in einem versteckten Kasten, der im Dokument hängt, weil getBBox
+               nur für eine Zeichnung antwortet, die wirklich gesetzt ist. */
             var box = el('div', 'icon-measure');
             var clone = root.cloneNode(true);
             box.appendChild(clone);
@@ -3744,8 +3743,8 @@
                     size
                 ];
             } else {
-                /* No usable measurement: at least make the box square, which is
-                   what keeps the aspect ratio from being distorted. */
+                /* Keine brauchbare Messung: dann wenigstens den Kasten quadratisch machen,
+                   denn das ist es, was das Seitenverhältnis vor dem Verzerren bewahrt. */
                 var side = Math.max(viewBox[2], viewBox[3]);
                 useBox = [
                     viewBox[0] + viewBox[2] / 2 - side / 2,
@@ -3765,7 +3764,7 @@
         });
     }
 
-    /* The preview inside the icon circle, exactly like a tile shows it. */
+    /* Die Vorschau im Kreis der Zeichnung, genauso wie eine Kachel sie zeigt. */
     function renderIconPreview() {
         var circle = dialogIcon.preview;
         circle.textContent = '';
@@ -3799,12 +3798,12 @@
     }
 
     /*
-     * The symbol row.
+     * Die Zeile mit der Zeichnung.
      *
-     * One line: the very circle a tile uses, the name of the chosen file and the
-     * actions that belong to it. No dashed frame, no second explanation - the
-     * circle already shows what the tile will show, and the preview follows the
-     * name while it is typed.
+     * Eine Zeile: genau der Kreis, den eine Kachel benutzt, der Name der gewählten Datei und
+     * die Aktionen, die dazugehören. Kein gestrichelter Rahmen, keine zweite Erklärung - der
+     * Kreis zeigt schon, was die Kachel zeigen wird, und die Vorschau folgt dem Namen, während
+     * er getippt wird.
      */
     function buildIconField() {
         var wrap = el('div', 'dialog__field');
@@ -3839,9 +3838,9 @@
         wrap.appendChild(row);
 
         /*
-         * What is allowed, in one line under the row: which file types and how
-         * large a file may be. The text carries the language key, so the switch
-         * translates it like every other static text.
+         * Was erlaubt ist, in einer Zeile unter der Reihe: welche Dateitypen und wie groß
+         * eine Datei sein darf. Der Text trägt den Übersetzungsschlüssel, der Sprachwechsel
+         * übersetzt ihn also wie jeden anderen festen Text.
          */
         var hint = el('p', 'dialog__hint', t('dialog.category.iconHint'));
         hint.setAttribute('data-i18n', 'dialog.category.iconHint');
