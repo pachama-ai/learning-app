@@ -7,52 +7,54 @@ require_once __DIR__ . '/card_service.php';
 require_once __DIR__ . '/category_service.php';
 
 /**
- * The repetition logic: the card box, the intervals and the status of a card.
+ * Die Wiederholungslogik: die Kartenbox, die Abstände und der Stand einer Karte.
  *
- * It is the ONLY place in the project that decides state, interval and due date.
- * The browser never calculates any of it - it only shows what this service
- * returned, so a stored value and a shown value can never disagree.
- *
- * ---------------------------------------------------------------------------
- * The columns it uses (the real schema of user_card_progress, unchanged)
- * ---------------------------------------------------------------------------
- *   user_id          the owner, never guessed
- *   card_id          the card the progress belongs to
- *   state            0 = never learned, 1 = learning, 2 = known
- *   due_at           when the card comes back
- *   last_reviewed_at when it was rated the last time
- *   repetitions      how often it was answered correctly
- *   lapses           how often it was answered with "Again"
- *   stability        how long the memory lasts, in days
- *   difficulty       1.0 (easy for this person) .. 10.0 (hard)
+ * Das ist die EINZIGE Stelle im Projekt, die Stand, Abstand und Fälligkeit entscheidet.
+ * Der Browser rechnet davon nichts aus - er zeigt nur, was dieser Service zurückgegeben
+ * hat, ein gespeicherter und ein angezeigter Wert können also nie auseinandergehen.
  *
  * ---------------------------------------------------------------------------
- * The calculation (there was no scheduler in the project, this is the new one)
+ * Die Spalten, die sie benutzt (die echte Struktur von user_card_progress,
+ * unverändert)
  * ---------------------------------------------------------------------------
- * It is a card box with a memory strength, in the spirit of SM-2 and FSRS, and
- * it only uses the columns that already exist:
+ *   user_id          der Besitzer, nie geraten
+ *   card_id          die Karte, zu der der Fortschritt gehört
+ *   state            0 = nie gelernt, 1 = am Lernen, 2 = gewusst
+ *   due_at           wann die Karte wiederkommt
+ *   last_reviewed_at wann sie zuletzt bewertet wurde
+ *   repetitions      wie oft sie richtig beantwortet wurde
+ *   lapses           wie oft sie mit "Nochmal" beantwortet wurde
+ *   stability        wie lange die Erinnerung hält, in Tagen
+ *   difficulty       1.0 (leicht für diese Person) .. 10.0 (schwer)
  *
- *   - stability is the interval in days. A card is due when due_at has passed.
- *   - a rating changes stability by a factor, so a card that is already easy to
- *     remember grows faster than a fresh one.
- *   - "Again" is the only rating that counts a lapse, shrinks stability hard and
- *     brings the card back after a few minutes, inside the same session.
- *   - difficulty moves slowly (0.2 per rating) and only shifts the starting
- *     point of a card. It is clamped to the range above.
- *   - a card is "known" once its new interval reaches a full day. Until then it
- *     stays in the learning state, which is what makes it appear again in this
- *     session and in "repeat the difficult cards".
+ * ---------------------------------------------------------------------------
+ * Die Rechnung (es gab keinen Planer im Projekt, das ist der neue)
+ * ---------------------------------------------------------------------------
+ * Es ist eine Kartenbox mit einer Gedächtnisstärke, im Geist von SM-2 und FSRS, und sie
+ * benutzt nur die Spalten, die es schon gibt:
  *
- * The numbers below are the whole tuning of the box; they are deliberately few,
- * so the behaviour can be read and changed in one place.
+ *   - stability ist der Abstand in Tagen. Eine Karte ist fällig, wenn due_at vorbei ist.
+ *   - eine Bewertung ändert stability um einen Faktor, eine schon leicht zu merkende
+ *     Karte wächst also schneller als eine frische.
+ *   - "Nochmal" ist die einzige Bewertung, die einen Aussetzer zählt, stability stark
+ *     schrumpfen lässt und die Karte nach wenigen Minuten zurückholt, in derselben
+ *     Einheit.
+ *   - difficulty bewegt sich langsam (0.2 je Bewertung) und verschiebt nur den
+ *     Startpunkt einer Karte. Sie wird auf den Bereich oben begrenzt.
+ *   - eine Karte ist "gewusst", sobald ihr neuer Abstand einen vollen Tag erreicht. Bis
+ *     dahin bleibt sie im Lernzustand, und genau deshalb erscheint sie in dieser Einheit
+ *     und bei "schwere Karten wiederholen" erneut.
+ *
+ * Die Zahlen unten sind die ganze Abstimmung der Box; es sind absichtlich wenige, damit
+ * das Verhalten an einer Stelle gelesen und geändert werden kann.
  */
 
-/** The three states that fit into the state column. */
+/** Die drei Zustände, die in die Spalte state passen. */
 const REVIEW_STATE_NEW = 0;
 const REVIEW_STATE_LEARNING = 1;
 const REVIEW_STATE_KNOWN = 2;
 
-/** The four ratings a person can give, with the key that is printed on it. */
+/** Die vier Bewertungen, die eine Person geben kann, mit ihrem Schlüssel. */
 const REVIEW_RATINGS = [
     1 => 'again',
     2 => 'hard',
@@ -60,43 +62,44 @@ const REVIEW_RATINGS = [
     4 => 'easy',
 ];
 
-/** How strong the memory is, in days, after the FIRST answer of each kind. */
+/** Wie stark die Erinnerung nach der ERSTEN Antwort jeder Art ist, in Tagen. */
 const REVIEW_FIRST_STABILITY = [
-    1 => 0.20,   // Again: a few minutes, the card comes back in this session
-    2 => 0.80,   // Hard:  more than half a day, still learning
-    3 => 1.60,   // Good:  a day and a half
-    4 => 3.20,   // Easy:  more than three days
+    1 => 0.20,   // Nochmal: ein paar Minuten, die Karte kommt in dieser Einheit wieder
+    2 => 0.80,   // Schwer:  mehr als ein halber Tag, noch am Lernen
+    3 => 1.60,   // Gut:     eineinhalb Tage
+    4 => 3.20,   // Leicht:  mehr als drei Tage
 ];
 
-/** How much a later answer multiplies the existing stability. */
+/** Um wie viel eine spätere Antwort die vorhandene Stabilität vervielfacht. */
 const REVIEW_STABILITY_FACTOR = [
-    1 => 0.20,   // Again: forget most of it
-    2 => 1.20,   // Hard:  grow slowly
-    3 => 2.20,   // Good:  the normal step
-    4 => 3.00,   // Easy:  the biggest step
+    1 => 0.20,   // Nochmal: das Meiste vergessen
+    2 => 1.20,   // Schwer:  langsam wachsen
+    3 => 2.20,   // Gut:     der normale Schritt
+    4 => 3.00,   // Leicht:  der größte Schritt
 ];
 
-/** Never let an interval fall below this, in days. */
+/** Ein Abstand fällt nie unter diesen Wert, in Tagen. */
 const REVIEW_MIN_STABILITY = 0.2;
 
-/** How long "Again" waits before the card comes back, in minutes. */
+/** Wie lange "Nochmal" wartet, bevor die Karte wiederkommt, in Minuten. */
 const REVIEW_AGAIN_MINUTES = 10;
 
-/** Where difficulty starts, how far a rating moves it, and where it stops. */
+/** Wo difficulty startet, wie weit eine Bewertung sie bewegt und wo sie aufhört. */
 const REVIEW_DIFFICULTY_START = 5.0;
 const REVIEW_DIFFICULTY_STEP = [1 => 0.6, 2 => 0.2, 3 => 0.0, 4 => -0.3];
 const REVIEW_DIFFICULTY_MIN = 1.0;
 const REVIEW_DIFFICULTY_MAX = 10.0;
 
-/** A card counts as known once its interval reaches a whole day. */
+/** Eine Karte gilt als gewusst, sobald ihr Abstand einen ganzen Tag erreicht. */
 const REVIEW_KNOWN_MIN_STABILITY = 1.0;
 
 /* -------------------------------------------------------------------------
-   Reading
+   Lesen
    ------------------------------------------------------------------------- */
 
 /**
- * Returns the progress row of one card, or null when this user never rated it.
+ * Liefert die Fortschrittszeile einer Karte oder null, wenn dieses Konto sie nie
+ * bewertet hat.
  *
  * @return array<string, mixed>|null
  */
@@ -117,13 +120,14 @@ function review_find_progress(PDO $pdo, int $userId, int $cardId): ?array
 }
 
 /**
- * The status of one card: "new", "unsure" or "known".
+ * Der Stand einer Karte: "new", "unsure" oder "known".
  *
- *   new    - no progress row, or one that never left the state "never learned"
- *   unsure - in the learning phase, or overdue, or due right now
- *            (an unknown due date counts as due: a card without a date would
- *            otherwise never come back)
- *   known  - repeated successfully and not due yet
+ *   new    - keine Fortschrittszeile oder eine, die den Zustand "nie gelernt" nie
+ *            verlassen hat
+ *   unsure - in der Lernphase, überfällig oder gerade jetzt fällig
+ *            (ein unbekanntes Fälligkeitsdatum zählt als fällig: eine Karte ohne Datum
+ *            käme sonst nie wieder)
+ *   known  - erfolgreich wiederholt und noch nicht fällig
  *
  * @param array<string, mixed>|null $progress
  */
