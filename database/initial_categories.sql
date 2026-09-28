@@ -1,27 +1,28 @@
 -- ============================================================================
--- Learning App - initial categories
+-- Learning App - die ersten Kategorien
 --
--- Creates the four top-level learning areas (parent_id = NULL) and the eight
--- Mathematics subareas that hang off Mathematics through parent_id.
+-- Legt die vier obersten Lernbereiche an (parent_id = NULL) und die acht
+-- Mathematik-Unterbereiche, die über parent_id an Mathematik hängen.
 --
--- Idempotent: every statement inserts a row only while that row is still
--- missing, so running this file twice never creates duplicates. On a second
--- run MySQL reports "0 rows inserted" for all statements.
+-- Wiederholbar: jede Anweisung fügt eine Zeile nur ein, solange diese Zeile noch
+-- fehlt, ein zweiter Lauf dieser Datei erzeugt also nie Doppel. Beim zweiten Lauf
+-- meldet MySQL für alle Anweisungen "0 rows inserted".
 --
--- Only INSERT statements are used. There is no ALTER, DROP, DELETE, TRUNCATE
--- or UPDATE, and the table structure is not touched.
+-- Es werden nur INSERT-Anweisungen benutzt. Es gibt kein ALTER, DROP, DELETE,
+-- TRUNCATE oder UPDATE, und die Tabellenstruktur wird nicht angefasst.
 --
--- How to run it: phpMyAdmin -> database `learning_app` -> tab "SQL" -> paste
--- this file's content -> Go.
+-- So ausführen: phpMyAdmin -> Datenbank `learning_app` -> Reiter "SQL" -> den
+-- Inhalt dieser Datei einfügen -> Go.
 --
--- Note on the shape of the queries: a subquery may not read the same table that
--- is being inserted into, so the check reads from a derived table. A derived
--- table is materialised first, which keeps MySQL and MariaDB happy.
+-- Eine Anmerkung zur Form der Abfragen: eine Unterabfrage darf nicht dieselbe
+-- Tabelle lesen, in die gerade eingefügt wird, die Prüfung liest deshalb aus einer
+-- abgeleiteten Tabelle. Eine abgeleitete Tabelle wird zuerst materialisiert, und
+-- das lässt MySQL und MariaDB zufrieden.
 -- ============================================================================
 
 
 -- ----------------------------------------------------------------------------
--- 1 - 4: the top-level learning areas
+-- 1 - 4: die obersten Lernbereiche
 -- ----------------------------------------------------------------------------
 
 INSERT INTO categories (parent_id, name)
@@ -66,11 +67,11 @@ WHERE NOT EXISTS (
 
 
 -- ----------------------------------------------------------------------------
--- 5 - 12: the Mathematics subareas
+-- 5 - 12: die Mathematik-Unterbereiche
 --
--- `FROM categories AS parent` supplies the Mathematics row, so the subarea is
--- attached to the real id of that category. If Mathematics does not exist, the
--- SELECT returns no rows and nothing is inserted.
+-- `FROM categories AS parent` liefert die Zeile von Mathematik, der Unterbereich
+-- wird also an die echte Id dieser Kategorie gehängt. Gibt es Mathematik nicht,
+-- liefert das SELECT keine Zeilen und es wird nichts eingefügt.
 -- ----------------------------------------------------------------------------
 
 INSERT INTO categories (parent_id, name)
