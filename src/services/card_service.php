@@ -614,7 +614,7 @@ function card_exercise_from_request(array $body): array
  *
  * Zu den englischen Spalten und zu `map_region` gibt es bewusst keine SQL-Datei in
  * database/: sie wurden von Hand in phpMyAdmin angelegt, mit demselben Handgriff wie die
- * drei ältesten Tabellen. In docs/migrations.md steht das als eigener Eintrag, damit die
+ * drei ältesten Tabellen. In docs/dokumentation.md steht das als eigener Eintrag, damit die
  * Schemahistorie trotzdem vollständig ist.
  *
  * Welche dieser Spalten es wirklich gibt, wird einmal je Anfrage gefragt und dann

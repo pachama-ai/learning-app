@@ -249,5 +249,5 @@ CREATE TABLE IF NOT EXISTS `card_exercises` (
 -- ============================================================================
 -- Damit ist die Struktur vollstaendig. Was jetzt noch fehlt, sind die Inhalte:
 -- die Lernbereiche, ihre Unterkategorien und die Karten. Sie kommen ueber einen
--- Dump oder einen Import - siehe docs/migrations.md.
+-- Dump oder einen Import - siehe docs/dokumentation.md.
 -- ============================================================================
