@@ -242,7 +242,7 @@ function exercise_catalog(): array
 }
 
 /**
- * The keys of every kind of task, in the order of the catalogue.
+ * Die Schlüssel jeder Aufgabenart, in der Reihenfolge des Katalogs.
  *
  * @return list<string>
  */
@@ -251,13 +251,13 @@ function exercise_type_keys(): array
     return array_keys(exercise_catalog());
 }
 
-/** Whether this key is one of the kinds of task that live here. */
+/** Ob dieser Schlüssel eine der Aufgabenarten ist, die es hier gibt. */
 function exercise_type_is_known(string $type): bool
 {
     return array_key_exists($type, exercise_catalog());
 }
 
-/** The translation key that names this kind of task, or null. */
+/** Der Übersetzungsschlüssel, der diese Aufgabenart benennt, oder null. */
 function exercise_type_label(string $type): ?string
 {
     $entry = exercise_catalog()[$type] ?? null;
@@ -265,10 +265,10 @@ function exercise_type_label(string $type): ?string
     return $entry === null ? null : (string) $entry['label'];
 }
 
-/** The translation key that explains this kind of task, or null. */
+/** Der Übersetzungsschlüssel, der diese Aufgabenart erklärt, oder null. */
 
 /**
- * The parameters a card of this kind starts with in the dialog.
+ * Die Parameter, mit denen eine Karte dieser Art im Dialog startet.
  *
  * @return array<string, mixed>
  */
@@ -290,20 +290,21 @@ function exercise_type_default_params(string $type): array
 }
 
 /**
- * The schema of one parameter, or null.
+ * Das Schema eines Parameters oder null.
  *
  * @return array<string, mixed>|null
  */
 
 /**
- * Brings a stored or sent set of parameters into the shape this kind of task
- * expects: only known keys, every value inside its limits, every missing value
- * filled with its default.
+ * Bringt einen gespeicherten oder geschickten Satz von Parametern in die Form, die
+ * diese Aufgabenart erwartet: nur bekannte Schlüssel, jeder Wert innerhalb seiner
+ * Grenzen, jeder fehlende Wert mit seiner Vorgabe gefüllt.
  *
- * This is what makes a card that was edited by hand, or a kind of task whose
- * schema gained a parameter later, still show a sensible task instead of none. It
- * is also what stops anything unknown from travelling further: a key that is not
- * in the schema is dropped, not stored and not looked up anywhere.
+ * Das ist der Grund, warum eine von Hand geänderte Karte oder eine Aufgabenart, deren
+ * Schema später einen Parameter dazubekommen hat, trotzdem eine sinnvolle Aufgabe zeigt
+ * statt gar keine. Und es ist der Grund, warum nichts Unbekanntes weiterreist: ein
+ * Schlüssel, der nicht im Schema steht, wird fallengelassen, nicht gespeichert und
+ * nirgends nachgesehen.
  *
  * @param array<string, mixed> $params
  * @return array<string, mixed>
@@ -333,7 +334,8 @@ function exercise_normalise_params(string $type, array $params): array
 
             case 'multi':
                 $kept = is_array($value) ? array_values(array_intersect($schema['options'], $value)) : [];
-                /* A list that allows nothing could not build a task: fall back. */
+                /* Eine Liste, die nichts erlaubt, könnte keine Aufgabe bauen:
+                   zurück zur Vorgabe. */
                 $clean[$name] = $kept === [] ? $schema['options'] : $kept;
                 break;
 
@@ -344,10 +346,11 @@ function exercise_normalise_params(string $type, array $params): array
     }
 
     /*
-     * A range that runs backwards cannot build a task: every draw would return
-     * the same number for ever. Numbers that arrived from anywhere - an older
-     * form, a request written by hand, a card edited in phpMyAdmin - are put the
-     * right way round here, so a card can never end up stuck on one number.
+     * Ein Bereich, der rückwärts läuft, kann keine Aufgabe bauen: jede Ziehung gäbe für
+     * immer dieselbe Zahl zurück. Zahlen, die von irgendwoher kommen - ein älteres
+     * Formular, eine von Hand geschriebene Anfrage, eine in phpMyAdmin geänderte Karte -,
+     * werden hier richtig herum gedreht, eine Karte kann also nie auf einer Zahl
+     * festhängen.
      */
     if (isset($clean['min'], $clean['max']) && (int) $clean['min'] > (int) $clean['max']) {
         $swap = $clean['min'];
@@ -359,12 +362,12 @@ function exercise_normalise_params(string $type, array $params): array
 }
 
 /**
- * Whether a set of parameters from a request may be stored as it is.
+ * Ob ein Satz von Parametern aus einer Anfrage so gespeichert werden darf, wie er ist.
  *
- * The strict counterpart of exercise_normalise_params(): a name nobody knows, a
- * value outside its limits or an empty list is refused here, so what is stored is
- * always exactly what was meant - and never quietly corrected only when the card
- * is shown.
+ * Das strenge Gegenstück zu exercise_normalise_params(): ein Name, den niemand kennt,
+ * ein Wert außerhalb seiner Grenzen oder eine leere Liste werden hier abgelehnt,
+ * gespeichert wird also immer genau das Gemeinte - und nie stillschweigend erst beim
+ * Anzeigen der Karte zurechtgerückt.
  *
  * @param array<string, mixed> $params
  */
@@ -424,22 +427,22 @@ function exercise_params_are_valid(string $type, array $params): bool
 }
 
 /**
- * The limits of the number fields of one kind of task, for the message the dialog
- * shows when somebody types something outside them.
+ * Die Grenzen der Zahlenfelder einer Aufgabenart, für die Meldung, die der Dialog zeigt,
+ * wenn jemand etwas außerhalb davon eintippt.
  *
  * @return array{lowest: int, highest: int}
  */
 
 /* -------------------------------------------------------------------------
-   Building one task
+   Eine Aufgabe bauen
    ------------------------------------------------------------------------- */
 
 /**
- * The kinds of task that really have a builder.
+ * Die Aufgabenarten, die wirklich einen Erzeuger haben.
  *
- * A key that is in the catalogue but has no builder is not usable:
- * exercise_build_task() returns null for it and the card is shown as a fixed
- * card, which is the safety net for a half-written kind of task.
+ * Ein Schlüssel, der im Katalog steht, aber keinen Erzeuger hat, ist nicht benutzbar:
+ * exercise_build_task() liefert dafür null, und die Karte wird als feste Karte gezeigt.
+ * Das ist das Sicherheitsnetz für eine halb geschriebene Aufgabenart.
  *
  * @return array<string, string>
  */
