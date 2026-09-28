@@ -1,17 +1,4 @@
-/*
- * Der Ladebildschirm des allerersten Aufbaus - und nur der.
- *
- * Er bedeckt die Seite, bis die erste Ansicht wirklich steht, niemand sieht also
- * eine halb gebaute Seite. Zu sehen ist eine leise Zeile Text; alles andere, was
- * er früher zeigte, ist weg, denn ein Bildschirm, der sich erklärt, ist mehr wert
- * als einer, der etwas vorführt.
- *
- * Gezeigt und versteckt wird er von ein paar Zeilen JavaScript in index.php und
- * nicht von app.js, ein kaputtes Anwendungsskript endet also immer noch bei der
- * Meldung mit dem Knopf "Erneut versuchen" statt bei einem Bildschirm, der nie
- * weggeht.
- */
-
+/* Ladebildschirm */
 .boot {
     position: fixed;
     inset: 0;
@@ -21,38 +8,29 @@
     align-items: center;
     justify-content: center;
     gap: 22px;
-    /*
-     * Absichtlich deckend: solange die erste Ansicht noch gebaut wird, darf nichts
-     * von ihr durchscheinen. Die Flächen der Seite werden darüber neu gezeichnet
-     * (siehe .boot__bg im Markup), die Überlagerung sieht also aus wie die Seite,
-     * die sie bedeckt.
-     */
     background-color: var(--bg);
     background-image: var(--bg-image, none);
-    /*
-     * Sichtbar von der ersten gezeichneten Zeile an; nur das Weggehen ist ein
-     * Ausblenden, und währenddessen darf der Bildschirm keine Klicks schlucken.
-     */
     opacity: 1;
     transition: opacity 300ms var(--ease);
     pointer-events: none;
 }
 
-/* Die Überlagerung beim Ausblenden. */
+/* Ladebildschirm beim Ausblenden */
 .boot.is-hiding {
     opacity: 0;
 }
 
-/* Wenn etwas schiefging, muss sie anklickbar sein. */
+/* Ladebildschirm, wenn der Aufbau scheitert */
 .boot.is-failed {
     pointer-events: auto;
 }
 
-/* Die Flächen hinter allem, genau so, wie die Seite sie malt. */
+/* Flächen des Ladebildschirms */
 .boot__bg {
     z-index: 1;
 }
 
+/* Text des Ladebildschirms */
 .boot__text {
     position: relative;
     z-index: 2;
@@ -64,7 +42,7 @@
     padding: 0 16px;
 }
 
-/* Die Meldung nach acht Sekunden und der Weg zurück. */
+/* Meldung nach acht Sekunden */
 .boot__error {
     position: relative;
     z-index: 2;
@@ -74,6 +52,7 @@
     text-align: center;
 }
 
+/* Knopf „Erneut versuchen“ */
 .boot__retry {
     appearance: none;
     font-family: var(--font-sans);
@@ -87,18 +66,20 @@
     transition: border-color 160ms var(--ease), color 160ms var(--ease);
 }
 
+/* Knopf bei Zeigerkontakt und im Tastaturfokus */
 .boot__retry:hover,
 .boot__retry:focus-visible {
     border-color: var(--line-strong);
     color: var(--text);
 }
 
+/* Knopf im Tastaturfokus */
 .boot__retry:focus-visible {
     outline: 2px solid var(--line-strong);
     outline-offset: 2px;
 }
 
-/* Auf Papier gibt es nichts zu sehen, und nichts braucht die Überlagerung. */
+/* beim Drucken */
 @media print {
     .boot {
         display: none !important;
