@@ -2351,14 +2351,14 @@
     }
 
     /*
-     * The one action of a subcategory row: learn it.
+     * Die eine Aktion einer Unterkategorie-Zeile: sie lernen.
      *
-     * The number in the badge is the number of cards that are DUE right now, not
-     * the number of cards that sit in there: a row is a place where something is
-     * to be done, so it says how much of it waits today.
+     * Die Zahl im Abzeichen ist die Zahl der Karten, die GERADE fällig sind, nicht die Zahl
+     * der Karten, die darin liegen: eine Zeile ist ein Ort, an dem etwas zu tun ist, sie
+     * sagt also, wie viel davon heute wartet.
      *
-     * The button is not part of the link above, so clicking it can never open the
-     * page instead of starting the session.
+     * Der Knopf gehört nicht zum Verweis darüber, ein Klick darauf kann also nie die Seite
+     * öffnen, statt die Einheit zu starten.
      */
     function buildLearnButton(entry, title) {
         var due = entryDueCount(entry);
@@ -2371,10 +2371,10 @@
         });
 
         /*
-         * Something to do or nothing to do: with cards due the button carries the
-         * accent colour of the theme and the number, without cards due it is a
-         * quiet outline and the zero disappears (the stylesheet decides the look,
-         * the class only says which of the two it is).
+         * Etwas zu tun oder nichts zu tun: sind Karten fällig, trägt der Knopf die
+         * Akzentfarbe des Erscheinungsbilds und die Zahl, sind keine fällig, ist er ein leiser
+         * Umriss und die Null verschwindet (das Aussehen entscheidet das Stylesheet, die
+         * Klasse sagt nur, welches von beiden es ist).
          */
         if (due > 0) {
             button.classList.add('has-due');
@@ -2383,10 +2383,10 @@
         button.appendChild(el('span', 'row__learn-label', t('cards.learn')));
 
         /*
-         * The counter keeps its place even at zero: the rows then end on one
-         * line, and a zero here is an answer ("nothing due") and not a gap. It
-         * is the only thing that carries the accent colour of the area, so it
-         * also says which area this row belongs to.
+         * Der Zähler behält seinen Platz auch bei null: die Zeilen enden dann auf einer Linie,
+         * und eine Null ist hier eine Antwort ("nichts fällig") und keine Lücke. Er ist das
+         * Einzige, was die Akzentfarbe des Bereichs trägt, er sagt also auch, zu welchem
+         * Bereich diese Zeile gehört.
          */
         var badge = el('span', 'row__learn-badge', String(due));
         badge.setAttribute('aria-hidden', 'true');
@@ -2397,11 +2397,12 @@
     }
 
     /*
-     * How many cards of this subcategory are due right now.
+     * Wie viele Karten dieser Unterkategorie gerade fällig sind.
      *
-     * The number comes from the same summary the tiles of a detail page use -
-     * the API counts it for every category - so the row and the page it opens can
-     * never disagree. A category the answer does not cover counts as zero.
+     * Die Zahl kommt aus derselben Zusammenfassung, die die Kacheln einer Detailseite
+     * benutzen - die API zählt sie für jede Kategorie - die Zeile und die Seite, die sie
+     * öffnet, können also nie auseinandergehen. Eine Kategorie, die die Antwort nicht
+     * abdeckt, zählt als null.
      */
     function entryDueCount(entry) {
         var summary = bootstrapCache.summaries[String(entry.id)];
@@ -2414,9 +2415,9 @@
     }
 
     /*
-     * One flashcard row. A card has no page of its own, so there is no link
-     * here: the row shows the front, the back and, when the card is meant to be
-     * practised both ways, a badge.
+     * Eine Lernkarten-Zeile. Eine Karte hat keine eigene Seite, hier gibt es also keinen
+     * Verweis: die Zeile zeigt die Vorderseite, die Rückseite und, wenn die Karte in beide
+     * Richtungen geübt werden soll, ein Abzeichen.
      */
     function buildCardRow(card, index) {
         var item = document.createElement('li');
@@ -2426,9 +2427,9 @@
         var meta = cardStatusMeta(card);
 
         /*
-         * The row itself does nothing. The three dots menu on the right is the
-         * ONE way into the card form, on every level (tile, row, head): a second
-         * way to the same form is only a way to open it by accident.
+         * Die Zeile selbst tut nichts. Das Menü mit den drei Punkten rechts ist der EINE Weg
+         * in das Kartenformular, auf jeder Ebene (Kachel, Zeile, Kopf): ein zweiter Weg zum
+         * selben Formular ist nur ein Weg, es versehentlich zu öffnen.
          */
         var body = document.createElement('span');
         body.className = 'row__link row__link--static';
