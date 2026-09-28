@@ -3,29 +3,55 @@
 declare(strict_types=1);
 
 /**
- * The kinds of task themselves: Grundrechnen, Algebra, Prozentrechnung.
+ * Die Aufgabenarten selbst: Grundrechnen, Algebra, Prozentrechnung.
  *
- * One function per kind of task. Each of them draws its numbers and computes its
- * answer in the same step, so the answer always belongs to the question that was
- * drawn with it. Nothing here is ever read from outside: the parameters come from
- * exercise_normalise_params(), which only lets through the keys and values that
- * exercise_catalog() allows.
+ * Eine Funktion je Aufgabenart. Jede zieht ihre Zahlen und rechnet ihre Antwort im
+ * selben Schritt aus, die Antwort gehört also immer zu der Frage, die mit ihr gezogen
+ * wurde. Von außen wird hier nichts gelesen: die Parameter kommen aus
+ * exercise_normalise_params(), und das lässt nur die Schlüssel und Werte durch, die
+ * exercise_catalog() erlaubt.
  *
- * Whole numbers wherever an answer has to be exact. Where a result cannot be a
- * short number (a square root, a standard deviation), it is rounded and written
- * with the sign that says so - "≈ 5,83".
+ * Ganze Zahlen, wo eine Antwort genau sein muss. Wo ein Ergebnis keine kurze Zahl sein
+ * kann (eine Wurzel, eine Standardabweichung), wird gerundet und mit dem Zeichen
+ * geschrieben, das das sagt - "≈ 5,83".
  *
- * Every function returns
+ * Jede Funktion liefert
  *
  *   ['question' => ['de' => …, 'en' => …], 'answer' => ['de' => …, 'en' => …]]
  *
- * The two languages are the same text for a task that is numbers and arithmetic
- * signs only, and two translations of the same sentence for the ones that carry
- * wording.
+ * Bei einer Aufgabe aus Zahlen und Rechenzeichen ist der Text in beiden Sprachen
+ * derselbe, bei den Aufgaben mit Wortlaut sind es zwei Übersetzungen desselben Satzes.
+ *
+ * ===========================================================================
+ * Wie eine Aufgabe zu ihrer Funktion kommt - diese Namen bitte nicht ändern
+ * ===========================================================================
+ *
+ * Der Name einer Funktion in dieser Datei ist kein Name, sondern ein Schlüssel. In
+ * src/services/exercise_service.php steht
+ *
+ *     $function = 'exercise_task_' . $type;
+ *
+ * und $type ist der Schlüssel der Aufgabenart, genau so, wie er im Katalog steht und
+ * wie er in der Datenbankspalte exercise_params.type gespeichert ist. Aus "times_table"
+ * wird also exercise_task_times_table, aus "standard_deviation"
+ * exercise_task_standard_deviation. exercise_task_builders() setzt den Namen genauso
+ * zusammen und fragt mit function_exists(), ob es diese Funktion gibt; benutzbar sind
+ * nur die Arten, die diese Frage bestehen. Aufgerufen wird die Funktion danach über
+ * die Variable - ($builders[$type])(...) - und nicht über ihren Namen.
+ *
+ * Darum ist ein Umbenennen gefährlich: der Name steht nirgendwo im Code, sondern wird
+ * immer nur zusammengesetzt. Wird exercise_task_times_table zum Beispiel in
+ * exercise_task_multiplication umbenannt, findet PHP die alte Funktion nicht mehr, die
+ * Art fällt aus der Liste, exercise_build_task() liefert null - und die Karte wird
+ * stillschweigend als feste Karte gezeigt. Kein Fehler, kein Eintrag im Protokoll,
+ * nichts, was auffällt. Die Zeilen in der Datenbank zeigen weiter auf "times_table",
+ * denn auch dort steht nur der Schlüssel. Ein Umbenennen wäre also keine
+ * Umbenennung, sondern ein Abschalten der Aufgabenart - und deshalb bleiben die Namen,
+ * wie sie sind.
  */
 
 
-/** The right-angled triangles whose sides are whole numbers, small to large. */
+/** Die rechtwinkligen Dreiecke mit ganzzahligen Seiten, klein nach groß. */
 const EXERCISE_PYTHAGORAS_TRIPLES = [
     [3, 4, 5],
     [6, 8, 10],
@@ -38,7 +64,7 @@ const EXERCISE_PYTHAGORAS_TRIPLES = [
 ];
 
 /**
- * Multiplication: two whole numbers from the range.
+ * Malnehmen: zwei ganze Zahlen aus dem Bereich.
  */
 function exercise_task_times_table(array $params): array
 {
@@ -52,11 +78,11 @@ function exercise_task_times_table(array $params): array
 }
 
 /**
- * Division as the reverse of multiplication.
+ * Teilen als Umkehrung des Malnehmens.
  *
- * The divisor and the answer are drawn and the number that is divided is their
- * product, so the division always comes out even. With `remainder` a rest is
- * added on purpose, and then the answer is written as a quotient with a rest.
+ * Teiler und Ergebnis werden gezogen, und die Zahl, die geteilt wird, ist ihr Produkt;
+ * die Division geht also immer glatt auf. Mit `remainder` wird absichtlich ein Rest
+ * dazugegeben, und dann steht die Antwort als Ergebnis mit Rest.
  */
 function exercise_task_division_inverse(array $params): array
 {
@@ -92,12 +118,12 @@ function exercise_task_division_inverse(array $params): array
 }
 
 /**
- * Two simple fractions, added, subtracted, multiplied or divided.
+ * Zwei einfache Brüche, addiert, abgezogen, malgenommen oder geteilt.
  *
- * The answer is always written as the smallest fraction with the same value. The
- * numerators stay below their denominator, so a fraction is really a fraction and
- * not a whole number in disguise. When subtracting, the larger fraction is put
- * first, so the answer is never negative.
+ * Die Antwort steht immer als kleinstmöglicher Bruch mit demselben Wert. Die Zähler
+ * bleiben unter ihrem Nenner, ein Bruch ist also wirklich ein Bruch und keine ganze
+ * Zahl im Gewand. Beim Abziehen steht der größere Bruch vorn, die Antwort ist also nie
+ * negativ.
  */
 function exercise_task_fraction(array $params): array
 {
@@ -106,7 +132,7 @@ function exercise_task_fraction(array $params): array
     $firstDenominator = exercise_pick($denominators);
 
     if ($operation === 'add' || $operation === 'subtract') {
-        /* Different denominators are what makes this a task worth practising. */
+        /* Verschiedene Nenner sind das, was diese Aufgabe übenswert macht. */
         $others = array_values(array_filter($denominators, static fn (int $value): bool => $value !== $firstDenominator));
         $secondDenominator = exercise_pick($others);
     } else {
@@ -122,7 +148,7 @@ function exercise_task_fraction(array $params): array
         max(1, min((int) $params['max'], $secondDenominator - 1))
     );
 
-    /* The larger fraction first when subtracting: a − b with a bigger than b. */
+    /* Beim Abziehen der größere Bruch zuerst: a − b mit a größer als b. */
     if ($operation === 'subtract' && $firstTop * $secondDenominator < $secondTop * $firstDenominator) {
         [$firstTop, $firstDenominator, $secondTop, $secondDenominator] =
             [$secondTop, $secondDenominator, $firstTop, $firstDenominator];
@@ -138,7 +164,7 @@ function exercise_task_fraction(array $params): array
             break;
 
         case 'divide':
-            /* Dividing by a fraction is multiplying by its reciprocal. */
+            /* Durch einen Bruch teilen heißt, mit seinem Kehrwert malnehmen. */
             $top = $firstTop * $secondDenominator;
             $bottom = $firstDenominator * $secondTop;
             break;
@@ -160,12 +186,13 @@ function exercise_task_fraction(array $params): array
 }
 
 /**
- * A short expression with brackets and at least one negative number.
+ * Ein kurzer Ausdruck mit Klammern und mindestens einer negativen Zahl.
  *
- * Four patterns, all of them written the way they are written at school. The
- * numbers are drawn from the range and the answer is worked out with whole
- * numbers, so it is always exact. In the first two patterns the bracket is forced
- * to be negative, so that a negative number really appears in the task.
+ * Vier Muster, alle so geschrieben, wie sie in der Schule geschrieben werden. Die
+ * Zahlen werden aus dem Bereich gezogen und die Antwort wird mit ganzen Zahlen
+ * ausgerechnet, sie ist also immer genau. In den ersten beiden Mustern wird die Klammer
+ * absichtlich negativ gemacht, damit in der Aufgabe auch wirklich eine negative Zahl
+ * vorkommt.
  */
 function exercise_task_negative_parens(array $params): array
 {
@@ -206,15 +233,15 @@ function exercise_task_negative_parens(array $params): array
 }
 
 /**
- * Powers of ten and scientific notation.
+ * Zehnerpotenzen und die wissenschaftliche Schreibweise.
  *
- *   power_of_ten     10³ = ?                     -> 1000
- *   to_scientific    write 4 500 000 in scientific notation -> 4,5 · 10⁶
- *   from_scientific  4,5 · 10⁶ = ?                -> 4 500 000
+ *   power_of_ten      10³ = ?                     -> 1000
+ *   to_scientific     4 500 000 wissenschaftlich  -> 4,5 · 10⁶
+ *   from_scientific   4,5 · 10⁶ = ?                -> 4 500 000
  *
- * The mantissa keeps one decimal place and the exponent is a whole number, so the
- * value is exact: it is built from whole tenths and a power of ten, never from a
- * rounded floating point number.
+ * Die Mantisse behält eine Nachkommastelle und der Exponent ist eine ganze Zahl, der
+ * Wert ist also genau: er entsteht aus ganzen Zehnteln und einer Zehnerpotenz, nie aus
+ * einer gerundeten Kommazahl.
  */
 function exercise_task_powers_scientific(array $params): array
 {
@@ -231,7 +258,7 @@ function exercise_task_powers_scientific(array $params): array
         ];
     }
 
-    /* A mantissa from 1,1 to 9,9 as whole tenths: exact, never 4,5000001. */
+    /* Eine Mantisse von 1,1 bis 9,9 als ganze Zehntel: genau, nie 4,5000001. */
     $tenths = exercise_draw(11, 99);
 
     if ($tenths % 10 === 0) {
@@ -243,10 +270,10 @@ function exercise_task_powers_scientific(array $params): array
     $plain = exercise_number($value, 0);
 
     /*
-     * This is one of the few tasks where the number itself is written differently
-     * in the two languages: 1,4 · 10³ has a comma in German and a full stop in
-     * English. Both the question and the answer carry that number, so both are
-     * built per language.
+     * Das ist eine der wenigen Aufgaben, in denen die Zahl selbst in den beiden
+     * Sprachen anders geschrieben wird: 1,4 · 10³ hat im Deutschen ein Komma und im
+     * Englischen einen Punkt. Frage und Antwort tragen diese Zahl beide, deshalb
+     * entstehen beide je Sprache.
      */
     $scientific = [
         'de' => $mantissa['de'] . ' · 10' . exercise_superscript($exponent),
@@ -270,15 +297,16 @@ function exercise_task_powers_scientific(array $params): array
 }
 
 /**
- * A linear equation, or one of the known formulas solved for one of its letters.
+ * Eine lineare Gleichung oder eine der bekannten Formeln, nach einem Buchstaben
+ * umgestellt.
  *
  *   equation  a · x + b = c  ->  x
- *   formula   E = P · t with two of the three given  ->  the third one
+ *   formula   E = P · t mit zwei der drei Werten  ->  der dritte
  *
- * The equation is built from the answer, never the other way round: the answer is
- * a whole number and the right side is computed from it, so it always fits
- * exactly. In the formulas the numbers are the usual ones (230 V, whole amperes,
- * whole hours), which keeps the answers exact as well.
+ * Die Gleichung wird aus der Antwort gebaut, nie andersherum: die Antwort ist eine
+ * ganze Zahl und die rechte Seite wird daraus gerechnet, sie passt also immer genau.
+ * In den Formeln stehen die üblichen Zahlen (230 V, ganze Ampere, ganze Stunden), damit
+ * auch dort die Antworten genau bleiben.
  */
 function exercise_task_linear_equation(array $params): array
 {
@@ -292,7 +320,7 @@ function exercise_task_linear_equation(array $params): array
     $answer = exercise_draw((int) $params['min'], (int) $params['max']);
     $addend = exercise_draw((int) $params['min'], (int) $params['max']);
 
-    /* Half of the tasks add the addend, half of them take it away. */
+    /* Die Hälfte der Aufgaben addiert den Summanden, die andere Hälfte zieht ihn ab. */
     if (random_int(0, 1) === 1) {
         $right = $coefficient * $answer + $addend;
 
@@ -312,10 +340,10 @@ function exercise_task_linear_equation(array $params): array
 }
 
 /**
- * One of the three formulas E = P · t and P = U · I, with one letter missing.
+ * Eine der drei Formeln E = P · t und P = U · I, mit einem fehlenden Buchstaben.
  *
- * Which letter is asked for is drawn, and the other two are given. All three
- * values are whole numbers of their unit, so the answer is exact.
+ * Welcher Buchstabe gefragt ist, wird gezogen, die beiden anderen sind gegeben. Alle
+ * drei Werte sind ganze Zahlen ihrer Einheit, die Antwort ist also genau.
  */
 function exercise_formula_task(array $params): array
 {
@@ -353,13 +381,13 @@ function exercise_formula_task(array $params): array
 }
 
 /**
- * The Pythagorean theorem: two sides of a right-angled triangle are given, the
- * third one is asked for.
+ * Der Satz des Pythagoras: zwei Seiten eines rechtwinkligen Dreiecks sind gegeben,
+ * die dritte ist gefragt.
  *
- * With probability most of the tasks use a triangle whose sides are whole
- * numbers (3-4-5, 6-8-10, 5-12-13 …), so the answer is exact. Otherwise the sides
- * are drawn from the range and the answer is a square root that is rounded - and
- * written with the ≈ sign, so nobody takes it for an exact value.
+ * Meistens nimmt die Aufgabe ein Dreieck mit ganzzahligen Seiten (3-4-5, 6-8-10,
+ * 5-12-13 …), die Antwort ist dann genau. Sonst werden die Seiten aus dem Bereich
+ * gezogen und die Antwort ist eine Wurzel, die gerundet wird - geschrieben mit dem
+ * Zeichen ≈, damit sie niemand für einen genauen Wert hält.
  */
 function exercise_task_pythagoras(array $params): array
 {
@@ -387,10 +415,10 @@ function exercise_task_pythagoras(array $params): array
 
     if ($variant === 'leg') {
         /*
-         * The hypotenuse and one leg are known, the other leg is asked for. When
-         * no whole-number triangle fits the range, both given sides are drawn
-         * freely - the hypotenuse the longer one - so that the two really are the
-         * sides of the same triangle and only the answer is rounded.
+         * Die Hypotenuse und eine Kathete sind bekannt, die andere Kathete ist gefragt.
+         * Passt kein ganzzahliges Dreieck in den Bereich, werden beide gegebenen Seiten
+         * frei gezogen - die Hypotenuse als längere -, damit es wirklich die Seiten
+         * desselben Dreiecks sind und nur die Antwort gerundet ist.
          */
         if ($wantsWholeSides) {
             return [
@@ -423,14 +451,14 @@ function exercise_task_pythagoras(array $params): array
 }
 
 /**
- * Percentages: two of the three values are given, the third one is asked for.
+ * Prozentrechnung: zwei der drei Werte sind gegeben, der dritte ist gefragt.
  *
- * The base is always a multiple of the step that makes the percentage come out
- * whole, so no task ever ends in a decimal fraction that should not be there.
+ * Die Grundzahl ist immer ein Vielfaches des Schrittes, bei dem der Prozentsatz ganz
+ * aufgeht, keine Aufgabe endet also in einem Komma, das dort nicht hingehört.
  *
  *   value   150 · 20 % = ?          -> 30
- *   rate    how much percent are 30 of 150?  -> 20 %
- *   base    20 % of ? are 30        -> 150
+ *   rate    wie viel Prozent sind 30 von 150?  -> 20 %
+ *   base    20 % von ? sind 30      -> 150
  */
 function exercise_task_percent(array $params): array
 {
@@ -448,7 +476,7 @@ function exercise_task_percent(array $params): array
     }
 
     if ($ask === 'base') {
-        /* The base is a multiple of the step, so it divides without a rest. */
+        /* Die Grundzahl ist ein Vielfaches des Schrittes, sie teilt sich also ohne Rest. */
         $known = intdiv($base * $rate, 100);
 
         return [
@@ -464,16 +492,17 @@ function exercise_task_percent(array $params): array
 }
 
 /**
- * Percentages in an energy context.
+ * Prozentrechnung im Energie-Zusammenhang.
  *
- * One of six situations is drawn, and then the numbers for it. Each situation has
- * its own plausible sizes: a share of the generation mix in GWh, a photovoltaic
- * plant against the power it could deliver, self-consumption in kWh, the state of
- * charge of a battery in MWh, losses in the grid, or the change of a price. The
- * share is always a whole percentage of the total, so the answer is exact.
+ * Eine von sechs Situationen wird gezogen und danach die Zahlen dafür. Jede Situation
+ * hat ihre eigenen plausiblen Größen: ein Anteil am Erzeugungsmix in GWh, eine
+ * Photovoltaikanlage gegen die Leistung, die sie liefern könnte, der Eigenverbrauch in
+ * kWh, der Ladezustand einer Batterie in MWh, Verluste im Netz oder die Änderung eines
+ * Preises. Der Anteil ist immer ein ganzer Prozentsatz der Gesamtmenge, die Antwort ist
+ * also genau.
  *
- * The question and the answer carry the unit of the situation, so the sentence and
- * the number always belong together.
+ * Frage und Antwort tragen die Einheit der Situation, der Satz und die Zahl gehören also
+ * immer zusammen.
  */
 function exercise_task_percent_energy(array $params): array
 {
@@ -543,7 +572,7 @@ function exercise_task_percent_energy(array $params): array
             ];
 
         default:
-            /* The generation mix: one source against everything produced. */
+            /* Der Erzeugungsmix: eine Quelle gegen alles Erzeugte. */
             $total = exercise_draw_multiple(100, 900, $step);
             $part = intdiv($total * $rate, 100);
 
@@ -558,11 +587,11 @@ function exercise_task_percent_energy(array $params): array
 }
 
 /**
- * The rule of three: a quantity and a cost, or a number of devices and their
- * consumption, scaled to another quantity.
+ * Der Dreisatz: eine Menge und ihre Kosten oder eine Zahl von Geräten und ihr
+ * Verbrauch, umgerechnet auf eine andere Menge.
  *
- * The price of one piece (or of one device) is drawn first and the task is built
- * from it, so the answer is a whole number and not a rounded one.
+ * Der Preis eines Stücks (oder eines Geräts) wird zuerst gezogen und die Aufgabe daraus
+ * gebaut, die Antwort ist also eine ganze Zahl und keine gerundete.
  */
 function exercise_task_rule_of_three(array $params): array
 {
