@@ -1,54 +1,56 @@
 -- ==========================================================================
--- The category a learning run belongs to
+-- Die Kategorie, zu der ein Lerndurchgang gehört
 -- ==========================================================================
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
--- Nothing in the application runs this file, and Copilot never executes a
--- structural change on its own.
+-- ERST DURCHLESEN, DANN VON HAND AUSFÜHREN (phpMyAdmin oder der mysql-Client).
+-- Nichts in der Anwendung führt diese Datei aus, und Copilot führt eine
+-- strukturelle Änderung nie von selbst aus.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/add_session_category.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/add_session_category.sql
 --
--- Why
---   The question "how many days in a row did I study THIS subcategory?" cannot
---   be answered today. study_sessions knows the person and the day, but not
---   where the run happened - so the tile on a subcategory page counts every day
---   this person studied anywhere, and shows the same number on every page.
+-- Warum
+--   Die Frage "wie viele Tage in Folge habe ich DIESE Unterkategorie gelernt?"
+--   lässt sich heute nicht beantworten. study_sessions kennt die Person und den
+--   Tag, aber nicht, wo der Durchgang stattgefunden hat - die Kachel auf einer
+--   Unterkategorieseite zählt also jeden Tag, an dem diese Person irgendwo
+--   gelernt hat, und zeigt auf jeder Seite dieselbe Zahl.
 --
---   One column, and it is NULLable on purpose: a run that was written before
---   this change has no category, and that stays visible as NULL instead of
---   being guessed.
+--   Eine Spalte, und sie darf absichtlich NULL sein: ein Durchgang, der vor
+--   dieser Änderung geschrieben wurde, hat keine Kategorie, und das bleibt als
+--   NULL sichtbar, statt geraten zu werden.
 --
--- What it does
---   * adds study_sessions.category_id (int unsigned, NULL, behind user_id)
---   * adds the index the per-category question needs
---   * adds a foreign key to categories (id)
---       ON DELETE SET NULL: deleting a category keeps the learning history and
---       only drops the link. CASCADE would silently delete study days, and
---       RESTRICT would stop you from deleting any category that was ever
---       studied in - neither is what this history is worth.
+-- Was sie tut
+--   * fügt study_sessions.category_id hinzu (int unsigned, NULL, hinter user_id)
+--   * fügt den Index hinzu, den die Frage je Kategorie braucht
+--   * fügt einen Fremdschlüssel auf categories (id) hinzu
+--       ON DELETE SET NULL: das Löschen einer Kategorie behält die Lerngeschichte
+--       und wirft nur die Verknüpfung weg. CASCADE würde Lerntage stillschweigend
+--       löschen, und RESTRICT würde verhindern, dass man je eine Kategorie löscht,
+--       in der gelernt wurde - beides ist diese Geschichte nicht wert.
 --
--- What it does NOT do
---   * no column is dropped or renamed, no type is changed
---   * no row is deleted, no value is overwritten
---   * no other table is touched: users, categories, cards, user_card_progress
---     and card_exercises keep their columns exactly as they are
+-- Was sie NICHT tut
+--   * keine Spalte wird entfernt oder umbenannt, kein Typ geändert
+--   * keine Zeile wird gelöscht, kein Wert überschrieben
+--   * keine andere Tabelle wird angefasst: users, categories, cards,
+--     user_card_progress und card_exercises behalten ihre Spalten genau, wie sie
+--     sind
 --
--- After this file the application still works unchanged: it writes and reads the
--- new column only once its code does. Until then the streak stays the number for
--- the whole person.
+-- Nach dieser Datei arbeitet die Anwendung weiter unverändert: sie schreibt und
+-- liest die neue Spalte erst, wenn ihr Code das tut. Bis dahin bleibt die Serie
+-- die Zahl für die ganze Person.
 --
 -- --------------------------------------------------------------------------
--- Optional, and only if you agree - this is DATA, not structure
+-- Freiwillig, und nur wenn du einverstanden bist - das sind DATEN, keine Struktur
 -- --------------------------------------------------------------------------
--- The single run that exists today is the test run of 2026-09-27 in
--- "Übungsaufgaben" (category 101). It has no category, so it counts for no
--- subcategory. If it should count there, run this one line as well:
+-- Den einen Durchgang, den es heute gibt, hat der Test vom 2026-09-27 in
+-- "Übungsaufgaben" (Kategorie 101) erzeugt. Er hat keine Kategorie, zählt also für
+-- keine Unterkategorie. Soll er dort zählen, führe zusätzlich diese eine Zeile aus:
 --
 --   UPDATE study_sessions SET category_id = 101 WHERE category_id IS NULL AND id = 7;
 --
--- It changes exactly that one row and nothing else. Leave it out and the run
--- simply stays what it is: a day of learning without a place.
+-- Sie ändert genau diese eine Zeile und nichts sonst. Lässt du sie weg, bleibt der
+-- Durchgang einfach, was er ist: ein Tag Lernen ohne Ort.
 -- ==========================================================================
 
 ALTER TABLE study_sessions
