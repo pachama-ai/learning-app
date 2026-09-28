@@ -3,40 +3,40 @@
 declare(strict_types=1);
 
 /**
- * PATCH  /api/category.php?id=7  -> changes the fields that are sent
- * DELETE /api/category.php?id=7  -> removes the category and everything in it
- *                                    ({"confirm": true} when something is inside)
+ * PATCH  /api/category.php?id=7  -> ändert die Felder, die mitgeschickt werden
+ * DELETE /api/category.php?id=7  -> entfernt die Kategorie und alles darin
+ *                                    ({"confirm": true}, wenn etwas darin liegt)
  *
- * PATCH body (only the fields that should change):
+ * Inhalt des PATCH (nur die Felder, die sich ändern sollen):
  *   {
- *     "name": "History",              // also: name_en, name_de
- *     "icon_svg": "<svg ...>",        // null removes the icon
- *     "icon_scale": 1.15              // null resets it to 1.00
+ *     "name": "Geschichte",           // ebenso: name_en, name_de
+ *     "icon_svg": "<svg ...>",        // null entfernt das Symbol
+ *     "icon_scale": 1.15              // null setzt es auf 1.00 zurück
  *   }
  *
- * DELETE body (optional):
+ * Inhalt des DELETE (freiwillig):
  *   {"confirm": true}
  *
- * Deleting removes the category, every subcategory below it and every card in
- * that subtree, because the foreign keys of this database are ON DELETE
- * RESTRICT and would otherwise refuse the delete. Everything happens in one
- * transaction, so a half deleted tree can never be left behind.
+ * Löschen entfernt die Kategorie, jede Unterkategorie darunter und jede Karte in
+ * diesem Teilbaum, weil die Fremdschlüssel dieser Datenbank ON DELETE RESTRICT sind
+ * und das Löschen sonst verweigern würden. Alles passiert in einer Transaktion, ein
+ * halb gelöschter Baum kann also nie zurückbleiben.
  *
- * A delete request needs NO body. The confirmation is only asked for when
- * something really depends on the category - subcategories or cards - and the
- * server decides that from the data, not the browser:
+ * Eine Löschanfrage braucht KEINEN Inhalt. Nachgefragt wird nur, wenn wirklich etwas
+ * an der Kategorie hängt - Unterkategorien oder Karten - und das entscheidet der
+ * Server aus den Daten, nicht der Browser:
  *
- *   - an empty category is deleted with the id alone
- *   - a category with subcategories or cards needs "confirm": true
+ *   - eine leere Kategorie wird allein mit der Id gelöscht
+ *   - eine Kategorie mit Unterkategorien oder Karten braucht "confirm": true
  *
- * Nothing has to be typed: the browser shows the counts in the shared dialog and
- * sends the flag once the person agreed. A request that was not confirmed gets
- * the code "confirm_required" and changes nothing.
+ * Eingetippt werden muss nichts: der Browser zeigt die Zahlen im gemeinsamen Dialog
+ * und schickt die Zustimmung, sobald die Person zugestimmt hat. Eine nicht bestätigte
+ * Anfrage bekommt den Code "confirm_required" und ändert nichts.
  *
- * The answer is
+ * Die Antwort ist
  *   {"success": true, "data": {"deleted_category_id": 7, ...}}
- * and the endpoint only answers that after the row is really gone: the service
- * checks its own delete count and looks the id up once more before it commits.
+ * und der Endpunkt antwortet damit erst, wenn die Zeile wirklich weg ist: der Service
+ * prüft seine eigene Löschzahl und sieht die Id noch einmal nach, bevor er bestätigt.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -55,8 +55,8 @@ if ($method !== 'PATCH' && $method !== 'DELETE') {
 $categoryId = require_query_id('id');
 
 /*
- * The body is optional here. A DELETE that needs nothing but an id sends none at
- * all, and a PATCH sends the fields it wants to change.
+ * Der Inhalt ist hier freiwillig. Ein DELETE, das nichts als eine Id braucht, schickt
+ * gar keinen mit, und ein PATCH schickt die Felder, die es ändern möchte.
  */
 $body = read_json_object(true);
 
@@ -64,7 +64,7 @@ try {
     $pdo = create_database_connection();
     $userId = current_user_id($pdo);
 
-    /* A category belongs to an account: renaming and deleting one needs it. */
+    /* Eine Kategorie gehört einem Konto: Umbenennen und Löschen brauchen es. */
     if ($userId === null) {
         $required = session_user_required_error();
 
@@ -78,18 +78,18 @@ try {
     }
 
     /* ---------------------------------------------------------------------
-       DELETE: one confirmation, then the whole subtree disappears
+       DELETE: eine Bestätigung, dann verschwindet der ganze Teilbaum
        --------------------------------------------------------------------- */
 
     if ($method === 'DELETE') {
         /*
-         * How much depends on this category decides whether the request has to
-         * be confirmed. That is counted HERE, from the database - a hand written
-         * request cannot skip the confirmation by leaving the flag out, and the
-         * browser cannot demand one where none is needed.
+         * Wie viel an dieser Kategorie hängt, entscheidet, ob die Anfrage bestätigt
+         * werden muss. Gezählt wird HIER, aus der Datenbank - eine von Hand gebaute
+         * Anfrage kann die Bestätigung nicht überspringen, indem sie die Zustimmung
+         * weglässt, und der Browser kann keine verlangen, wo keine nötig ist.
          *
-         * The browser answers "confirm_required" by reading the category again
-         * (api/categories.php?id=N) and asking the person with those numbers.
+         * Auf "confirm_required" antwortet der Browser, indem er die Kategorie noch
+         * einmal liest (api/categories.php?id=N) und mit diesen Zahlen nachfragt.
          */
         $dependents = category_delete_dependents($pdo, $categoryId, $userId);
 
@@ -106,8 +106,8 @@ try {
         try {
             $deleted = delete_category_tree($pdo, $categoryId, $userId);
         } catch (PDOException $error) {
-            /* A row that still points at this category: a conflict in the data,
-               not a broken server. */
+            /* Eine Zeile, die noch auf diese Kategorie zeigt: ein Widerspruch in den
+               Daten, kein kaputter Server. */
             if ((string) $error->getCode() === '23000') {
                 send_json_error(
                     'category_delete_conflict',
@@ -118,7 +118,7 @@ try {
 
             throw $error;
         } catch (RuntimeException $error) {
-            /* The service refused to commit because the row was still there. */
+            /* Der Service hat die Bestätigung verweigert, weil die Zeile noch da war. */
             error_log('Deleting category ' . $categoryId . ' was refused: ' . $error->getMessage());
 
             send_json_error('category_delete_failed', 'The category could not be deleted.', 500);
@@ -133,7 +133,7 @@ try {
     }
 
     /* ---------------------------------------------------------------------
-       PATCH: change only the fields that were really sent
+       PATCH: nur die Felder ändern, die wirklich geschickt wurden
        --------------------------------------------------------------------- */
 
     $changes = [];
@@ -143,16 +143,16 @@ try {
     }
 
     /*
-     * Only the names are accepted here. The description columns are left alone:
-     * they are not part of the application any more, and a request that still
-     * sends them must not be an error (it simply changes nothing).
+     * Hier werden nur die Namen angenommen. Die Beschreibungsspalten bleiben in Ruhe:
+     * sie gehören nicht mehr zur Anwendung, und eine Anfrage, die sie trotzdem
+     * mitschickt, darf kein Fehler sein (sie ändert einfach nichts).
      */
     foreach ([
         'name_en' => CATEGORY_MAX_NAME_LENGTH,
         'name_de' => CATEGORY_MAX_NAME_LENGTH,
     ] as $field => $maxLength) {
         if (array_key_exists($field, $body)) {
-            // An empty value clears the field.
+            // Ein leerer Wert leert das Feld.
             $changes[$field] = optional_input_text($body, $field, $maxLength, 'invalid_' . $field);
         }
     }
@@ -164,17 +164,17 @@ try {
     }
 
     if (array_key_exists('icon_svg', $body)) {
-        // null or an empty string removes the icon and the category falls back
-        // to the illustration that ships with the app.
+        // null oder eine leere Zeichenkette entfernt das Symbol, und die Kategorie
+        // fällt auf die Zeichnung zurück, die mit der Anwendung kommt.
         $changes['icon_svg'] = $body['icon_svg'] === null || $body['icon_svg'] === ''
             ? null
             : optional_svg_icon($body, 'icon_svg', 'invalid_icon');
     }
 
     /*
-     * A normalised drawing fills its circle at scale 1, so the value is set
-     * automatically whenever an icon is part of this request. The column is
-     * still written - it is simply never filled in by a person any more.
+     * Eine normalisierte Zeichnung füllt ihren Kreis bei Maßstab 1, der Wert wird also
+     * automatisch gesetzt, sobald ein Symbol Teil dieser Anfrage ist. Die Spalte wird
+     * weiterhin geschrieben - sie wird nur von keiner Person mehr ausgefüllt.
      */
     if (array_key_exists('icon_svg', $changes) && $changes['icon_svg'] !== null
         && !array_key_exists('icon_scale', $changes)) {
@@ -185,7 +185,7 @@ try {
         send_json_error('invalid_request_body', 'Send at least one field to change.', 400);
     }
 
-    // A renamed category must not collide with a sibling.
+    // Eine umbenannte Kategorie darf nicht mit einer Schwesterkategorie zusammenstoßen.
     if (array_key_exists('name', $changes) && $changes['name'] !== $current['name']) {
         if (category_sibling_name_exists($pdo, $changes['name'], $current['parent_id'], $userId, $categoryId)) {
             send_json_error('category_exists', 'A category with this name already exists here.', 409);
@@ -196,7 +196,8 @@ try {
 
     send_json_success($updated);
 } catch (Throwable $error) {
-    // Details go to the server log only; the browser gets a generic message.
+    // Einzelheiten gehören nur ins Server-Protokoll, der Browser bekommt einen
+    // allgemeinen Satz.
     error_log('Changing a category failed: ' . $error->getMessage());
 
     if ($method === 'DELETE') {
