@@ -1293,7 +1293,7 @@
         addAuthFields();
     }
 
-    /* Two underlined fields, the eye in the password field and the link below. */
+    /* Zwei unterstrichene Felder, das Auge im Passwortfeld und der Verweis darunter. */
     function addAuthFields() {
         var registering = authMode === 'register';
 
@@ -1328,8 +1328,8 @@
         passwordLabel.setAttribute('data-i18n', 'auth.password');
         passwordInput.type = 'password';
         passwordInput.id = 'dialog-field-password';
-        /* The browser's own password manager should offer to make a new password
-           while registering and the known one while signing in. */
+        /* Der eigene Passwortverwalter des Browsers soll beim Registrieren ein neues
+           Passwort anbieten und beim Anmelden das bekannte. */
         passwordInput.autocomplete = registering ? 'new-password' : 'current-password';
         passwordInput.setAttribute('placeholder', t('auth.passwordPlaceholder'));
 
@@ -1363,8 +1363,8 @@
         switchButton.textContent = t(registering ? 'auth.toSignIn' : 'auth.toRegister');
         switchButton.addEventListener('click', function () {
             /*
-             * The other mode, with what was typed so far kept: switching is a
-             * change of the words, not a new dialog.
+             * Der andere Modus, mit dem, was bisher eingetippt wurde: ein Wechsel ist
+             * eine Änderung der Worte und kein neuer Dialog.
              */
             var typed = dialogFields.identifier ? dialogFields.identifier.control.value : '';
             var typedPassword = dialogFields.password ? dialogFields.password.control.value : '';
@@ -1379,8 +1379,8 @@
         elements.dialogFields.appendChild(switchWrap);
     }
 
-    /* One button, two drawings: the slash over the eye only appears when the
-       password is readable. */
+    /* Ein Knopf, zwei Zeichnungen: der Strich über dem Auge erscheint nur, wenn das
+       Passwort lesbar ist. */
     function setEyeState(button, visible) {
         var label = t(visible ? 'auth.hidePassword' : 'auth.showPassword');
 
@@ -1391,9 +1391,9 @@
     }
 
     /*
-     * One sign-in or one registration. The browser checks only what it can see
-     * (an empty field, a short password) so the answer comes at once; the server
-     * checks everything again and is the only authority.
+     * Ein Anmelden oder eine Registrierung. Der Browser prüft nur, was er sehen kann (ein
+     * leeres Feld, ein kurzes Passwort), damit die Antwort sofort kommt; der Server prüft
+     * alles noch einmal und ist die einzige maßgebliche Stelle.
      */
     function runAuthSubmit() {
         var identifier = dialogFields.identifier ? dialogFields.identifier.control.value.trim() : '';
