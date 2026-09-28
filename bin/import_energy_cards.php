@@ -756,30 +756,32 @@ function import_read_csv(string $path): array
 
 
 /**
- * Reads one exercise cell of the file.
+ * Liest eine Übungszelle der Datei.
  *
- *   "<type>"                                  the defaults of that kind of task
- *   "<type>:<name>=<value>,<name>=<value>"    with numbers of its own
+ *   "<Art>"                                  die Vorgaben dieser Aufgabenart
+ *   "<Art>:<name>=<wert>,<name>=<wert>"    mit eigenen Zahlen
  *
- * A parameter that allows several options at once is written with a pipe, for
- * example variants=mix|storage_level, and a yes/no parameter takes yes or no.
- * Everything is checked with the same rules the card dialog is checked with, so a
- * file can never store numbers that no task can be built from.
+ * Ein Parameter, der mehrere Auswahlen auf einmal erlaubt, wird mit einem senkrechten
+ * Strich geschrieben, zum Beispiel variants=mix|storage_level, und ein Ja/Nein-Parameter
+ * nimmt yes oder no. Geprüft wird alles mit denselben Regeln, mit denen der Kartendialog
+ * geprüft wird, eine Datei kann also nie Zahlen speichern, aus denen keine Aufgabe zu
+ * bauen ist.
  *
  * @return array{exercise: array{type: string, params: array<string, mixed>}|null, error: string|null}
  */
 function import_parse_exercise(string $cell): array
 {
     /*
-     * One syntax for every importer. The kinds of task and their parameters live in
-     * src/services/exercise_service.php, so a file read here and a file read in the
-     * browser mean exactly the same thing.
+     * Eine Schreibweise für jeden Importer. Die Aufgabenarten und ihre Parameter leben in
+     * src/services/exercise_service.php, eine hier gelesene Datei und eine im Browser
+     * gelesene bedeuten also genau dasselbe.
      */
     return exercise_parse_cell($cell);
 }
+
 /**
- * The same pattern the application uses: the area is one of three names and the
- * region is a plain identifier. Anything else never reaches the database.
+ * Dasselbe Muster, das die Anwendung benutzt: der Bereich ist einer von drei Namen und
+ * die Region eine schlichte Kennung. Alles andere erreicht die Datenbank nie.
  */
 function import_region_is_valid(string $region): bool
 {
@@ -798,8 +800,8 @@ function import_row_is_empty(array $cells): bool
 }
 
 /**
- * Compares the number of cards in the file with the number the operator wrote on
- * the command line.
+ * Vergleicht die Zahl der Karten in der Datei mit der Zahl, die die bedienende Person
+ * auf der Kommandozeile angegeben hat.
  *
  * @param array<string, mixed> $csv
  * @return list<string>
@@ -825,20 +827,21 @@ function import_expectation_problems(array $csv, ?int $expected): array
 }
 
 /* --------------------------------------------------------------------------
-   Looking at the database
+   Die Datenbank anschauen
    -------------------------------------------------------------------------- */
 
 /**
- * Reads the areas and everything the report needs.
+ * Liest die Bereiche und alles, was der Bericht braucht.
  *
- * @param list<string> $wantedAreas The names the file uses in parent_category.
+ * @param list<string> $wantedAreas Die Namen, die die Datei in parent_category benutzt.
  * @return array<string, mixed>
  */
 function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): array
 {
     /*
-     * Only the areas of this owner are read. Two accounts may each own an area
-     * called "Energy"; the file names the area, the owner decides which one.
+     * Gelesen werden nur die Bereiche dieses Kontos. Zwei Konten dürfen jeder einen
+     * Bereich "Energy" besitzen; die Datei nennt den Bereich, das Konto entscheidet,
+     * welcher gemeint ist.
      */
     $areasStatement = $pdo->prepare(
         'SELECT id, name, name_en, name_de FROM categories
@@ -849,7 +852,8 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
     $areasStatement->execute();
     $areas = $areasStatement->fetchAll(PDO::FETCH_ASSOC);
 
-    /* The area the file names: name, name_de or name_en, without case. */
+    /* Der Bereich, den die Datei nennt: name, name_de oder name_en, ohne Groß- und
+       Kleinschreibung. */
     $wanted = array_map(static fn ($name): string => mb_strtolower(trim((string) $name)), $wantedAreas);
     $matches = [];
 
@@ -866,7 +870,7 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
         }
     }
 
-    /* Every subcategory of the tree, with its area and its depth. */
+    /* Jede Unterkategorie des Baums, mit ihrem Bereich und ihrer Tiefe. */
     $subcategories = $pdo->query(
         'SELECT c.id, c.parent_id, c.name, p.id AS area_id, p.name AS area_name
            FROM categories c
