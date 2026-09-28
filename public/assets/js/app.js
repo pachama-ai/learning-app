@@ -1442,15 +1442,15 @@
             closeDialog();
 
             /*
-             * From now on every card's progress comes from this person, so the
-             * store is asked again and the open view redraws itself - without a
-             * page load and therefore without the loading screen.
+             * Ab jetzt kommt der Fortschritt jeder Karte von dieser Person, der Speicher
+             * wird also neu erfragt und die offene Ansicht zeichnet sich neu - ohne
+             * Seitenaufbau und damit ohne Ladebildschirm.
              */
             window.setTimeout(refreshAfterAuthChange, 300);
         });
     }
 
-    /* Which field an answer of the server belongs to. */
+    /* Zu welchem Feld eine Antwort des Servers gehört. */
     function authFailure(code) {
         var message = errorMessage(code);
         var passwordCodes = ['credentials', 'password_required', 'password_too_short', 'password_too_long'];
@@ -1474,7 +1474,7 @@
         setDialogError(message);
     }
 
-    /* The header button appears as soon as the page is there. */
+    /* Der Knopf in der Kopfzeile erscheint, sobald die Seite da ist. */
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
             loadAuthState().then(renderAccountSlot);
@@ -1483,7 +1483,7 @@
         loadAuthState().then(renderAccountSlot);
     }
 
-    /* Turns a code from the API into a sentence in the current language. */
+    /* Macht aus einem Code der API einen Satz in der aktuellen Sprache. */
     function errorMessage(code) {
         if (code === 'category_exists') {
             return t('dialog.errorDuplicate');
@@ -1493,8 +1493,8 @@
             return t('dialog.errorIcon');
         }
 
-        /* The server refuses a drawing above the limit with its own code, and the
-           sentence is the one the form already shows for a local file. */
+        /* Der Server weist eine Zeichnung über der Grenze mit einem eigenen Code ab, und
+           der Satz ist der, den das Formular für eine lokale Datei schon zeigt. */
         if (code === 'icon_too_large') {
             return t('dialog.icon.tooLarge', { max: Math.round(config.limits.iconBytes / 1024) });
         }
@@ -1548,9 +1548,9 @@
         }
 
         /*
-         * The study session needs a signed-in user before it can store anything.
-         * The sentence says that plainly instead of pretending the answer was
-         * saved.
+         * Die Lerneinheit braucht eine angemeldete Person, bevor sie etwas speichern kann.
+         * Der Satz sagt das geradeheraus, statt zu behaupten, die Antwort sei gespeichert
+         * worden.
          */
         if (code === 'no_user_session') {
             return t('cards.noUser');
@@ -1564,7 +1564,7 @@
             return t('learn.undoFailed');
         }
 
-        /* Signing in. The server uses the codes the form already knows. */
+        /* Anmelden. Der Server benutzt die Codes, die das Formular schon kennt. */
         if (code === 'sign_in_not_ready') {
             return t('auth.errorNotReady');
         }
@@ -1574,8 +1574,8 @@
         }
 
         /*
-         * Deleting the account: the password is the one thing the server checks, so
-         * it is also the one thing that can be wrong on this path.
+         * Das Konto löschen: das Passwort ist das Einzige, was der Server prüft, es ist also
+         * auch das Einzige, was auf diesem Weg falsch sein kann.
          */
         if (code === 'wrong_password') {
             return t('account.wrongPassword');
