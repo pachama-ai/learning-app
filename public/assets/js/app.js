@@ -124,8 +124,8 @@
                     });
                 });
 
-                /* The places that already load categories find their answer in the
-                   store: no second request for what is already here. */
+                /* Die Stellen, die schon Kategorien laden, finden ihre Antwort im Speicher:
+                   keine zweite Anfrage für etwas, das schon da ist. */
                 responseCache[''] = bootstrapCache.areas;
 
                 Object.keys(bootstrapCache.children).forEach(function (parentId) {
@@ -144,8 +144,8 @@
         return bootstrapCache.promise;
     }
 
-    /* One category out of the bootstrap. Only an id that is not in there (an
-       address that does not exist) is fetched on its own. */
+    /* Eine einzelne Kategorie aus dem Aufbau. Nur eine Id, die nicht darin steht (eine
+       Adresse, die es nicht gibt), wird einzeln geholt. */
     function fetchCategoryOne(categoryId) {
         if (bootstrapCache.pending) {
             return bootstrapCache.promise.then(function () {
@@ -182,24 +182,25 @@
     }
 
     /*
-     * The cards of one category, in the shape api/cards.php answers with.
+     * Die Karten einer Kategorie, in der Form, die api/cards.php zurückgibt.
      *
-     * A list that comes out of the bootstrap has exercise cards without a task:
-     * those numbers are drawn when the card is read, so they must not sit in a
-     * store. They are fetched in ONE small request before the list is drawn.
+     * Eine Liste, die aus dem Aufbau kommt, hat Übungskarten ohne Aufgabe: diese Zahlen
+     * werden gezogen, während die Karte gelesen wird, sie dürfen also nicht in einem
+     * Speicher liegen. Sie werden in EINER kleinen Anfrage geholt, bevor die Liste
+     * gezeichnet wird.
      */
     /*
-     * The days in a row of ONE subcategory.
+     * Die Tage in Folge EINER Unterkategorie.
      *
-     * The number belongs to the subcategory whose page is open and not to the whole
-     * person: three days in "Uebungsaufgaben" are not three days in "Einmaleins".
+     * Die Zahl gehört zu der Unterkategorie, deren Seite offen ist, und nicht zur ganzen
+     * Person: drei Tage in "Übungsaufgaben" sind nicht drei Tage in "Einmaleins".
      *
-     * A subcategory without a single run has none of its own - and that is not the
-     * same as "no numbers", so it answers with "nothing learned here yet" instead of
-     * falling back to the number of another list. Only when the server sends no map
-     * at all (the category column of study_sessions does not exist yet, see
-     * database/add_session_category.sql) the whole-person number is used, exactly as
-     * before that migration.
+     * Eine Unterkategorie ohne einen einzigen Durchgang hat keine eigenen - und das ist
+     * nicht dasselbe wie "keine Zahlen", sie antwortet deshalb mit "hier noch nichts
+     * gelernt" statt auf die Zahl einer anderen Liste zurückzufallen. Nur wenn der Server
+     * gar keine Zuordnung schickt (die Kategoriespalte von study_sessions gibt es noch
+     * nicht, siehe database/add_session_category.sql), gilt die Zahl der ganzen Person,
+     * genau wie vor dieser Migration.
      */
     function streakForCategory(categoryId) {
         if (bootstrapCache.streaks === null) {
@@ -220,8 +221,9 @@
 
         var cached = bootstrapCache.cards[String(categoryId)];
 
-        /* A category the first answer covered but that has no cards of its own: an
-           area, for example. Then the empty list is the answer, not a request. */
+        /* Eine Kategorie, die die erste Antwort abdeckte, die aber keine eigenen Karten
+           hat: ein Bereich zum Beispiel. Dann ist die leere Liste die Antwort und keine
+           Anfrage. */
         if (cached === undefined && bootstrapCache.known[String(categoryId)] === true) {
             return Promise.resolve({
                 ok: true,
