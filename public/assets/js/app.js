@@ -2980,7 +2980,7 @@
         elements.addButton.hidden = level !== 'home' || authState.user === null;
     }
 
-    /* The plus button acts on whatever the detail view is showing. */
+    /* Der Plus-Knopf bezieht sich auf das, was die Detailansicht gerade zeigt. */
     function openAddForCurrentEntry() {
         if (currentEntry === null) {
             openCategoryForm('create', null, null);
@@ -3039,17 +3039,17 @@
     }
 
     /* ----------------------------------------------------------------------
-       The horizontal tile row
+       Die waagerechte Kachelreihe
        ---------------------------------------------------------------------- */
 
     /*
-     * The row shows whole tiles only - how many per view is decided by the
-     * stylesheet (4 on a desktop, 3 on a laptop, 2 on a tablet, 1 on a phone),
-     * and the width of a tile follows from that and the width of the column.
+     * Die Reihe zeigt nur ganze Kacheln - wie viele pro Ansicht, entscheidet das Stylesheet
+     * (4 auf dem Schreibtisch, 3 auf dem Laptop, 2 auf dem Tablet, 1 auf dem Telefon), und die
+     * Breite einer Kachel folgt daraus und aus der Breite der Spalte.
      *
-     * This module keeps the counter, the track, the thumb and the two buttons in
-     * step with the real scroll position, and hides the whole navigation while
-     * every tile fits without scrolling.
+     * Dieser Block hält den Zähler, die Spur, den Griff und die beiden Knöpfe mit der echten
+     * Scrollposition im Takt, und er blendet die ganze Navigation aus, solange jede Kachel
+     * ohne Scrollen hineinpasst.
      */
     var tileObserver = null;
     var tilePointerStart = null;
@@ -3065,7 +3065,7 @@
         return isNaN(value) || value < 1 ? 1 : value;
     }
 
-    /* One tile plus one gap: the distance the row moves per tile. */
+    /* Eine Kachel plus ein Abstand: die Strecke, um die die Reihe pro Kachel weiterzieht. */
     function tileStep() {
         if (elements.grid === null) {
             return 0;
@@ -3088,13 +3088,13 @@
     }
 
     /*
-     * Collects the work of one frame into one call.
+     * Sammelt die Arbeit eines Bildes in einem Aufruf.
      *
-     * A scroll, a resize and a change of the row width can each fire several
-     * times within the same frame, and every call reads the layout and writes
-     * two styles. Waiting for the next animation frame keeps the same result -
-     * the line is updated before that frame is painted - and runs the work
-     * once instead of once per event.
+     * Ein Scrollen, eine Größenänderung und eine geänderte Reihenbreite können innerhalb
+     * desselben Bildes mehrfach feuern, und jeder Aufruf liest das Layout und schreibt zwei
+     * Stile. Auf das nächste Bild zu warten liefert dasselbe Ergebnis - die Linie ist
+     * aktualisiert, bevor dieses Bild gezeichnet wird - und führt die Arbeit einmal statt
+     * einmal pro Ereignis aus.
      */
     var tileNavigationFrame = null;
 
@@ -3123,10 +3123,10 @@
         var scrollable = maximum > 2;
 
         /*
-         * While every tile fits there is nothing to scroll, and that is not a
-         * reason to hide anything: the line stays where it is - it is the
-         * hairline above the footer - but it is greyed out, the thumb covers the
-         * whole track and the two arrows are disabled. See the stylesheet.
+         * Solange jede Kachel hineinpasst, gibt es nichts zu scrollen, und das ist kein Grund,
+         * etwas auszublenden: die Linie bleibt, wo sie ist - sie ist die Haarlinie über dem
+         * Fuß - sie wird aber ausgegraut, der Griff bedeckt die ganze Spur und die beiden
+         * Pfeile sind gesperrt. Siehe das Stylesheet.
          */
         elements.tilesNav.classList.toggle('is-static', !scrollable);
         elements.tilesPrev.disabled = !scrollable || elements.grid.scrollLeft <= 1;
@@ -3134,7 +3134,7 @@
 
         var trackWidth = elements.tilesTrack.clientWidth;
         var ratio = elements.grid.scrollWidth > 0 ? elements.grid.clientWidth / elements.grid.scrollWidth : 1;
-        /* While everything fits the thumb is exactly as wide as the track. */
+        /* Solange alles hineinpasst, ist der Griff genau so breit wie die Spur. */
         var thumbWidth = scrollable
             ? Math.max(28, Math.round(trackWidth * ratio))
             : trackWidth;
