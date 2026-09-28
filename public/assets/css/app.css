@@ -1,41 +1,4 @@
 /*
- * Lernkartei - editorial visual design
- *
- * Visual styling and animation only. No layout logic, no API behaviour and no
- * data changes live in this file.
- *
- * Structure of this file, top to bottom:
- *   0. font faces (one local file, two faces from a font service - see below)
- *   1. design tokens (:root for the light theme, [data-theme="dark"] below it)
- *   2. base and page frame (html, body, grain, background pools)
- *   3. header, 4. headings, 5. start header, 6. learning area grid
- *   7. detail view (sidebar + subarea rows), 8. footer, 9. dialog
- *  10. animations, 11. view transitions, 12. responsive, 13. reduced motion
- *  14. the card list and the study session
- *  15. "The editorial light theme" - the appendix at the end of the file.
- *      Sections 1 to 13 describe the design as it was; that appendix holds the
- *      current light theme and the handful of dark-theme rules that go with it,
- *      so the newest layer is always the last one in the file.
- */
-
-/* ==========================================================================
-   0. Local font faces
-   ========================================================================== */
-
-/*
- * Only one face is self-hosted here: Inter Tight, a variable font whose single
- * file covers the whole weight range from 100 to 900. The paths are relative to
- * this stylesheet, so "../fonts/" resolves to public/assets/fonts/.
- *
- * The interface face.
- *
- * It is used for body and heading text through --font-sans in section 1. The
- * monospaced slots (--font-mono) keep a system monospace stack instead: Inter
- * Tight is proportional, so the alignment that counters and card labels rely
- * on would be lost.
- */
-
-/*
  * Das Paar für die Oberfläche: Inter für alles, was gelesen wird, "Source
  * Serif 4" für die Überschriften. Beide liegen als Datei im Projekt
  * (public/assets/fonts/), es geht also keine Anfrage mehr an einen fremden
@@ -112,12 +75,6 @@
    ========================================================================== */
 
 :root {
-    /* ---- The colour system of this design ---- */
-    /*
-     * The light theme is one flat, warm beige and it is the default of the
-     * design. The dark theme paints a vertical gradient over the darker slate
-     * family instead. The two themes differ in nothing else structurally.
-     */
     --bg: #F8F7F4;
     --bg-image: none;
     --text: #1C1C1A;
@@ -153,22 +110,6 @@
     --tile-bg: var(--surface-soft);
     --tile-bg-hover: var(--surface-soft);
     --icon-circle: #E9E6E0;
-
-    /*
-     * The two washes the light theme still needs: the faint warm tint of a
-     * hovered control (the arrows of the tile row, a menu button, the ghost
-     * action in a dialog) and the circle behind a subject drawing. The tile
-     * SURFACE of the light theme is not a wash any more: it is one of the eight
-     * opaque palette colours and follows the position of the tile in the row
-     * (see "the light palette" further down). The dark theme keeps the
-     * translucent white washes for everything, which is why the three tokens
-     * are still named after them.
-     *
-     * NOTE: the light theme was measured against the palette. The text colour
-     * reaches at least 5.3:1 on all eight tile colours and 14.7:1 on the page,
-     * the darkened information line at least 5.1:1 on a tile, and the muted
-     * colour 4.9:1 on the page itself.
-     */
     --tile-bg: rgba(43, 38, 34, 0.06);
     --tile-bg-hover: rgba(43, 38, 34, 0.10);
     --icon-circle: rgba(43, 38, 34, 0.09);
@@ -179,33 +120,7 @@
      */
     --plus-bg: var(--text);
     --plus-fg: #FFFFFF;
-
-    /*
-     * ---- The category colour ----
-     * There is no colour per category any more, and there is no table here that
-     * maps a category NAME to a colour: the colour of a tile follows its
-     * POSITION in the row (see --palette-1 .. --palette-8 in the appendix at the
-     * end of this file). The `color` column is still in the table, but nothing
-     * reads it any more.
-     */
-
-    /*
-     * The muted red of anything destructive (a delete button, an error message).
-     * It is an ordinary design token and has nothing to do with a category, and
-     * it stays a red in both themes.
-     */
     --cat-reserve-rose: #96493E;
-
-    /*
-     * The three light pools: one wide, soft radial gradient each, blurred so
-     * they have no visible edge at all. Only their drift is animated.
-     *
-     * The light theme has no pools at all: blue light does not belong on a warm
-     * beige page, so the three cores are transparent and the layer paints
-     * nothing. The markup and the slow drift stay exactly as they are, which is
-     * what keeps the dark theme untouched; its own stronger values live in the
-     * dark block below.
-     */
     --blob-a: transparent;
     --blob-b: transparent;
     --blob-c: transparent;
