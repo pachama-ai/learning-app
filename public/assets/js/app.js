@@ -404,34 +404,34 @@
     var cardSearchQuery = '';
     var cardSearchMin = 15;
 
-    /* Remembers a "save and next" so the dialog can open again afterwards. */
+    /* Merkt sich ein "Speichern und weiter", damit der Dialog danach wieder aufgehen kann. */
     var cardSaveAndNext = false;
     var openMenu = null;
     var feedbackTimer = null;
 
     /*
-     * How long a deletion can still be taken back.
+     * Wie lange ein Löschen noch zurückgenommen werden kann.
      *
-     * Nothing is sent to the server during this window, so "Undo" really does
-     * undo: the row never left the database.
+     * In diesem Zeitfenster geht nichts an den Server, "Rückgängig" nimmt also wirklich
+     * zurück: die Zeile hat die Datenbank nie verlassen.
      */
     var UNDO_WINDOW_MS = 6500;
 
     /*
-     * The deletion that is waiting right now, or null:
+     * Das Löschen, das gerade wartet, oder null:
      *   { kind, target, url, timer }
-     * Only one can be waiting at a time - a second one finishes the first.
+     * Es kann immer nur eines warten - ein zweites führt das erste zu Ende.
      */
     var pendingDelete = null;
 
     /*
-     * The open import dialog: the file that was chosen and everything the server
-     * answered about it. It is null while no import dialog is open.
+     * Der offene Importdialog: die gewählte Datei und alles, was der Server darüber
+     * geantwortet hat. Er ist null, solange kein Importdialog offen ist.
      */
     var importState = null;
     var importPanel = null;
 
-    /* What the empty state offers when there is nothing to show. */
+    /* Was der leere Zustand anbietet, wenn es nichts zu zeigen gibt. */
     var entryEmptyHandler = null;
 
 
@@ -451,8 +451,8 @@
         tilesNav: document.getElementById('tiles-nav'),
         tilesTrack: document.getElementById('tiles-nav-track'),
         tilesThumb: document.getElementById('tiles-nav-thumb'),
-        /* The two arrows live in the footer; the wrapper around them is hidden
-           on every view that has no tile row. */
+        /* Die zwei Pfeile sitzen in der Fußzeile; die Hülle um sie herum ist in jeder
+           Ansicht ohne Kachelreihe versteckt. */
         tilesButtons: document.getElementById('tiles-nav-buttons'),
         tilesPrev: document.getElementById('tiles-nav-prev'),
         tilesNext: document.getElementById('tiles-nav-next'),
@@ -493,7 +493,7 @@
         detailCardLabel: document.getElementById('detail-card-label'),
         statLabel: document.getElementById('detail-stat-label'),
 
-        /* The one dialog. Its fields are built while it opens. */
+        /* Der eine Dialog. Seine Felder entstehen, während er sich öffnet. */
         dialog: document.getElementById('app-dialog'),
         dialogForm: document.getElementById('app-dialog-form'),
         dialogTitle: document.getElementById('app-dialog-title'),
@@ -504,12 +504,12 @@
         dialogClose: document.getElementById('app-dialog-close'),
         dialogSubmit: document.getElementById('app-dialog-submit'),
 
-        /* The short message, its text and the button that can belong to it. */
+        /* Die kurze Meldung, ihr Text und der Knopf, der dazugehören kann. */
         feedback: document.getElementById('feedback'),
         feedbackText: document.getElementById('feedback-text'),
         feedbackAction: document.getElementById('feedback-action'),
 
-        /* The account in the header, its window and the quiet line. */
+        /* Das Konto in der Kopfzeile, sein Fenster und die leise Zeile. */
         accountSlot: document.getElementById('account-slot'),
         pageNote: document.getElementById('page-note'),
         accountDialog: document.getElementById('account-dialog'),
@@ -521,7 +521,7 @@
         accountCancel: document.getElementById('account-cancel'),
         accountConfirm: document.getElementById('account-confirm'),
         accountPassword: document.getElementById('account-password'),
-        /* The question before a session starts. */
+        /* Die Frage vor dem Start einer Einheit. */
         newCardsDialog: document.getElementById('new-cards-dialog'),
         newCardsHint: document.getElementById('new-cards-dialog-hint'),
         newCardsQuick: document.getElementById('new-cards-dialog-quick'),
@@ -532,7 +532,7 @@
         newCardsClose: document.getElementById('new-cards-dialog-close'),
         accountError: document.getElementById('account-error'),
 
-        /* The strip above the rows of a subcategory: it holds the search field. */
+        /* Das Band über den Zeilen einer Unterkategorie: es trägt das Suchfeld. */
         cardTools: document.getElementById('card-tools'),
         cardSearchWrap: document.getElementById('card-tools-search'),
         cardSearch: document.getElementById('card-search'),
