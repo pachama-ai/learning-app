@@ -4250,6 +4250,11 @@ body.is-learning {
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* Der Inhalt bestimmt die Hoehe: drei Zeilen (Wort, Ziffer, naechster
+       Abstand) muessen vollstaendig im Rahmen liegen. min-height haelt die alte
+       Groesse als Untergrenze, damit der Knopf nie kleiner wird als vorher. */
+    justify-content: center;
+    min-height: 42px;
     gap: 4px;
     padding: 12px 10px;
     border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
@@ -6570,6 +6575,17 @@ button,
     font-size: 13px;
 }
 
+/*
+ * Die Bewertungsknoepfe der Lernansicht stehen NICHT in dieser Liste.
+ *
+ * Sie sind keine Pillen mit einer Textzeile, sondern dreizeilige Knoepfe
+ * (Wort, Ziffer, naechster Abstand) mit voller Rundung. In dieser Gruppe bekamen
+ * sie height 34px, padding 0 14px und border-radius 6px - die feste Hoehe schnitt
+ * damit die dritte Zeile ab und schob sie unter den Rahmen.
+ *
+ * Form, Groesse und Innenabstand stehen fuer sie an einer Stelle: in der Regel
+ * .learn__button weiter oben.
+ */
 .learn-button,
 .add-entry-button,
 .import-button,
@@ -6579,7 +6595,6 @@ button,
 .count-dialog__button,
 .account-dialog__button,
 .learn__action,
-.learn__button,
 .feedback__action {
     height: 34px;
     padding: 0 14px;
@@ -6592,14 +6607,15 @@ button,
 }
 
 /*
- * Im Lernmodus sind die vier Antworten die Hauptknoepfe der Seite: gleiche Form,
- * aber einen Tick groesser, weil sie mit der Maus und mit der Tastatur getroffen
- * werden muessen.
+ * Hier stand eine zweite Regel fuer .learn__button: height 42px und padding 0
+ * 16px. Sie hat die Regel weiter oben ueberschrieben (gleiche Spezifitaet,
+ * spaeter im Blatt) und dem Knopf damit eine FESTE Hoehe von 42px verpasst -
+ * bei drei Zeilen Inhalt, die zusammen 50px hoch sind. Die Folge: die dritte
+ * Zeile ("naechste in 10 Min") stand 9px unter dem Rahmen.
+ *
+ * Groesse, Innenabstand und Mitte stehen jetzt nur noch an einer Stelle: in der
+ * Regel .learn__button weiter oben.
  */
-.learn__button {
-    height: 42px;
-    padding: 0 16px;
-}
 
 /* Primaer: "Lernen" in der Kartenansicht. */
 [data-theme="light"] .learn-button {
