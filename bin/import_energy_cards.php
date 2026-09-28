@@ -277,9 +277,9 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     /*
-     * With the reuse flag the guard moves from the name to the cards: a front side
-     * that is already stored in one of these subcategories would become a
-     * duplicate, so the run stops and names it.
+     * Mit dem Weiterbenutzen-Schalter wandert der Schutz vom Namen zu den Karten: eine
+     * Vorderseite, die in einer dieser Unterkategorien schon gespeichert ist, würde ein
+     * Doppel werden, der Lauf hält also an und nennt sie.
      */
     if ($options['reuse'] && $alreadyThere !== []) {
         $duplicates = import_front_collisions($pdo, $area, $alreadyThere, $csv);
@@ -302,7 +302,7 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     /* ---------------------------------------------------------------------
-       4. write, all of it or none of it
+       4. schreiben, alles oder nichts
        --------------------------------------------------------------------- */
 
     try {
@@ -326,7 +326,7 @@ function import_main(array $argv, string $projectRoot): int
     echo '  subcategories reused  : ' . $result['reused_categories'] . "\n";
     echo '  cards imported        : ' . $result['created_cards'] . "\n";
 
-    /* The proof, read after the commit: the tree really looks like this now. */
+    /* Der Beweis, gelesen nach dem Festschreiben: der Baum sieht jetzt wirklich so aus. */
     $check = $pdo->prepare(
         'SELECT (SELECT COUNT(*) FROM categories WHERE parent_id = :area_id) AS subcategories,
                 (SELECT COUNT(*) FROM cards k JOIN categories c ON c.id = k.category_id WHERE c.parent_id = :parent_id) AS cards,
@@ -346,23 +346,23 @@ function import_main(array $argv, string $projectRoot): int
 }
 
 /* --------------------------------------------------------------------------
-   Arguments
+   Argumente
    -------------------------------------------------------------------------- */
 
 /**
- * Reads --file, --owner, --dry-run, --execute, --wipe-subcategories,
- * --allow-existing-subcategories and --expect.
+ * Liest --file, --owner, --dry-run, --execute, --wipe-subcategories,
+ * --allow-existing-subcategories und --expect.
  *
- * Without a mode the tool only reads. The owner is required in every mode.
+ * Ohne Modus liest das Werkzeug nur. Das Konto ist in jedem Modus nötig.
  *
  * @return array{file: string, owner: int, execute: bool, wipe: bool, reuse: bool, expect: int|null}|null
  */
 function import_read_arguments(array $argv, string $projectRoot): ?array
 {
-    /* No default file: the CSV files that once lived in database/import/ are
-       deleted, because their content is in the database. A run without
-       --file= stops with a clear message instead of pointing at a file that
-       does not exist any more. */
+    /* Keine Vorgabedatei: die CSV-Dateien, die einmal in database/import/ lagen, sind
+       gelöscht, weil ihr Inhalt in der Datenbank steht. Ein Lauf ohne --file= bricht
+       mit einer klaren Meldung ab, statt auf eine Datei zu zeigen, die es nicht mehr
+       gibt. */
     $file = null;
     $owner = null;
     $execute = false;
