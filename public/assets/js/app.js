@@ -245,16 +245,16 @@
             return apiRequest(config.endpoints.cards + '?category_id=' + encodeURIComponent(categoryId)
                 + '&language=' + encodeURIComponent(locale), 'GET').then(function (result) {
                 /*
-                 * The answer carries the streak as well. Keep the newest one, so a
-                 * later view drawn out of the bootstrap cannot show an older number
-                 * than the one that just came from the server.
+                 * Die Antwort trägt die Serie mit. Die neueste behalten, damit eine
+                 * spätere Ansicht aus dem Aufbau nicht eine ältere Zahl zeigt als die, die
+                 * gerade vom Server kam.
                  */
                 if (result.ok && result.data !== null && typeof result.data === 'object'
                     && result.data.streak !== null && typeof result.data.streak === 'object') {
                     /*
-                     * The answer is about one subcategory, so it belongs in the map.
-                     * Without a map (the category column does not exist yet) the number
-                     * is the one for the whole person.
+                     * Die Antwort betrifft eine Unterkategorie, sie gehört also in die
+                     * Zuordnung. Ohne Zuordnung (die Kategoriespalte gibt es noch nicht) ist
+                     * die Zahl die der ganzen Person.
                      */
                     if (bootstrapCache.streaks === null) {
                         bootstrapCache.streak = result.data.streak;
@@ -282,8 +282,8 @@
                 data: {
                     cards: cached,
                     summary: bootstrapCache.summaries[String(categoryId)] || null,
-                    /* The streak comes from the same cache the cards come from - see
-                       the empty list above. */
+                    /* Die Serie kommt aus demselben Speicher wie die Karten - siehe die
+                       leere Liste oben. */
                     streak: streakForCategory(categoryId),
                     has_user: bootstrapCache.hasUser,
                     content_languages: bootstrapCache.contentLanguages,
@@ -293,7 +293,7 @@
         });
     }
 
-    /* Fresh numbers for the exercise cards of one list, in one request. */
+    /* Frische Zahlen für die Übungskarten einer Liste, in einer Anfrage. */
     function fetchExerciseTasks(cards) {
         var items = cards.slice(0, 50).map(function (card) {
             return {
@@ -321,13 +321,13 @@
     }
 
     /* ----------------------------------------------------------------------
-       What a write takes out of the store - and what it leaves in it
+       Was ein Schreibvorgang aus dem Speicher nimmt - und was er darin lässt
        ---------------------------------------------------------------------- */
 
     /*
-     * A write changes at most two things: the cards of one category and the
-     * counters of the category tree. Everything else stays in the store, so the
-     * next view is still drawn without a request.
+     * Ein Schreibvorgang ändert höchstens zwei Dinge: die Karten einer Kategorie und die
+     * Zähler des Kategoriebaums. Alles andere bleibt im Speicher, die nächste Ansicht
+     * entsteht also weiterhin ohne Anfrage.
      */
     function bootstrapDropCards(categoryId) {
         if (categoryId === null || categoryId === undefined) {
@@ -341,8 +341,9 @@
 
     function bootstrapDropCategories() {
         /*
-         * A parent that had subcategories in the answer becomes unknown again: only
-         * a parent that never had any may answer with an empty list without asking.
+         * Ein Elternteil, der in der Antwort Unterkategorien hatte, wird wieder unbekannt:
+         * nur ein Elternteil, der nie welche hatte, darf ohne Nachfragen mit einer leeren
+         * Liste antworten.
          */
         Object.keys(bootstrapCache.children).forEach(function (parentId) {
             delete bootstrapCache.known[parentId];
@@ -359,9 +360,9 @@
     }
 
     /*
-     * For changes that touch many rows at once (an import) or whose outcome is
-     * unclear (a row that was already gone somewhere else). Then nothing may be
-     * taken for granted, and the next view loads what it needs again.
+     * Für Änderungen, die viele Zeilen auf einmal treffen (ein Import) oder deren Ausgang
+     * unklar ist (eine Zeile, die woanders schon weg war). Dann darf nichts als gegeben
+     * gelten, und die nächste Ansicht lädt neu, was sie braucht.
      */
     function bootstrapDropAll() {
         responseCache = {};
@@ -371,30 +372,31 @@
         bootstrapCache.summaries = {};
         bootstrapCache.known = {};
 
-        /* The promise stays: the bootstrap itself is not asked again for every
-           single write. The next full page load starts with a fresh one. */
+        /* Das Versprechen bleibt: der Aufbau selbst wird nicht für jeden einzelnen
+           Schreibvorgang erneut erfragt. Der nächste volle Seitenaufbau fängt mit einem
+           frischen an. */
         bootstrapCache.promise = null;
     }
 
-    /* Set when a new area was just created, so its tile can be animated in. */
+    /* Gesetzt, wenn gerade ein neuer Bereich angelegt wurde, damit seine Kachel
+       hereingeblendet werden kann. */
     var newAreaId = null;
 
-    /* The tiles of the current start page, linked by position for the hover. */
+    /* Die Kacheln der aktuellen Startseite, nach Position verknüpft für den Hover. */
     var linkedTiles = [];
 
     /*
-     * What the detail view is showing right now. "currentEntry" is the category
-     * the page belongs to, so the plus button, the edit button and the dialog
-     * titles can all answer the question "what would this act on?".
+     * Was die Detailansicht gerade zeigt. "currentEntry" ist die Kategorie, zu der die
+     * Seite gehört, damit der Plus-Knopf, der Bearbeiten-Knopf und die Dialogtitel alle
+     * die Frage "worauf würde das wirken?" beantworten können.
      */
     var currentEntry = null;
     var currentEntryCards = [];
 
     /*
-     * What the card list of the open subcategory knows: the cards themselves, the
-     * counts the API made and the text in the search field. The list is filtered
-     * in the browser and never reloaded for a search - the filter only looks at
-     * what is already there.
+     * Was die Kartenliste der geöffneten Unterkategorie weiß: die Karten selbst, die
+     * Zählungen der API und den Text im Suchfeld. Die Liste wird im Browser gefiltert und
+     * für eine Suche nie neu geladen - der Filter sieht nur an, was schon da ist.
      */
     var openCards = [];
     var openCardSummary = null;
