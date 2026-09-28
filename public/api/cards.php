@@ -3,23 +3,23 @@
 declare(strict_types=1);
 
 /**
- * GET  /api/cards.php?category_id=7 -> the flashcards of one category
- * POST /api/cards.php               -> creates a flashcard in that category
+ * GET  /api/cards.php?category_id=7 -> die Lernkarten einer Kategorie
+ * POST /api/cards.php               -> legt eine Lernkarte in dieser Kategorie an
  *
- * Body of the POST:
+ * Inhalt des POST:
  *   {
  *     "category_id": 7,
- *     "front": "What is 2 + 2?",
+ *     "front": "Was ist 2 + 2?",
  *     "back": "4",
  *     "is_bidirectional": false
  *   }
  *
- * A card belongs to exactly one category through cards.category_id. Cards are
- * normally created inside a subcategory, which is the level this app offers for
- * them, but the endpoint accepts any category that exists.
+ * Eine Karte gehört über cards.category_id zu genau einer Kategorie. Angeboten
+ * werden Karten normalerweise in einer Unterkategorie, das ist die Ebene, die diese
+ * Anwendung dafür vorsieht; der Endpunkt nimmt aber jede Kategorie an, die es gibt.
  *
- * Studying and repeating cards (the spaced repetition) is NOT part of this
- * endpoint: it only stores and reads the card itself.
+ * Lernen und Wiederholen (die Abstände) gehören NICHT zu diesem Endpunkt: er legt die
+ * Karte nur an und liest sie wieder.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -54,7 +54,7 @@ if ($method === 'POST') {
         $pdo = create_database_connection();
         $userId = current_user_id($pdo);
 
-        /* A card belongs to a category, and a category belongs to an account. */
+        /* Eine Karte gehört zu einer Kategorie, und eine Kategorie gehört einem Konto. */
         if ($userId === null) {
             $required = session_user_required_error();
 
@@ -66,9 +66,10 @@ if ($method === 'POST') {
         }
 
         /*
-         * The text of every language the table can hold. German lives in the two
-         * original columns, English in the two the migration adds. A language the
-         * table does not have is refused instead of being dropped without a word.
+         * Der Text jeder Sprache, die die Tabelle haben kann. Deutsch steht in den
+         * beiden ursprünglichen Spalten, Englisch in den beiden, die die Migration
+         * hinzufügt. Eine Sprache, die die Tabelle nicht hat, wird abgelehnt statt
+         * wortlos fallengelassen.
          */
         $columns = card_columns($pdo);
         $languages = card_content_languages($columns);
@@ -81,9 +82,9 @@ if ($method === 'POST') {
         }
 
         /*
-         * The exercise is read before the text is judged, because it decides which
-         * rule applies: a fixed card needs a question and an answer, an exercise
-         * card only needs a title - its answer comes from the generator.
+         * Die Aufgabe wird gelesen, bevor der Text beurteilt wird, denn sie entscheidet,
+         * welche Regel gilt: eine feste Karte braucht Frage und Antwort, eine
+         * Übungskarte nur eine Überschrift - ihre Antwort kommt aus dem Erzeuger.
          */
         $exerciseRequest = card_exercise_from_request($body);
 
@@ -127,7 +128,7 @@ if ($method === 'POST') {
             );
         }
 
-        /* The map region is optional and may be missing, null or empty. */
+        /* Die Kartenregion ist freiwillig und darf fehlen, null oder leer sein. */
         $mapRegion = optional_input_text($body, 'map_region', CARD_MAP_REGION_MAX_LENGTH, 'invalid_map_region');
 
         if ($mapRegion !== null && !card_map_region_is_valid($mapRegion)) {
@@ -148,7 +149,7 @@ if ($method === 'POST') {
 
 $categoryId = require_query_id('category_id', 'invalid_category_id');
 
-/* The interface says which of its two languages it is showing. */
+/* Die Oberfläche sagt, welche ihrer beiden Sprachen sie gerade zeigt. */
 $language = optional_query_language();
 
 try {
@@ -156,16 +157,18 @@ try {
     $userId = current_user_id($pdo);
 
     /*
-     * A category belongs to an account. Without one there is no category to read
-     * and no progress to show, so the answer is the empty list with 200 - the
-     * same shape the interface expects (decided with the account work).
+     * Eine Kategorie gehört einem Konto. Ohne eines gibt es keine Kategorie zu lesen
+     * und keinen Fortschritt zu zeigen, geantwortet wird deshalb mit der leeren Liste
+     * und 200 - dieselbe Form, die die Oberfläche erwartet (so mit der
+     * Konten-Arbeit entschieden).
      */
     if ($userId === null) {
         send_json_success([
             'cards' => [],
             'summary' => review_summarise_cards([]),
-            /* Nobody is signed in, so there is no streak to show - but the key is
-               there, so the browser never has to guess whether it was forgotten. */
+            /* Niemand ist angemeldet, es gibt also keine Serie zu zeigen - der
+               Schlüssel steht aber da, damit der Browser nie raten muss, ob er
+               vergessen wurde. */
             'streak' => ['available' => false, 'days' => 0],
             'has_user' => false,
             'content_languages' => card_content_languages(card_columns($pdo)),
@@ -178,20 +181,21 @@ try {
     }
 
     /*
-     * Every card carries the status it has for the signed-in user.
+     * Jede Karte trägt den Stand, den sie für das angemeldete Konto hat.
      */
     $cards = review_cards_with_progress($pdo, $categoryId, $userId, $language);
 
-    // An empty list is a valid answer and lets the page show its empty state.
+    // Eine leere Liste ist eine gültige Antwort und lässt die Seite ihren leeren
+    // Zustand zeigen.
     send_json_success([
         'cards' => $cards,
         'summary' => review_summarise_cards($cards),
-        /* How many days in a row this person studied in THIS subcategory - see
-           src/services/dashboard_service.php. */
+        /* Wie viele Tage in Folge diese Person in DIESER Unterkategorie gelernt hat -
+           siehe src/services/dashboard_service.php. */
         'streak' => dashboard_streak($pdo, $userId, $categoryId),
         'has_user' => $userId !== null,
-        /* Which languages this table can hold: one, or two after the
-           migration. The card dialog shows its language tabs only for two. */
+        /* Welche Sprachen diese Tabelle haben kann: eine, oder zwei nach der
+           Migration. Der Kartendialog zeigt seine Sprachreiter nur bei zwei. */
         'content_languages' => card_content_languages(card_columns($pdo)),
         'language' => $language,
     ]);
