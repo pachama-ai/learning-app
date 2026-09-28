@@ -3,93 +3,97 @@
 declare(strict_types=1);
 
 /**
- * Command line import of flashcards from a CSV file.
+ * Import von Lernkarten aus einer CSV-Datei auf der Kommandozeile.
  *
- *   php bin/import_energy_cards.php --file=<path> --dry-run
- *   php bin/import_energy_cards.php --file=<path> \
+ *   php bin/import_energy_cards.php --file=<Pfad> --dry-run
+ *   php bin/import_energy_cards.php --file=<Pfad> \
  *        --execute --wipe-subcategories --expect=209
  *
- * The file has to be named with --file=: there is no default file any more,
- * because the CSV files that once lived in database/import/ are gone (their
- * content is in the database).
+ * Die Datei muss mit --file= benannt werden: eine Vorgabedatei gibt es nicht mehr,
+ * weil die CSV-Dateien, die einmal in database/import/ lagen, weg sind (ihr Inhalt steht
+ * in der Datenbank).
  *
- * The file is UTF-8 and separated by semicolons. Two headers are accepted, and two
- * optional columns may follow the required ones:
+ * Die Datei ist UTF-8 und mit Semikolon getrennt. Zwei Kopfzeilen werden angenommen, und
+ * den nötigen Spalten dürfen zwei freiwillige folgen:
  *
  *   ...;is_bidirectional[;map_region][;exercise]
  *
- * The --exercise column names a generated task instead of a fixed card:
+ * Die Spalte --exercise benennt eine erzeugte Aufgabe statt einer festen Karte:
  *
- *   <kind of task>                          the defaults of that kind
- *   <kind of task>:<name>=<value>,<name>=<value>
+ *   <Aufgabenart>                          die Vorgaben dieser Art
+ *   <Aufgabenart>:<name>=<wert>,<name>=<wert>
  *
- * Examples:
+ * Beispiele:
  *
  *   times_table:min=2,max=20
  *   percent:min=10,max=1000,ask=rate
  *   percent_energy:variants=mix|storage_level
  *   division_inverse:min=2,max=20,remainder=yes
  *
- * A parameter that allows several options at once is written with a pipe, a
- * yes/no parameter takes yes or no. A card with an exercise needs a title, not an
- * answer: the answer is built when the card is shown. An empty cell means a fixed
- * card, so every file written so far keeps working unchanged. Which kinds of task
- * exist and which numbers each of them takes is written down in exactly one place:
- * exercise_catalog() in src/services/exercise_service.php.
+ * Ein Parameter, der mehrere Auswahlen auf einmal erlaubt, wird mit einem senkrechten
+ * Strich geschrieben, ein Ja/Nein-Parameter nimmt yes oder no. Eine Karte mit einer
+ * Aufgabe braucht eine Überschrift und keine Antwort: die Antwort entsteht, wenn die
+ * Karte gezeigt wird. Eine leere Zelle heißt eine feste Karte, jede bisher geschriebene
+ * Datei arbeitet also unverändert weiter. Welche Aufgabenarten es gibt und welche Zahlen
+ * jede von ihnen nimmt, steht an genau einer Stelle: exercise_catalog() in
+ * src/services/exercise_service.php.
  *
  *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional
  *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional;map_region
  *
- * A row must carry at least one complete language (front side and back side);
- * the second language may be missing, but not half filled. map_region is either
- * empty or "AREA:REGION" with AREA one of DE, EU, WORLD - see the pattern below.
+ * Eine Zeile muss mindestens eine vollständige Sprache tragen (Vorder- und Rückseite);
+ * die zweite Sprache darf fehlen, aber nicht halb gefüllt sein. map_region ist entweder
+ * leer oder "AREA:REGION", wobei AREA eines von DE, EU, WORLD ist - siehe das Muster
+ * weiter unten.
  *
- * The learning area named in the file has to exist already: this tool never
- * creates one. It creates the subcategories of the file below that area.
+ * Den Lernbereich, den die Datei nennt, muss es schon geben: dieses Werkzeug legt keinen
+ * an. Es legt die Unterkategorien der Datei unter diesem Bereich an.
  *
- * What this script does
+ * Was dieses Skript tut
  *
- *   STEP A  (only with --wipe-subcategories)
- *           Removes EVERY subcategory of the tree, whichever learning area it
- *           belongs to, and any level below that. The order is fixed by the
- *           foreign keys and is the same order the application uses:
- *             1. the learning progress of the cards in those categories
- *             2. the cards themselves
- *             3. the categories, deepest level first
- *           Learning areas, users and cards that hang directly on an area are
- *           NOT deleted. If such cards exist they are reported loudly, because
- *           they are the one case where the result should be looked at before
- *           anything is executed.
+ *   SCHRITT A  (nur mit --wipe-subcategories)
+ *           Entfernt JEDE Unterkategorie des Baums, egal zu welchem Lernbereich sie
+ *           gehört, und jede Ebene darunter. Die Reihenfolge ist von den Fremdschlüsseln
+ *           vorgegeben und dieselbe, die die Anwendung benutzt:
+ *             1. der Lernfortschritt der Karten in diesen Kategorien
+ *             2. die Karten selbst
+ *             3. die Kategorien, tiefste Ebene zuerst
+ *           Lernbereiche, Konten und Karten, die direkt an einem Bereich hängen,
+ *           werden NICHT gelöscht. Gibt es solche Karten, wird laut gemeldet, denn das
+ *           ist der eine Fall, in dem das Ergebnis angeschaut werden sollte, bevor
+ *           etwas ausgeführt wird.
  *
- *   STEP B  Imports the file: one subcategory per different `subcategory` value
- *           (in the order of first appearance) under the learning area named in
- *           `parent_category`, then every card, in the order of the file.
+ *   SCHRITT B  Importiert die Datei: eine Unterkategorie je verschiedenem
+ *           `subcategory`-Wert (in der Reihenfolge des ersten Auftretens) unter dem
+ *           Lernbereich aus `parent_category`, dann jede Karte, in der Reihenfolge der
+ *           Datei.
  *
  *   --allow-existing-subcategories
- *           A subcategory of the file that already exists under the target area is
- *           REUSED: the cards go into it and no second subcategory with the same
- *           name appears. Without this flag such a file stops with a message
- *           instead. Even with the flag a run refuses when a card of the file
- *           already sits in that subcategory, so a real duplicate cannot slip
- *           through.
+ *           Eine Unterkategorie der Datei, die es unter dem Zielbereich schon gibt,
+ *           wird WEITERBENUTZT: die Karten kommen hinein und es entsteht keine zweite
+ *           Unterkategorie mit demselben Namen. Ohne diesen Schalter bricht so eine
+ *           Datei mit einer Meldung ab. Auch mit dem Schalter verweigert ein Lauf, wenn
+ *           eine Karte der Datei schon in dieser Unterkategorie liegt, ein echtes
+ *           Doppel kann also nicht durchrutschen.
  *
- * Safety
+ * Sicherheit
  *
- *   * Everything - the deletion AND the import - happens in ONE transaction.
- *     Any error rolls the whole thing back, so the database is either exactly
- *     as it was before or fully imported. Never half.
- *   * The file is validated completely before the first statement runs, and the
- *     counts of the file are compared with the numbers this import expects.
- *   * --execute refuses to run while a subcategory of the file already exists under
- *     the target area - unless --wipe-subcategories replaces them or
- *     --allow-existing-subcategories reuses them. The name of a subcategory is the
- *     guard against importing the same file twice; with the reuse flag that guard
- *     moves to the cards, which are compared by their front side.
- *   * No area is created, renamed or deleted. Nothing about the table structure
- *     is touched, and no progress row is written.
+ *   * Alles - das Löschen UND der Import - passiert in EINER Transaktion. Jeder Fehler
+ *     rollt das Ganze zurück, die Datenbank ist also entweder genau wie vorher oder
+ *     vollständig importiert. Nie halb.
+ *   * Die Datei wird vollständig geprüft, bevor die erste Anweisung läuft, und die
+ *     Zahlen der Datei werden mit denen verglichen, die dieser Import erwartet.
+ *   * --execute verweigert den Lauf, solange eine Unterkategorie der Datei unter dem
+ *     Zielbereich schon existiert - außer --wipe-subcategories ersetzt sie oder
+ *     --allow-existing-subcategories benutzt sie weiter. Der Name einer Unterkategorie
+ *     ist der Schutz davor, dieselbe Datei zweimal zu importieren; mit dem
+ *     Weiterbenutzen-Schalter wandert dieser Schutz zu den Karten, die über ihre
+ *     Vorderseite verglichen werden.
+ *   * Kein Bereich wird angelegt, umbenannt oder gelöscht. An der Tabellenstruktur wird
+ *     nichts angefasst, und es wird keine Fortschrittszeile geschrieben.
  *
- * The script is a command line tool. It has no URL, it is not part of the web
- * root and it prints no credentials, no SQL and no file paths.
+ * Das Skript ist ein Kommandozeilen-Werkzeug. Es hat keine Adresse, gehört nicht zum
+ * Web-Verzeichnis und gibt keine Zugangsdaten, kein SQL und keine Dateipfade aus.
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -103,10 +107,10 @@ $projectRoot = dirname(__DIR__);
 require_once $projectRoot . '/src/config/database.php';
 require_once $projectRoot . '/src/services/card_service.php';
 
-/** The header without a map, in this exact order. */
+/** Die Kopfzeile ohne Karte, in genau dieser Reihenfolge. */
 const CSV_HEADER = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
-/** The header of a file that also carries a map region. */
+/** Die Kopfzeile einer Datei, die zusätzlich eine Kartenregion trägt. */
 const CSV_HEADER_WITH_REGION = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region'];
 
 /**
