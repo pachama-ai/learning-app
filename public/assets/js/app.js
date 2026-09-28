@@ -5608,9 +5608,9 @@
     }
 
     /*
-     * The live preview inside the card dialog: the two text fields as they are
-     * typed, in the shape the study session uses, so what is written is what will
-     * be asked later.
+     * Die lebende Vorschau im Kartenfenster: die beiden Textfelder so, wie sie getippt werden, in
+     * der Form, die die Lerneinheit benutzt, das Geschriebene ist also das, was später gefragt
+     * wird.
      */
     function buildCardPreview() {
         var wrap = el('div', 'dialog__field dialog__field--preview');
@@ -5619,7 +5619,7 @@
         var label = el('p', 'dialog__label', t('dialog.card.preview'));
         label.setAttribute('data-i18n', 'dialog.card.preview');
 
-        /* Which language is in the preview right now. */
+        /* Welche Sprache gerade in der Vorschau steht. */
         var language = el('span', 'dialog__preview-language', '');
         language.id = 'card-preview-language';
 
@@ -5627,9 +5627,9 @@
         head.appendChild(language);
 
         /*
-         * The preview can be turned over, so both sides of what is being written
-         * are visible before saving. It is reachable with the keyboard like any
-         * other control on the page.
+         * Die Vorschau lässt sich umdrehen, beide Seiten des Geschriebenen sind also zu sehen,
+         * bevor gespeichert wird. Sie ist mit der Tastatur erreichbar wie jede andere Bedienung
+         * auf der Seite.
          */
         var card = el('div', 'card-preview');
         card.setAttribute('role', 'button');
@@ -5657,9 +5657,9 @@
         back.id = 'card-preview-back';
 
         /*
-         * Two sides, exactly like the card in a session: the front is what is
-         * asked, the back is what is answered, and the click on the preview
-         * shows one or the other.
+         * Zwei Seiten, genau wie die Karte in einer Einheit: die Vorderseite ist das, was gefragt
+         * wird, die Rückseite das, was geantwortet wird, und der Klick auf die Vorschau zeigt
+         * das eine oder das andere.
          */
         var frontSide = el('div', 'card-preview__side card-preview__side--front');
         frontSide.appendChild(frontLabel);
@@ -5669,7 +5669,7 @@
         backSide.appendChild(backLabel);
         backSide.appendChild(back);
 
-        /* The live preview of the map, on the side that carries the answer. */
+        /* Die lebende Vorschau der Landkarte, auf der Seite, die die Antwort trägt. */
         var previewMap = el('div', 'card-map card-map--preview');
         previewMap.id = 'card-preview-map';
         previewMap.hidden = true;
@@ -5693,7 +5693,7 @@
         return wrap;
     }
 
-    /* Writes the two fields into the preview, keeping the line breaks. */
+    /* Schreibt die beiden Felder in die Vorschau und behält die Zeilenumbrüche bei. */
     function updateCardPreview() {
         if (dialogKind !== 'card' || !dialogFields.front || !dialogFields.back) {
             return;
@@ -5730,10 +5730,10 @@
     }
 
     /*
-     * The two keyboard shortcuts of the card dialog: typing in the fields updates
-     * the preview, and Ctrl+Enter saves without reaching for the mouse. Tab is
-     * left alone - it goes from the front to the back by itself, because that is
-     * the order of the fields.
+     * Die beiden Tastenkürzel des Kartenfensters: Tippen in den Feldern aktualisiert die Vorschau,
+     * und Strg+Enter speichert, ohne zur Maus zu greifen. Die Tabulatortaste wird in Ruhe
+     * gelassen - sie geht von der Vorderseite zur Rückseite von selbst, weil das die Reihenfolge
+     * der Felder ist.
      */
     function wireCardDialogShortcuts() {
         ['front', 'back'].forEach(function (name) {
