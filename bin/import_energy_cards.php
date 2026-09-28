@@ -114,39 +114,39 @@ const CSV_HEADER = ['parent_category', 'subcategory', 'front_de', 'back_de', 'fr
 const CSV_HEADER_WITH_REGION = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region'];
 
 /**
- * The header of a file whose last column names a generated exercise.
+ * Die Kopfzeile einer Datei, deren letzte Spalte eine erzeugte Aufgabe benennt.
  *
- * The column is optional and may also follow the map_region column. An empty
- * cell means a fixed card, which is what every file written so far says, so an
- * older file keeps working unchanged.
+ * Die Spalte ist freiwillig und darf auch auf die Spalte für die Kartenregion folgen. Eine
+ * leere Zelle heißt eine feste Karte, und das sagt jede bisher geschriebene Datei, eine
+ * ältere Datei arbeitet also unverändert weiter.
  */
 const CSV_HEADER_WITH_EXERCISE = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'exercise'];
 
-/** The header of a file with both optional columns, in this order. */
+/** Die Kopfzeile einer Datei mit beiden freiwilligen Spalten, in dieser Reihenfolge. */
 const CSV_HEADER_WITH_REGION_AND_EXERCISE = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region', 'exercise'];
 
-/** Longest accepted subcategory name (the column is varchar(100)). */
+/** Längster angenommener Name einer Unterkategorie (die Spalte ist varchar(100)). */
 const MAX_SUBCATEGORY_LENGTH = 100;
 
-/** Longest accepted card text, the same limit the API enforces. */
+/** Längster angenommener Kartentext, dieselbe Grenze, die die API durchsetzt. */
 const MAX_CARD_TEXT_LENGTH = 2000;
 
-/** Longest accepted map_region value (the column is varchar(40)). */
+/** Längster angenommener map_region-Wert (die Spalte ist varchar(40)). */
 const MAX_REGION_LENGTH = 40;
 
 /**
- * What a map_region value may look like: the area is one of three names, the
- * region is a plain identifier (letters, digits, underscore, hyphen).
+ * Wie ein map_region-Wert aussehen darf: der Bereich ist einer von drei Namen, die Region
+ * eine schlichte Kennung (Buchstaben, Ziffern, Unterstrich, Bindestrich).
  *
- * Baden__x26__Württemberg is the id of that state in germany.svg, which is why
- * letters with umlauts are allowed here as well.
+ * Baden__x26__Württemberg ist die Id dieses Bundeslandes in germany.svg, deshalb sind
+ * auch Buchstaben mit Umlauten hier erlaubt.
  */
 const REGION_PATTERN = '/^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/u';
 
 exit(import_main($argv, $projectRoot));
 
 /**
- * Runs the whole tool and returns the exit code.
+ * Führt das ganze Werkzeug aus und liefert den Rückgabecode.
  */
 function import_main(array $argv, string $projectRoot): int
 {
@@ -451,9 +451,9 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
     }
 
     /*
-     * The owner is required in every mode, not only with --execute: the dry run
-     * has to look at the areas of that user as well, otherwise it would count
-     * an area of another account that happens to have the same name.
+     * Das Konto ist in jedem Modus nötig, nicht nur mit --execute: auch der Probelauf
+     * muss die Bereiche dieses Kontos anschauen, sonst würde er einen Bereich eines
+     * anderen Kontos mitzählen, der zufällig denselben Namen hat.
      */
     if ($owner === null) {
         echo "No owner given. Pass --owner=<id> with the id of a user in the users table.\n\n";
