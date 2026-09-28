@@ -847,7 +847,7 @@ function exercise_parse_cell(string $cell): array
             continue;
         }
 
-        /* The remaining kind is a yes/no parameter. */
+        /* Die übrig bleibende Art ist ein Ja/Nein-Parameter. */
         $lower = mb_strtolower($value);
 
         if (!in_array($lower, ['yes', 'no', 'ja', 'nein', '1', '0', 'true', 'false'], true)) {
@@ -858,9 +858,9 @@ function exercise_parse_cell(string $cell): array
     }
 
     /*
-     * A number outside its limits is pulled into them, the same way a stored card
-     * is treated when it is read: a file is written by hand, so it may be a little
-     * off without failing the whole import.
+     * Eine Zahl außerhalb ihrer Grenzen wird in sie hineingezogen, genauso wie eine
+     * gespeicherte Karte beim Lesen behandelt wird: eine Datei wird von Hand geschrieben,
+     * sie darf also ruhig etwas danebenliegen, ohne den ganzen Import scheitern zu lassen.
      */
     $params = exercise_normalise_params($type, $params);
 
