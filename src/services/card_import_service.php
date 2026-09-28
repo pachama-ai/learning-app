@@ -479,8 +479,8 @@ function card_import_language_complete(array $values, string $language): bool
 }
 
 /**
- * The front side a duplicate is looked up by: German when it is there, English
- * otherwise. Nothing else on a card says "this is the same question".
+ * Die Vorderseite, über die ein Doppel gesucht wird: Deutsch, wenn da ist, sonst
+ * Englisch. Nichts anderes an einer Karte sagt "das ist dieselbe Frage".
  *
  * @param array<string, string> $values
  */
@@ -494,8 +494,8 @@ function card_import_row_front(array $values): string
 }
 
 /**
- * The comparison key of a front side: trimmed and case insensitive, so "Was ist
- * Strom?" and "was ist strom?" count as the same question.
+ * Der Vergleichsschlüssel einer Vorderseite: getrimmt und ohne Rücksicht auf Groß- und
+ * Kleinschreibung, "Was ist Strom?" und "was ist strom?" zählen also als dieselbe Frage.
  */
 function card_import_front_key(string $front): string
 {
@@ -503,8 +503,9 @@ function card_import_front_key(string $front): string
 }
 
 /**
- * Turns one row into the values the import writes. The keys are the names the
- * file uses; card_import_insert() maps them onto the real columns of the table.
+ * Macht aus einer Zeile die Werte, die der Import schreibt. Die Schlüssel sind die Namen,
+ * die die Datei benutzt; card_import_insert() bildet sie auf die echten Spalten der
+ * Tabelle ab.
  *
  * @param array<string, string> $values
  * @return array<string, mixed>
@@ -519,13 +520,13 @@ function card_import_card_from_row(array $values): array
         'front_en' => $values['front_en'],
         'back_en' => $values['back_en'],
         'is_bidirectional' => in_array($flag, CARD_IMPORT_TRUE_VALUES, true),
-        /* null means: a fixed card, exactly as before this column existed. */
+        /* null heißt: eine feste Karte, genau wie vor dieser Spalte. */
         'exercise' => exercise_parse_cell(trim((string) ($values['exercise'] ?? '')))['exercise'],
     ];
 }
 
 /**
- * One row of the preview table.
+ * Eine Zeile der Vorschauliste.
  *
  * @param array<string, string> $values
  * @return array<string, mixed>
@@ -539,7 +540,7 @@ function card_import_preview_row(int $line, array $values, bool $imports, string
         'front_en' => $values['front_en'],
         'back_en' => $values['back_en'],
         'is_bidirectional' => in_array(mb_strtolower(trim($values['is_bidirectional'])), CARD_IMPORT_TRUE_VALUES, true),
-        /* What stands in the exercise column, so the preview can show it. */
+        /* Was in der Aufgaben-Spalte steht, damit die Vorschau es zeigen kann. */
         'exercise' => trim((string) ($values['exercise'] ?? '')),
         'state' => $state,
         'imports' => $imports,
@@ -547,10 +548,10 @@ function card_import_preview_row(int $line, array $values, bool $imports, string
 }
 
 /**
- * The front sides that already exist in one subcategory, as comparison keys.
+ * Die Vorderseiten, die es in einer Unterkategorie schon gibt, als Vergleichsschlüssel.
  *
- * Both languages are collected: a German card and an English card with the same
- * question would be the same card for the person who reads them.
+ * Beide Sprachen werden gesammelt: eine deutsche und eine englische Karte mit derselben
+ * Frage wären für die lesende Person dieselbe Karte.
  *
  * @return array<string, true>
  */
@@ -573,8 +574,8 @@ function card_import_existing_fronts(PDO $pdo, int $categoryId, int $ownerUserId
 
     foreach ($statement->fetchAll() as $row) {
         foreach ($pairs as $pair) {
-            /* Only the front side counts: the back side of another card is not
-               the same question. */
+            /* Nur die Vorderseite zählt: die Rückseite einer anderen Karte ist nicht
+               dieselbe Frage. */
             $value = trim((string) ($row[$pair[0]] ?? ''));
 
             if ($value !== '') {
@@ -587,15 +588,15 @@ function card_import_existing_fronts(PDO $pdo, int $categoryId, int $ownerUserId
 }
 
 /**
- * Writes the cards into one subcategory, all or nothing.
+ * Schreibt die Karten in eine Unterkategorie, alle oder keine.
  *
- * Every card goes through create_card_translated(), the same function the card
- * dialog uses, so an imported card is stored exactly like a typed one - including
- * the German text in front/back for the columns that are NOT NULL. No
- * user_card_progress row is written: an imported card counts as new.
+ * Jede Karte geht durch create_card_translated(), dieselbe Funktion, die der Kartendialog
+ * benutzt, eine importierte Karte wird also genau wie eine eingetippte gespeichert -
+ * samt dem deutschen Text in front/back für die Spalten, die NOT NULL sind. Es wird keine
+ * Zeile in user_card_progress geschrieben: eine importierte Karte zählt als neu.
  *
  * @param list<array<string, mixed>> $cards
- * @return int How many cards were written.
+ * @return int Wie viele Karten geschrieben wurden.
  */
 function card_import_insert(PDO $pdo, int $categoryId, array $cards, int $ownerUserId): int
 {
@@ -608,10 +609,10 @@ function card_import_insert(PDO $pdo, int $categoryId, array $cards, int $ownerU
     try {
         foreach ($cards as $card) {
             /*
-             * create_card_translated() writes by column name, so the names of the
-             * file are translated into the names the table really has. On a table
-             * from before the language columns that is the same German text under
-             * the names front and back.
+             * create_card_translated() schreibt nach Spaltenname, die Namen der Datei
+             * werden also in die Namen übersetzt, die die Tabelle wirklich hat. Auf einer
+             * Tabelle von vor den Sprachspalten ist das derselbe deutsche Text unter den
+             * Namen front und back.
              */
             $texts = [];
 
@@ -625,8 +626,8 @@ function card_import_insert(PDO $pdo, int $categoryId, array $cards, int $ownerU
             }
 
             /*
-             * The exercise travels the same way a card written in the dialog does:
-             * one transaction, and the numbers in the same shape the dialog sends.
+             * Die Aufgabe reist genauso, wie es eine im Dialog geschriebene Karte tut: eine
+             * Transaktion, und die Zahlen in derselben Form, die der Dialog schickt.
              */
             create_card_translated(
                 $pdo,
@@ -644,8 +645,8 @@ function card_import_insert(PDO $pdo, int $categoryId, array $cards, int $ownerU
         $pdo->commit();
     } catch (Throwable $error) {
         /*
-         * One row that cannot be stored means no row is stored: there is no such
-         * thing as half an import.
+         * Eine Zeile, die nicht gespeichert werden kann, heißt: keine Zeile wird
+         * gespeichert. Einen halben Import gibt es nicht.
          */
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
