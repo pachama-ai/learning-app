@@ -1208,12 +1208,13 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
     }
 
     /*
-     * The cards go in the order of the file. There is no sort column: the list is
-     * ordered by id, so the ids ascending are the order of the file.
+     * Die Karten kommen in der Reihenfolge der Datei. Eine Sortierspalte gibt es nicht:
+     * die Liste wird nach Id sortiert, aufsteigende Ids sind also die Reihenfolge der
+     * Datei.
      *
-     * The two old columns front and back are NOT NULL and still read by older
-     * code, so they carry the German text as well - the same rule the application
-     * uses when a card is saved in the dialog.
+     * Die beiden alten Spalten front und back sind NOT NULL und werden von älterem Code
+     * noch gelesen, sie tragen deshalb auch den deutschen Text - dieselbe Regel, die die
+     * Anwendung benutzt, wenn eine Karte im Dialog gespeichert wird.
      */
     $insertCard = $pdo->prepare(
         'INSERT INTO cards
@@ -1237,10 +1238,10 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
         $insertCard->execute();
 
         /*
-         * An exercise card gets its row in card_exercises right away, in the same
-         * transaction: the numbers of the task belong to the card. save_card_exercise()
-         * is the same function the card endpoints use, and it refuses to write when
-         * the migration for the column is missing.
+         * Eine Übungskarte bekommt ihre Zeile in card_exercises sofort, in derselben
+         * Transaktion: die Zahlen der Aufgabe gehören zur Karte. save_card_exercise()
+         * ist dieselbe Funktion, die die Karten-Endpunkte benutzen, und sie weigert sich
+         * zu schreiben, wenn die Migration für die Spalte fehlt.
          */
         if ($row['exercise'] !== null) {
             save_card_exercise($pdo, (int) $pdo->lastInsertId(), $row['exercise']);
@@ -1254,7 +1255,7 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
         echo 'exercise cards: ' . $createdExercises . "\n";
     }
 
-    /* Every subcategory must have its cards, and the total must be right. */
+    /* Jede Unterkategorie muss ihre Karten haben, und die Summe muss stimmen. */
     if ($createdCards !== count($csv['rows'])) {
         throw new RuntimeException('not every card was written (' . $createdCards . ' of ' . count($csv['rows']) . ')');
     }
@@ -1272,26 +1273,26 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
 }
 
 /**
- * Deletes every subcategory BELOW one learning area.
+ * Löscht jede Unterkategorie UNTER einem Lernbereich.
  *
- * Only the area that the file names is emptied: importing one area can never
- * take the subcategories of another one with it.
+ * Geleert wird nur der Bereich, den die Datei nennt: ein Bereich zu importieren kann
+ * nie die Unterkategorien eines anderen mitnehmen.
  *
- * The order is the one the foreign keys require and the one the application
- * uses when it deletes a category:
- *   1. the learning progress of the affected cards
- *   2. the cards themselves
- *   3. the categories, deepest level first
+ * Die Reihenfolge ist die, die die Fremdschlüssel verlangen und die die Anwendung beim
+ * Löschen einer Kategorie benutzt:
+ *   1. der Lernfortschritt der betroffenen Karten
+ *   2. die Karten selbst
+ *   3. die Kategorien, tiefste Ebene zuerst
  *
- * The helpers for 1. and 2. are the ones the application already uses, so there
- * is only one place that knows how progress and cards disappear.
+ * Die Helfer für 1. und 2. sind die, die die Anwendung schon benutzt, es gibt also nur
+ * eine Stelle, die weiß, wie Fortschritt und Karten verschwinden.
  *
  * @return array{categories: int, cards: int, progress: int}
  */
 function import_delete_subcategories(PDO $pdo, int $areaId, int $ownerUserId): array
 {
-    /* Only the categories of this owner are read in; the area filter below then
-       keeps the descendants of the one area the file names. */
+    /* Gelesen werden nur die Kategorien dieses Kontos; der Bereichsfilter weiter unten
+       behält dann die Nachfahren des einen Bereichs, den die Datei nennt. */
     $rowsStatement = $pdo->prepare(
         'SELECT id, parent_id FROM categories WHERE parent_id IS NOT NULL AND owner_user_id = :owner_user_id'
     );
