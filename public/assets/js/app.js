@@ -6181,8 +6181,8 @@
             elements.learnSideLabel.textContent = t(sideKey);
             elements.learnSideLabel.setAttribute('data-i18n', sideKey);
         } else {
-            /* A title is data, not a translation key: switching the language must
-               not overwrite it. */
+            /* Ein Titel sind Daten und kein Übersetzungsschlüssel: ein Sprachwechsel darf ihn
+               nicht überschreiben. */
             elements.learnSideLabel.textContent = entry.front !== '' ? entry.front : t(task.label);
             elements.learnSideLabel.removeAttribute('data-i18n');
         }
@@ -6192,8 +6192,8 @@
     }
 
     /*
-     * The four answers. The interval under each of them comes from the API, which
-     * calculated it with the same scheduler that will store the answer.
+     * Die vier Antworten. Der Abstand unter jeder von ihnen kommt aus der API, die ihn mit
+     * demselben Zeitplaner gerechnet hat, der die Antwort später speichern wird.
      */
     function buildLearnButtons(entry) {
         var previews = entry.preview_minutes && typeof entry.preview_minutes === 'object' ? entry.preview_minutes : null;
@@ -6245,7 +6245,7 @@
         });
     }
 
-    /* The four answers, in the order they are shown and pressed. */
+    /* Die vier Antworten, in der Reihenfolge, in der sie gezeigt und gedrückt werden. */
     function learnRatingKeys() {
         return [
             { value: 1, key: '1', name: 'again', labelKey: 'learn.again' },
@@ -6255,7 +6255,7 @@
         ];
     }
 
-    /* "10 min", "19 h", "1 day", "3 days": the number comes from the server. */
+    /* "10 min", "19 h", "1 Tag", "3 Tage": die Zahl kommt vom Server. */
     function formatLearnInterval(minutes) {
         if (minutes < 60) {
             return t('learn.intervalMinutes', { count: minutes });
@@ -6290,25 +6290,23 @@
             elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
         }
 
-        /* The answers keep their place: before the flip they are there, but out
-           of reach. */
+        /* Die Antworten behalten ihren Platz: vor dem Umdrehen sind sie da, aber unerreichbar. */
         Array.prototype.forEach.call(elements.learnButtons.children, function (button) {
             button.disabled = !learnSession.flipped;
         });
 
         /*
-         * The focus stays on the card while it is turned over. If it jumped to
-         * the first answer, the space bar would press that answer instead of
-         * turning the card back - and the space bar is meant to turn the card,
-         * always. The four answers are reached with Tab, and their number keys
-         * work at any time.
+         * Der Fokus bleibt beim Umdrehen auf der Karte. Würde er auf die erste Antwort springen,
+         * würde die Leertaste diese Antwort drücken statt die Karte zurückzudrehen - und die
+         * Leertaste soll immer die Karte umdrehen. Die vier Antworten erreicht man mit der
+         * Tabulatortaste, und ihre Zahlentasten wirken jederzeit.
          */
         elements.learnCard.focus();
     }
 
     /*
-     * Stores one answer. The API decides everything: the new status, the interval
-     * and when the card comes back. This function only shows what came back.
+     * Speichert eine Antwort. Die API entscheidet alles: den neuen Zustand, den Abstand und wann
+     * die Karte wiederkommt. Diese Funktion zeigt nur, was zurückkam.
      */
     function rateLearnCard(rating) {
         if (learnSession === null || learnSession.busy || !learnSession.flipped) {
@@ -6334,13 +6332,13 @@
             category_id: learnSession.categoryId,
             card_id: entry.card_id,
             rating: rating,
-            /* Null with the first answer of the run: that is what creates it. */
+            /* Null bei der ersten Antwort des Laufs: genau das legt ihn an. */
             session_id: learnSession.sessionId
         }).then(function (result) {
             /*
-             * The session can be closed while the answer is on its way - with
-             * Escape, for example. Then there is nothing left to update, and
-             * touching it would throw instead of simply doing nothing.
+             * Die Einheit kann geschlossen werden, während die Antwort unterwegs ist - mit
+             * Escape zum Beispiel. Dann gibt es nichts mehr zu aktualisieren, und sie anzufassen
+             * würde einen Fehler werfen, statt einfach nichts zu tun.
              */
             if (learnSession === null) {
                 return;
@@ -6350,16 +6348,16 @@
             setLearnButtonsDisabled(false);
 
             if (!result.ok) {
-                /* The answer was NOT stored, so the card stays where it is and
-                   the message says why. */
+                /* Die Antwort wurde NICHT gespeichert, die Karte bleibt also, wo sie ist, und
+                   die Meldung sagt, warum. */
                 showLearnNotice(errorMessage(result.code));
                 return;
             }
 
             var data = result.data;
 
-            /* The run this answer was counted in - the id arrives with the first
-               answer of the run and is carried on with every further one. */
+            /* Der Lauf, in dem diese Antwort gezählt wurde - die Kennung kommt mit der ersten
+               Antwort des Laufs und wird bei jeder weiteren mitgeführt. */
             if (typeof data.session_id === 'number') {
                 learnSession.sessionId = data.session_id;
             }
@@ -6369,9 +6367,9 @@
             learnSession.results[entry.card_id] = data.status;
 
             /*
-             * "Again" comes back inside the same session. The card is put behind
-             * everything that is left, twice at most, so a card that is simply
-             * not there yet cannot keep the session running forever.
+             * "Nochmal" kommt innerhalb derselben Einheit wieder. Die Karte wird hinter alles
+             * gestellt, was noch kommt, höchstens zweimal, damit eine Karte, die einfach noch
+             * nicht sitzt, die Einheit nicht endlos laufen lässt.
              */
             var repeats = learnSession.again[entry.card_id] || 0;
             var pushedAgain = false;
@@ -6408,7 +6406,7 @@
         });
     }
 
-    /* The card leaves to the left, the next one comes in from the right. */
+    /* Die Karte geht nach links weg, die nächste kommt von rechts herein. */
     function moveToNextLearnCard() {
         var reduced = prefersReducedMotion();
 
@@ -6435,8 +6433,9 @@
     }
 
     /*
-     * Takes the last answer back. The API checks that nothing changed since, so a
-     * card that was rated again in another tab is never overwritten silently.
+     * Nimmt die letzte Antwort zurück. Die API prüft, dass sich seither nichts geändert hat, eine
+     * Karte, die in einem anderen Reiter erneut bewertet wurde, wird also nie stillschweigend
+     * überschrieben.
      */
     function undoLearnRating() {
         if (learnSession === null || learnSession.busy || learnSession.undo === null) {
@@ -6453,7 +6452,7 @@
             card_id: undo.cardId,
             stored: undo.stored,
             previous: undo.previous,
-            /* The run and the answer, so its counters follow the undo. */
+            /* Der Lauf und die Antwort, damit seine Zähler dem Zurücknehmen folgen. */
             session_id: learnSession.sessionId,
             rating: undo.rating
         }).then(function (result) {
