@@ -1830,9 +1830,9 @@
     }
 
     /*
-     * Fills the icon circle of a tile or of a preview: the drawing when there is
-     * one, otherwise the first letter of the name. An empty circle is never
-     * shown, because a circle without any content reads like a loading state.
+     * Füllt den Symbolkreis einer Kachel oder einer Vorschau: die Zeichnung, wenn es eine
+     * gibt, sonst den ersten Buchstaben des Namens. Ein leerer Kreis wird nie gezeigt, denn
+     * ein Kreis ohne Inhalt liest sich wie ein Ladezustand.
      */
     function fillIconCircle(circle, meta) {
         circle.textContent = '';
@@ -1847,46 +1847,47 @@
 
         var icon = document.createElement('img');
         icon.className = 'blob__icon';
-        /* The whole tile is one link with an accessible name, so describing the
-           drawing again would only repeat it. */
+        /* Die ganze Kachel ist ein Verweis mit einem zugänglichen Namen, die Zeichnung noch
+           einmal zu beschreiben würde ihn also nur wiederholen. */
         icon.alt = '';
-        /* No loading="lazy": the drawing comes from the database through
-           api/category_icon.php, and a lazy image stayed empty in testing even
-           while the tile was on screen. */
+        /* Kein loading="lazy": die Zeichnung kommt über api/category_icon.php aus der
+           Datenbank, und ein lazily geladenes Bild blieb im Test leer, obwohl die Kachel
+           auf dem Bildschirm stand. */
         icon.setAttribute('decoding', 'async');
         icon.style.setProperty('--icon-scale', String(meta.iconScale));
         circle.appendChild(icon);
 
         /*
-         * The address is given LAST, when the element is already in the
-         * document. An <img> that learns its address while it is still detached
-         * is fetched a second time the moment it is attached, and that was the
-         * double request every area drawing cost: eight requests for four tiles,
-         * the second four with 0 bytes straight from the cache.
+         * Die Adresse wird ZULETZT gesetzt, wenn das Element schon im Dokument steht. Ein
+         * <img>, das seine Adresse lernt, während es noch abgehängt ist, wird in dem Moment
+         * ein zweites Mal geholt, in dem es eingehängt wird, und das waren die doppelten
+         * Anfragen für jede Bereichszeichnung: acht Anfragen für vier Kacheln, die zweiten
+         * vier mit 0 Bytes direkt aus dem Browser-Speicher.
          */
         icon.src = meta.icon;
 
-        /* Which share of the circle the drawing covers is measured, not guessed. */
+        /* Welchen Anteil des Kreises die Zeichnung bedeckt, wird gemessen und nicht geraten. */
         useMeasuredIconScale(icon, meta.icon);
     }
 
     /*
-     * The four drawings of the learning areas do not share one shape: a thin arrow
-     * and a wide map cover very different parts of their square viewBox, so the
-     * same box makes one of them look smaller although both are drawn "as big".
+     * Die vier Zeichnungen der Lernbereiche haben nicht dieselbe Form: ein dünner Pfeil und
+     * eine breite Landkarte bedecken sehr verschiedene Teile ihrer quadratischen viewBox,
+     * dieselbe Box lässt also eine von ihnen kleiner aussehen, obwohl beide "gleich groß"
+     * gezeichnet sind.
      *
-     * The visible bounds are therefore measured once per drawing and turned into a
-     * factor (--icon-scale, see the stylesheet). Measured, never written back into
-     * the database: how a drawing is shown is a question of the interface, and the
-     * stored drawing stays exactly what somebody drew.
+     * Die sichtbaren Grenzen werden deshalb einmal je Zeichnung gemessen und in einen Faktor
+     * umgerechnet (--icon-scale, siehe das Stylesheet). Gemessen, nie in die Datenbank
+     * zurückgeschrieben: wie eine Zeichnung gezeigt wird, ist eine Frage der Oberfläche, und
+     * die gespeicherte Zeichnung bleibt genau das, was jemand gezeichnet hat.
      *
-     * The drawing is asked for over the same address the <img> uses, so the second
-     * request is answered from the browser cache - and because that address carries
-     * the fingerprint of the drawing, a new icon is a new address: a remembered
-     * value can never belong to a different drawing.
+     * Die Zeichnung wird über dieselbe Adresse geholt, die das <img> benutzt, die zweite
+     * Anfrage beantwortet also der Browser-Speicher - und weil diese Adresse den Fingerabdruck
+     * der Zeichnung trägt, ist ein neues Symbol eine neue Adresse: ein gemerkter Wert kann
+     * nie zu einer anderen Zeichnung gehören.
      */
-    var ICON_BASE_SIZE = 34;      // the size .blob__icon is drawn at, in pixels
-    var ICON_TARGET_MEAN = 30.56; // the geometric mean every drawing is scaled to
+    var ICON_BASE_SIZE = 34;      // die Größe, in der .blob__icon gezeichnet wird, in Pixeln
+    var ICON_TARGET_MEAN = 30.56; // das geometrische Mittel, auf das jede Zeichnung skaliert wird
     var iconScaleMemory = {};
 
     function useMeasuredIconScale(icon, url) {
@@ -1904,7 +1905,7 @@
             iconScaleMemory[url] = factor;
             icon.style.setProperty('--icon-scale', String(factor));
         }).catch(function () {
-            /* Nothing measured, nothing changed: 1 is the honest fallback. */
+            /* Nichts gemessen, nichts geändert: 1 ist der ehrliche Rückfall. */
         });
     }
 
@@ -1919,9 +1920,9 @@
                 }
 
                 /*
-                 * The drawing goes into the measuring box the upload uses
-                 * (.icon-measure in the stylesheet): in the document, so getBBox()
-                 * answers, but out of sight and without taking any space.
+                 * Die Zeichnung kommt in die Messbox, die der Upload benutzt (.icon-measure
+                 * im Stylesheet): im Dokument, damit getBBox() antwortet, aber außer Sicht
+                 * und ohne Platz zu nehmen.
                  */
                 var box = el('div', 'icon-measure');
                 box.innerHTML = markup;
@@ -1938,11 +1939,11 @@
                         var mean = Math.sqrt(bounds.width * bounds.height);
 
                         /*
-                         * getBBox() answers in the coordinate system of the drawing,
-                         * so the share the drawing covers follows from the ratio of
-                         * the two. Everything is worked out in the units of the
-                         * viewBox and only at the end turned into pixels, which keeps
-                         * the factor independent of the size the icon is shown at.
+                         * getBBox() antwortet im Koordinatensystem der Zeichnung, der Anteil,
+                         * den die Zeichnung bedeckt, folgt also aus dem Verhältnis der beiden.
+                         * Alles wird in den Einheiten der viewBox gerechnet und erst am Ende
+                         * in Pixel umgerechnet, damit der Faktor unabhängig davon bleibt, in
+                         * welcher Größe das Symbol gezeigt wird.
                          */
                         if (mean > 0) {
                             factor = (ICON_TARGET_MEAN * view[2]) / mean / ICON_BASE_SIZE;
@@ -1952,7 +1953,7 @@
 
                 box.remove();
 
-                /* A drawing without shapes, or one nobody can measure, keeps its 1. */
+                /* Eine Zeichnung ohne Formen oder eine, die niemand messen kann, behält ihre 1. */
                 return Math.max(0.65, Math.min(1.55, factor));
             });
     }
