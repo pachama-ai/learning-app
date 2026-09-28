@@ -2577,20 +2577,20 @@
     }
 
     /*
-     * The last row of a list is the way in: "Add subcategory" or "Add
-     * flashcard". It is a real button with the height of a row, so the list ends
-     * with the next step instead of with a dead end.
+     * Die letzte Zeile einer Liste ist der Weg hinein: "Unterkategorie anlegen" oder
+     * "Lernkarte anlegen". Es ist ein echter Knopf in der Höhe einer Zeile, die Liste endet
+     * also mit dem nächsten Schritt und nicht in einer Sackgasse.
      */
 
     /*
-     * The figures of the open entry.
+     * Die Zahlen des geöffneten Eintrags.
      *
-     * A figure only appears when there is something to count ("1 subcategory",
-     * "8 subcategories", "32 flashcards"), and when there is nothing at all the
-     * whole line stays away: a row of zeroes tells nobody anything.
+     * Eine Zahl erscheint nur, wenn es etwas zu zählen gibt ("1 Unterkategorie",
+     * "8 Unterkategorien", "32 Lernkarten"), und wenn es gar nichts gibt, bleibt die ganze
+     * Zeile weg: eine Reihe von Nullen sagt niemandem etwas.
      *
-     * The noun follows the number, which is why the word is set here and not in
-     * the template.
+     * Das Hauptwort richtet sich nach der Zahl, deshalb steht das Wort hier und nicht im
+     * HTML-Teil.
      */
     function renderFigures(count, oneKey, otherKey, cardCount) {
         var showMain = count > 0;
@@ -2612,17 +2612,17 @@
     }
 
     /*
-     * The tiles of a subcategory: what is due, how much of it already sits, and
-     * how many days in a row somebody studied here.
+     * Die Kacheln einer Unterkategorie: wie viel fällig ist, wie viel davon schon sitzt und
+     * wie viele Tage jemand hier hintereinander gelernt hat.
      *
-     * Every number is handed in - none of them is counted in the browser - so the
-     * tiles and the page under them can never disagree. They exist on the page of
-     * a subcategory and nowhere else: a learning area only holds subcategories and
-     * has no cards of its own, so it has nothing to count.
+     * Jede Zahl wird hereingereicht - keine davon wird im Browser gezählt - die Kacheln und
+     * die Seite darunter können also nie auseinandergehen. Sie gibt es auf der Seite einer
+     * Unterkategorie und sonst nirgends: ein Lernbereich enthält nur Unterkategorien und hat
+     * keine eigenen Karten, er hat also nichts zu zählen.
      *
-     * A tile keeps its place when a number cannot be shown (the streak needs rows
-     * in study_sessions, and there may be none yet). Then it says so in one quiet
-     * line instead of showing a zero that would be a lie.
+     * Eine Kachel behält ihren Platz, wenn eine Zahl nicht gezeigt werden kann (die Reihe
+     * braucht Zeilen in study_sessions, und es gibt vielleicht noch keine). Dann sagt sie es
+     * in einer leisen Zeile, statt eine Null zu zeigen, die gelogen wäre.
      */
     function renderDashboard(summary, streak) {
         var hasSummary = summary !== null && typeof summary === 'object' && typeof summary.total === 'number';
@@ -2642,14 +2642,14 @@
         elements.dashUnsure.textContent = String(hasSummary ? (summary.unsure || 0) : 0);
 
         /*
-         * Something to do or nothing to do: while cards are due, the number of the
-         * first tile carries the accent colour of the theme (the stylesheet decides
-         * how it looks - a rule cannot read a number, so the class says it).
+         * Etwas zu tun oder nichts zu tun: solange Karten fällig sind, trägt die Zahl der
+         * ersten Kachel die Akzentfarbe des Erscheinungsbilds (wie es aussieht, entscheidet
+         * das Stylesheet - eine Regel kann keine Zahl lesen, deshalb sagt die Klasse es).
          */
         elements.dashDue.parentElement.classList.toggle('has-due', due > 0);
 
-        /* How much of the list already sits is a share, so it gets the small
-           track under the number: "1 of 34" is easier to read as a length. */
+        /* Wie viel der Liste schon sitzt, ist ein Anteil, deshalb bekommt sie den kleinen
+           Streifen unter der Zahl: "1 von 34" liest sich als Länge leichter. */
         elements.dashKnownFill.style.setProperty(
             '--share',
             (total > 0 ? Math.round(((summary.known || 0) / total) * 100) : 0) + '%'
@@ -2668,19 +2668,19 @@
     }
 
     /*
-     * The empty state of the detail view.
+     * Der leere Zustand der Detailansicht.
      *
-     * The circle carries the drawing of the area this page belongs to - or the
-     * first letter of its name when it has no drawing - so the empty page still
-     * belongs to that area. One sentence and one button follow; which button it
-     * is depends on the page, so the action is handed in as a function.
+     * Der Kreis trägt die Zeichnung des Bereichs, zu dem diese Seite gehört - oder den ersten
+     * Buchstaben seines Namens, wenn es keine Zeichnung gibt - die leere Seite gehört also
+     * weiter zu diesem Bereich. Es folgen ein Satz und ein Knopf; welcher Knopf es ist, hängt
+     * von der Seite ab, deshalb wird die Aktion als Funktion hereingereicht.
      */
     function showEntryEmpty(titleKey, meta, actionKey, run) {
         elements.entryList.hidden = true;
         elements.entryEmptyBlob.hidden = false;
         fillIconCircle(elements.entryEmptyBlob, meta);
         elements.entryEmptyTitle.textContent = t(titleKey);
-        /* One sentence: the second line belongs to the "not found" notice. */
+        /* Ein Satz: die zweite Zeile gehört zum "nicht gefunden"-Hinweis. */
         elements.entryEmptyHint.textContent = '';
         elements.entryEmptyHint.hidden = true;
         elements.entryEmptyAction.textContent = t(actionKey);
@@ -2689,7 +2689,7 @@
         elements.entryEmpty.hidden = false;
     }
 
-    /* Flashcards that sit directly in a learning area, not in a subcategory. */
+    /* Lernkarten, die direkt in einem Lernbereich liegen, nicht in einer Unterkategorie. */
     function renderAreaCards(cards) {
         elements.areaCardList.textContent = '';
 
