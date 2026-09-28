@@ -1,72 +1,75 @@
 -- ==========================================================================
--- Learning sessions: how much was learned today, and in which run
+-- Lerneinheiten: wie viel heute gelernt wurde, und in welchem Durchgang
 -- ==========================================================================
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
--- Nothing in the application runs this file, and Copilot never executes a
--- structural change on its own.
+-- ERST DURCHLESEN, DANN VON HAND AUSFÜHREN (phpMyAdmin oder der mysql-Client).
+-- Nichts in der Anwendung führt diese Datei aus, und Copilot führt eine
+-- strukturelle Änderung nie von selbst aus.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/add_study_sessions.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/add_study_sessions.sql
 --
--- Why a table of its own
---   `user_card_progress` answers the question "where is this card for this
---   person" - one row per card. It cannot answer "how much did I do today",
---   because a card that was rated five times looks exactly like a card that was
---   rated once, and because the day a card was first learned is overwritten on
---   every later rating.
+-- Warum eine eigene Tabelle
+--   `user_card_progress` beantwortet die Frage "wo steht diese Karte für diese
+--   Person" - eine Zeile je Karte. Die Frage "wie viel habe ich heute geschafft"
+--   kann sie nicht beantworten, denn eine fünfmal bewertete Karte sieht genauso
+--   aus wie eine einmal bewertete, und der Tag, an dem eine Karte zuerst gelernt
+--   wurde, wird bei jeder späteren Bewertung überschrieben.
 --
---   A session is therefore its own thing: one row per run of the learning view.
---   It is written next to the progress, never instead of it, so the repeating
---   itself stays exactly as it is.
+--   Eine Einheit ist deshalb etwas Eigenes: eine Zeile je Durchgang der
+--   Lernansicht. Sie wird neben dem Fortschritt geschrieben, nie statt seiner,
+--   das Wiederholen selbst bleibt also genau, wie es ist.
 --
--- The columns
+-- Die Spalten
 --
---   id             The session's own number.
---   user_id        Whose session it is. Deleting an account takes its sessions
---                  with it (ON DELETE CASCADE), the same rule the progress rows
---                  already follow.
---   started_at     When this session really began: with the FIRST rating, not
---                  when the learning view was opened. A run that is opened and
---                  closed again without rating anything therefore leaves no row
---                  behind, which is the point of that rule.
---   ended_at       When the learning view was closed - whether the queue ran out
---                  or the person stopped early. NULL while the session is still
---                  running.
+--   id             Die eigene Nummer der Einheit.
+--   user_id        Wessen Einheit es ist. Das Löschen eines Kontos nimmt seine
+--                  Einheiten mit (ON DELETE CASCADE), dieselbe Regel, der die
+--                  Fortschrittszeilen schon folgen.
+--   started_at     Wann diese Einheit wirklich anfing: mit der ERSTEN Bewertung,
+--                  nicht mit dem Öffnen der Lernansicht. Ein Durchgang, der
+--                  geöffnet und ohne Bewertung wieder geschlossen wird, hinterlässt
+--                  also keine Zeile, und genau darum geht es bei dieser Regel.
+--   ended_at       Wann die Lernansicht geschlossen wurde - egal ob die Schlange
+--                  leer wurde oder die Person früher aufgehört hat. NULL, solange
+--                  die Einheit noch läuft.
 --
---                  One honest note: if a browser tab is simply killed, no "close"
---                  ever arrives and the row stays open with ended_at = NULL. That
---                  is harmless, because the statistics add up the sessions by
---                  started_at and cards_studied - an open row is counted like any
---                  other. Nothing is ever guessed or repaired behind your back.
---   cards_studied  How many ratings happened in this session. Every rating
---                  counts, so rating the same card twice (after "Again") is two.
---                  That is what the counter in the learning view shows.
---   cards_known    How many of those were rated "Good" or "Easy" - the two
---                  answers of the existing scale (Again, Hard, Good, Easy) that
---                  mean "I knew it". "Hard" deliberately does not count: it is a
---                  success for the interval, but not a "I knew it".
+--                  Eine ehrliche Anmerkung: wird ein Browser-Reiter einfach
+--                  abgeschossen, kommt nie ein "Schließen" an und die Zeile bleibt
+--                  mit ended_at = NULL offen. Das ist harmlos, denn die Statistik
+--                  zählt die Einheiten über started_at und cards_studied zusammen -
+--                  eine offene Zeile zählt wie jede andere. Es wird nie etwas
+--                  geraten oder hinter deinem Rücken repariert.
+--   cards_studied  Wie viele Bewertungen in dieser Einheit passiert sind. Jede
+--                  zählt, eine Karte zweimal zu bewerten (nach "Nochmal") ist also
+--                  zwei. Das ist es, was der Zähler in der Lernansicht zeigt.
+--   cards_known    Wie viele davon mit "Gut" oder "Leicht" bewertet wurden - die
+--                  beiden Antworten der bestehenden Skala (Nochmal, Schwer, Gut,
+--                  Leicht), die "konnte ich" bedeuten. "Schwer" zählt absichtlich
+--                  nicht: das ist ein Erfolg für den Abstand, aber kein "konnte
+--                  ich".
 --
--- What it does
---   Creates exactly one new table with one index for the daily question.
+-- Was sie tut
+--   Legt genau eine neue Tabelle an, mit einem Index für die Tagesfrage.
 --
--- What it does NOT do
---   * no existing table is touched: `users`, `categories`, `cards`,
---     `user_card_progress` and `card_exercises` keep their columns exactly as
---     they are
---   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE of existing values
---   * no gamification: no streaks, no points, no badges, no goals - there is no
---     column for any of that, and none is planned
+-- Was sie NICHT tut
+--   * keine bestehende Tabelle wird angefasst: `users`, `categories`, `cards`,
+--     `user_card_progress` und `card_exercises` behalten ihre Spalten genau so,
+--     wie sie sind
+--   * kein DROP, kein RENAME, kein TRUNCATE, kein DELETE, kein UPDATE
+--     vorhandener Werte
+--   * keine Gamification: keine Serien, keine Punkte, keine Abzeichen, keine
+--     Ziele - dafür gibt es keine Spalte, und keine ist geplant
 --
--- Safety
---   "IF NOT EXISTS" makes a second run change nothing. The table is empty when
---   it is created, so no data can be lost either way.
+-- Sicherheit
+--   "IF NOT EXISTS" macht einen zweiten Lauf wirkungslos. Die Tabelle ist beim
+--   Anlegen leer, es kann also in keiner Richtung etwas verloren gehen.
 --
--- Rollback (only if you ever want the old state back)
+-- Zurücknehmen (nur falls du den alten Zustand je zurückhaben willst)
 --   DROP TABLE `study_sessions`;
 --
---   The learning progress itself lives in `user_card_progress` and is not
---   touched by that, so nothing about the repeating would be lost.
+--   Der Lernfortschritt selbst liegt in `user_card_progress` und wird davon nicht
+--   angefasst, vom Wiederholen ginge also nichts verloren.
 -- ==========================================================================
 
 CREATE TABLE IF NOT EXISTS `study_sessions` (
