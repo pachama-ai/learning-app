@@ -534,6 +534,7 @@
 
         /* Das Band über den Zeilen einer Unterkategorie: es trägt das Suchfeld. */
         cardTools: document.getElementById('card-tools'),
+        cardFilter: document.getElementById('card-filter'),
         cardSearchWrap: document.getElementById('card-tools-search'),
         cardSearch: document.getElementById('card-search'),
         cardSearchEmpty: document.getElementById('card-search-empty'),
@@ -2876,7 +2877,10 @@
                 /* Die Kacheln kommen zuerst: sie sind die Zahlen der Arbeit, für die diese
                    Seite da ist, die Zählungen und die Knöpfe folgen ihnen. */
                 renderDashboard(openCardSummary, openCardStreak);
-                renderFigures(currentEntryCards.length, 'tile.cards.one', 'tile.cards.other', undefined);
+                /*
+                 * Die Zahlenzeile "40 Karten" füllt renderCardList(): nur dort ist bekannt,
+                 * wie viele Karten nach Filter und Suche wirklich zu sehen sind.
+                 */
                 renderCardTools(openCardSummary);
                 showHeadActions('card', current.id, currentEntryCards.length, currentEntryCards.length > 0);
 
@@ -2893,6 +2897,8 @@
                     openCards = currentEntryCards;
                     cardSearchQuery = '';
                     elements.cardSearch.value = '';
+                    /* Eine frisch geöffnete Liste zeigt immer alle Karten. */
+                    setCardFilter('all');
                     renderCardList(current.id);
                 }
 
@@ -5494,13 +5500,21 @@
     var cardSubmitCategoryId = null;
 
     /*
+     * Welcher Zustand gerade gefiltert wird: "all" oder einer der drei Zustände.
+     *
+     * Der Filter läuft über die Liste, die schon im Browser liegt: die Status aller
+     * Karten stehen in derselben Antwort wie die Karten selbst, es braucht also keinen
+     * Aufruf an die API, um zu sehen, was noch unsicher ist.
+     */
+    var cardStatusFilter = 'all';
+
+    /*
      * Die drei Zustände, die eine Karte haben kann, mit der Formulierung und dem Klassennamen,
      * der zu jedem gehört. Der Zustand selbst kommt aus der API: sie zählt, was in der Datenbank
      * steht, inklusive ob eine Karte fällig ist, und der Browser wiederholt es nur.
      */
     function cardStatusMeta(card) {
-        var status = card.progress && typeof card.progress.status === 'string' ? card.progress.status : 'new';
-        var name = status === 'known' ? 'known' : (status === 'unsure' ? 'unsure' : 'new');
+        var name = cardStatusOf(card);
         var hint = t('cards.status.' + name + 'Hint');
 
         /*
@@ -5517,6 +5531,21 @@
             hint: hint,
             className: 'row__status--' + name
         };
+    }
+
+    /*
+     * Der eine Zustand, den eine Karte hat: "new", "unsure" oder "known".
+     *
+     * Dieselbe Regel wie auf dem Server (review_status_of() in review_service.php):
+     * ohne Fortschrittszeile ist eine Karte neu, und alles, was nicht ausdrücklich
+     * "known" heißt, zählt als unsicher. Die Statusanzeige der Zeile und der Filter
+     * ziehen ihr Urteil deshalb aus derselben Funktion und können sich nicht
+     * widersprechen.
+     */
+    function cardStatusOf(card) {
+        var status = card.progress && typeof card.progress.status === 'string' ? card.progress.status : 'new';
+
+        return status === 'known' ? 'known' : (status === 'unsure' ? 'unsure' : 'new');
     }
 
     /* Macht aus "2026-09-21 15:04:05" ein kurzes Datum in der aktuellen Sprache. */
@@ -5547,17 +5576,20 @@
             && summary.total > 0;
 
         /*
-         * Die Zahlen dieser Liste stehen jetzt in den Kacheln unter dem Kopf, das Einzige, was
-         * dieser Streifen noch trägt, ist also das Suchfeld - und eine Suche über drei Karten ist
-         * mehr Arbeit, als sie anzusehen, es erscheint deshalb erst ab etwa fünfzehn Karten. Ohne
-         * es bleibt der Streifen ganz weg.
+         * Der Streifen trägt zwei Dinge: den Filter und die Suche.
+         *
+         * Der Filter ist da, sobald es Karten gibt - "welche Karten sind noch unsicher?"
+         * ist auch bei fünf Karten eine sinnvolle Frage, und ein Chip ist ein Tipp. Die
+         * Suche erscheint erst ab etwa fünfzehn Karten: über drei Karten zu suchen ist mehr
+         * Arbeit, als sie anzusehen.
          */
         var withSearch = usable && summary.total >= cardSearchMin;
 
-        elements.cardTools.hidden = !withSearch;
+        elements.cardTools.hidden = !usable;
+        elements.cardFilter.hidden = !usable;
         elements.cardSearchWrap.hidden = !withSearch;
 
-        if (!withSearch) {
+        if (!usable) {
             return;
         }
 
@@ -5568,28 +5600,39 @@
     /*
      * Baut die Zeilen, die gerade sichtbar sind.
      *
-     * Der Filter läuft über die Liste, die schon geladen ist, und fragt den Server nach nichts:
-     * eine Suche ist eine Ansicht derselben Daten, und aus dem Getippten wird keine Abfrage
-     * gebaut.
+     * Filter und Suche laufen beide über die Liste, die schon geladen ist, und fragen den
+     * Server nach nichts: eine Suche und ein Filter sind Ansichten derselben Daten, und aus
+     * dem Getippten wird keine Abfrage gebaut. Beide wirken zusammen.
      */
     function renderCardList(categoryId) {
         var query = cardSearchQuery.trim().toLowerCase();
+        var filtered = query !== '' || cardStatusFilter !== 'all';
         var visible = [];
         var index;
 
         elements.entryList.textContent = '';
 
         for (index = 0; index < openCards.length; index++) {
-            if (query === '' || cardMatches(openCards[index], query)) {
+            var wanted = cardStatusFilter === 'all' || cardStatusOf(openCards[index]) === cardStatusFilter;
+
+            if (wanted && (query === '' || cardMatches(openCards[index], query))) {
                 visible.push({ card: openCards[index], index: index });
             }
         }
 
-        /* Nichts passt zur Suche: das ist nicht "noch keine Karten". */
-        elements.cardSearchEmpty.textContent = query === '' ? '' : t('cards.searchEmpty');
-        elements.cardSearchEmpty.hidden = query === '' || visible.length > 0;
+        /*
+         * Nichts zu sehen, weil nichts passt: das ist nicht "noch keine Karten". Die
+         * Meldung nennt die Suche, wenn eine eingetippt wurde, sonst den Status - bei beidem
+         * zusammen ist das Suchwort die genauere Auskunft.
+         */
+        elements.cardSearchEmpty.textContent = visible.length > 0
+            ? ''
+            : (query !== '' ? t('cards.searchEmpty') : (filtered ? t('cards.filterEmpty') : ''));
+        elements.cardSearchEmpty.hidden = visible.length > 0 || !filtered;
 
-        if (visible.length === 0 && query !== '') {
+        renderCardFigures(visible.length, openCards.length);
+
+        if (visible.length === 0 && filtered) {
             elements.entryList.hidden = true;
             return;
         }
@@ -5601,11 +5644,49 @@
         elements.entryList.hidden = false;
     }
 
+    /*
+     * Die Zahlenzeile über einer Kartenliste ("40 Karten").
+     *
+     * Sie wird hier gefüllt und nicht von renderFigures(), weil nur diese Stelle weiß, wie
+     * viele Karten nach Filter und Suche wirklich zu sehen sind. Steht weniger da, als es
+     * gibt, nennt die Zeile zusätzlich die Gesamtzahl ("12 von 40 Karten"): eine kleiner
+     * gewordene Zahl allein würde verschweigen, dass noch mehr da ist.
+     */
+    function renderCardFigures(shown, total) {
+        elements.detailStats.hidden = false;
+        elements.detailFigureCount.hidden = false;
+
+        animateCount(elements.detailCount, shown);
+        elements.statLabel.textContent = shown === total
+            ? t(shown === 1 ? 'tile.cards.one' : 'tile.cards.other')
+            : t(total === 1 ? 'cards.figureOfOne' : 'cards.figureOf', { total: total });
+    }
+
     function cardMatches(card, query) {
         var front = typeof card.front === 'string' ? card.front.toLowerCase() : '';
         var back = typeof card.back === 'string' ? card.back.toLowerCase() : '';
 
         return front.indexOf(query) !== -1 || back.indexOf(query) !== -1;
+    }
+
+    /*
+     * Setzt den Filter und markiert den gewählten Chip.
+     *
+     * Gezeichnet wird hier nicht: der Aufrufer weiß, ob gleich ohnehin eine ganze Liste
+     * entsteht (siehe renderDetail, das den Filter zurücksetzt) oder ob nur die Liste neu
+     * muss (siehe wireCardFilter).
+     */
+    function setCardFilter(status) {
+        cardStatusFilter = status;
+
+        if (elements.cardFilter === null) {
+            return;
+        }
+
+        Array.prototype.forEach.call(elements.cardFilter.children, function (chip) {
+            var chosen = chip.getAttribute('data-status') === status;
+            chip.setAttribute('aria-pressed', chosen ? 'true' : 'false');
+        });
     }
 
     /*
@@ -6792,6 +6873,32 @@
     }
 
     wireLearning();
+
+    /*
+     * Die Filter-Chips der Kartenliste.
+     *
+     * Sie filtern die Liste, die schon im Browser liegt - kein Aufruf an die API, und aus
+     * dem Getippten wird keine Abfrage gebaut. Die vier Chips sind die drei Zustände, die
+     * eine Karte wirklich hat (siehe cardStatusOf), plus "Alle"; welcher Zustand das ist,
+     * rechnet weiterhin allein der Server aus.
+     */
+    function wireCardFilter() {
+        if (elements.cardFilter === null) {
+            return;
+        }
+
+        Array.prototype.forEach.call(elements.cardFilter.children, function (chip) {
+            chip.addEventListener('click', function () {
+                setCardFilter(chip.getAttribute('data-status'));
+
+                if (currentEntry !== null) {
+                    renderCardList(currentEntry.id);
+                }
+            });
+        });
+    }
+
+    wireCardFilter();
     /* ----------------------------------------------------------------------
        Die beiden Sprachen einer Karte
        ---------------------------------------------------------------------- */

@@ -740,6 +740,31 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         only take room.
                     -->
                     <div class="card-tools" id="card-tools" hidden>
+                        <!--
+                            Der Filter der Kartenliste: Alle, Neu, Unsicher, Gewusst.
+
+                            Das sind genau die drei Zustände, die eine Karte wirklich hat
+                            (new, unsure, known - siehe review_status_of() in
+                            review_service.php); mehr gibt es nicht. Die Beschriftungen sind
+                            dieselben Übersetzungsschlüssel wie der Status in der Zeile,
+                            damit Chip und Zeile nie zwei verschiedene Wörter zeigen.
+
+                            Gefiltert wird im Browser über die Liste, die schon da ist: kein
+                            neuer Aufruf an die API, und der Fortschritt selbst kommt weiter
+                            allein vom Server.
+                        -->
+                        <div class="card-tools__filter" id="card-filter" role="group"
+                             data-i18n-label="cards.filter.label" hidden>
+                            <button type="button" class="card-filter__chip" data-status="all"
+                                    aria-pressed="true" data-i18n="cards.filter.all"></button>
+                            <button type="button" class="card-filter__chip" data-status="new"
+                                    aria-pressed="false" data-i18n="cards.status.new"></button>
+                            <button type="button" class="card-filter__chip" data-status="unsure"
+                                    aria-pressed="false" data-i18n="cards.status.unsure"></button>
+                            <button type="button" class="card-filter__chip" data-status="known"
+                                    aria-pressed="false" data-i18n="cards.status.known"></button>
+                        </div>
+
                         <div class="card-tools__search" id="card-tools-search" hidden>
                             <!--
                                 A search field, not a sign-in field - and one the

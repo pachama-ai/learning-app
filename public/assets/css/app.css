@@ -3827,6 +3827,51 @@ html.is-theme-switching::view-transition-new(root) {
     outline-offset: 3px;
 }
 
+/*
+ * Der Filter der Kartenliste: kleine Pillen unter dem Suchfeld.
+ *
+ * Dieselbe Sprache wie die Schnellwahl im Kartenzahl-Fenster
+ * (.count-dialog__quick): ein leiser Umriss fuer die nicht gewaehlten, die
+ * gefuellte Fassung fuer den gewaehlten. Gefuellt wird mit --text auf --panel,
+ * das dreht sich mit dem Thema von selbst um - im hellen Thema schwarz auf hell,
+ * im dunklen hell auf dunkel, genau wie die Hauptknoepfe.
+ */
+.card-tools__filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.card-filter__chip {
+    padding: 5px 13px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color 200ms var(--ease), border-color 200ms var(--ease),
+        background-color 200ms var(--ease);
+}
+
+.card-filter__chip:hover,
+.card-filter__chip:focus-visible {
+    border-color: var(--text);
+    color: var(--text);
+}
+
+.card-filter__chip:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+
+.card-filter__chip[aria-pressed="true"] {
+    border-color: var(--text);
+    background-color: var(--text);
+    color: var(--panel);
+}
+
 .card-tools__search-input {
     width: 100%;
     padding: 10px 14px;
