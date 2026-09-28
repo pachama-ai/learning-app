@@ -932,9 +932,10 @@
         }
 
         /*
-         * A category the first answer covered and that never had subcategories: the
-         * empty list is the answer. A category whose subcategories were dropped after
-         * a write is not in "known" any more, so it is loaded again.
+         * Eine Kategorie, die die erste Antwort abdeckte und die nie Unterkategorien hatte:
+         * die leere Liste ist die Antwort. Eine Kategorie, deren Unterkategorien nach einem
+         * Schreibvorgang weg sind, steht nicht mehr in "known" und wird deshalb neu
+         * geladen.
          */
         var parentMatch = /^\?parent_id=(\d+)$/.exec(query);
 
@@ -958,8 +959,8 @@
 
 
     /*
-     * One helper for every write. It always answers with an object, so a caller
-     * never has to look at HTTP details:
+     * Ein Helfer für jeden Schreibvorgang. Er antwortet immer mit einem Objekt, ein
+     * Aufrufer muss also nie HTTP-Einzelheiten ansehen:
      *   { ok: true,  data: ... }
      *   { ok: false, code: 'category_exists' }
      */
@@ -968,13 +969,13 @@
             method: method,
             headers: { Accept: 'application/json' },
             /*
-             * Never let the browser answer an API call from its own cache.
+             * Den Browser nie eine API-Antwort aus seinem eigenen Speicher beantworten lassen.
              *
-             * Every answer here depends on WHO is asking: the card list carries
-             * the progress of the signed-in person. Signing out asks for exactly
-             * the same address again - and with a cached answer the list would
-             * keep showing the progress of the account that just left, which is
-             * the bug this line fixes.
+             * Jede Antwort hier hängt davon ab, WER fragt: die Kartenliste trägt den
+             * Fortschritt der angemeldeten Person. Das Abmelden fragt genau dieselbe Adresse
+             * noch einmal - und mit einer gespeicherten Antwort würde die Liste weiter den
+             * Fortschritt des Kontos zeigen, das gerade gegangen ist, und genau das ist der
+             * Fehler, den diese Zeile behebt.
              */
             cache: 'no-store'
         };
@@ -987,8 +988,8 @@
         return window.fetch(url, options).then(function (response) {
             return response.json()
                 .catch(function () {
-                    /* A body that is not JSON (for example an HTML error page)
-                       must not stop the page with an exception. */
+                    /* Ein Inhalt, der kein JSON ist (zum Beispiel eine HTML-Fehlerseite),
+                       darf die Seite nicht mit einem Fehler anhalten. */
                     return null;
                 })
                 .then(function (payload) {
@@ -1003,37 +1004,38 @@
                     };
                 });
         }).catch(function () {
-            /* The request never reached the server. */
+            /* Die Anfrage hat den Server nie erreicht. */
             return { ok: false, status: 0, code: 'network_error' };
         });
     }
 
     /* ----------------------------------------------------------------------
-       Signing in
+       Anmelden
        ---------------------------------------------------------------------- */
 
     /*
-     * The app works without an account: whoever wants to can study cards, only
-     * the answer cannot be remembered yet. Signing in is an offer, not a gate.
+     * Die Anwendung arbeitet ohne Konto: wer möchte, kann Karten lernen, nur die Antwort
+     * lässt sich noch nicht merken. Anmelden ist ein Angebot, kein Tor.
      *
-     * The header slot and the dialog are built here; the state and the token come
-     * from api/auth.php. The token travels back with every request of this block,
-     * so another site cannot sign somebody in through the browser.
+     * Der Platz in der Kopfzeile und der Dialog entstehen hier; der Zustand und der Token
+     * kommen aus api/auth.php. Der Token reist mit jeder Anfrage dieses Blocks zurück, eine
+     * andere Seite kann also niemanden über den Browser anmelden.
      */
     /*
-     * The person of the user button: the drawing this button carried before, a
-     * head and a shoulder line in a 24 box, drawn at 16 px so it stays a quiet
-     * mark inside the 34 px circle.
+     * Die Person des Benutzer-Knopfes: die Zeichnung, die dieser Knopf vorher trug, ein
+     * Kopf und eine Schulterlinie in einer 24er-Box, mit 16 px gezeichnet, damit sie
+     * innerhalb des 34-px-Kreises eine leise Marke bleibt.
      *
-     * The signed-in state is not told by the drawing but by its colour and by the
-     * fine ring around the circle, and the initials live in the menu (see app.css).
+     * Der angemeldete Zustand wird nicht von der Zeichnung erzählt, sondern von ihrer
+     * Farbe und dem feinen Ring um den Kreis, und die Initialen stehen im Menü (siehe
+     * app.css).
      */
     var EYE_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye__slash" d="M4.4 19.6 19.6 4.4"/></svg>';
 
     var authState = { user: null, ready: false, csrfToken: '' };
     var authMode = 'sign_in';
 
-    /* The one request of this block. It answers with the data or with a code. */
+    /* Die eine Anfrage dieses Blocks. Sie antwortet mit den Daten oder mit einem Code. */
     function authFetch(payload) {
         return window.fetch(config.endpoints.auth, {
             method: 'POST',
@@ -1056,7 +1058,7 @@
                 return { ok: false, code: 'request_failed', data: null };
             });
         }).catch(function () {
-            /* The request never reached the server. */
+            /* Die Anfrage hat den Server nie erreicht. */
             return { ok: false, code: 'network_error', data: null };
         });
     }
@@ -1074,12 +1076,12 @@
                 }
 
                 /*
-                 * This answer arrives AFTER the first draw of the page, and the
-                 * account in the header depends on it.
+                 * Diese Antwort kommt NACH dem ersten Aufbau der Seite, und das Konto in der
+                 * Kopfzeile hängt von ihr ab.
                  *
-                 * Without a second pass it stayed missing until the next
-                 * navigation - the page looked signed out while it was not. So the
-                 * header is built again and the open view is drawn once more.
+                 * Ohne einen zweiten Durchgang blieb es fehlend bis zur nächsten Navigation -
+                 * die Seite sah abgemeldet aus, obwohl sie es nicht war. Die Kopfzeile wird also
+                 * neu gebaut und die offene Ansicht noch einmal gezeichnet.
                  */
                 renderAccountSlot();
                 render();
@@ -1087,7 +1089,7 @@
                 return authState;
             })
             .catch(function () {
-                /* Without an answer the header keeps its invitation to sign in. */
+                /* Ohne Antwort behält die Kopfzeile ihre Einladung zum Anmelden. */
                 renderAccountSlot();
 
                 return authState;
@@ -1095,15 +1097,15 @@
     }
 
     /*
-     * The account in the header, as plain text.
+     * Das Konto in der Kopfzeile, als reiner Text.
      *
-     * Signed out it is the word "Anmelden", which opens the sign-in dialog. Signed
-     * in it is the name of the person and, behind a small dot, "Abmelden": the name
-     * opens the account window, the word signs out right away.
+     * Abgemeldet ist es das Wort "Anmelden", das den Anmeldedialog öffnet. Angemeldet ist
+     * es der Name der Person und, hinter einem kleinen Punkt, "Abmelden": der Name öffnet
+     * das Kontofenster, das Wort meldet sofort ab.
      *
-     * Nothing here is a button with a frame, a symbol or a shadow - it reads exactly
-     * like the language switch next to it, and it changes the height of the header
-     * by nothing at all (see app.css).
+     * Nichts hier ist ein Knopf mit Rahmen, Symbol oder Schatten - es liest sich genau wie
+     * der Sprachumschalter daneben und verändert die Höhe der Kopfzeile um gar nichts
+     * (siehe app.css).
      */
     function renderAccountSlot() {
         var slot = document.getElementById('account-slot');
@@ -4631,7 +4633,7 @@
                 return { ok: false, code: 'request_failed', data: null };
             });
         }).catch(function () {
-            /* The request never reached the server. */
+            /* Die Anfrage hat den Server nie erreicht. */
             return { ok: false, code: 'network_error', data: null };
         });
     }
@@ -7200,7 +7202,7 @@
                     });
             })
             .catch(function () {
-                /* The request never reached the server. */
+                /* Die Anfrage hat den Server nie erreicht. */
                 return { ok: false, code: 'network_error' };
             });
     }
