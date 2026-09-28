@@ -265,8 +265,6 @@ function exercise_type_label(string $type): ?string
     return $entry === null ? null : (string) $entry['label'];
 }
 
-/** Der Übersetzungsschlüssel, der diese Aufgabenart erklärt, oder null. */
-
 /**
  * Die Parameter, mit denen eine Karte dieser Art im Dialog startet.
  *
@@ -288,12 +286,6 @@ function exercise_type_default_params(string $type): array
 
     return $params;
 }
-
-/**
- * Das Schema eines Parameters oder null.
- *
- * @return array<string, mixed>|null
- */
 
 /**
  * Bringt einen gespeicherten oder geschickten Satz von Parametern in die Form, die
@@ -425,13 +417,6 @@ function exercise_params_are_valid(string $type, array $params): bool
 
     return true;
 }
-
-/**
- * Die Grenzen der Zahlenfelder einer Aufgabenart, für die Meldung, die der Dialog zeigt,
- * wenn jemand etwas außerhalb davon eintippt.
- *
- * @return array{lowest: int, highest: int}
- */
 
 /* -------------------------------------------------------------------------
    Eine Aufgabe bauen

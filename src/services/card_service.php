@@ -72,11 +72,6 @@ function normalize_card_row(array $row): array
 }
 
 /**
- * @param list<array<string, mixed>> $rows
- * @return list<array{id: int, category_id: int, front: string, back: string, is_bidirectional: bool}>
- */
-
-/**
  * Liefert eine Karte dieses Kontos oder null, wenn es sie dort nicht gibt.
  *
  * `cards` hat absichtlich keine eigene Besitzerspalte: eine Karte liegt immer in genau
@@ -318,15 +313,6 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds, int $ownerU
 
     return $statement->rowCount();
 }
-
-/**
- * Löscht jede Karte der angegebenen Kategorien und meldet, wie viele entfernt wurden.
- *
- * Der zweite Schritt beim Löschen einer Kategorie: die Karten müssen vor den Kategorien
- * weg, weil fk_cards_category ON DELETE RESTRICT ist.
- *
- * @param list<int> $categoryIds
- */
 
 /* -------------------------------------------------------------------------
    Die Aufgabe einer Karte

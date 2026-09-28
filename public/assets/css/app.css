@@ -100,16 +100,6 @@
     --accent: #2F6B4F;
     --accent-ink: #FFFFFF;
     --warn: #A8691C;
-
-    /*
-     * Die zwei Washes, die das helle Thema weiter braucht: die leise Flaeche eines
-     * Hover-Zustands und der Kreis hinter einer Zeichnung. Beide sind jetzt
-     * deckende Toene statt Schleier - die Linien und Flaechen dieses Themas sind
-     * es auch.
-     */
-    --tile-bg: var(--surface-soft);
-    --tile-bg-hover: var(--surface-soft);
-    --icon-circle: #E9E6E0;
     --tile-bg: rgba(43, 38, 34, 0.06);
     --tile-bg-hover: rgba(43, 38, 34, 0.10);
     --icon-circle: rgba(43, 38, 34, 0.09);
@@ -233,7 +223,6 @@
     --tile-bg: #2E3449;
     --tile-bg-hover: #353B52;
     --icon-circle: #3A415A;
-    --surface: var(--tile-bg);
 
     --accent: #8FD3E6;
     --accent-ink: #1A2238;
@@ -339,9 +328,6 @@ body {
     margin: 0;
     background-color: transparent;
     color: var(--text);
-    font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     transition: color 300ms var(--ease);
     /* Together with "html" this guarantees a page without a sideways scroll. */
@@ -620,11 +606,6 @@ img {
  * by themselves - no colour filter is involved and no icon file is loaded.
  */
 .theme-toggle {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
     border: 1px solid var(--line-strong);
     border-radius: 50%;
     background: transparent;
@@ -643,8 +624,6 @@ img {
  * cannot change the size or the weight of the drawing.
  */
 .theme-toggle svg {
-    width: 18px;
-    height: 18px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.75;
@@ -655,22 +634,6 @@ img {
 /* The filled disc is what makes the sun read as a sun and not as a circle. */
 .theme-toggle .sun-core {
     fill: currentColor;
-}
-
-.theme-toggle__icon--light {
-    display: block;
-}
-
-.theme-toggle__icon--dark {
-    display: none;
-}
-
-[data-theme="dark"] .theme-toggle__icon--light {
-    display: none;
-}
-
-[data-theme="dark"] .theme-toggle__icon--dark {
-    display: block;
 }
 
 /* Explicit, so the sun can never inherit a muted colour from anywhere. */
@@ -688,7 +651,6 @@ img {
 }
 
 .lang-switch__option {
-    padding: 2px 0;
     border: 0;
     border-radius: var(--radius-control);
     background: transparent;
@@ -1035,9 +997,7 @@ img {
 
 /* Greyed out and not clickable, but never hidden. */
 .tiles-nav__button[disabled] {
-    opacity: .3;
     pointer-events: none;
-    cursor: default;
 }
 /*
  * A category tile: one flat translucent white wash, no border and no shadow, so
@@ -1097,7 +1057,6 @@ img {
 .area-card:hover,
 .area-card:focus-visible {
     transform: translateY(-3px);
-    box-shadow: none;
     background-color: var(--tile-bg-hover);
 }
 /* --------------------------------------------------------------------------
@@ -1310,15 +1269,6 @@ img {
     width: 100%;
 }
 
-.area-card__name {
-    font-size: 1.5rem;
-    /* 400 instead of 500: with the light heading weight above, a heavier tile
-       title would sit louder than the page title. */
-    font-weight: 400;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-}
-
 /* The information line and the arrow share one row; the arrow sits on the right. */
 .area-card__foot {
     display: flex;
@@ -1350,9 +1300,6 @@ img {
 .area-card:hover .arrow,
 .area-card:focus-visible .arrow {
     color: var(--text);
-    /* 4 px, nicht 6: die Regel weiter unten (UX-Durchgang) setzt schon 4 px, und
-       zwei verschiedene Zahlen fuer dieselbe Bewegung sind nur verwirrend. */
-    transform: translateX(4px);
 }
 
 /*
@@ -1383,14 +1330,7 @@ img {
 
 .sidebar__link {
     display: flex;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: var(--radius-control);
     color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     text-decoration: none;
     transition: background-color 200ms var(--ease), color 200ms var(--ease);
 }
@@ -1401,8 +1341,6 @@ img {
 
 /* The active entry gets the subtle active surface of the design tokens. */
 .sidebar__link[aria-current="page"] {
-    background-color: var(--active-surface);
-    color: var(--text);
 }
 
 .rows {
@@ -1518,7 +1456,6 @@ img {
 }
 
 .row__name {
-    font-size: 1.02rem;
 }
 
 /*
@@ -1702,7 +1639,6 @@ img {
     flex-direction: column;
     gap: 10px;
     padding: 16px 14px 12px;
-    border-radius: var(--radius-tile);
     background-color: var(--surface);
 }
 
@@ -1727,8 +1663,6 @@ img {
 
 /* The one heavy mark of the tile - and even this one stays light. */
 .dash__value {
-    font-size: 20px;
-    font-weight: 500;
     line-height: 1.12;
     font-variant-numeric: tabular-nums;
 }
@@ -1811,37 +1745,17 @@ img {
 }
 
 .notice__title {
-    font-size: 1.05rem;
-    font-weight: 500;
-    letter-spacing: -0.01em;
 }
 
 .notice__hint {
     margin-top: 6px;
-    color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 1.5;
 }
 
 /* The button inside an empty state really creates something now. */
 .notice__button {
-    margin-top: 18px;
-    padding: 9px 14px;
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-control);
-    background-color: transparent;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: border-color 200ms var(--ease), background-color 200ms var(--ease);
 }
 
 .notice__button:hover {
-    border-color: var(--text);
-    background-color: var(--active-surface);
 }
 
 .notice__button[disabled] {
@@ -1890,7 +1804,6 @@ body:has(#view-detail:not([hidden])) .site-footer {
  */
 .site-footer__nav {
     grid-column: 1;
-    display: flex;
     align-items: center;
     gap: 8px;
     justify-self: start;
@@ -1945,36 +1858,16 @@ body:has(#view-detail:not([hidden])) .site-footer {
    ========================================================================== */
 
 .dialog {
-    width: min(420px, calc(100vw - 32px));
-    padding: 0;
-    /* A form with an icon field is taller than the window on a small screen;
-       scrolling inside the dialog keeps every field reachable. */
-    max-height: calc(100vh - 48px);
     overflow-y: auto;
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-control);
-    background-color: var(--panel);
-    color: var(--text);
-    opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
 }
 
 .dialog[open].is-open {
-    opacity: 1;
-    transform: translateY(0);
-    transition-duration: 320ms;
 }
 
 .dialog::backdrop {
-    background-color: var(--backdrop);
-    opacity: 0;
-    transition: opacity 200ms var(--ease);
 }
 
 .dialog[open].is-open::backdrop {
-    opacity: 1;
-    transition-duration: 320ms;
 }
 
 /*
@@ -1985,23 +1878,12 @@ body:has(#view-detail:not([hidden])) .site-footer {
  */
 
 .dialog__form {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    padding: 28px;
 }
 
 .dialog__title {
-    font-size: 1.1rem;
-    font-weight: 500;
-    letter-spacing: -0.02em;
 }
 
 .dialog__field {
-    display: flex;
-    flex-direction: column;
-    /* The distance between a label and its field. */
-    gap: 10px;
 }
 
 /*
@@ -2073,10 +1955,6 @@ body:has(#view-detail:not([hidden])) .site-footer {
 }
 
 .dialog__actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 16px;
     /* On a narrow sheet the buttons may go to a second row instead of squeezing
        a two line label into a column that is too narrow for it. */
     flex-wrap: wrap;
@@ -2103,9 +1981,7 @@ body:has(#view-detail:not([hidden])) .site-footer {
 }
 
 .dialog__button--primary {
-    border: 1px solid var(--text);
     background: transparent;
-    color: var(--text);
 }
 
 /*
@@ -2432,8 +2308,6 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .row__back {
-    color: var(--muted);
-    font-size: 0.9rem;
     line-height: 1.4;
     /* A long back is cut off after one line here; the dialog shows all of it. */
     overflow: hidden;
@@ -2658,26 +2532,10 @@ html.is-theme-switching::view-transition-new(root) {
 }
 
 .dialog__check {
-    width: 16px;
-    height: 16px;
     accent-color: var(--accent);
 }
 
-.dialog__hint {
-    color: var(--muted);
-    font-size: 0.8rem;
-    line-height: 1.4;
-}
-
-.dialog__message {
-    color: var(--muted);
-    font-size: 0.95rem;
-    line-height: 1.5;
-}
-
 .dialog__input--area {
-    min-height: 46px;
-    padding: 6px 0;
     /* The field grows with its content (see growTextarea in app.js), so the
        native drag handle would only invite the reader to break the layout. */
     resize: none;
@@ -3051,8 +2909,6 @@ html.is-theme-switching::view-transition-new(root) {
 .dialog__fields {
     display: flex;
     flex-direction: column;
-    /* The distance between two field groups. */
-    gap: 26px;
     flex: 1 1 auto;
     min-height: 0;
     padding: 26px 32px;
@@ -3209,7 +3065,6 @@ html.is-theme-switching::view-transition-new(root) {
 .dialog__actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 18px;
 }
 
@@ -3417,9 +3272,7 @@ html.is-theme-switching::view-transition-new(root) {
 
 .detail__titles {
     display: flex;
-    align-items: center;
     gap: 18px;
-    min-width: 0;
 }
 
 .detail__text {
@@ -3728,34 +3581,6 @@ html.is-theme-switching::view-transition-new(root) {
     margin-top: 22px;
 }
 
-.learn-button {
-    appearance: none;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    padding: 12px 26px;
-    font-family: var(--font-sans);
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    background-color: var(--text);
-    color: var(--panel);
-    cursor: pointer;
-    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
-}
-
-/* The hover lives with the button itself further down, where it only deepens the
-   colour - it does not move and it does not cast a shadow. */
-
-.learn-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.learn-button:focus-visible {
-    outline: 2px solid var(--line-strong);
-    outline-offset: 3px;
-}
-
 /*
  * Der Filter der Kartenliste: kleine Pillen unter dem Suchfeld.
  *
@@ -3870,9 +3695,6 @@ html.is-theme-switching::view-transition-new(root) {
 
 .card-preview {
     margin-top: 10px;
-    padding: 18px 20px;
-    border-radius: 16px;
-    background-color: var(--panel);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
@@ -4003,7 +3825,6 @@ body.is-learning {
     margin: 0;
     font-family: var(--font-mono);
     font-size: 12px;
-    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
 }
@@ -4772,39 +4593,19 @@ body.is-learning {
     margin-bottom: 4px;
 }
 
-.lang-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-}
-
 .lang-tab {
     appearance: none;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 16px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background-color: transparent;
-    color: var(--muted);
     font-family: var(--font-sans);
-    font-size: 14px;
     cursor: pointer;
     transition: background-color 160ms var(--ease), color 160ms var(--ease),
         border-color 160ms var(--ease);
 }
 
-.lang-tab:hover {
-    border-color: var(--line-strong);
-    color: var(--text);
-}
-
 .lang-tab.is-active {
-    background-color: var(--text);
     border-color: transparent;
-    color: var(--panel);
 }
 
 .lang-tab:focus-visible {
@@ -5623,13 +5424,11 @@ body.is-learning {
 
 *::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background-color: rgba(128, 128, 128, 0.4);
     background-color: color-mix(in srgb, var(--muted) 55%, transparent);
     transition: background-color 160ms var(--ease);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(128, 128, 128, 0.7);
     background-color: color-mix(in srgb, var(--text) 70%, transparent);
 }
 
@@ -5643,8 +5442,6 @@ body.is-learning {
 @supports not selector(::-webkit-scrollbar) {
     * {
         scrollbar-width: thin;
-        /* thumb, then track */
-        scrollbar-color: rgba(128, 128, 128, 0.4) transparent;
         scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent) transparent;
     }
 }
