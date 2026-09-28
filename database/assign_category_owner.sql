@@ -1,78 +1,84 @@
+-- Daten: die vorhandenen Kategorien ihrem Konto übergeben
 -- ==========================================================================
--- Data: hand the existing categories to their account
--- ==========================================================================
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
--- Nothing in the application runs this file, and Copilot never executes a
--- change to your data on its own.
+-- ERST DURCHLESEN, DANN VON HAND AUSFÜHREN (phpMyAdmin oder der mysql-Client).
+-- Nichts in der Anwendung führt diese Datei aus, und Copilot ändert deine Daten
+-- nie von selbst.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/assign_category_owner.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/assign_category_owner.sql
 --
--- Run this AFTER database/add_category_owner.sql. Without that column there is
--- nothing here to fill.
+-- Erst NACH database/add_category_owner.sql ausführen. Ohne diese Spalte gibt es
+-- hier nichts zu füllen.
 --
--- Why
---   `owner_user_id` exists since the migration above, and every row is NULL.
---   Until that is filled, the application still cannot tell whose categories
---   these are - so this file writes the owner once, for every row that has none.
+-- Warum
+--   `owner_user_id` gibt es seit der Migration oben, und jede Zeile ist NULL.
+--   Solange das nicht gefüllt ist, kann die Anwendung weiterhin nicht sagen,
+--   wessen diese Kategorien sind - diese Datei schreibt den Besitzer also einmal
+--   für jede Zeile, die keinen hat.
 --
--- The account
+-- Das Konto
 --
 --   id    6
 --   name  selina.schneider
 --   email selina.schneider@gmail.com
 --   role  learner
 --
---   That id was read from the `users` table and confirmed by the account holder
---   before this file was written. It is the only account in the table. The id is
---   written out literally rather than looked up by email on purpose: a one-off
---   backfill should say which id it writes, so the statement can be reviewed
---   without a second query in the head.
+--   Diese Id wurde aus der Tabelle `users` gelesen und von der Kontoinhaberin
+--   bestätigt, bevor diese Datei geschrieben wurde. Es ist das einzige Konto in
+--   der Tabelle. Die Id steht absichtlich wörtlich da und wird nicht über die
+--   E-Mail-Adresse gesucht: eine einmalige Nachfüllung soll sagen, welche Id sie
+--   schreibt, damit die Anweisung geprüft werden kann, ohne eine zweite Abfrage
+--   im Kopf zu haben.
 --
---   Check it yourself before running (expected: exactly one row, id 6):
+--   Prüf es vor dem Lauf selbst (erwartet: genau eine Zeile, id 6):
 --
 --     SELECT id, name, email, role FROM users ORDER BY id;
 --
--- What it does
---   One UPDATE. It sets `owner_user_id = 6` on every category row that has no
---   owner yet - the 4 learning areas and their 41 subcategories, 45 rows in
---   total (counted on 2026-09-26, after the English subcategories were removed).
+-- Was sie tut
+--   Ein UPDATE. Sie setzt `owner_user_id = 6` auf jeder Kategoriezeile, die noch
+--   keinen Besitzer hat - die 4 Lernbereiche und ihre 41 Unterkategorien, 45
+--   Zeilen insgesamt (gezählt am 2026-09-26, nachdem die englischen
+--   Unterkategorien entfernt wurden). Seither sind Kategorien dazugekommen; die
+--   Zahl beschreibt also den damaligen Stand.
 --
---   Nothing else changes: no name, no colour, no drawing, no parent, no card.
---   The rows keep their ids, so every card stays in the category it was in.
+--   Sonst ändert sich nichts: kein Name, keine Farbe, keine Zeichnung, kein
+--   Elternteil, keine Karte. Die Zeilen behalten ihre Ids, jede Karte bleibt also
+--   in der Kategorie, in der sie war.
 --
--- What it does NOT do
---   * no INSERT, no DELETE, no DROP, no ALTER - the structure is not touched
---   * no other table is touched: `users`, `cards`, `user_card_progress`,
---     `card_exercises` and `study_sessions` keep their rows exactly as they are
---   * it does not make the column NOT NULL. That is a separate, later file, once
---     the application always sets the owner itself.
---   * it does not filter anything yet. The application does not read the column
---     until the code change that follows, so this file alone changes no
---     behaviour you can see.
+-- Was sie NICHT tut
+--   * kein INSERT, kein DELETE, kein DROP, kein ALTER - die Struktur wird nicht
+--     angefasst
+--   * keine andere Tabelle wird angefasst: `users`, `cards`,
+--     `user_card_progress`, `card_exercises` und `study_sessions` behalten ihre
+--     Zeilen genau, wie sie sind
+--   * sie setzt die Spalte nicht auf NOT NULL. Das ist eine eigene, spätere
+--     Datei, sobald die Anwendung den Besitzer immer selbst setzt.
+--   * sie filtert noch nichts. Die Anwendung liest die Spalte erst mit der
+--     Codeänderung, die darauf folgt, diese Datei allein ändert also kein
+--     Verhalten, das du sehen kannst.
 --
--- Safety
---   The WHERE clause only touches rows that are still empty. Running this file a
---   second time therefore reports
+-- Sicherheit
+--   Die WHERE-Bedingung fasst nur Zeilen an, die noch leer sind. Ein zweiter Lauf
+--   dieser Datei meldet deshalb
 --
 --     0 rows affected
 --
---   and changes nothing - which is also the answer you want if a category is
---   ever handed to another account later: this file will not take it back.
+--   und ändert nichts - und genau das willst du auch, wenn eine Kategorie später
+--   einmal an ein anderes Konto geht: diese Datei nimmt sie nicht zurück.
 --
--- Check after running (expected: 45 and 45)
+-- Nach dem Lauf prüfen (erwartet: 45 und 45)
 --   SELECT COUNT(*) AS gesamt,
 --          COUNT(owner_user_id) AS mit_besitzer
 --     FROM categories;
 --
---   Expected: 45 rows carry owner 6, 0 rows are NULL.
+--   Erwartet: 45 Zeilen tragen Besitzer 6, 0 Zeilen sind NULL.
 --
 --   SELECT owner_user_id, COUNT(*) FROM categories GROUP BY owner_user_id;
 --
---   Expected: a single line, owner 6, count 45.
+--   Erwartet: eine einzige Zeile, Besitzer 6, Anzahl 45.
 --
--- Rollback (only if you ever want the old state back)
+-- Zurücknehmen (nur falls du den alten Zustand je zurückhaben willst)
 --   UPDATE `categories` SET `owner_user_id` = NULL WHERE `owner_user_id` = 6;
 -- ==========================================================================
 
