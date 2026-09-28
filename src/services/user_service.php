@@ -317,10 +317,11 @@ function user_register(PDO $pdo, string $identifier, string $password): array
         $at = (int) mb_strpos($identifier, '@');
         $local = trim(mb_substr($identifier, 0, $at));
 
-        /* The readable name of an account made with an address: the part in front
-           of the "@". It is what the header shows and what the person types when
-           they sign in with a name instead. An address like "@example.com" has no
-           usable part in front, so the whole address becomes the name. */
+        /* Der lesbare Name eines Kontos, das mit einer Adresse angelegt wurde: der Teil
+           vor dem "@". Er ist es, den die Kopfzeile zeigt und den die Person eintippt,
+           wenn sie sich stattdessen mit einem Namen anmeldet. Eine Adresse wie
+           "@example.com" hat davor nichts Brauchbares, dort wird die ganze Adresse zum
+           Namen. */
         $name = $local === '' ? $identifier : $local;
         $name = mb_substr($name, 0, USER_NAME_MAX_LENGTH);
     }
@@ -333,7 +334,8 @@ function user_register(PDO $pdo, string $identifier, string $password): array
         ];
     }
 
-    /* The same name may not exist twice either: the name is the other way in. */
+    /* Auch denselben Namen darf es nicht zweimal geben: der Name ist der andere Weg
+       hinein. */
     if ($email !== null && user_find($pdo, $name) !== null) {
         return ['ok' => false, 'error' => 'name_exists', 'user' => null];
     }
@@ -359,8 +361,8 @@ function user_register(PDO $pdo, string $identifier, string $password): array
     try {
         $statement->execute($values);
     } catch (PDOException $error) {
-        /* Two people choosing the same name at the same second: the unique key
-           answers, and that is a sentence the form already has. */
+        /* Zwei Personen, die in derselben Sekunde denselben Namen wählen: der eindeutige
+           Schlüssel antwortet, und das ist ein Satz, den das Formular schon hat. */
         if ((string) $error->getCode() === '23000') {
             return ['ok' => false, 'error' => 'name_exists', 'user' => null];
         }
@@ -372,7 +374,7 @@ function user_register(PDO $pdo, string $identifier, string $password): array
 }
 
 /**
- * Checks an identifier and a password against the table.
+ * Prüft eine Kennung und ein Passwort gegen die Tabelle.
  *
  * @return array{ok: bool, error: ?string, user: ?array{id: int, name: string}}
  */
@@ -395,8 +397,8 @@ function user_sign_in(PDO $pdo, string $identifier, string $password): array
         $hash = USER_DUMMY_HASH;
     }
 
-    /* password_verify() runs in both cases, so the time the answer takes says
-       nothing about whether the name exists. */
+    /* password_verify() läuft in beiden Fällen, die Dauer der Antwort verrät also
+       nichts darüber, ob es die Adresse gibt. */
     if (password_verify($password, $hash) !== true || $row === null) {
         usleep(USER_FAILED_SIGN_IN_DELAY);
 
@@ -407,18 +409,18 @@ function user_sign_in(PDO $pdo, string $identifier, string $password): array
 }
 
 /**
- * Checks the password of the account itself.
+ * Prüft das Passwort des Kontos selbst.
  *
- * This is the one thing that stands between an open laptop and the deletion of a
- * whole learning progress, so the account is asked for its password and not for
- * its name: a name stands on the screen, a password does not.
+ * Das ist das Einzige, was zwischen einem offenen Laptop und dem Löschen eines ganzen
+ * Lernfortschritts steht, deshalb wird das Konto nach seinem Passwort gefragt und nicht
+ * nach seinem Namen: ein Name steht auf dem Bildschirm, ein Passwort nicht.
  *
- * It uses password_verify() against the stored hash, exactly like the sign-in
- * does, and the same short pause on a wrong password - a failed attempt costs
- * the same time as a successful one, so nobody learns anything from it.
+ * Es benutzt password_verify() gegen den gespeicherten Hash, genau wie die Anmeldung, und
+ * dieselbe kurze Pause bei einem falschen Passwort - ein gescheiterter Versuch kostet so
+ * viel Zeit wie ein erfolgreicher, niemand erfährt also etwas daraus.
  *
- * Every "there is nothing to compare with" case answers false: no such user, an
- * empty password, a table without the column (see database/add_user_auth.sql).
+ * Jeder Fall von "es gibt nichts zu vergleichen" antwortet mit false: kein solches Konto,
+ * ein leeres Passwort, eine Tabelle ohne die Spalte (siehe database/add_user_auth.sql).
  */
 function user_password_matches(PDO $pdo, int $userId, string $password): bool
 {
@@ -441,13 +443,13 @@ function user_password_matches(PDO $pdo, int $userId, string $password): bool
 }
 
 /* --------------------------------------------------------------------------
-   The session
+   Die Sitzung
    -------------------------------------------------------------------------- */
 
 /**
- * Remembers who is signed in.
+ * Merkt sich, wer angemeldet ist.
  *
- * This is the one place that writes $_SESSION['user_id']; session_user.php is
+ * Das ist die eine Stelle, die $_SESSION['user_id'] schreibt; session_user.php ist
  * the one place that reads it. Nothing else has to know about the session.
  *
  * @param array{id: int, name: string} $user
