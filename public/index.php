@@ -132,7 +132,7 @@ $appConfig = [
     'translations' => $translations,
 ];
 
-// Short helper for the template below: default language, already escaped.
+// Kurze Hilfe für die Vorlage unten: Standardsprache, schon maskiert.
 $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 ?>
 <!DOCTYPE html>
@@ -147,26 +147,26 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $text('app.title') ?></title>
-    <!-- The browser tab icon. It is the browser icon file, not a category icon. -->
+    <!-- Das Symbol im Browserreiter. Das ist die Symboldatei des Browsers, kein Kategoriesymbol. -->
     <link rel="icon" href="assets/icons/browser_icon.svg" type="image/svg+xml">
     <!--
-        Both stylesheets and the script below carry the time of their last change
-        as a version (asset_url), so an edit reaches the browser at the next load
-        instead of sitting in its cache.
+        Beide Stylesheets und das Skript unten tragen den Zeitpunkt ihrer letzten Änderung
+        als Version (asset_url), damit eine Änderung beim nächsten Laden im Browser ankommt
+        und nicht in seinem Zwischenspeicher liegen bleibt.
     -->
     <link rel="stylesheet" href="<?= escape_html(asset_url('assets/css/app.css')) ?>">
-    <!-- The overlay for the very first load; it owns no other rule. -->
+    <!-- Die Überlagerung für den allerersten Aufbau; sie hat keine weitere Regel. -->
     <link rel="stylesheet" href="<?= escape_html(asset_url('assets/css/boot.css')) ?>">
 
     <!--
-        The one rule that must be there before anything is painted: while the
-        loading screen is on, the page underneath stays invisible. It is written
-        here and not in a stylesheet because every stylesheet needs a request of
-        its own - and in that gap the browser would draw the page, which is the
-        flash this is about.
+        Die eine Regel, die vor dem ersten Zeichnen da sein muss: solange der
+        Ladebildschirm läuft, bleibt die Seite darunter unsichtbar. Sie steht hier
+        und nicht im Stylesheet, weil jedes Stylesheet eine eigene Anfrage braucht -
+        und in dieser Lücke würde der Browser die Seite zeichnen, und genau das ist
+        das kurze Aufblitzen, um das es geht.
 
-        visibility (not display) on purpose: the layout is complete from the
-        first moment, so nothing jumps when the loading screen goes away.
+        visibility (nicht display) mit Absicht: das Layout steht vom ersten
+        Augenblick an, damit nichts springt, wenn der Ladebildschirm verschwindet.
     -->
     <style>
         html.is-booting .site-header,
@@ -176,8 +176,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         }
     </style>
     <noscript>
-        <!-- Without JavaScript no script can take the loading screen away, so
-             it is not shown and the page stands open right away. -->
+        <!-- Ohne JavaScript kann kein Skript den Ladebildschirm wegräumen, deshalb
+             wird er nicht gezeigt und die Seite steht sofort offen. -->
         <style>
             .boot {
                 display: none;
@@ -192,10 +192,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </noscript>
 
     <!--
-        Preloaded so the heading face is already there when the first paint
-        happens. Without this the heading reveal could start in the fallback font
-        and then visibly swap. The path is relative to this file in public/, and
-        "crossorigin" is required because fonts are always fetched in CORS mode.
+        Vorab geladen, damit die Schrift der Überschrift schon da ist, wenn das erste
+        Zeichnen passiert. Sonst begänne das Einblenden der Überschrift in der
+        Ersatzschrift und würde sichtbar umspringen. Der Pfad ist relativ zu dieser
+        Datei in public/, und "crossorigin" ist nötig, weil Schriften immer im
     -->
     <link rel="preload" href="assets/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 
@@ -239,17 +239,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 </head>
 <body>
     <!--
-        Three soft light pools, one wide blurred radial gradient each. They have
-        no visible edge: nothing here is a shape with an outline and nothing has
+        Drei weiche Lichtflächen, jede ein breiter, weichgezeichneter Farbverlauf.
+        Sie haben keinen sichtbaren Rand: nichts hier hat eine Umrisslinie, und
         a hard border.
 
-        The layer deliberately sits OUTSIDE .page and is fixed to the viewport, so
-        a pool can run past the content column and past the window edges without
-        leaving a hard vertical edge where the column ends. It keeps z-index -1,
-        which is above the page colour and below every piece of real content, so
-        no pool is ever behind a tile, a heading or any other text.
+        Die Ebene liegt mit Absicht AUSSERHALB von .page und klebt am Fenster,
+        damit eine Lichtfläche über die Inhaltsspalte und über die Fensterränder
+        hinauslaufen kann, ohne eine harte senkrechte Kante zu hinterlassen. Sie
+        behält z-index -1, also über der Seitenfarbe und unter allem echten Inhalt,
+        damit keine Lichtfläche hinter einer Kachel, einer Überschrift oder sonstigem
 
-        Decorative only - nothing here is clickable or announced.
+        Nur Zierde - nichts hier ist anklickbar oder wird vorgelesen.
     -->
     <div class="bg-layer" aria-hidden="true">
         <span class="bg-blob bg-blob--a"></span>
@@ -258,26 +258,26 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </div>
 
     <!--
-        The overlay for the very first load. It is shown only when the first view
-        takes a moment to appear (see the few lines at its end), and it is hidden
-        again as soon as the view is really there.
+        Die Überlagerung für den allerersten Aufbau. Sie erscheint nur, wenn die erste
+        Ansicht einen Augenblick braucht (siehe die paar Zeilen an ihrem Ende), und
+        verschwindet wieder, sobald die Ansicht wirklich steht.
 
-        It is opaque on purpose: the page colour, the gradient and the three
-        light pools stay visible, because the overlay paints the same pools on
-        top of its own background (see .boot__bg). The drawing is thin lines in
-        currentColor, like every other icon of the application, and it carries
-        no shadow.
+        Sie ist absichtlich deckend: die Seitenfarbe, der Verlauf und die drei
+        Lichtflächen bleiben sichtbar, weil die Überlagerung dieselben Flächen
+        über ihren eigenen Hintergrund malt (siehe .boot__bg). Die Zeichnung besteht
+        aus dünnen Linien in currentColor, wie jedes andere Symbol der Anwendung,
+        und sie wirft keinen Schatten.
 
-        The texts are handed to the browser as data attributes instead of being
-        written into the script, so the translation stays in one place - the same
-        keys the rest of the interface uses.
+        Die Texte gehen als Datenattribute an den Browser, statt in das Skript
+        geschrieben zu werden, damit die Übersetzung an einer Stelle bleibt - dieselben
+        Schlüssel, die die übrige Oberfläche benutzt.
     -->
     <div class="boot" id="boot-overlay">
         <!--
-            The background of the overlay: the very same pools the page itself
-            paints (see .bg-layer in the stylesheet). The overlay is opaque, so
-            they have to be painted again here - and taking the classes of the
-            page means there is only one definition of how they look.
+            Der Hintergrund der Überlagerung: dieselben Lichtflächen, die die Seite
+            selbst malt (siehe .bg-layer im Stylesheet). Die Überlagerung ist deckend,
+            deshalb müssen sie hier erneut gemalt werden - und weil dieselben Klassen
+            wie auf der Seite benutzt werden, gibt es nur eine Festlegung ihres Aussehens.
         -->
         <div class="bg-layer boot__bg" aria-hidden="true">
             <span class="bg-blob bg-blob--a"></span>
@@ -290,9 +290,9 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         <div class="boot__error" id="boot-error" hidden>
             <p class="boot__text" id="boot-error-text"
                data-text-de="Das dauert länger als erwartet. Bitte noch einmal versuchen."
-               data-text-en="This takes longer than expected. Please try again.">This takes longer than expected. Please try again.</p>
+               data-text-en="This takes longer than expected. Please try again.">Das dauert länger als erwartet. Bitte noch einmal versuchen.</p>
             <button type="button" class="boot__retry" id="boot-retry"
-                    data-text-de="Erneut versuchen" data-text-en="Try again">Try again</button>
+                    data-text-de="Erneut versuchen" data-text-en="Try again">Erneut versuchen</button>
         </div>
     </div>
 
@@ -484,30 +484,30 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         <header class="site-header">
             <div class="site-header__left">
                 <!--
-                    The account, as plain text: "Anmelden" while nobody is signed
-                    in, otherwise the name of the person and "Abmelden". It stands
-                    on the left edge of the content column, on the same line as the
-                    moon and the language switch, and app.js fills it from
-                    api/auth.php - this file never talks to the database.
+                    Das Konto als reiner Text: "Anmelden", solange niemand angemeldet ist,
+                    sonst der Name der Person und "Abmelden". Es steht am linken Rand
+                    der Inhaltsspalte, in derselben Zeile wie der Mond und der
+                    Sprachumschalter, und app.js füllt es aus api/auth.php - diese
+                    Datei spricht nie mit der Datenbank.
                 -->
                 <div class="account" id="account-slot"></div>
 
                 <!--
-                    Starts empty on both views, and an empty ".crumb" takes no
-                    space (see the stylesheet). The home page deliberately shows
-                    no label here; on a deeper page app.js fills this with the
-                    path, which is navigation.
+                    Startet in beiden Ansichten leer, und ein leeres ".crumb" braucht keinen
+                    Platz (siehe Stylesheet). Die Startseite zeigt hier mit Absicht
+                    keine Beschriftung; auf einer tieferen Seite füllt app.js den Pfad ein,
+                    und das ist Navigation.
                 -->
                 <p class="crumb" id="crumb"></p>
             </div>
 
             <div class="site-header__right">
                 <!--
-                    The icon shows what a click will do: the moon in light mode
-                    (click -> dark), the sun in dark mode (click -> light).
-                    Both are drawn inline with viewBox and currentColor, so the
-                    switch depends on no icon file and needs no colour filter.
-                    Which one is visible is decided by [data-theme].
+                    Das Symbol zeigt, was ein Klick bewirkt: der Mond im hellen Modus
+                    (Klick -> dunkel), die Sonne im dunklen Modus (Klick -> hell).
+                    Beide sind direkt mit viewBox und currentColor gezeichnet, der Wechsel
+                    hängt also an keiner Symboldatei und braucht keinen Farbfilter.
+                    Welches zu sehen ist, entscheidet [data-theme].
                 -->
                 <button type="button" class="theme-toggle" id="theme-toggle"
                         aria-pressed="false"
@@ -525,7 +525,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </svg>
                 </button>
 
-                <!-- Plain text switch with an underline, not a framed control. -->
+                <!-- Ein reiner Textumschalter mit Unterstrich, kein gerahmtes Bedienelement. -->
                 <div class="lang-switch" role="group" aria-label="<?= $text('language.label') ?>" data-i18n-label="language.label">
                     <button type="button" class="lang-switch__option" data-locale="en" data-i18n="language.en"><?= $text('language.en') ?></button>
                     <span class="lang-switch__separator" aria-hidden="true">|</span>
@@ -542,18 +542,18 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
         <main class="main" id="main">
         <!--
-            One quiet line above the content: "you have been signed out", "your
-            account has been deleted". app.js writes it, lets it fade away and
-            hides it again; while it is empty it takes no space at all.
+            Eine leise Zeile über dem Inhalt: "du wurdest abgemeldet", "deine
+            Konto wurde gelöscht". app.js schreibt sie, lässt sie ausblenden und
+            versteckt sie wieder; solange sie leer ist, braucht sie keinen Platz.
         -->
         <p class="page-note" id="page-note" role="status" aria-live="polite" hidden></p>
 
             <!-- Home view -->
             <section class="view view--start" id="view-home">
                 <!--
-                    The heading stands alone. The counts that used to sit beside
-                    it are gone: the start page shows numbers on the tiles, and a
-                    subcategory shows them in the tiles under its head.
+                    Die Überschrift steht allein. Die Zahlen, die früher daneben standen,
+                    sind weg: die Startseite zeigt die Zahlen auf den Kacheln, und eine
+                    Unterkategorie zeigt sie in den Kacheln unter ihrem Kopf.
                 -->
                 <header class="start-header reveal" id="home-header">
                     <div class="start-header__intro">
@@ -566,11 +566,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                 <div class="notice" id="empty-state" hidden>
                     <!--
-                        The mark above the sentence: a stack of two cards, drawn
-                        inline like every other drawing of the application, with
-                        the same thin line (1.5) and in the accent colour of the
-                        theme. It only shows what the heading below says, so it is
-                        hidden from screen readers.
+                        Das Zeichen über dem Satz: ein Stapel aus zwei Karten, direkt
+                        gezeichnet wie jede andere Zeichnung der Anwendung, mit derselben
+                        dünnen Linie (1.5) und in der Akzentfarbe des Themas. Es zeigt nur,
+                        was die Überschrift darunter sagt, deshalb ist es für Vorlesehilfen
+                        versteckt.
                     -->
                     <svg class="notice__icon" viewBox="0 0 24 24" width="30" height="30" fill="none"
                          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
@@ -581,10 +581,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     <h2 class="notice__title" id="empty-title"></h2>
                     <p class="notice__hint" id="empty-hint"></p>
                     <!--
-                        The ways out. app.js shows one of them: signed in it is the
-                        form that creates a learning area, signed out it is the
-                        sign-in and the way to an account. The second button stays
-                        hidden while somebody is signed in.
+                        Die Wege hinaus. app.js zeigt einen davon: angemeldet ist es das
+                        Formular, das einen Lernbereich anlegt, abgemeldet sind es die
+                        Anmeldung und der Weg zu einem Konto. Der zweite Knopf bleibt
+                        versteckt, solange jemand angemeldet ist.
                     -->
                     <div class="notice__actions">
                         <button type="button" class="notice__button" id="empty-action" hidden></button>
@@ -594,21 +594,21 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 </div>
 
                 <!--
-                    The tile row. It is a horizontal scroller: it shows whole
-                    tiles only (the count per view lives in the stylesheet) and
-                    snaps to a tile, so a tile is never left half cut off. app.js
-                    fills the row from the database.
+                    Die Kachelreihe. Sie ist ein waagerechter Scroller: sie zeigt nur
+                    ganze Kacheln (wie viele je Ansicht steht im Stylesheet) und
+                    rastet auf eine Kachel ein, damit keine halb abgeschnitten stehen
+                    bleibt. app.js füllt die Reihe aus der Datenbank.
                 -->
                 <div class="tiles" id="tiles">
                     <div class="area-grid" id="area-grid"></div>
                 </div>
 
                 <!--
-                    The scroll line of the tile row. It carries the position as
-                    well as being the hairline above the footer, so the footer
-                    needs none of its own. It is NEVER hidden: while every tile
-                    fits it stays in place, greyed out. The two arrows that belong
-                    to it sit in the footer, on the left.
+                    Die Scrolllinie der Kachelreihe. Sie trägt die Position und ist
+                    zugleich die feine Linie über der Fußzeile, deshalb braucht die
+                    Fußzeile keine eigene. Sie ist NIE versteckt: solange alle Kacheln
+                    passen, bleibt sie ausgegraut an ihrem Platz. Die beiden Pfeile,
+                    die dazugehören, sitzen in der Fußzeile links.
                 -->
                 <div class="tiles-nav" id="tiles-nav">
                     <div class="tiles-nav__track" id="tiles-nav-track">
@@ -617,7 +617,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 </div>
             </section>
 
-            <!-- Category (detail) view: a learning area or one of its subcategories -->
+            <!-- Kategorie-Ansicht: ein Lernbereich oder eine seiner Unterkategorien -->
             <section class="view view--detail" id="view-detail" hidden>
                 <aside class="sidebar">
                     <p class="eyebrow" data-i18n="sidebar.label"><?= $text('sidebar.label') ?></p>
@@ -626,17 +626,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                 <div class="detail">
                     <!--
-                        Heading and the two actions that belong to the entry that
-                        is open. They sit NEXT to the heading instead of inside a
-                        row or a tile: a row is one link, and a button inside a
-                        link cannot be clicked reliably.
+                        Überschrift und die beiden Aktionen, die zum offenen Eintrag
+                        gehören. Sie stehen NEBEN der Überschrift statt in einer Zeile
+                        oder einer Kachel: eine Zeile ist ein Link, und ein Knopf in einem
+                        Link lässt sich nicht zuverlässig anklicken.
                     -->
                     <!--
-                        The head of the open entry: its drawing, its name and its
-                        description. The drawing is the same circle a tile uses,
-                        so arriving here feels like opening that tile. The colour
-                        of the zone comes from the palette position of the
-                        learning area (see app.js and the stylesheet).
+                        Der Kopf des offenen Eintrags: seine Zeichnung, sein Name und seine
+                        Beschreibung. Die Zeichnung ist derselbe Kreis wie auf einer Kachel,
+                        damit das Ankommen hier wie das Öffnen dieser Kachel wirkt. Die
+                        Farbe der Zone kommt von der Position des Lernbereichs in der
+                        Farbpalette (siehe app.js und das Stylesheet).
                     -->
                     <div class="detail__head">
                         <div class="detail__titles">
@@ -647,25 +647,23 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         </div>
 
                         <!--
-                            The actions of this entry. app.js puts the one menu
-                            into this container, so a detail view offers exactly
-                            the same control as a row or a tile does.
+                            Die Aktionen dieses Eintrags. app.js setzt das eine Menü in diesen
+                            Kasten, damit die Detailansicht genau dasselbe Bedienelement
+                            anbietet wie eine Zeile oder eine Kachel.
                         -->
                         <div class="detail__actions" id="detail-actions" hidden></div>
                     </div>
 
                     <!--
-                        The tiles of a subcategory: what is due, how much of it
-                        already sits, how much is still unsure and how many days in
-                        a row somebody studied. They stand directly under the head,
-                        before the counts and the buttons, because they belong to
-                        the work of this page.
+                        Die Kacheln einer Unterkategorie: was ansteht, wie viel davon schon
+                        sitzt, wie viel noch unsicher ist und wie viele Tage in Folge
+                        gelernt wurde. Sie stehen direkt unter dem Kopf, vor den Zahlen und
+                        den Knöpfen, weil sie zur Arbeit dieser Seite gehören.
 
-                        app.js fills them from the numbers the API already sends
-                        with the card list - nothing here is counted in the
-                        browser - and it keeps the whole section away on a learning
-                        area, which only holds subcategories and has no cards of
-                        its own.
+                        app.js füllt sie aus den Zahlen, die die Schnittstelle ohnehin mit
+                        der Kartenliste schickt - nichts davon wird im Browser gezählt -
+                        und in einem Lernbereich lässt er den ganzen Abschnitt weg, denn
+                        der enthält nur Unterkategorien und hat keine eigenen Karten.
                     -->
                     <section class="dash" id="detail-dashboard" hidden>
                         <div class="dash__tile">
@@ -694,9 +692,9 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </section>
 
                     <!--
-                        What the entry holds, in one quiet line: the number of
-                        subcategories and the number of flashcards. Both are
-                        counted by the API, and the wording follows the number.
+                        Was der Eintrag enthält, in einer leisen Zeile: die Zahl der
+                        Unterkategorien und die Zahl der Karteikarten. Beides zählt die
+                        Schnittstelle, und die Formulierung folgt der Zahl.
                     -->
                     <p class="detail__figures" id="detail-stats" hidden>
                         <span class="detail__figure" id="detail-figure-count"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
@@ -704,17 +702,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </p>
 
                     <!--
-                        One quiet row of actions, directly under the counts: the
-                        main action first, then the ways to add something. app.js
-                        fills the row for the level that is open:
+                        Eine leise Reihe von Aktionen, direkt unter den Zahlen: zuerst die
+                        Hauptaktion, dann die Wege, etwas hinzuzufügen. app.js füllt die
+                        Reihe für die Ebene, die offen ist:
 
-                          a subcategory  -> "Study", "+ Card" and "Import"
+                          eine Unterkategorie -> "Lernen", "+ Karte" und "Import"
                           a learning area -> "+ Subcategory"
 
-                        A button only appears where it belongs: no "Study" without
-                        cards, no "+ Card" while the empty state already offers that
-                        step, and no "Import" on a learning area - a file of cards
-                        belongs to a subcategory.
+                        Ein Knopf erscheint nur, wo er hingehört: kein "Lernen" ohne
+                        Karten, kein "+ Karte", solange der leere Zustand diesen Schritt
+                        schon anbietet, und kein "Import" in einem Lernbereich - eine
+                        Datei mit Karten gehört zu einer Unterkategorie.
                     -->
                     <div class="detail__learn">
                         <button type="button" class="learn-button" id="learn-button" hidden>
@@ -732,19 +730,19 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </div>
 
                     <!--
-                        The search of a card list. The numbers of this list stand in
-                        the tiles under the head now, so the only thing left here is
-                        the way to look for one card. app.js shows the strip from
-                        about fifteen cards on: searching three cards is more work
-                        than looking at them, and an empty strip above a list would
-                        only take room.
+                        Die Suche einer Kartenliste. Die Zahlen dieser Liste stehen jetzt
+                        in den Kacheln unter dem Kopf, hier bleibt also nur der Weg, eine
+                        Karte zu suchen. app.js zeigt die Leiste ab ungefähr fünfzehn
+                        Karten: drei Karten zu durchsuchen ist mehr Arbeit, als sie
+                        anzusehen, und eine leere Leiste über einer Liste würde nur Platz
+                        wegnehmen.
                     -->
                     <div class="card-tools" id="card-tools" hidden>
                         <!--
                             Der Filter der Kartenliste: Alle, Neu, Unsicher, Gewusst.
 
                             Das sind genau die drei Zustände, die eine Karte wirklich hat
-                            (new, unsure, known - siehe review_status_of() in
+                            (neu, unsicher, gewusst - siehe review_status_of() in
                             review_service.php); mehr gibt es nicht. Die Beschriftungen sind
                             dieselben Übersetzungsschlüssel wie der Status in der Zeile,
                             damit Chip und Zeile nie zwei verschiedene Wörter zeigen.
@@ -767,21 +765,19 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                         <div class="card-tools__search" id="card-tools-search" hidden>
                             <!--
-                                A search field, not a sign-in field - and one the
-                                browser is told to keep its hands off:
+                                Ein Suchfeld, kein Anmeldefeld - und eines, von dem der Browser
+                                die Finger lassen soll:
 
-                                  * no <form> around it, and a name that cannot be
-                                    mistaken for a login ("card-search-term", not
-                                    "email" or "user"),
-                                  * autocomplete="off" for the browsers that honour
-                                    it,
-                                  * readonly until the field is really used. This is
-                                    the part that does the work: Chrome skips
-                                    read-only fields when it fills a page in, while
-                                    "off" alone is ignored as soon as any sign-in
-                                    form exists somewhere in the document - and one
-                                    does, the account dialog. app.js drops readonly
-                                    again on the first focus or click.
+                                  * kein <form> darum, und ein Name, der nicht mit einer Anmeldung
+                                    verwechselt werden kann ("card-search-term", nicht
+                                    "email" oder "user"),
+                                  * autocomplete="off" für die Browser, die sich daran halten,
+                                  * readonly, bis das Feld wirklich benutzt wird. Das ist der Teil,
+                                    der die Arbeit macht: Chrome überspringt schreibgeschützte
+                                    Felder, wenn es eine Seite ausfüllt, während "off" allein
+                                    ignoriert wird, sobald irgendwo im Dokument ein Anmeldeformular
+                                    steht - und eines steht dort, der Kontodialog. app.js nimmt
+                                    readonly beim ersten Fokus oder Klick wieder weg.
                             -->
                             <input type="search" class="card-tools__search-input" id="card-search"
                                    name="card-search-term" autocomplete="off" autocorrect="off"
@@ -792,32 +788,32 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                     <p class="state state--quiet" id="card-search-empty" hidden></p>
 
-                    <!-- The rows of the open entry: subcategories or flashcards. -->
+                    <!-- Die Zeilen des offenen Eintrags: Unterkategorien oder Karteikarten. -->
                     <ul class="rows" id="entry-list"></ul>
 
                     <!--
-                        The empty state of a list: the circle carries the drawing
-                        of the area this page belongs to (or the first letter of
-                        its name), then one sentence and one button. app.js fills
-                        the circle and the two texts.
+                        Der leere Zustand einer Liste: der Kreis trägt die Zeichnung des
+                        Bereichs, zu dem diese Seite gehört (oder den ersten Buchstaben
+                        seines Namens), dann ein Satz und ein Knopf. app.js füllt den
+                        Kreis und die beiden Texte.
                     -->
                     <div class="notice" id="entry-empty" hidden>
                         <span class="blob notice__blob" id="entry-empty-blob" aria-hidden="true"></span>
                         <h2 class="notice__title" id="entry-empty-title"></h2>
                         <!--
-                            Only the "this entry no longer exists" notice uses this
-                            second line. An empty list shows its one sentence
-                            without it, which is why it starts hidden.
+                            Nur der Hinweis "diesen Eintrag gibt es nicht mehr" benutzt diese
+                            zweite Zeile. Eine leere Liste zeigt ihren einen Satz ohne sie,
+                            deshalb startet sie versteckt.
                         -->
                         <p class="notice__hint" id="entry-empty-hint" hidden></p>
                         <button type="button" class="notice__button" id="entry-empty-action" hidden></button>
                     </div>
 
                     <!--
-                        Cards that sit directly in a learning area (not in one of
-                        its subcategories). The page shows this section only when
-                        there really are such cards, so the normal case stays a
-                        plain list of subcategories.
+                        Karten, die direkt in einem Lernbereich liegen (nicht in einer
+                        seiner Unterkategorien). Die Seite zeigt diesen Abschnitt nur,
+                        wenn es solche Karten wirklich gibt, damit der Normalfall eine
+                        schlichte Liste von Unterkategorien bleibt.
                     -->
                     <section class="detail__section" id="area-cards" hidden>
                         <h2 class="detail__section-title" data-i18n="cards.sectionTitle"><?= $text('cards.sectionTitle') ?></h2>
@@ -828,15 +824,15 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         </main>
 
         <!--
-            The same footer on every page. The hairline above it is the scroll
-            line of the tile row further up, so there is no <hr> in here, and the
-            number of learning areas is no longer shown anywhere.
+            Dieselbe Fußzeile auf jeder Seite. Die feine Linie darüber ist die
+            Scrolllinie der Kachelreihe weiter oben, deshalb steht hier kein <hr>,
+            und die Zahl der Lernbereiche wird nirgends mehr gezeigt.
         -->
         <footer class="site-footer">
             <div class="site-footer__row">
                 <!--
-                    The two arrows of the tile row, on the left. app.js hides them
-                    on every page that has no tile row.
+                    Die beiden Pfeile der Kachelreihe, links. app.js versteckt sie auf
+                    jeder Seite, die keine Kachelreihe hat.
                 -->
                 <div class="site-footer__nav" id="tiles-nav-buttons" hidden>
                     <button type="button" class="tiles-nav__button" id="tiles-nav-prev"
@@ -872,11 +868,11 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </div>
 
     <!--
-        Short confirmation after saving or deleting, announced politely.
+        Kurze Bestätigung nach dem Speichern oder Löschen, höflich angekündigt.
 
-        The element is only a frame: the sentence and the optional action are
-        written by app.js, so one place in the markup serves both a plain message
-        and the message that still offers to take a deletion back.
+        Das Element ist nur der Rahmen: den Satz und die freiwillige Aktion
+        schreibt app.js, damit eine Stelle im Markup sowohl eine schlichte Meldung
+        als auch die Meldung bedient, die ein Löschen noch zurücknehmen lässt.
     -->
     <div class="feedback" id="feedback" role="status" aria-live="polite" hidden>
         <span class="feedback__text" id="feedback-text"></span>
@@ -884,17 +880,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </div>
 
     <!--
-        One <dialog> per job. A native dialog gives focus trapping, closing with
-        Escape and the backdrop without any extra code.
+        Ein <dialog> je Aufgabe. Ein eingebauter Dialog bringt Fokusfang,
+        Schließen mit Escape und den verdunkelten Hintergrund ohne eigenen Code mit.
     -->
 
     <!--
-        ONE dialog for every form and every confirmation of this app.
+        EIN Dialog für jedes Formular und jede Bestätigung dieser Anwendung.
 
-        The fields inside #app-dialog-fields are built by app.js, so a new
-        dialog never needs new markup and every dialog shares the same
-        behaviour: one open and close path, one validation path, one loading
-        state, one error area, one toast and one place that decides where the
+        Die Felder in #app-dialog-fields baut app.js, deshalb braucht ein neuer
+        Dialog nie neues Markup und jeder Dialog teilt dasselbe Verhalten:
+        einen Weg zum Öffnen und Schließen, einen Weg zum Prüfen, einen
+        Ladezustand, einen Fehlerbereich, eine Einblendung und eine Stelle,
         focus goes.
     -->
     <dialog class="dialog" id="app-dialog" aria-labelledby="app-dialog-title">
@@ -936,17 +932,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </dialog>
 
     <!--
-        The account: ONE window with TWO steps.
+        Das Konto: EIN Fenster mit ZWEI Schritten.
 
-        The first step shows what the account is made of and carries the way to
-        delete it at its foot. That way switches this window to the second step
-        instead of opening a second one, so nobody ever faces two questions at
-        once - and going back is a click on "Cancel", not a closed window.
+        Der erste Schritt zeigt, woraus das Konto besteht, und trägt den Weg zum
+        Löschen an seinem Fuß. Dieser Weg schaltet dieses Fenster auf den zweiten
+        Schritt um, statt ein zweites zu öffnen, damit niemand je vor zwei Fragen
+        auf einmal steht - und zurück geht es mit einem Klick auf "Abbrechen",
 
-        It is a native <dialog> like the form dialog above, which is what gives it
-        the focus trap, Escape and the darkened backdrop without extra code. The
-        fields inside are built by app.js: the list from the account data, the
-        wording from the translations.
+        Es ist ein eingebauter <dialog> wie der Formulardialog oben, und das gibt
+        ihm Fokusfang, Escape und den verdunkelten Hintergrund ohne eigenen Code.
+        Die Felder darin baut app.js: die Liste aus den Kontodaten, die
+        Formulierungen aus den Übersetzungen.
     -->
     <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
         <div class="account-dialog__panel">
@@ -956,7 +952,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <h2 class="account-dialog__title" id="account-dialog-title"
                 data-i18n="account.title"><?= $text('account.title') ?></h2>
 
-            <!-- Step one: the account, and the end of it. -->
+            <!-- Schritt eins: das Konto und sein Ende. -->
             <div class="account-dialog__view" id="account-view-data">
                 <dl class="account-dialog__list" id="account-list"></dl>
 
@@ -968,7 +964,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 </div>
             </div>
 
-            <!-- Step two: the password, and the last question. -->
+            <!-- Schritt zwei: das Passwort und die letzte Frage. -->
             <div class="account-dialog__view" id="account-view-confirm" hidden>
                 <p class="account-dialog__warning" data-i18n="account.deleteWarning"><?= $text('account.deleteWarning') ?></p>
 
@@ -992,12 +988,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </dialog>
 
     <!--
-        The one question before a session starts: how many new cards should this
-        one introduce. A window of its own and not the form dialog, because it is
-        not a form - it is one number, four shortcuts and two ways out.
+        Die eine Frage vor dem Start einer Sitzung: wie viele neue Karten sie
+        einführen soll. Ein eigenes Fenster und nicht der Formulardialog, weil es
+        kein Formular ist - es ist eine Zahl, vier Schnellwahlen und zwei Wege
 
-        The hint and the shortcuts are written by app.js: how many new cards are
-        really there is known only after the session was asked for its queue.
+        Der Hinweis und die Schnellwahlen schreibt app.js: wie viele neue Karten
+        wirklich da sind, weiß man erst, wenn die Sitzung nach ihrer Warteschlange
     -->
     <dialog class="count-dialog" id="new-cards-dialog" aria-labelledby="new-cards-dialog-title">
         <div class="count-dialog__panel">
@@ -1032,17 +1028,17 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </dialog>
 
     <!--
-        The full screen study session.
+        Die bildschirmfüllende Lernsitzung.
 
-        It is not a <dialog>: a session is a view of its own and not a question
-        waiting for an answer, and it must cover the header, the sidebar and the
-        footer completely. Escape is handled in app.js, because the session may
-        have to ask first when answers were already saved.
+        Sie ist kein <dialog>: eine Sitzung ist eine eigene Ansicht und keine
+        Frage, die auf eine Antwort wartet, und sie muss Kopfzeile, Seitenleiste
+        und Fußzeile ganz bedecken. Escape behandelt app.js, weil die Sitzung
+        erst fragen muss, wenn schon Antworten gespeichert wurden.
 
-        The card itself is one element with two faces: the front is the question,
-        the back is the answer, and the flip is a rotation around the vertical
-        axis. The order of the two faces is what the stylesheet puts behind each
-        other; the text is written by app.js.
+        Die Karte selbst ist ein Element mit zwei Seiten: vorn steht die Frage,
+        hinten die Antwort, und das Umdrehen ist eine Drehung um die senkrechte
+        Achse. Die Reihenfolge der beiden Seiten legt das Stylesheet fest; den
+        Text schreibt app.js.
     -->
     <div class="learn" id="learn" hidden>
         <div class="learn__progress" id="learn-progress" role="progressbar"
@@ -1065,10 +1061,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         <div class="learn__stage" id="learn-stage">
             <div class="learn__card" id="learn-card" tabindex="0" role="group">
                 <!--
-                    Both faces can carry the map of the card: the question shows it
-                    without a marking and the answer shows it with the region marked,
-                    so turning the card is what reveals the answer. app.js fills both
-                    sides and leaves them empty for a card without a region.
+                    Beide Seiten können die Landkarte der Karte tragen: die Frage zeigt sie
+                    ohne Markierung und die Antwort zeigt sie mit markierter Region,
+                    das Umdrehen ist also das, was die Antwort zeigt. app.js füllt beide
+                    Seiten und lässt sie bei einer Karte ohne Region leer.
                 -->
                 <div class="learn__face learn__face--front">
                     <p class="learn__label" id="learn-side-label"><?= $text('learn.question') ?></p>
@@ -1086,9 +1082,9 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             </div>
 
             <!--
-                The four answers. They keep their place from the first moment, so
-                nothing jumps when the card is flipped; before that they are
-                disabled and out of reach for a screen reader.
+                Die vier Antworten. Sie behalten ihren Platz vom ersten Augenblick an,
+                damit nichts springt, wenn die Karte umgedreht wird; vorher sind sie
+                gesperrt und für eine Vorlesehilfe außer Reichweite.
             -->
             <div class="learn__rating" id="learn-rating">
                 <p class="learn__rating-label" id="learn-rating-label" data-i18n="learn.ratingLabel"><?= $text('learn.ratingLabel') ?></p>
@@ -1096,7 +1092,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             </div>
         </div>
 
-        <!-- The quiet end of a session: one number, four bars, two ways on. -->
+        <!-- Das leise Ende einer Sitzung: eine Zahl, vier Balken, zwei Wege weiter. -->
         <div class="learn__summary" id="learn-summary" hidden>
             <h2 class="learn__summary-title" data-i18n="learn.done.title"><?= $text('learn.done.title') ?></h2>
             <p class="learn__summary-number" id="learn-summary-number"></p>
@@ -1111,7 +1107,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             </div>
         </div>
 
-        <!-- The one question the session asks: leave, or keep going? -->
+        <!-- Die eine Frage, die die Sitzung stellt: aufhören oder weitermachen? -->
         <div class="learn__ask" id="learn-ask" hidden>
             <div class="learn__ask-box" role="alertdialog" aria-labelledby="learn-ask-title">
                 <h2 class="learn__ask-title" id="learn-ask-title" data-i18n="learn.askEnd.title"><?= $text('learn.askEnd.title') ?></h2>

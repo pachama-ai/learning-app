@@ -59,3 +59,6 @@ dumps/
 # gehoeren niemals ins Repository.
 deploy/apache/sessions/
 deploy/apache/logs/
+
+# Zurueckgeholte alte Doku-Datei: der Inhalt steht in docs/dokumentation.md
+docs/migrations.md

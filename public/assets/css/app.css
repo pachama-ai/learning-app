@@ -2632,10 +2632,10 @@ body.is-learning {
 }
 /* Lernen-Seite der Karte: Rückseite */
 .learn__face--back {
-    background-color: color-mix(in srgb, var(--learn-accent, var(--panel)) 22%, #FBF8F3);
+    background-color: color-mix(in srgb, var(--panel) 22%, #FBF8F3);
     color: #1B1A18;
     transform: rotateY(180deg);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--learn-accent, transparent) 45%, transparent);
+    box-shadow: inset 0 0 0 1px transparent;
 }
 /* dunkles Thema · Lernen-Seite der Karte: Vorderseite */
 [data-theme="dark"] .learn__face--front {
@@ -2646,7 +2646,7 @@ body.is-learning {
 [data-theme="dark"] .learn__face--back {
     background-color: #1B2030;
     color: #ECEFF6;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--learn-accent, transparent) 55%, transparent);
+    box-shadow: inset 0 0 0 1px transparent;
 }
 /* Lernen-Beschriftung */
 .learn__label {
@@ -4878,8 +4878,7 @@ select {
 }
 /* helles Thema · Seitenleiste-Link · aktiv · und Varianten */
 [data-theme="light"] .sidebar__link.is-active,
-[data-theme="light"] .sidebar__link[aria-current],
-[data-theme="light"] .sidebar__link.is-current {
+[data-theme="light"] .sidebar__link[aria-current] {
     background-color: var(--surface-soft);
     border-radius: 6px;
     color: var(--text);

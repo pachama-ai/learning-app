@@ -103,6 +103,14 @@ Ein paar Eigenheiten, die man wissen sollte:
 - `study_sessions.category_id` ist `ON DELETE SET NULL`: wird die Unterkategorie
   gelöscht, bleibt die Runde für die Serie erhalten.
 
+Bis zum 28.09.2026 lag neben `schema.sql` eine SQL-Datei je Schritt: Kategorien
+anlegen, Inhalts- und Sprachspalten, Konten, Besitzer, Lernsitzungen, Aufgaben,
+Aufgabenparameter und die Kategorie einer Sitzung. Diese Einzeldateien sind durch
+`schema.sql` ersetzt worden; ihr genauer Wortlaut steht weiterhin in der
+Git-Historie (zuletzt vollständig im Commit `1145ffc`). Eine dieser Dateien war
+außerdem keine Struktur-, sondern eine Datenänderung: allen vorhandenen
+Kategorien wurde nachträglich ein Besitzer zugewiesen.
+
 ### Wie die App entscheidet, was fällig ist
 
 Das rechnet allein der Server (`src/services/review_service.php`), der Browser

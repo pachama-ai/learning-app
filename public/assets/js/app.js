@@ -2550,7 +2550,7 @@
          * ist hier das einzige, was den Fokus nehmen kann: eine Vorlesehilfe liest
          * damit erst den Kartentext und danach die beiden Befehle, statt vor jeder
          * Karte "Bearbeiten, Löschen" anzusagen. Nach links kommt es nur optisch,
-         * per order im Stylesheet (siehe .row__menu--leading).
+         * Reihenfolge im Stylesheet (siehe .row__menu--leading).
          */
         var menu = buildMenu([
             {
@@ -4630,9 +4630,9 @@
     }
 
     /*
-     * Opens the account window, always at its first step: what the account is made
-     * of. The second step (the password and the last question) is reached from
-     * there and never remembered - opening it again always starts calm.
+     * Öffnet das Kontofenster, immer beim ersten Schritt: woraus das Konto besteht.
+     * Der zweite Schritt (das Passwort und die letzte Frage) wird von dort aus erreicht
+     * und nie gemerkt: ein neues Öffnen beginnt immer ruhig.
      */
     function openAccountDialog() {
         var dialog = elements.accountDialog;
@@ -5493,7 +5493,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       The card list of a subcategory
+       Die Kartenliste einer Unterkategorie
        ---------------------------------------------------------------------- */
 
     /* Zu welcher Unterkategorie ein "Speichern und nächste Karte" gehört. */
@@ -7000,7 +7000,7 @@
        ---------------------------------------------------------------------- */
 
     /*
-     * Which languages a card can carry. There is one until the English columns
+     * Welche Sprachen eine Karte tragen kann. Es gibt eine, bis die englischen Spalten
      * in der Tabelle stehen - die API meldet die Wahrheit und diese Seite folgt ihr nur, die
      * Sprachreiter erscheinen also von selbst, sobald die Migration gelaufen ist.
      */
@@ -7278,7 +7278,7 @@
         /*
          * Die Grenzen kommen aus derselben Konfiguration, die auch die Vorprüfung im Browser
          * benutzt - die Zeichenzahl pro Feld ist dieselbe, die der Server als
-         * CARD_MAX_TEXT_LENGTH durchsetzt.
+         * CARD_MAX_TEXT_LENGTH durchgesetzt.
          */
         var limits = el('p', 'import__hint', t('dialog.import.limits', {
             rows: config.limits.importRows,
@@ -7291,13 +7291,13 @@
         sample.setAttribute('download', '');
         sample.setAttribute('data-i18n', 'dialog.import.sample');
 
-        /* The answer of the server is put in here: summary, table, error list. */
+        /* Hier landet die Antwort des Servers: Zusammenfassung, Tabelle, Fehlerliste. */
         var result = el('div', 'import__result');
 
         wrap.appendChild(format);
         wrap.appendChild(columns);
 
-        /* The optional sixth column: without it a file behaves exactly as before. */
+        /* Die freiwillige sechste Spalte: ohne sie verhält sich eine Datei wie vorher. */
         var columnsOptional = el('code', 'import__columns import__columns--optional', t('dialog.import.columnsOptional'));
         columnsOptional.setAttribute('data-i18n', 'dialog.import.columnsOptional');
         wrap.appendChild(columnsOptional);
@@ -7322,8 +7322,8 @@
     }
 
     /*
-     * A file was chosen. The two obvious things are checked here so the answer is
-     * immediate; everything else is decided by the server.
+     * Eine Datei wurde gewählt. Die zwei offensichtlichen Dinge werden hier geprüft,
+     * damit die Antwort sofort kommt; alles andere entscheidet der Server.
      */
     function chooseImportFile(file) {
         var name = String(file.name || '');
@@ -7348,13 +7348,13 @@
         checkImportFile(file);
     }
 
-    /* One sentence above the drop zone, and no preview below it. */
+    /* Ein Satz über dem Ablagefeld, und darunter keine Vorschau. */
     function showImportProblem(message) {
         importPanel.result.textContent = '';
         setDialogError(message);
     }
 
-    /* Sends the file for a check and shows what came back. */
+    /* Schickt die Datei zur Prüfung und zeigt, was zurückkommt. */
     function checkImportFile(file) {
         importState.file = file;
         importState.busy = true;
@@ -7377,8 +7377,8 @@
     }
 
     /*
-     * The upload itself. The file goes along as a file (multipart), so the server
-     * reads it with fgetcsv() - the browser never has to understand CSV.
+     * Das Hochladen selbst. Die Datei geht als Datei mit (multipart), damit der Server
+     * sie mit fgetcsv() liest - der Browser muss CSV nie verstehen.
      */
     function uploadImport(mode) {
         var body = new FormData();
@@ -7409,7 +7409,7 @@
             });
     }
 
-    /* The summary, the first rows and every row that cannot be imported. */
+    /* Die Zusammenfassung, die ersten Zeilen und jede Zeile, die nicht importierbar ist. */
     function renderImportResult(data) {
         importState.ready = false;
 
@@ -7454,8 +7454,8 @@
         }
 
         /*
-         * Only a file without a single bad row and with at least one new card may
-         * be imported - and only the button in the footer starts that.
+         * Nur eine Datei ohne eine einzige fehlerhafte Zeile und mit mindestens einer neuen
+         * Karte darf importiert werden - und nur der Knopf unten startet das.
          */
         if (invalid === 0 && importable > 0) {
             importState.ready = true;
@@ -7466,7 +7466,7 @@
         }
     }
 
-    /* One row problem as a sentence, with the line number in front. */
+    /* Ein Zeilenproblem als Satz, mit der Zeilennummer davor. */
     function importRowMessage(entry) {
         var params = entry.params || {};
         var key = 'import.row.' + String(entry.code || '');
@@ -7479,11 +7479,11 @@
             language: cardLanguageName(params.language === 'en' ? 'en' : 'de')
         });
 
-        /* An unknown code still says something useful. */
+        /* Ein unbekannter Code sagt trotzdem etwas Brauchbares. */
         return sentence === key ? t('dialog.import.fix') : sentence;
     }
 
-    /* The first rows of the file, exactly as the server read them. */
+    /* Die ersten Zeilen der Datei, genau so, wie der Server sie gelesen hat. */
     function buildImportTable(rows, hidden) {
         var wrap = el('div', 'import__table-wrap');
         var table = el('table', 'import__table');
@@ -7523,7 +7523,7 @@
             tr.appendChild(el('td', 'import__text', String(row.front_en || '')));
             tr.appendChild(el('td', 'import__text', String(row.back_en || '')));
 
-            /* The exercise column: what the file says, or nothing. */
+            /* Die Spalte exercise: was die Datei sagt, oder nichts. */
             tr.appendChild(el('td', 'import__text import__text--exercise', String(row.exercise || '')));
 
             var stateCell = el('td', 'import__state');
@@ -7545,7 +7545,7 @@
         return wrap;
     }
 
-    /* The button: upload the same file again and let the server write it. */
+    /* Der Knopf: dieselbe Datei noch einmal schicken und schreiben lassen. */
     function runImport() {
         if (importState === null || importState.ready !== true || importState.busy === true) {
             return;
@@ -7567,8 +7567,8 @@
 
             var count = Number(result.data.imported) || 0;
 
-            /* Everything the page shows comes from the API again, so the new
-               cards really are in the list. */
+            /* Alles, was die Seite zeigt, kommt wieder aus der Schnittstelle, damit die neuen
+               Karten wirklich in der Liste stehen. */
             closeDialog();
             bootstrapDropAll();
             render();
@@ -7577,9 +7577,9 @@
     }
 
     /*
-     * A code from the import endpoint as a sentence. The import has its own texts
-     * (they say more than the shared ones), and a code it does not know falls
-     * back to the sentence every other request uses.
+     * Ein Code des Import-Endpunkts als Satz. Der Import hat eigene Texte
+     * (sie sagen mehr als die allgemeinen), und einen Code, den er nicht kennt, fällt
+     * auf den Satz zurück, den jede andere Anfrage benutzt.
      */
     function importMessage(code, params) {
         var key = 'import.error.' + String(code || '');
@@ -7589,34 +7589,34 @@
     }
 
     /* ----------------------------------------------------------------------
-       The map of a card
+       Die Landkarte einer Karte
        ---------------------------------------------------------------------- */
 
     /*
-     * A card may carry a map region: "DE:Bayern", "EU:FR" or "WORLD:CN". The area
-     * decides which of three static files is shown, the region is the id of the
-     * element inside it that is highlighted.
+     * Eine Karte darf eine Region tragen: "DE:Bayern", "EU:FR" oder "WORLD:CN". Der Bereich
+     * entscheidet, welche der drei festen Dateien gezeigt wird, die Region ist die Kennung
+     * des Elements darin, das hervorgehoben wird.
      *
-     * Three rules make this safe and quick:
-     *   * the value is checked against the same pattern the API uses. A value that
-     *     does not match is ignored, and the card stays a text card.
-     *   * the file is an application asset: it is fetched, parsed with DOMParser,
-     *     cleaned (no <style>, no <script>, no inline style) and then copied. No
-     *     value from the database is ever interpreted as markup - it is only used
-     *     to look up one element by its id.
-     *   * a file is fetched once per session and reused from memory afterwards,
-     *     because the world map alone is about 1.2 MB.
+     * Drei Regeln machen das sicher und schnell:
+     *   * der Wert wird gegen dasselbe Muster geprüft wie in der Schnittstelle. Ein Wert,
+     *     der nicht passt, wird ignoriert, und die Karte bleibt eine Textkarte.
+     *   * die Datei ist ein Bestandteil der Anwendung: sie wird geholt, mit DOMParser
+     *     gelesen, gereinigt (kein <style>, kein <script>, kein Stil im Element) und dann
+     *     kopiert. Kein Wert aus der Datenbank wird je als Auszeichnung gedeutet - er dient
+     *     nur dazu, ein Element über seine Kennung zu finden.
+     *   * eine Datei wird einmal je Sitzung geholt und danach aus dem Speicher genutzt,
+     *     weil allein die Weltkarte ungefähr 1,2 MB groß ist.
      */
-    /* Spelled exactly like CARD_MAP_REGION_PATTERN and CARD_MAP_REGION_MAX_LENGTH
-       in src/services/card_service.php. The length cap is there because the
-       column holds 40 characters: a longer value is not a key this app stored. */
+    /* Genau so geschrieben wie CARD_MAP_REGION_PATTERN und CARD_MAP_REGION_MAX_LENGTH
+       in src/services/card_service.php. Die Längengrenze steht dort, weil die Spalte
+       40 Zeichen fasst: ein längerer Wert ist keine Kennung, die diese Anwendung je */
     var MAP_PATTERN = /^(DE|EU|WORLD):[A-Za-z0-9_äöüÄÖÜß-]{1,32}$/u;
     var MAP_MAX_LENGTH = 40;
     var mapDocuments = {};
     var mapRequests = {};
     var dialogMapField = null;
 
-    /* "DE:Bayern" -> { area, region, value }, or null when it is not a valid key. */
+    /* "DE:Bayern" -> { area, region, value }, oder null, wenn es keine gültige Kennung ist. */
     function parseMapRegion(value) {
         if (typeof value !== 'string' || value.length > MAP_MAX_LENGTH
             || MAP_PATTERN.test(value) !== true) {
@@ -7628,7 +7628,7 @@
         return { area: parts[0], region: parts[1], value: value };
     }
 
-    /* A readable name for a country code, in the language of the interface. */
+    /* Ein lesbarer Name für einen Ländercode, in der Sprache der Oberfläche. */
     function countryName(code) {
         try {
             if (typeof window.Intl === 'object' && typeof window.Intl.DisplayNames === 'function') {
@@ -7640,13 +7640,13 @@
                 }
             }
         } catch (error) {
-            /* An unknown code keeps the code itself as its name. */
+            /* Ein unbekannter Code behält den Code selbst als Namen. */
         }
 
         return code;
     }
 
-    /* The readable name of a region, for a tooltip or a screen reader. */
+    /* Der lesbare Name einer Region, für einen Hinweistext oder eine Vorlesehilfe. */
     function regionLabel(value) {
         var parsed = parseMapRegion(value);
 
@@ -7670,12 +7670,12 @@
     }
 
     /*
-     * Fetches one map file once and hands back a cleaned, inert SVG element.
-     * Nothing here touches the page until the caller puts it somewhere.
+     * Holt eine Kartendatei einmal und gibt ein gereinigtes, stilles SVG-Element zurück.
+     * Nichts davon berührt die Seite, bis der Aufrufer es irgendwo einsetzt.
      */
     function loadMap(area) {
-        /* An area without a file has nothing to load: nothing is fetched and
-           nothing is shown. Which areas have a file is decided in config.maps. */
+        /* Ein Bereich ohne Datei hat nichts zu laden: es wird nichts geholt und nichts
+           gezeigt. Welche Bereiche eine Datei haben, steht in config.maps. */
         if (config.maps[area] === undefined) {
             return Promise.resolve(null);
         }
@@ -7707,9 +7707,9 @@
                     }
 
                     /*
-                     * The file may carry its own colours and its own size. Both are
-                     * removed: the colours come from the stylesheet of the app, and
-                     * the size comes from the box the map is put into.
+                     * Die Datei darf eigene Farben und eine eigene Größe mitbringen. Beides wird
+                     * entfernt: die Farben kommen aus dem Stylesheet der Anwendung, und die Größe
+                     * kommt aus dem Kasten, in den die Karte gesetzt wird.
                      */
                     Array.prototype.forEach.call(root.querySelectorAll('style, script, title, desc'), function (node) {
                         if (node.parentNode !== null) {
@@ -7733,7 +7733,7 @@
                     return root;
                 })
                 .catch(function () {
-                    /* No file, no network, bad XML: the card simply stays a text card. */
+                    /* Keine Datei, kein Netz, kaputtes XML: die Karte bleibt einfach eine Textkarte. */
                     mapDocuments[area] = null;
 
                     return null;
@@ -7744,12 +7744,12 @@
     }
 
     /*
-     * The regions of an area, ready for a select: the id that is stored and the
+     * Die Regionen eines Bereichs, fertig für ein Auswahlfeld: die Kennung, die gespeichert
      * readable name.
      *
-     * Germany: the sixteen states from the configuration, because their ids are
-     * the ones germany.svg uses. Europe and the world: the two letter ids inside
-     * the file, with the name the browser knows for that code.
+     * Deutschland: die sechzehn Länder aus der Konfiguration, weil ihre Kennungen die
+     * sind, die germany.svg benutzt. Europa und Welt: die Zwei-Buchstaben-Kennungen aus
+     * der Datei, mit dem Namen, den der Browser für diesen Code kennt.
      */
     function regionsOfArea(area) {
         if (area === 'DE') {
@@ -7772,19 +7772,19 @@
                 }
 
                 /*
-                 * The files carry a few extra groups whose id is not a country
-                 * code at all (world.svg has "XD" and "XL"). countryName() hands
-                 * back the code itself when the browser knows no name for it, and
-                 * an entry that can only offer a code is no help in a picker, so
-                 * it stays out of the list. Values that are already stored are not
-                 * affected: they are still shown on the card.
+                 * Die Dateien tragen ein paar zusätzliche Gruppen, deren Kennung kein Ländercode
+                 * ist (world.svg hat "XD" und "XL"). countryName() gibt den Code selbst
+                 * zurück, wenn der Browser keinen Namen dafür kennt, und ein Eintrag, der nur
+                 * einen Code bieten kann, hilft in einer Auswahl nicht weiter, also bleibt
+                 * er draußen. Werte, die schon gespeichert sind, sind davon nicht
+                 * betroffen: sie werden auf der Karte weiter gezeigt.
                  */
                 var name = countryName(node.id);
 
                 /*
-                 * europe.svg holds Portugal twice, once for the mainland and once
-                 * for the islands. A picker must not offer the same value twice, so
-                 * the first entry of a code wins.
+                 * europe.svg enthält Portugal zweimal, einmal für das Festland und einmal
+                 * für die Inseln. Eine Auswahl darf denselben Wert nicht zweimal anbieten,
+                 * deshalb gewinnt der erste Eintrag eines Codes.
                  */
                 var known = found.some(function (item) {
                     return item.id === node.id;
@@ -7804,13 +7804,13 @@
     }
 
     /*
-     * One map for one card: a fresh copy of the file with exactly one region
-     * marked - or, with mark = false, the very same map without a marking. The copy
-     * is needed because an element can only be in one place, and a list may show the
-     * same map several times.
+     * Eine Landkarte für eine Karte: eine frische Kopie der Datei mit genau einer
+     * markierten Region - oder, mit mark = false, dieselbe Karte ohne Markierung. Die Kopie
+     * ist nötig, weil ein Element nur an einer Stelle stehen kann und eine Liste dieselbe
+     * Karte mehrfach zeigen darf.
      *
-     * The returned element stays hidden while there is nothing to show, so a card
-     * without a map (or with a region the file does not know) simply shows its
+     * Das zurückgegebene Element bleibt versteckt, solange es nichts zu zeigen gibt,
+     * damit eine Karte ohne Landkarte (oder mit einer Region, die die Datei nicht kennt)
      * text.
      */
     function buildCardMap(mapRegion, className, mark) {
@@ -7831,8 +7831,8 @@
             var svg = root.cloneNode(true);
             var active = null;
 
-            /* Looking the id up by walking the tree: an id may contain characters
-               a CSS selector would have to escape. */
+            /* Die Kennung wird im Baum gesucht: eine Kennung darf Zeichen enthalten,
+               die ein CSS-Selektor erst umschreiben müsste. */
             Array.prototype.forEach.call(svg.querySelectorAll('*'), function (node) {
                 if (active === null && node.id === parsed.region) {
                     active = node;
@@ -7851,8 +7851,8 @@
             wrap.hidden = false;
             wrap.dataset.region = parsed.value;
 
-            /* Only the marked map names its region. The title is a tooltip, and on
-               the question side it would give the answer away. */
+            /* Nur die markierte Karte nennt ihre Region. Der Titel ist ein Hinweistext, und auf
+               der Frageseite würde er die Antwort verraten. */
             if (marked) {
                 wrap.setAttribute('title', regionLabel(parsed.value));
             }
@@ -7861,9 +7861,9 @@
         });
     }
 
-    /* Puts one map into a container, or leaves the container empty. mark = false
-       draws the map without a marking, which is what the question side of the study
-       card uses. */
+    /* Setzt eine Landkarte in einen Kasten oder lässt den Kasten leer. mark = false
+       zeichnet die Karte ohne Markierung, und genau das braucht die Frageseite der
+       Lernkarte. */
     function showMap(container, mapRegion, className, mark) {
         if (container === null) {
             return;
@@ -7881,20 +7881,20 @@
                 return;
             }
 
-            /* The inner map moves into the container, so there is no box in a box. */
+            /* Die innere Karte wandert in den Kasten, so entsteht kein Kasten im Kasten. */
             container.appendChild(map.firstChild);
             container.hidden = false;
         });
     }
 
     /* ----------------------------------------------------------------------
-       The map field of the card dialog
+       Das Landkartenfeld im Kartendialog
        ---------------------------------------------------------------------- */
 
     /*
-     * The readable name of every area of config.maps. An area whose key is missing
-     * here shows its code instead of a name, so adding a map file cannot break the
-     * picker - it only needs a translation key to get a nice label as well.
+     * Der lesbare Name jedes Bereichs aus config.maps. Ein Bereich, dessen Schlüssel hier
+     * fehlt, zeigt seinen Code statt eines Namens, damit eine neue Kartendatei die Auswahl
+     * nicht kaputt machen kann - sie braucht nur einen Übersetzungsschlüssel für ein
      */
     var MAP_AREA_LABELS = {
         DE: 'dialog.card.mapAreaDe',
@@ -7903,14 +7903,14 @@
     };
 
     /*
-     * First the area, then the region - nobody has to know an id by heart. The
-     * map below the two selects shows the choice straight away, and "no map" is
-     * the default: a region is always optional.
+     * Erst der Bereich, dann die Region - niemand muss eine Kennung auswendig kennen. Die
+     * Karte unter den beiden Auswahlfeldern zeigt die Wahl sofort, und "keine Landkarte"
+     * ist die Vorgabe: eine Region ist immer freiwillig.
      */
-    /* The exercise part of the card dialog, or null while it is not built. */
+    /* Der Aufgabenteil des Kartendialogs, oder null, solange er nicht gebaut ist. */
     var dialogExerciseField = null;
 
-    /* Which kind of card the dialog is showing right now. */
+    /* Welche Kartenart der Dialog gerade zeigt. */
     function cardKindValue() {
         if (dialogFields.card_kind === undefined) {
             return 'fixed';
@@ -7919,7 +7919,7 @@
         return dialogFields.card_kind.control.value === 'exercise' ? 'exercise' : 'fixed';
     }
 
-    /* What config.exerciseTypes says about one kind of task, or null. */
+    /* Was config.exerciseTypes über eine Aufgabenart sagt, oder null. */
     function exerciseTypeSettings(type) {
         var types = config.exerciseTypes || {};
 
@@ -7927,13 +7927,13 @@
     }
 
     /*
-     * The generated task of a card, in the language of the interface - or null
-     * when the card is a fixed card.
+     * Die erzeugte Aufgabe einer Karte, in der Sprache der Oberfläche - oder null,
+     * wenn die Karte eine feste Karte ist.
      *
-     * The numbers are NOT drawn here. They are drawn on the server, in
-     * exercise_service.php, and travel with the card: question and answer belong
-     * to the same draw, which is what makes them match. A second generator in the
-     * browser would be a second truth to keep in step, so there is none.
+     * Die Zahlen entstehen NICHT hier. Sie entstehen auf dem Server, in
+     * exercise_service.php, und reisen mit der Karte: Frage und Antwort gehören
+     * zu demselben Zug, nur so passen sie zusammen. Ein zweiter Erzeuger im
+     * Browser wäre eine zweite Wahrheit, die man abstimmen müsste, also gibt es keinen.
      */
     function exerciseTask(card) {
         if (card === null || typeof card !== 'object') {
@@ -7959,9 +7959,9 @@
         };
     }
 
-    /* One side of a task - question or answer - in the language of the interface.
-       Both languages travel with the task, so switching the language switches the
-       sentence without another request. */
+    /* Eine Seite einer Aufgabe - Frage oder Antwort - in der Sprache der Oberfläche.
+       Beide Sprachen reisen mit der Aufgabe, ein Sprachwechsel wechselt den Satz
+       also ohne neue Anfrage. */
     function exerciseText(side) {
         if (side === null || typeof side !== 'object') {
             return '';
@@ -7970,11 +7970,11 @@
         return typeof side[locale] === 'string' ? side[locale] : side.de;
     }
     /*
-     * Shows the fields that belong to the chosen kind of card and hides the rest.
+     * Zeigt die Felder der gewählten Kartenart und versteckt die übrigen.
      *
-     * A fixed card asks for a question and an answer. An exercise card asks for a
-     * title and for the numbers its task may use - the answer is generated, so an
-     * answer field would be a field nobody may fill in.
+     * Eine feste Karte fragt nach Frage und Antwort. Eine Übungskarte fragt nach einem
+     * Titel und nach den Zahlen, die ihre Aufgabe benutzen darf - die Antwort entsteht
+     * im Gerät, ein Antwortfeld wäre ein Feld, das niemand ausfüllen darf.
      */
     function setCardKind(kind) {
         var exercise = kind === 'exercise';
@@ -7990,7 +7990,7 @@
         dialogFields.front.control.setAttribute('placeholder', t(placeholderKey));
         dialogFields.front.control.setAttribute('data-i18n-placeholder', placeholderKey);
 
-        /* The answer of an exercise is generated, so it is not asked for. */
+        /* Die Antwort einer Übung entsteht im Gerät, deshalb wird sie nicht erfragt. */
         dialogFields.back.wrap.hidden = exercise;
 
         if (dialogExerciseField !== null) {
@@ -8001,8 +8001,8 @@
             clearFieldError(name);
         });
 
-        /* Every parameter of the kind of task that is open, whatever it is
-           called: the list of names comes from the schema, not from here. */
+        /* Jeder Parameter der offenen Aufgabenart, einerlei welcher
+           er heißt: die Liste der Namen kommt aus dem Schema, nicht von hier. */
         Object.keys(dialogFields).forEach(function (name) {
             if (name === 'exercise_type' || name.indexOf('exercise_param_') === 0) {
                 clearFieldError(name);
@@ -8011,13 +8011,13 @@
     }
 
     /*
-     * The kind of task and the numbers it may use, built once per dialog.
+     * Die Aufgabenart und die Zahlen, die sie benutzen darf, einmal je Dialog gebaut.
      *
-     * Both the list of kinds and the fields of each kind come from
-     * config.exerciseTypes, which index.php builds from exercise_catalog(): the
-     * dialog can therefore never offer a kind of task or a parameter that the
-     * generator does not know, and a kind whose schema gains a field on the server
-     * appears here with that field, without a second list to keep in step.
+     * Sowohl die Liste der Arten als auch die Felder jeder Art kommen aus
+     * config.exerciseTypes, das index.php aus exercise_catalog() baut: der Dialog kann
+     * deshalb nie eine Aufgabenart oder einen Parameter anbieten, den der Erzeuger
+     * nicht kennt, und eine Art, deren Schema auf dem Server ein Feld dazubekommt,
+     * erscheint hier mit diesem Feld, ohne eine zweite Liste zum Abstimmen.
      */
     function addExerciseFields(exercise) {
         var types = config.exerciseTypes || {};
@@ -8052,14 +8052,14 @@
         error.hidden = true;
         error.setAttribute('role', 'alert');
 
-        /* The sentence that explains the chosen kind of task. */
+        /* Der Satz, der die gewählte Aufgabenart erklärt. */
         var hint = el('p', 'dialog__hint');
 
         /*
-         * The fields of the chosen kind live in a container of their own, so
-         * switching the kind replaces them completely. A field left over from
-         * another kind would otherwise travel with the card, although the task it
-         * belongs to is not the one being saved.
+         * Die Felder der gewählten Art liegen in einem eigenen Kasten, damit ein Wechsel
+         * der Art sie vollständig ersetzt. Ein Feld, das von einer anderen Art übrig
+         * bliebe, würde sonst mit der Karte mitreisen, obwohl die Aufgabe, zu der es
+         * gehört, nicht die ist, die gespeichert wird.
          */
         var params = el('div', 'dialog__params');
 
@@ -8074,7 +8074,7 @@
 
         elements.dialogFields.appendChild(wrap);
 
-        /* Registered like every other field, so the error helpers work on it. */
+        /* Wie jedes andere Feld angemeldet, damit die Fehlerhilfen darauf arbeiten. */
         dialogFields.exercise_type = { control: select, error: error, wrap: wrap };
 
         dialogExerciseField = {
@@ -8083,7 +8083,7 @@
             hint: hint,
             params: params,
             preview: preview,
-            /* The waiting timer and the number of the newest request. */
+            /* Der Wartetimer und die Nummer der neuesten Anfrage. */
             pending: null,
             answer: 0
         };
@@ -8095,14 +8095,14 @@
         select.addEventListener('change', function () {
             clearFieldError('exercise_type');
             showExerciseHint();
-            /* The fields of the kind that was open are replaced, not hidden: the
-               numbers of a task that is not the chosen one must not be sent. */
+            /* Die Felder der offenen Art werden ersetzt, nicht versteckt: die Zahlen einer
+               Aufgabe, die nicht die gewählte ist, dürfen nicht mitgeschickt werden. */
             buildExerciseParamFields(null);
             scheduleExercisePreview();
         });
     }
 
-    /* The sentence under the type selector. */
+    /* Der Satz unter der Auswahl der Aufgabenart. */
     function showExerciseHint() {
         var settings = exerciseTypeSettings(dialogExerciseField.select.value);
         var key = settings === null ? null : settings.hint;
@@ -8111,12 +8111,12 @@
         dialogExerciseField.hint.hidden = key === null;
     }
 
-    /* The name a parameter of the open kind of task is registered under. */
+    /* Der Name, unter dem ein Parameter der offenen Aufgabenart angemeldet ist. */
     function exerciseParamFieldName(name) {
         return 'exercise_param_' + name;
     }
 
-    /* Forgets the fields of the kind of task that was open before. */
+    /* Vergisst die Felder der Aufgabenart, die vorher offen war. */
     function clearExerciseParamFields() {
         var wrap = dialogExerciseField.params;
 
@@ -8132,12 +8132,12 @@
     }
 
     /*
-     * One field per parameter of the chosen kind of task, built from its schema.
+     * Ein Feld je Parameter der gewählten Aufgabenart, aus ihrem Schema gebaut.
      *
-     * "values" are the numbers of the card that is being edited, or null for a
-     * card that does not exist yet. A value the schema does not allow is replaced
-     * by the default of that field, so the form always shows numbers the generator
-     * can work with.
+     * "values" sind die Zahlen der Karte, die bearbeitet wird, oder null für eine
+     * Karte, die es noch nicht gibt. Ein Wert, den das Schema nicht erlaubt, wird durch
+     * den Vorgabewert des Feldes ersetzt, damit das Formular immer Zahlen zeigt, mit
+     * denen der Erzeuger arbeiten kann.
      */
     function buildExerciseParamFields(values) {
         var settings = exerciseTypeSettings(dialogExerciseField.select.value);
@@ -8188,7 +8188,7 @@
                 return;
             }
 
-            /* The remaining kind is a yes/no parameter. */
+            /* Die verbleibende Art ist ein Ja/Nein-Parameter. */
             addField(exerciseParamFieldName(name), 'checkbox', {
                 labelKey: 'exercise.param.' + name,
                 checked: value === true,
@@ -8198,7 +8198,7 @@
         });
     }
 
-    /* A whole number inside the limits of its field. */
+    /* Eine ganze Zahl innerhalb der Grenzen ihres Feldes. */
     function wholeNumberInRange(value, field) {
         var number = Number(value);
 
@@ -8210,10 +8210,10 @@
     }
 
     /*
-     * A parameter that allows any number of options at once: one box per option.
+     * Ein Parameter, der beliebig viele Möglichkeiten auf einmal erlaubt: ein Kästchen
      *
-     * The boxes share one entry in dialogFields, so a message about the whole
-     * choice has somewhere to appear and the group as a whole can be marked.
+     * Die Kästchen teilen sich einen Eintrag in dialogFields, damit eine Meldung über
+     * die ganze Auswahl eine Stelle hat und die Gruppe als Ganzes markiert werden kann.
      */
     function addExerciseChoiceField(name, field, value) {
         var chosen = Array.isArray(value) ? value : [field.default];
@@ -8271,12 +8271,12 @@
     }
 
     /*
-     * The example under the fields: one task built on the server from the numbers
-     * that are in the fields right now.
+     * Das Beispiel unter den Feldern: eine Aufgabe, die auf dem Server aus den Zahlen
+     * gebaut wird, die gerade in den Feldern stehen.
      *
-     * It is never built here. The numbers the card will really show are drawn in
-     * exercise_service.php, and the example has to come from that same place, or
-     * it could promise something the card does not keep.
+     * Es entsteht nie hier. Die Zahlen, die die Karte wirklich zeigt, entstehen in
+     * exercise_service.php, und das Beispiel muss von derselben Stelle kommen, sonst
+     * verspräche es etwas, was die Karte nicht hält.
      */
     function buildExercisePreview() {
         var wrap = el('div', 'dialog__field dialog__field--example');
@@ -8304,12 +8304,12 @@
     }
 
     /*
-     * Reads the numbers out of the fields of the open dialog.
+     * Liest die Zahlen aus den Feldern des offenen Dialogs.
      *
-     * Returns {params: {...}} when every field holds something the schema allows,
-     * and {error: {name, message}} when one of them does not. The server checks the
-     * same thing again before it stores anything and is the one that counts; this
-     * check only exists so the answer does not have to wait for a request.
+     * Gibt {params: {...}} zurück, wenn jedes Feld etwas enthält, das das Schema erlaubt,
+     * und {error: {name, message}}, wenn eines das nicht tut. Der Server prüft dasselbe
+     * noch einmal, bevor er etwas speichert, und er ist der Maßstab; diese Prüfung
+     * gibt es nur, damit die Antwort nicht auf eine Anfrage warten muss.
      */
     function readExerciseParams(type) {
         var settings = exerciseTypeSettings(type);
@@ -8344,10 +8344,10 @@
 
                 if (!whole || number < field.lowest || number > field.highest) {
                     /*
-                     * Two different situations, and the difference matters to
-                     * whoever is looking at the empty example: a field that was
-                     * left empty has to be filled in, a number outside its limits
-                     * has to be corrected. Both used to end in the same sentence.
+                     * Zwei verschiedene Lagen, und der Unterschied ist wichtig für jeden,
+                     * der das leere Beispiel ansieht: ein Feld, das leer gelassen wurde,
+                     * muss ausgefüllt werden, eine Zahl außerhalb ihrer Grenzen muss
+                     * berichtigt werden. Beides endete früher im selben Satz.
                      */
                     wrong = {
                         kind: raw === '' ? 'empty' : 'range',
@@ -8394,8 +8394,8 @@
             return { error: wrong };
         }
 
-        /* A range that runs backwards cannot build a task. The server would put it
-           the right way round, but nobody writes it that way on purpose. */
+        /* Ein Bereich, der rückwärts läuft, kann keine Aufgabe bauen. Der Server würde ihn
+           richtig herum drehen, aber niemand schreibt das absichtlich so. */
         if (params.min !== undefined && params.max !== undefined && params.min > params.max) {
             return {
                 error: {
@@ -8410,9 +8410,9 @@
     }
 
     /*
-     * Typing is not a reason to ask: the request waits until the typing stops. A
-     * second change while the first request is still on its way only lets the
-     * newest answer through (the counter in dialogExerciseField).
+     * Tippen ist kein Grund zu fragen: die Anfrage wartet, bis das Tippen aufhört. Eine
+     * zweite Änderung, während die erste Anfrage noch unterwegs ist, lässt nur die
+     * neueste Antwort durch (der Zähler in dialogExerciseField).
      */
     function scheduleExercisePreview() {
         if (dialogExerciseField === null) {
@@ -8437,12 +8437,12 @@
 
         if (read.params === undefined) {
             /*
-             * Something in the fields cannot be used, so the example of the moment
-             * before is dropped instead of staying on screen - it would not belong
-             * to these numbers. What is said instead is the reason: an empty field
-             * is not the same thing as a number outside its limits, and until now
-             * both ended in "fill in the fields above", which made a working
-             * example look as if it had stopped working altogether.
+             * Etwas in den Feldern lässt sich nicht verwenden, deshalb wird das Beispiel vom
+             * Augenblick davor verworfen statt stehen gelassen - es gehörte nicht zu diesen
+             * Zahlen. Stattdessen wird der Grund genannt: ein leeres Feld ist nicht dasselbe
+             * wie eine Zahl außerhalb ihrer Grenzen, und bis jetzt endeten beide
+             * in "füllen Sie die Felder oben aus", wodurch ein funktionierendes Beispiel
+             * aussah, als hätte es ganz aufgehört zu arbeiten.
              */
             showExerciseExample(null, read.error.kind === 'empty'
                 ? t('dialog.exercise.previewIncomplete')
@@ -8460,9 +8460,9 @@
             exercise_type: field.select.value,
             exercise_params: read.params
         }).then(function (result) {
-            /* The answer belongs to the fields it was asked for. A dialogue
-               that was closed or reopened in the meantime has other fields
-               now, and this answer must not be written into them. */
+            /* Die Antwort gehört zu den Feldern, für die sie erfragt wurde. Ein Dialog,
+               der zwischendurch geschlossen oder neu geöffnet wurde, hat andere Felder,
+               und diese Antwort darf nicht hineingeschrieben werden. */
             if (field !== dialogExerciseField || wanted !== field.answer) {
                 return;
             }
@@ -8478,9 +8478,9 @@
     }
 
     /*
-     * Writes one example into the block, or the sentence that says why there is
-     * none. The sentence arrives ready to be read: the caller knows whether it is
-     * about an empty field, a number outside its limits or a request that failed.
+     * Schreibt ein Beispiel in den Block, oder den Satz, der sagt, warum es keines
+     * gibt. Der Satz kommt fertig an: der Aufrufer weiß, ob es um ein leeres Feld,
+     * um eine Zahl außerhalb ihrer Grenzen oder um eine gescheiterte Anfrage geht.
      */
     function showExerciseExample(task, note) {
         if (dialogExerciseField === null) {
@@ -8519,9 +8519,9 @@
         region.id = 'dialog-field-map-region';
         area.appendChild(new Option(t('dialog.card.mapNone'), ''));
 
-        /* One entry per map file in config.maps. Never a second list of areas:
-           an area with a file is always offered and an area without a file is
-           never offered, so the picker and the map files cannot drift apart. */
+        /* Ein Eintrag je Kartendatei in config.maps. Nie eine zweite Liste der Bereiche:
+           ein Bereich mit Datei wird immer angeboten und ein Bereich ohne Datei nie,
+           damit Auswahl und Kartendateien nicht auseinanderlaufen können. */
         Object.keys(config.maps).forEach(function (name) {
             var key = MAP_AREA_LABELS[name];
 
@@ -8547,12 +8547,12 @@
         wrap.appendChild(error);
         elements.dialogFields.appendChild(wrap);
 
-        /* The field is registered like every other one, so clearDialogErrors()
-           and setFieldError() work on it. */
+        /* Das Feld ist wie jedes andere angemeldet, damit clearDialogErrors()
+           und setFieldError() darauf arbeiten. */
         dialogFields.map_region = { control: region, error: error, wrap: wrap };
-        /* `stored` is the value the card had when the dialog was opened, `touched`
-           stays false until the user changes one of the two selects himself.
-           Together they keep a region the picker cannot show - see
+        /* `stored` ist der Wert, den die Karte beim Öffnen des Dialogs hatte, `touched`
+           bleibt false, bis der Nutzer selbst eines der beiden Felder ändert.
+           Zusammen bewahren sie eine Region, die die Auswahl nicht zeigen kann - siehe
            dialogMapValue(). */
         dialogMapField = {
             area: area,
@@ -8583,15 +8583,15 @@
     }
 
     /*
-     * What the two selects mean together, or null for "no map".
+     * Was die beiden Auswahlfelder zusammen bedeuten, oder null für "keine Landkarte".
      *
-     * The two selects can only show the areas of config.maps. A stored region of
-     * an area that is not offered (because its map file was taken out of that
-     * list) has no option to appear in, so the picker looks as if the card had no
-     * map at all. As long as the user has not touched either select, the value the
-     * dialog was opened with is therefore handed back unchanged: opening a card
-     * and saving it must never destroy a region that the dialog merely cannot
-     * display. Only a change the user makes himself replaces it.
+     * Die beiden Auswahlfelder können nur die Bereiche aus config.maps zeigen. Eine
+     * gespeicherte Region eines Bereichs, der nicht angeboten wird (weil seine
+     * Kartendatei aus der Liste genommen wurde), hat keine Möglichkeit zu erscheinen,
+     * die Auswahl sieht also aus, als hätte die Karte keine Landkarte. Solange der
+     * Nutzer keines der Felder anfasst, wird der Wert, mit dem der Dialog geöffnet
+     * wurde, unverändert zurückgegeben: eine Karte öffnen und speichern darf nie eine
+     * Region zerstören, die der Dialog nur nicht anzeigen kann. Nur eine Änderung des
      */
     function dialogMapValue() {
         if (dialogMapField === null) {
@@ -8608,7 +8608,7 @@
         return area + ':' + region;
     }
 
-    /* Fills the second select for the chosen area and keeps the wanted region. */
+    /* Füllt das zweite Auswahlfeld für den gewählten Bereich und behält die gewünschte */
     function fillRegionOptions(wanted) {
         var field = dialogMapField;
 
@@ -8622,9 +8622,9 @@
         field.note.hidden = false;
 
         if (area === '') {
-            /* A stored region whose area is not offered: the picker cannot show it,
-               so it says what happens to it instead of looking like a card without
-               a map. The value itself is kept until the user chooses something. */
+            /* Eine gespeicherte Region, deren Bereich nicht angeboten wird: die Auswahl kann sie
+               nicht zeigen, also sagt sie, was mit ihr geschieht, statt wie eine Karte ohne
+               Landkarte auszusehen. Der Wert selbst bleibt, bis der Nutzer etwas wählt. */
             field.note.textContent = field.stored !== null && field.touched === false
                 ? t('dialog.card.mapKept', { region: regionLabel(field.stored) })
                 : t('dialog.card.mapChooseArea');
@@ -8655,8 +8655,8 @@
             return;
         }
 
-        /* Europe and the world: the ids are inside the file, so it has to be
-           loaded - that is the moment the browser shows what it is doing. */
+        /* Europa und Welt: die Kennungen stecken in der Datei, sie muss also geladen
+           werden - das ist der Augenblick, in dem der Browser zeigt, was er tut. */
         field.note.textContent = t('dialog.card.mapLoading');
 
         regionsOfArea(area).then(function (regions) {
@@ -8689,7 +8689,7 @@
         });
     }
 
-    /* The map under the two selects shows the region that is chosen right now. */
+    /* Die Karte unter den beiden Auswahlfeldern zeigt die Region, die gerade gewählt */
     function updateMapPreview() {
         if (dialogMapField === null) {
             return;
@@ -8704,12 +8704,12 @@
         var canStudy = typeof cardCount === 'number' && cardCount > 0;
 
         /*
-         * Studying belongs to the card level: a session always runs over the cards
-         * of one subcategory. On a learning area there is nothing to study, so the
-         * button is not there at all.
+         * Lernen gehört zur Kartenebene: eine Sitzung läuft immer über die Karten einer
+         * Unterkategorie. In einem Lernbereich gibt es nichts zu lernen, deshalb fehlt der
+         * Knopf dort ganz.
          *
-         * With no card to study it keeps its place, greyed out, and a tooltip says
-         * why.
+         * Ohne Karte zum Lernen bleibt er an seinem Platz, ausgegraut, und ein Hinweistext
+         * sagt, warum.
          */
         elements.learnButton.hidden = isArea;
         elements.learnButton.disabled = !canStudy;
@@ -8732,9 +8732,9 @@
         elements.addEntryButton.dataset.categoryId = String(categoryId);
 
         /*
-         * Importing is a card-list action: a file of cards belongs to a
-         * subcategory, which is the level that owns cards. A learning area only
-         * holds subcategories, so the button stays away there.
+         * Der Import gehört zur Kartenliste: eine Datei mit Karten gehört zu einer
+         * Unterkategorie, denn das ist die Ebene, der Karten gehören. Ein Lernbereich
+         * enthält nur Unterkategorien, dort bleibt der Knopf weg.
          */
         elements.importButton.hidden = isArea;
         elements.importButton.dataset.level = level;
@@ -8745,8 +8745,8 @@
 
     function wireHeadActions() {
         elements.learnButton.addEventListener('click', function () {
-            /* The button only exists in the card view, so it always starts the
-               session over the cards of that subcategory. */
+            /* Der Knopf gibt es nur in der Kartenansicht, er startet also immer die Sitzung
+               über die Karten dieser Unterkategorie. */
             startLearning('all', Number(elements.learnButton.dataset.categoryId), null);
         });
 
@@ -8770,10 +8770,10 @@
     wireHeadActions();
 
     /*
-     * The chosen language first, then the first answer - and both before the
-     * first view is built. The view then finds the data in the store instead of
-     * loading the same thing twice, and the answer is in the language of the
-     * person looking at it.
+     * Erst die gewählte Sprache, dann die erste Antwort - und beides, bevor die erste
+     * Ansicht gebaut wird. Die Ansicht findet die Daten dann im Speicher, statt dasselbe
+     * zweimal zu laden, und die Antwort steht in der Sprache der Person, die
+     * davor sitzt.
      */
     locale = storedLocale();
     loadBootstrap();
@@ -8782,10 +8782,10 @@
     wireNavigation();
 
     /*
-     * Tell the loading screen in index.php that the first answer is in and the
-     * first view has been built from it. Two frames later, so what it fades away
-     * from is a drawn view and not a half built one. If this never happens - a
-     * failed request, for example - the overlay keeps its own safety net.
+     * Sagt dem Ladebildschirm in index.php, dass die erste Antwort da ist und die
+     * erste Ansicht daraus gebaut wurde. Zwei Bilder später, damit das, wovon er
+     * wegblendet, eine gezeichnete Ansicht ist und keine halb gebaute. Passiert das
+     * nie - etwa bei einer gescheiterten Anfrage -, behält die Überlagerung ihr
      */
     loadBootstrap().then(function () {
         window.requestAnimationFrame(function () {
@@ -8796,9 +8796,9 @@
     });
 
     /*
-     * No render() of its own here: the first view is built by init(), and it waits
-     * for this answer anyway (see fetchCategories), so it is drawn exactly once -
-     * with the data from the store. Drawing it a second time would only fetch the
-     * icons and the drawings again, which is what the store is there to avoid.
+     * Kein eigenes render() hier: die erste Ansicht baut init(), und die wartet ohnehin
+     * auf diese Antwort (siehe fetchCategories), sie wird also genau einmal gezeichnet -
+     * mit den Daten aus dem Speicher. Ein zweites Zeichnen würde nur die Symbole und
+     * die Zeichnungen erneut holen, und genau das soll der Speicher vermeiden.
      */
 })();
