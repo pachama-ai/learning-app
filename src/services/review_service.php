@@ -346,9 +346,9 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
 }
 
 /**
- * Counts a list of cards by status, for the small bar above the list.
+ * Zählt eine Liste von Karten nach Stand, für den kleinen Balken über der Liste.
  *
- * @param list<array<string, mixed>> $cards the result of review_cards_with_progress()
+ * @param list<array<string, mixed>> $cards das Ergebnis von review_cards_with_progress()
  * @return array{total: int, new: int, unsure: int, known: int, due: int}
  */
 function review_summarise_cards(array $cards): array
@@ -368,12 +368,12 @@ function review_summarise_cards(array $cards): array
 }
 
 /**
- * How long each of the four answers would keep the card away, in minutes.
+ * Wie lange jede der vier Antworten die Karte wegbleiben ließe, in Minuten.
  *
- * The buttons under a flipped card show what each answer would do. Those numbers
- * are calculated HERE, by the same scheduler that will store the answer, so the
- * preview and the stored value can never drift apart - the browser only formats
- * the minutes it is given.
+ * Die Knöpfe unter einer aufgedeckten Karte zeigen, was jede Antwort machen würde. Diese
+ * Zahlen werden HIER ausgerechnet, von demselben Planer, der die Antwort anschließend
+ * speichert, Vorschau und gespeicherter Wert können also nie auseinanderlaufen - der
+ * Browser formatiert nur die Minuten, die er bekommt.
  *
  * @param array<string, mixed>|null $progress
  * @return array<string, int>
@@ -392,12 +392,12 @@ function review_interval_previews($progress, ?int $now = null): array
 }
 
 /**
- * Turns the stored date into a timestamp, or null when there is none.
+ * Macht aus dem gespeicherten Datum einen Zeitstempel oder null, wenn es keinen gibt.
  *
- * The column is a DATETIME in the database's own time zone; PHP writes and reads
- * it through its own time zone, so both sides use the same clock. MySQL is never
- * asked for NOW(): the value that is stored is the one PHP computed, which keeps
- * a rating and its stored date identical to the second.
+ * Die Spalte ist ein DATETIME in der Zeitzone der Datenbank; PHP schreibt und liest sie
+ * über seine eigene Zeitzone, beide Seiten benutzen also dieselbe Uhr. MySQL wird nie
+ * nach NOW() gefragt: gespeichert wird der Wert, den PHP ausgerechnet hat, damit eine
+ * Bewertung und ihr gespeichertes Datum auf die Sekunde gleich bleiben.
  *
  * @param mixed $value
  */
@@ -413,7 +413,7 @@ function review_due_timestamp($value): ?int
 }
 
 /**
- * Converts a progress row into the shape the API hands to the browser.
+ * Macht aus einer Fortschrittszeile die Form, die die API dem Browser gibt.
  *
  * @param array<string, mixed>|null $progress
  * @return array<string, mixed>
@@ -452,20 +452,21 @@ function review_public_progress($progress, ?int $now = null): array
 }
 
 /* -------------------------------------------------------------------------
-   Calculating
+   Rechnen
    ------------------------------------------------------------------------- */
 
 /**
- * Calculates the progress a rating leads to, without touching the database.
+ * Rechnet den Fortschritt aus, zu dem eine Bewertung führt, ohne die Datenbank
+ * anzufassen.
  *
- * This is the card box itself. It is a pure function of the old row and the
- * rating, which is what makes it easy to check: the same input always gives the
- * same output, and no clock is read twice inside one rating.
+ * Das ist die Kartenbox selbst. Sie ist eine reine Funktion aus der alten Zeile und der
+ * Bewertung, und genau das macht sie leicht nachprüfbar: dieselbe Eingabe liefert immer
+ * dieselbe Ausgabe, und innerhalb einer Bewertung wird keine Uhr zweimal gelesen.
  *
- * @param array<string, mixed>|null $progress the row before the rating
- * @param int $rating 1 = again, 2 = hard, 3 = good, 4 = easy
- * @param int $now the moment of the rating, as a timestamp
- * @return array<string, mixed> the values to store
+ * @param array<string, mixed>|null $progress die Zeile vor der Bewertung
+ * @param int $rating 1 = nochmal, 2 = schwer, 3 = gut, 4 = leicht
+ * @param int $now der Zeitpunkt der Bewertung, als Zeitstempel
+ * @return array<string, mixed> die Werte zum Speichern
  */
 function review_calculate($progress, int $rating, int $now): array
 {
@@ -474,8 +475,8 @@ function review_calculate($progress, int $rating, int $now): array
     $repetitions = $progress === null ? 0 : (int) $progress['repetitions'];
     $lapses = $progress === null ? 0 : (int) $progress['lapses'];
 
-    /* A card that was never rated, or one that lost its stability, starts from
-       the first value of this rating. */
+    /* Eine Karte, die nie bewertet wurde, oder eine, die ihre Stabilität verloren hat,
+       startet beim ersten Wert dieser Bewertung. */
     if ($oldStability === null || $oldStability <= 0) {
         $stability = REVIEW_FIRST_STABILITY[$rating];
     } else {
@@ -487,7 +488,7 @@ function review_calculate($progress, int $rating, int $now): array
     $difficulty = ($oldDifficulty ?? REVIEW_DIFFICULTY_START) + REVIEW_DIFFICULTY_STEP[$rating];
     $difficulty = min(REVIEW_DIFFICULTY_MAX, max(REVIEW_DIFFICULTY_MIN, round($difficulty, 3)));
 
-    /* "Again" is the only answer that is not a success. */
+    /* "Nochmal" ist die einzige Antwort, die kein Erfolg ist. */
     if ($rating === 1) {
         $lapses++;
     } else {
@@ -495,8 +496,8 @@ function review_calculate($progress, int $rating, int $now): array
     }
 
     /*
-     * "Again" comes back inside the same session, everything else waits for its
-     * interval. Both are stored in the same due_at column.
+     * "Nochmal" kommt in derselben Einheit wieder, alles andere wartet seinen Abstand ab.
+     * Beides wird in derselben due_at-Spalte gespeichert.
      */
     if ($rating === 1) {
         $dueAt = $now + (REVIEW_AGAIN_MINUTES * 60);
