@@ -163,7 +163,7 @@ function import_main(array $argv, string $projectRoot): int
         : 'DRY RUN (reads only)') . "\n\n";
 
     /* ---------------------------------------------------------------------
-       1. read and validate the file (no database involved yet)
+       1. die Datei lesen und prüfen (noch ohne Datenbank)
        --------------------------------------------------------------------- */
 
     $csv = import_read_csv($options['file']);
@@ -176,7 +176,7 @@ function import_main(array $argv, string $projectRoot): int
 
     $problems = $csv['errors'];
 
-    /* The number the operator says the file has. */
+    /* Die Zahl, die die bedienende Person für die Datei angibt. */
     foreach (import_expectation_problems($csv, $options['expect']) as $problem) {
         $problems[] = ['line' => 0, 'message' => $problem];
     }
@@ -192,13 +192,13 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     /* ---------------------------------------------------------------------
-       2. look at the database
+       2. die Datenbank anschauen
        --------------------------------------------------------------------- */
 
     try {
         $pdo = create_database_connection();
     } catch (Throwable $error) {
-        /* The reason may name the host or the user; it stays in this shell. */
+        /* Der Grund kann den Rechner oder die Person nennen; er bleibt in dieser Shell. */
         echo "DATABASE ERROR: the connection could not be opened.\n";
 
         return 1;
@@ -222,7 +222,7 @@ function import_main(array $argv, string $projectRoot): int
         return 1;
     }
 
-    /* Exactly one area must match the name in the file. */
+    /* Genau ein Bereich muss zu dem Namen in der Datei passen. */
     $matches = $state['area_matches'];
     $wantedArea = $csv['areas'] === [] ? '(none)' : $csv['areas'][0];
 
@@ -243,7 +243,7 @@ function import_main(array $argv, string $projectRoot): int
     $area = $matches[0];
 
     /* ---------------------------------------------------------------------
-       3. the plan
+       3. der Plan
        --------------------------------------------------------------------- */
 
     $subcategories = [];
@@ -254,7 +254,7 @@ function import_main(array $argv, string $projectRoot): int
     import_print_step_a($state, $subcategories, $area);
     import_print_step_b($area, $csv, $subcategories, $state);
 
-    /* The guard against a second import. */
+    /* Der Schutz gegen einen zweiten Import. */
     $alreadyThere = array_values(array_intersect(array_keys($subcategories), $state['area_subcategory_names']));
 
     if (!$options['execute']) {
