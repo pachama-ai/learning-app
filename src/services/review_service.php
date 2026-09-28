@@ -159,7 +159,7 @@ function review_status_of($progress, ?int $now = null): string
 }
 
 /**
- * Reports whether a card is due now.
+ * Meldet, ob eine Karte jetzt fällig ist.
  *
  * @param array<string, mixed>|null $progress
  */
@@ -179,15 +179,15 @@ function review_is_due($progress, ?int $now = null): bool
 }
 
 /**
- * Returns the cards of one subcategory together with the progress of one user.
+ * Liefert die Karten einer Unterkategorie zusammen mit dem Fortschritt eines Kontos.
  *
- * This is the read behind the card list. Progress and cards are joined in ONE
- * query: a list that asked the database once per card would need as many round
- * trips as the subcategory has cards.
+ * Das ist das Lesen hinter der Kartenliste. Fortschritt und Karten werden in EINER
+ * Abfrage verbunden: eine Liste, die für jede Karte einmal die Datenbank fragen würde,
+ * bräuchte so viele Hin- und Rückwege, wie die Unterkategorie Karten hat.
  *
- * Without a signed-in user there is no progress to show, and every card is
- * honestly "new" - that is exactly what the database says, because without a
- * user id there cannot be a progress row for anybody.
+ * Ohne angemeldetes Konto gibt es keinen Fortschritt zu zeigen, und jede Karte ist
+ * ehrlicherweise "neu" - genau das sagt die Datenbank auch, denn ohne Konto-Id kann es
+ * für niemanden eine Fortschrittszeile geben.
  *
  * @return list<array<string, mixed>>
  */
@@ -197,11 +197,11 @@ function review_cards_with_progress(PDO $pdo, int $categoryId, ?int $userId, str
 }
 
 /**
- * The category and everything directly below it.
+ * Die Kategorie und alles, was direkt darunter liegt.
  *
- * A learning area holds no cards of its own: they sit in its subcategories. So
- * "Study all" is one session over the area and its subcategories, and that is
- * the same set the card counter of the area always showed.
+ * Ein Lernbereich hält keine eigenen Karten: sie liegen in seinen Unterkategorien.
+ * "Alles lernen" ist also eine Einheit über den Bereich und seine Unterkategorien, und
+ * das ist dieselbe Menge, die der Kartenzähler des Bereichs schon immer gezeigt hat.
  *
  * @return list<int>
  */
@@ -215,10 +215,10 @@ function review_branch_category_ids(PDO $pdo, int $categoryId, int $ownerUserId)
     $statement->execute();
 
     /*
-     * A category of somebody else is no session at all: the answer is empty
-     * instead of an id this account does not own. The endpoint checks the same
-     * thing with category_exists() before it gets here, so this is the second
-     * lock, not the first.
+     * Eine Kategorie von jemand anderem ist gar keine Einheit: die Antwort ist leer
+     * statt einer Id, die dieses Konto nicht besitzt. Der Endpunkt prüft dasselbe mit
+     * category_exists(), bevor er hier ankommt, das hier ist also die zweite Absicherung
+     * und nicht die erste.
      */
     $owned = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
     $owned->bindValue(':id', $categoryId, PDO::PARAM_INT);
@@ -239,11 +239,11 @@ function review_branch_category_ids(PDO $pdo, int $categoryId, int $ownerUserId)
 }
 
 /**
- * The cards of one or more categories, with the progress of one user and the
- * text in the language that should be shown.
+ * Die Karten einer oder mehrerer Kategorien, mit dem Fortschritt eines Kontos und dem
+ * Text in der Sprache, die gezeigt werden soll.
  *
- * One query for the whole list. The placeholders are built from the COUNT of
- * the ids and every value is still bound.
+ * Eine Abfrage für die ganze Liste. Die Platzhalter entstehen aus der ANZAHL der Ids,
+ * und jeder Wert wird trotzdem gebunden.
  *
  * @param list<int> $categoryIds
  * @return list<array<string, mixed>>
@@ -259,20 +259,20 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
     $columns = card_columns($pdo);
 
     /*
-     * Every language the table has is read in the same query. front and back stay
-     * in the list: the older shape of a card row reads them.
+     * Jede Sprache, die die Tabelle hat, wird in derselben Abfrage gelesen. front und
+     * back bleiben in der Liste: die ältere Form einer Kartenzeile liest sie.
      */
     $selected = ['k.id', 'k.category_id', 'k.is_bidirectional', 'k.front', 'k.back'];
 
-    /* Only when the table has it: a card may carry a map region. */
+    /* Nur wenn die Tabelle sie hat: eine Karte kann eine Kartenregion tragen. */
     if (card_column_available($columns, 'map_region')) {
         $selected[] = 'k.map_region';
     }
 
     /*
-     * The exercise of a card, when the table for it exists. The three values are
-     * renamed here, so they cannot be mistaken for a column of `cards` - and
-     * normalize_card_row() turns them into the task that is shown.
+     * Die Aufgabe einer Karte, wenn es die Tabelle dafür gibt. Die zwei Werte werden hier
+     * umbenannt, damit sie nicht für eine Spalte von `cards` gehalten werden - und
+     * normalize_card_row() macht daraus die Aufgabe, die gezeigt wird.
      */
     if (card_exercise_table_available($pdo) && card_exercise_params_available($pdo)) {
         $selected[] = 'card_exercises.exercise_type AS exercise_type';
@@ -288,8 +288,9 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
     $selection = implode(', ', array_unique($selected));
 
     /*
-     * Every placeholder gets its own name. The user id in the join above is a
-     * named placeholder, and a statement may not mix named and positional ones.
+     * Jeder Platzhalter bekommt seinen eigenen Namen. Die Konto-Id in der Verbindung oben
+     * ist ein benannter Platzhalter, und eine Anweisung darf benannte und nummerierte
+     * nicht mischen.
      */
     $placeholders = [];
 
@@ -298,9 +299,9 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
     }
 
     /*
-     * The join condition carries the user id. When there is nobody signed in the
-     * value is NULL, and "p.user_id = NULL" is never true - so the join brings
-     * back no progress at all instead of the progress of somebody else.
+     * Die Verbindungsbedingung trägt die Konto-Id. Wenn niemand angemeldet ist, ist der
+     * Wert NULL, und "p.user_id = NULL" ist nie wahr - die Verbindung holt also gar
+     * keinen Fortschritt statt den von jemand anderem.
      */
     $statement = $pdo->prepare(
         'SELECT ' . $selection . ',
@@ -316,8 +317,8 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
 
     if ($userId === null) {
         $statement->bindValue(':user_id', null, PDO::PARAM_NULL);
-        /* No account, no cards: "owner_user_id = NULL" is never true, so the
-           answer stays empty instead of showing somebody else's list. */
+        /* Kein Konto, keine Karten: "owner_user_id = NULL" ist nie wahr, die Antwort
+           bleibt also leer statt die Liste von jemand anderem zu zeigen. */
         $statement->bindValue(':owner_user_id', null, PDO::PARAM_NULL);
     } else {
         $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
