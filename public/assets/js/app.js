@@ -2077,7 +2077,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Home view
+       Startansicht
        ---------------------------------------------------------------------- */
 
     function renderHome() {
@@ -2085,14 +2085,14 @@
         elements.detailView.hidden = true;
 
         /*
-         * The heading is there for the signed-in start page, where it asks which
-         * learning area to open. Without a session there is nothing to choose, so
-         * the welcome state below speaks alone: a second heading over it would
-         * only repeat the same sentence in smaller letters.
+         * Die Überschrift gibt es für die angemeldete Startseite, wo sie fragt, welcher
+         * Lernbereich geöffnet werden soll. Ohne Sitzung gibt es nichts zu wählen, der
+         * Begrüßungszustand unten spricht also allein: eine zweite Überschrift darüber würde
+         * denselben Satz nur in kleineren Buchstaben wiederholen.
          */
         elements.homeHeader.hidden = false;
 
-        /* Nothing is open here, so the plus button adds a learning area. */
+        /* Hier ist nichts offen, der Plus-Knopf legt also einen Lernbereich an. */
         currentEntry = null;
         currentEntryCards = [];
 
@@ -2108,8 +2108,8 @@
             linkedTiles = [];
             elements.grid.textContent = '';
 
-            /* Set again below when the answer really is empty and nobody is
-               signed in (see the welcome state). */
+            /* Wird weiter unten noch einmal gesetzt, wenn die Antwort wirklich leer ist und
+               niemand angemeldet ist (siehe Begrüßungszustand). */
             elements.homeView.classList.remove('is-welcome');
 
             var highlighted = null;
@@ -2119,10 +2119,9 @@
                 elements.grid.appendChild(tile);
 
                 /*
-                 * Now that the tile is in the document, the drawing of the area
-                 * goes into its circle. Filled in before that, the <img> would be
-                 * fetched once while detached and once again when it is attached -
-                 * one request per tile that nobody asked for.
+                 * Jetzt, da die Kachel im Dokument steht, kommt die Zeichnung des Bereichs in
+                 * ihren Kreis. Vorher gefüllt würde das <img> einmal abgehängt und einmal beim
+                 * Einhängen geholt - eine Anfrage je Kachel, nach der niemand gefragt hat.
                  */
                 fillIconCircle(tile.querySelector('.blob'), categoryMeta(area));
 
@@ -2137,19 +2136,19 @@
                 elements.grid.hidden = true;
 
                 /*
-                 * Nothing to browse means no carousel either: the tile row, the
-                 * scroll line under it and the two arrows in the footer belong to
-                 * a row of tiles, and there is none. The class hides the row and
-                 * the line and gives the card the free height of the page.
+                 * Nichts zum Durchblättern heißt auch kein Karussell: die Kachelreihe, die
+                 * Rollleiste darunter und die zwei Pfeile in der Fußzeile gehören zu einer
+                 * Reihe von Kacheln, und es gibt keine. Die Klasse versteckt die Reihe und die
+                 * Leiste und gibt der Karte die freie Höhe der Seite.
                  */
                 elements.homeView.classList.toggle('is-welcome', authState.user === null);
 
                 /*
-                 * Who is asking decides what stands here. Signed in, an empty
-                 * list means "there is nothing of yours yet", and the way out is
-                 * the form that creates a learning area. Signed out there is
-                 * nothing to create, so the way out is the sign-in - the button
-                 * that would end in "no_user_session" is never shown.
+                 * Wer fragt, entscheidet, was hier steht. Angemeldet heißt eine leere Liste
+                 * "du hast noch nichts", und der Weg hinaus ist das Formular, das einen
+                 * Lernbereich anlegt. Abgemeldet gibt es nichts anzulegen, der Weg hinaus ist
+                 * also das Anmelden - der Knopf, der in "no_user_session" enden würde, wird
+                 * nie gezeigt.
                  */
                 if (authState.user === null) {
                     elements.homeHeader.hidden = true;
