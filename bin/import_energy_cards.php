@@ -1312,7 +1312,7 @@ function import_delete_subcategories(PDO $pdo, int $areaId, int $ownerUserId): a
         $parentOf[$id] = (int) $row['parent_id'];
     }
 
-    /* Only the descendants of this area. */
+    /* Nur die Nachfahren dieses Bereichs. */
     foreach (array_keys($parentOf) as $id) {
         $cursor = $id;
         $belongs = false;
@@ -1354,18 +1354,18 @@ function import_delete_subcategories(PDO $pdo, int $areaId, int $ownerUserId): a
         $depthOf[$id] = $depth;
     }
 
-    /* Deepest first: a category cannot go before its children. */
+    /* Tiefste zuerst: eine Kategorie kann nicht vor ihren Kindern gehen. */
     arsort($depthOf, SORT_NUMERIC);
     $ids = array_map('intval', array_keys($depthOf));
 
     /*
-     * 1. and 2.: the application's own helpers, with the owner as a second
-     * condition - they can never touch a row of another user.
+     * 1. und 2.: die eigenen Helfer der Anwendung, mit dem Konto als zweiter Bedingung -
+     * sie können nie eine Zeile eines anderen Kontos anfassen.
      */
     $progress = delete_progress_of_categories($pdo, $ids, $ownerUserId);
     $cards = delete_cards_of_categories($pdo, $ids, $ownerUserId);
 
-    /* 3. the categories themselves, again with the owner as a second lock. */
+    /* 3. die Kategorien selbst, wieder mit dem Konto als zweiter Absicherung. */
     $statement = $pdo->prepare('DELETE FROM categories WHERE id = :id AND owner_user_id = :owner_user_id');
     $deleted = 0;
 
