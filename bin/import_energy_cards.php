@@ -890,8 +890,8 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
     )->fetchColumn();
 
     /*
-     * Cards and progress rows per learning area. The wipe only touches the area
-     * the file names, so the report has to be able to name its numbers alone.
+     * Karten und Fortschrittszeilen je Lernbereich. Das Leeren fasst nur den Bereich an,
+     * den die Datei nennt, der Bericht muss seine Zahlen also allein nennen können.
      */
     $cardsPerArea = [];
     $progressPerArea = [];
@@ -913,7 +913,7 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
         $progressPerArea[(int) $row['area_id']] = (int) $row['progress'];
     }
 
-    /* Cards that hang directly on an area: they are kept and only reported. */
+    /* Karten, die direkt an einem Bereich hängen: sie bleiben und werden nur gemeldet. */
     $cardsOnAreas = $pdo->query(
         'SELECT k.id, k.category_id, c.name
            FROM cards k
@@ -922,7 +922,7 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
           ORDER BY k.id'
     )->fetchAll(PDO::FETCH_ASSOC);
 
-    /* How deep the tree is: needed for the deletion order. */
+    /* Wie tief der Baum ist: nötig für die Reihenfolge beim Löschen. */
     $parentsOf = [];
     foreach ($pdo->query('SELECT id, parent_id FROM categories WHERE parent_id IS NOT NULL')->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $parentsOf[(int) $row['id']] = (int) $row['parent_id'];
@@ -968,14 +968,14 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
 }
 
 /* --------------------------------------------------------------------------
-   The report
+   Der Bericht
    -------------------------------------------------------------------------- */
 
 /**
- * STEP A: what would be deleted.
+ * SCHRITT A: was gelöscht würde.
  *
  * @param array<string, mixed> $state
- * @param array<string, int> $subcategories of the file
+ * @param array<string, int> $subcategories der Datei
  */
 function import_print_step_a(array $state, array $subcategories, array $area): void
 {
@@ -1020,11 +1020,11 @@ function import_print_step_a(array $state, array $subcategories, array $area): v
 }
 
 /**
- * STEP B: what would be imported.
+ * SCHRITT B: was importiert würde.
  *
  * @param array<string, mixed> $area
  * @param array<string, mixed> $csv
- * @param array<string, int> $subcategories of the file
+ * @param array<string, int> $subcategories der Datei
  * @param array<string, mixed> $state
  */
 function import_print_step_b(array $area, array $csv, array $subcategories, array $state): void
@@ -1049,30 +1049,20 @@ function import_print_step_b(array $area, array $csv, array $subcategories, arra
 }
 
 /* --------------------------------------------------------------------------
-   Writing
+   Schreiben
    -------------------------------------------------------------------------- */
 
 /**
- * Deletes every subcategory and imports the file, inside ONE transaction.
+ * Die Karten der Datei, deren Vorderseite schon in einer der genannten Unterkategorien
+ * unter dem Bereich liegt.
  *
- * The caller rolls back if anything here throws, so a failure leaves the
- * database exactly as it was - including the deletion.
+ * Verglichen wird wie im Importdialog der Anwendung: die Vorderseite, getrimmt, klein
+ * geschrieben, mit zusammengezogenen Leerzeichen.
  *
- * @param array<string, mixed> $area
+ * @param array<string, mixed> $area  der Lernbereich, mit seiner Id
+ * @param list<string>         $names die Unterkategorien der Datei, die es gibt
  * @param array<string, mixed> $csv
- * @return array<string, int>
- */
-/**
- * The cards of the file whose front side is already stored in one of the named
- * subcategories below the area.
- *
- * The comparison is the one the import dialog of the application uses: the front
- * side, trimmed, in lower case, with runs of whitespace collapsed.
- *
- * @param array<string, mixed> $area  the learning area, with its id
- * @param list<string>         $names the subcategories of the file that exist
- * @param array<string, mixed> $csv
- * @return list<string> one line per card, ready to be printed
+ * @return list<string> eine Zeile je Karte, fertig zum Ausgeben
  */
 function import_front_collisions(PDO $pdo, array $area, array $names, array $csv): array
 {
@@ -1122,6 +1112,16 @@ function import_front_collisions(PDO $pdo, array $area, array $names, array $csv
     return $collisions;
 }
 
+/**
+ * Löscht jede Unterkategorie und importiert die Datei, in EINER Transaktion.
+ *
+ * Der Aufrufer rollt zurück, wenn hier etwas wirft, ein Fehlschlag lässt die Datenbank
+ * also genau, wie sie war - samt dem Löschen.
+ *
+ * @param array<string, mixed> $area
+ * @param array<string, mixed> $csv
+ * @return array<string, int>
+ */
 function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $csv, int $ownerUserId): array
 {
     $pdo->beginTransaction();
@@ -1133,7 +1133,7 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
     if ($wipe) {
         $deleted = import_delete_subcategories($pdo, (int) $area['id'], $ownerUserId);
 
-        /* The proof: nothing is left below THIS area. */
+        /* Der Beweis: unter DIESEM Bereich ist nichts übrig geblieben. */
         $left = (int) $pdo->query('SELECT COUNT(*) FROM categories WHERE parent_id = ' . (int) $area['id'])->fetchColumn();
 
         if ($left !== 0) {
@@ -1154,13 +1154,13 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
     $idOf = [];
 
     /*
-     * The columns are written out one by one, exactly as this import asks for:
-     * the German name carries the text, the English name stays empty, and the
-     * drawing columns stay NULL. The application's create_category() is not used
-     * here because it does not write name_de.
+     * Die Spalten werden einzeln ausgeschrieben, genau wie dieser Import es braucht:
+     * der deutsche Name trägt den Text, der englische bleibt leer, und die Spalten für
+     * die Zeichnung bleiben NULL. create_category() der Anwendung wird hier nicht
+     * benutzt, weil es name_de nicht schreibt.
      *
-     * owner_user_id carries the value from --owner: a subcategory belongs to the
-     * same user as the area above it.
+     * owner_user_id trägt den Wert aus --owner: eine Unterkategorie gehört demselben
+     * Konto wie der Bereich darüber.
      */
     $insertCategory = $pdo->prepare(
         'INSERT INTO categories
@@ -1170,9 +1170,9 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
     );
 
     /*
-     * With --allow-existing-subcategories a subcategory that is already there is
-     * reused: its id is taken over and nothing is inserted. Without the flag the
-     * caller has made sure that no name of the file exists yet.
+     * Mit --allow-existing-subcategories wird eine Unterkategorie, die es schon gibt,
+     * weiterbenutzt: ihre Id wird übernommen und nichts eingefügt. Ohne den Schalter hat
+     * der Aufrufer dafür gesorgt, dass noch kein Name der Datei existiert.
      */
     $reusedCategories = 0;
     $reusable = [];
