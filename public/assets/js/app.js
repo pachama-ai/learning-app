@@ -4993,12 +4993,12 @@
     }
 
     /*
-     * The one place that talks to the API for a dialog.
+     * Die eine Stelle, die für ein Fenster mit der API spricht.
      *
-     * Some errors belong to a field, so the answer is mapped to the field that
-     * caused it wherever that is possible; everything else lands in the error
-     * line of the dialog. The button is disabled while the request runs, so a
-     * double click cannot create the same row twice.
+     * Manche Fehler gehören zu einem Feld, die Antwort wird also, wo das möglich ist, dem Feld
+     * zugeordnet, das sie ausgelöst hat; alles andere landet in der Fehlerzeile des Fensters.
+     * Während die Anfrage läuft, ist der Knopf gesperrt, ein Doppelklick kann dieselbe Zeile
+     * also nicht zweimal anlegen.
      */
     function fieldForErrorCode(code) {
         var map = {
@@ -5015,8 +5015,8 @@
 
     function handleSubmitFailure(result) {
         /*
-         * A request that never reached the server, or an answer nobody mapped,
-         * still has to name the operation that failed.
+         * Eine Anfrage, die den Server nie erreicht hat, oder eine Antwort, die niemand
+         * zugeordnet hat, muss trotzdem den Vorgang nennen, der fehlgeschlagen ist.
          */
         if (dialogKind === 'delete' && (result.code === 'network_error' || result.code === 'request_failed')) {
             setDialogError(t('dialog.errorDelete'));
@@ -5043,15 +5043,15 @@
         clearDialogErrors();
 
         /*
-         * The import dialog is not a form: the file is uploaded again and the
-         * server writes the rows, so it takes its own path out of here.
+         * Das Importfenster ist kein Formular: die Datei wird hochgeladen und der Server
+         * schreibt die Zeilen, es nimmt sich also seinen eigenen Weg hier heraus.
          */
         if (dialogKind === 'import') {
             runImport();
             return;
         }
 
-        /* Signing in is not a form of a row either: it has its own request. */
+        /* Anmelden ist auch kein Formular für eine Zeile: es hat seine eigene Anfrage. */
         if (dialogKind === 'auth') {
             runAuthSubmit();
             return;
@@ -5061,9 +5061,9 @@
         var isCard = dialogKind === 'card';
 
         /*
-         * The question was answered with "Delete": the row leaves the screen and
-         * the request follows when the undo window has passed. The dialog closes
-         * first, so the focus goes back to where it came from.
+         * Die Frage wurde mit "Löschen" beantwortet: die Zeile verlässt den Bildschirm, und
+         * die Anfrage folgt, wenn die Frist zum Zurücknehmen verstrichen ist. Das Fenster
+         * schließt zuerst, der Fokus geht also dorthin zurück, wo er herkam.
          */
         if (isDelete) {
             var question = dialogEntry;
@@ -5073,9 +5073,9 @@
         }
 
         /*
-         * Saving is a change of the same list a waiting deletion belongs to, so
-         * the deletion is sent first instead of being sent into a page that is
-         * about to be rebuilt.
+         * Speichern ist eine Änderung derselben Liste, zu der ein wartendes Löschen gehört, das
+         * Löschen wird also vorher abgeschickt, statt in eine Seite zu laufen, die gerade neu
+         * aufgebaut wird.
          */
         finishPendingDelete();
         var payload = null;
@@ -5088,11 +5088,11 @@
             var isCategory = dialogEntry.kind === 'category';
 
             /*
-             * This path is only used for an entry that still has something inside
-             * - an empty one is deleted at once, see requestDelete - so the
-             * server gets the one thing it asks for: a plain confirmation flag.
-             * Nothing is typed, and no body at all is sent for a card, because
-             * the id in the URL already says what is meant.
+             * Dieser Weg wird nur für einen Eintrag benutzt, in dem noch etwas liegt - ein leerer
+             * wird sofort gelöscht, siehe requestDelete - der Server bekommt also das eine, wonach
+             * er fragt: eine schlichte Bestätigung. Es wird nichts getippt, und für eine Karte
+             * geht überhaupt kein Inhalt mit, weil die Kennung in der Adresse schon sagt, was
+             * gemeint ist.
              */
             payload = isCategory ? { confirm: true } : undefined;
 
@@ -5112,8 +5112,8 @@
                 payload.category_id = dialogParentId;
             }
 
-            /* Remembered before the dialog closes: the "save and next" path needs
-               it to open the empty form again for the same subcategory. */
+            /* Wird gemerkt, bevor das Fenster schließt: der Weg "speichern und weiter" braucht
+               ihn, um das leere Formular für dieselbe Unterkategorie wieder zu öffnen. */
             cardSubmitCategoryId = dialogParentId;
 
             url = isCardEdit
