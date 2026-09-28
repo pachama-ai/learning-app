@@ -356,15 +356,16 @@ function card_import_validate(
 }
 
 /**
- * The ONE reason a row cannot be imported, or null when it is fine.
+ * Den EINEN Grund, warum eine Zeile nicht importiert werden kann, oder null, wenn sie in
+ * Ordnung ist.
  *
- * Only the first problem is reported per row: the file is either correct or it
- * is corrected and uploaded again, and a list of five reasons for the same line
- * would not help anybody.
+ * Je Zeile wird nur das erste Problem gemeldet: die Datei ist entweder richtig oder sie
+ * wird korrigiert und erneut hochgeladen, und eine Liste von fünf Gründen für dieselbe
+ * Zeile würde niemandem helfen.
  *
  * @param array{line: int, values: array<string, string>, fields: int} $row
- * @param list<string> $columns The columns the file has.
- * @param array<string, list<string>> $pairs The language columns of the table.
+ * @param list<string> $columns Die Spalten, die die Datei hat.
+ * @param array<string, list<string>> $pairs Die Sprachspalten der Tabelle.
  * @return array{code: string, params: array<string, string|int>}|null
  */
 function card_import_row_problem(array $row, array $columns, array $pairs, bool $exerciseAvailable = true): ?array
@@ -388,10 +389,10 @@ function card_import_row_problem(array $row, array $columns, array $pairs, bool 
     }
 
     /*
-     * The optional exercise column. Its syntax is read by the very function the
-     * command line importer and the card dialog use, so all three understand the
-     * same thing - and a row with an unusable cell is refused here instead of
-     * quietly becoming a fixed card.
+     * Die freiwillige Aufgaben-Spalte. Ihre Schreibweise liest genau die Funktion, die
+     * auch der Import auf der Kommandozeile und der Kartendialog benutzen, alle drei
+     * verstehen also dasselbe - und eine Zeile mit unbrauchbarer Zelle wird hier
+     * abgelehnt, statt still eine feste Karte zu werden.
      */
     $exerciseCell = trim((string) ($row['values']['exercise'] ?? ''));
     $parsedExercise = exercise_parse_cell($exerciseCell);
@@ -410,9 +411,9 @@ function card_import_row_problem(array $row, array $columns, array $pairs, bool 
     }
 
     /*
-     * An exercise card carries a title instead of an answer: the answer is built
-     * when the task is shown. One title in one language is enough - the same rule
-     * the card dialog and the card endpoint follow.
+     * Eine Übungskarte trägt eine Überschrift statt einer Antwort: die Antwort entsteht,
+     * wenn die Aufgabe gezeigt wird. Eine Überschrift in einer Sprache reicht - dieselbe
+     * Regel, der der Kartendialog und der Karten-Endpunkt folgen.
      */
     if ($exerciseCell !== '') {
         $germanTitle = trim((string) $row['values']['front_de']);
@@ -432,7 +433,7 @@ function card_import_row_problem(array $row, array $columns, array $pairs, bool 
         return ['code' => 'flag_value', 'params' => ['value' => $flag]];
     }
 
-    /* Does the table have the columns this row needs? */
+    /* Hat die Tabelle die Spalten, die diese Zeile braucht? */
     foreach (['de', 'en'] as $language) {
         if (!isset($pairs[$language]) && card_import_language_used($row['values'], $language)) {
             return ['code' => 'language_unavailable', 'params' => ['language' => $language]];
@@ -456,7 +457,7 @@ function card_import_row_problem(array $row, array $columns, array $pairs, bool 
 }
 
 /**
- * True when at least one of the two sides of a language carries text.
+ * Wahr, wenn mindestens eine der beiden Seiten einer Sprache Text trägt.
  *
  * @param array<string, string> $values
  */
@@ -467,7 +468,7 @@ function card_import_language_used(array $values, string $language): bool
 }
 
 /**
- * True when both sides of a language carry text.
+ * Wahr, wenn beide Seiten einer Sprache Text tragen.
  *
  * @param array<string, string> $values
  */
