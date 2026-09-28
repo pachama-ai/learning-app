@@ -499,13 +499,13 @@ function import_print_usage(): void
 }
 
 /**
- * Makes sure the id given with --owner is a real user.
+ * Stellt sicher, dass die mit --owner angegebene Id ein echtes Konto ist.
  *
- * Checked before anything is read or written: an id that is not in the users
- * table would otherwise only be caught by the foreign key in the middle of the
- * import, after part of the work is done.
+ * Geprüft, bevor etwas gelesen oder geschrieben wird: eine Id, die nicht in der Tabelle
+ * users steht, würde sonst erst vom Fremdschlüssel mitten im Import erwischt, nachdem ein
+ * Teil der Arbeit schon getan ist.
  *
- * @throws RuntimeException when there is no user with that id.
+ * @throws RuntimeException wenn es kein Konto mit dieser Id gibt.
  */
 function import_check_owner(PDO $pdo, int $ownerUserId): void
 {
@@ -521,11 +521,11 @@ function import_check_owner(PDO $pdo, int $ownerUserId): void
 }
 
 /* --------------------------------------------------------------------------
-   Reading and validating the file
+   Die Datei lesen und prüfen
    -------------------------------------------------------------------------- */
 
 /**
- * Reads the file and validates every row.
+ * Liest die Datei und prüft jede Zeile.
  *
  * @return array{
  *     rows: list<array{line: int, subcategory: string, front_de: string, back_de: string,
@@ -548,9 +548,9 @@ function import_read_csv(string $path): array
         return ['rows' => [], 'errors' => [], 'per_subcategory' => [], 'order' => [], 'fatal' => 'the file could not be opened'];
     }
 
-    /* A byte order mark in front of the first header name would make the header
-       comparison fail. The three bytes are read and dropped before fgetcsv()
-       sees them. */
+    /* Eine Bytereihenfolge-Markierung vor dem ersten Spaltennamen würde den Vergleich der
+       Kopfzeile scheitern lassen. Die drei Bytes werden gelesen und verworfen, bevor
+       fgetcsv() sie zu sehen bekommt. */
     if (fread($handle, 3) !== "\xEF\xBB\xBF") {
         rewind($handle);
     }
@@ -563,7 +563,7 @@ function import_read_csv(string $path): array
         return ['rows' => [], 'errors' => [], 'per_subcategory' => [], 'order' => [], 'fatal' => 'the file is empty'];
     }
 
-    /* Defensive: a BOM inside the first cell is removed as well. */
+    /* Zur Sicherheit: eine Markierung in der ersten Zelle wird auch noch entfernt. */
     if (strpos((string) $header[0], "\xEF\xBB\xBF") === 0) {
         $header[0] = substr((string) $header[0], 3);
     }
@@ -571,8 +571,8 @@ function import_read_csv(string $path): array
     $header = array_map(static fn ($name): string => trim((string) $name), $header);
 
     /*
-     * Four shapes are accepted: with and without the map region column, and with
-     * and without the exercise column. Both optional columns stand at the end.
+     * Vier Formen werden angenommen: mit und ohne die Spalte für die Kartenregion, und
+     * mit und ohne die Aufgaben-Spalte. Beide freiwilligen Spalten stehen am Ende.
      */
     $hasRegion = in_array('map_region', $header, true);
     $hasExercise = in_array('exercise', $header, true);
@@ -616,7 +616,7 @@ function import_read_csv(string $path): array
         $lineNumber++;
 
         if ($cells === [null] || import_row_is_empty($cells)) {
-            /* A blank line is not a data row. */
+            /* Eine leere Zeile ist keine Datenzeile. */
             continue;
         }
 
