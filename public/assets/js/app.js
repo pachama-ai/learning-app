@@ -5301,9 +5301,9 @@
     }
 
     /*
-     * Two ways lead to the same place: a click inside the page, and the back or
-     * forward button of the browser. Both only change the address and then let the
-     * page draw itself out of the store - never a reload.
+     * Zwei Wege führen an dieselbe Stelle: ein Klick in der Seite und der Zurück- oder
+     * Vorwärtsknopf des Browsers. Beide ändern nur die Adresse und lassen die Seite sich dann aus
+     * dem Speicher zeichnen - nie ein Neuladen.
      */
     function wireNavigation() {
         document.addEventListener('click', function (event) {
@@ -5352,15 +5352,15 @@
             });
         });
 
-        /* Add follows the level that is open. */
+        /* Anlegen folgt der Ebene, die gerade offen ist. */
         elements.addButton.addEventListener('click', openAddForCurrentEntry);
 
 
         /*
-         * The button of the empty start page asks who is there: signed in it
-         * opens the form for a learning area, signed out it opens the sign-in.
-         * The server checks the session in any case - this only keeps a button
-         * out of the page that could end in "no_user_session".
+         * Der Knopf der leeren Startseite fragt, wer da ist: angemeldet öffnet er das Formular
+         * für einen Lernbereich, abgemeldet öffnet er die Anmeldung. Der Server prüft die Sitzung
+         * ohnehin - das hier hält nur einen Knopf aus der Seite, der in "no_user_session" enden
+         * könnte.
          */
         elements.emptyAction.addEventListener('click', function () {
             if (authState.user === null) {
@@ -5382,16 +5382,17 @@
             }
         });
 
-        /* One form, one submit handler, three ways out. */
+        /* Ein Formular, ein Absende-Handler, drei Wege hinaus. */
         elements.dialogForm.addEventListener('submit', function (event) {
             event.preventDefault();
             submitDialog();
         });
 
         /*
-         * A deletion that is still waiting is finished when the page is left, so
-         * a closed tab cannot leave an entry that the person was told is deleted.
-         * "keepalive" lets the browser complete the request after the unload.
+         * Ein Löschen, das noch wartet, wird zu Ende gebracht, wenn die Seite verlassen wird,
+         * ein geschlossener Reiter kann also keinen Eintrag hinterlassen, von dem der Person
+         * gesagt wurde, dass er gelöscht ist. "keepalive" lässt den Browser die Anfrage nach dem
+         * Entladen noch beenden.
          */
         window.addEventListener('pagehide', flushPendingDelete);
 
@@ -5400,10 +5401,10 @@
         });
 
         /*
-         * A click that lands on the dialog element itself - not on the form
-         * inside it - is a click on the backdrop. It closes the dialog, but only
-         * while nothing has been typed: with input in the form the click does
-         * nothing, so no work is ever lost by a stray click.
+         * Ein Klick, der auf dem Fensterelement selbst landet - nicht auf dem Formular darin - ist
+         * ein Klick auf den Hintergrund. Er schließt das Fenster, aber nur, solange nichts
+         * getippt wurde: mit Eingaben im Formular tut der Klick nichts, es geht also nie Arbeit
+         * durch einen versehentlichen Klick verloren.
          */
         elements.dialog.addEventListener('click', function (event) {
             if (event.target !== elements.dialog || dialogUsed) {
@@ -5414,12 +5415,12 @@
         });
 
         /*
-         * Escape takes the same path as the cancel button, so the focus always
-         * goes back to the element that opened the dialog.
+         * Escape nimmt denselben Weg wie der Abbrechen-Knopf, der Fokus geht also immer dorthin
+         * zurück, wo das Fenster geöffnet wurde.
          *
-         * It is handled twice on purpose: "cancel" is the native event of a
-         * modal dialog, and the key handler covers every situation in which that
-         * event does not arrive (an embedded browser, a dialog that is not modal).
+         * Es wird absichtlich doppelt behandelt: "cancel" ist das eigene Ereignis eines modalen
+         * Fensters, und der Tastaturhandler deckt jede Situation ab, in der dieses Ereignis nicht
+         * ankommt (ein eingebetteter Browser, ein Fenster, das nicht modal ist).
          */
         elements.dialog.addEventListener('cancel', function (event) {
             event.preventDefault();
@@ -5437,7 +5438,7 @@
             elements.dialog.classList.remove('is-open');
         });
 
-        /* A click anywhere else, or Escape, closes an open menu. */
+        /* Ein Klick irgendwo sonst, oder Escape, schließt ein offenes Menü. */
         document.addEventListener('click', closeMenu);
 
         document.addEventListener('keydown', function (event) {
