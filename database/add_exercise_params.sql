@@ -1,77 +1,82 @@
 -- ==========================================================================
--- Generated exercises: the numbers a task is built from
+-- Erzeugte Übungen: die Zahlen, aus denen eine Aufgabe gebaut wird
 -- ==========================================================================
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
--- Nothing in the application runs this file, and Copilot never executes a
--- structural change on its own.
+-- ERST DURCHLESEN, DANN VON HAND AUSFÜHREN (phpMyAdmin oder der mysql-Client).
+-- Nichts in der Anwendung führt diese Datei aus, und Copilot führt eine
+-- strukturelle Änderung nie von selbst aus.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/add_exercise_params.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/add_exercise_params.sql
 --
--- Why one more column
---   An exercise card is built when it is shown, so the card has to say WHICH kind
---   of task it is and WHICH numbers that task may use. The kind of task is already
---   stored (card_exercises.exercise_type). What is still missing is the second
---   half: the numbers, and for some kinds of task a choice between variants.
+-- Warum eine Spalte mehr
+--   Eine Übungskarte entsteht, wenn sie gezeigt wird, die Karte muss also sagen,
+--   WELCHE Art von Aufgabe sie ist und WELCHE Zahlen diese Aufgabe benutzen darf.
+--   Die Aufgabenart ist schon gespeichert (card_exercises.exercise_type). Was noch
+--   fehlt, ist die zweite Hälfte: die Zahlen, und bei manchen Aufgabenarten eine
+--   Auswahl zwischen Varianten.
 --
---   That is what exercise_params holds, as JSON. For a multiplication it is
+--   Genau das hält exercise_params, als JSON. Für ein Malnehmen ist es
 --
 --     {"min": 2, "max": 20}
 --
---   for a percentage task
+--   für eine Prozentaufgabe
 --
 --     {"min": 10, "max": 1000, "ask": "rate"}
 --
---   and for the energy percentages the list of contexts that may be shown
+--   und für die Energie-Prozentsätze die Liste der Zusammenhänge, die gezeigt
+--   werden dürfen
 --
 --     {"variants": ["mix", "pv_ratio", "storage_level"]}
 --
---   Which keys are allowed, what they may contain and what they mean is written
---   down in ONE place: exercise_catalog() in src/services/exercise_service.php.
---   A key that is not in that list, or a value outside its limits, is refused
---   when the card is saved and ignored (the task falls back to the defaults of
---   its kind) when it is read. A key can therefore never smuggle a formula into
---   the application: nothing here is ever worked out as text, only looked up.
+--   Welche Schlüssel erlaubt sind, was sie enthalten dürfen und was sie bedeuten,
+--   steht an EINER Stelle: exercise_catalog() in src/services/exercise_service.php.
+--   Ein Schlüssel, der nicht in dieser Liste steht, oder ein Wert außerhalb seiner
+--   Grenzen wird beim Speichern der Karte abgelehnt und beim Lesen übergangen (die
+--   Aufgabe fällt dann auf die Vorgaben ihrer Art zurück). Ein Schlüssel kann also
+--   nie eine Formel in die Anwendung schmuggeln: hier wird nichts je als Text
+--   ausgerechnet, nur nachgesehen.
 --
---   NULL means "use the defaults of this kind of task", which is what every row
---   that exists today gets.
+--   NULL heißt "nimm die Vorgaben dieser Aufgabenart", und das bekommt jede Zeile,
+--   die es heute gibt.
 --
--- What it does
---   Adds exactly one NULL-able column to `card_exercises`. Nothing else.
+-- Was sie tut
+--   Fügt genau eine NULL-fähige Spalte zu `card_exercises` hinzu. Sonst nichts.
 --
--- What it does NOT do
---   * it does not touch `cards`: no new column, no changed column, no removed
---     column. A card without a row in `card_exercises` stays a fixed card, and
---     all 745 cards that exist are exactly that
---   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE of existing values
---   * no other table is touched: `users`, `categories`, `cards` and
---     `user_card_progress` are left exactly as they are
---   * it does not mention `card_kind`: whether a card is generated is already
---     answered by whether it has a row in `card_exercises`. A second column
---     saying the same thing could disagree with the first one, so there is none
+-- Was sie NICHT tut
+--   * sie fasst `cards` nicht an: keine neue Spalte, keine geänderte Spalte,
+--     keine entfernte Spalte. Eine Karte ohne Zeile in `card_exercises` bleibt
+--     eine feste Karte, und jede Karte, die es gibt, ist genau das
+--   * kein DROP, kein RENAME, kein TRUNCATE, kein DELETE, kein UPDATE
+--     vorhandener Werte
+--   * keine andere Tabelle wird angefasst: `users`, `categories`, `cards` und
+--     `user_card_progress` bleiben genau, wie sie sind
+--   * sie nennt kein `card_kind`: ob eine Karte erzeugt wird, beantwortet schon
+--     die Frage, ob sie eine Zeile in `card_exercises` hat. Eine zweite Spalte,
+--     die dasselbe sagt, könnte der ersten widersprechen, also gibt es keine
 --
--- Safety
---   Running this file twice is harmless in effect, but the second run answers
---   with "#1060 - Duplicate column name". That is not a problem: it means the
---   column is already there and there is nothing left to do.
+-- Sicherheit
+--   Ein zweiter Lauf dieser Datei ist in der Wirkung harmlos, antwortet aber mit
+--   "#1060 - Duplicate column name". Das ist kein Problem: es heißt, dass die
+--   Spalte schon da ist und nichts mehr zu tun bleibt.
 --
---   The statement is deliberately written the plain way, without
---   "IF NOT EXISTS": that spelling exists in MariaDB but NOT in MySQL, and this
---   server is MySQL 8.4. The first version of this file used it and MySQL refused
---   it with "#1064". Plain "ADD COLUMN" is understood by both.
+--   Die Anweisung ist absichtlich schlicht geschrieben, ohne "IF NOT EXISTS":
+--   diese Schreibweise gibt es in MariaDB, aber NICHT in MySQL, und dieser Server
+--   ist MySQL 8.4. Die erste Fassung dieser Datei benutzte sie, und MySQL hat sie
+--   mit "#1064" abgelehnt. Ein schlichtes "ADD COLUMN" verstehen beide.
 --
---   The column is NULL-able and the table is empty (0 rows), so no existing value
---   can be affected either way.
+--   Die Spalte darf NULL sein und die Tabelle war beim Anlegen leer, es kann also
+--   in keiner Richtung ein vorhandener Wert betroffen sein.
 --
--- Rollback (only if you ever want the old state back)
+-- Zurücknehmen (nur falls du den alten Zustand je zurückhaben willst)
 --   ALTER TABLE `card_exercises` DROP COLUMN `exercise_params`;
 --
--- Two columns from the first step stay untouched
---   `range_min` and `range_max` came with the first version of this table and are
---   empty. The numbers now live in `exercise_params`, so those two are no longer
---   written. They are left in place because removing a column is not something
---   this file should decide; if you want them gone, this is the line:
+-- Zwei Spalten aus dem ersten Schritt bleiben unangetastet
+--   `range_min` und `range_max` kamen mit der ersten Fassung dieser Tabelle und
+--   sind leer. Die Zahlen stehen jetzt in `exercise_params`, die beiden werden
+--   also nicht mehr geschrieben. Sie bleiben stehen, weil das Entfernen einer
+--   Spalte nichts ist, was diese Datei entscheiden sollte; wenn du sie weghaben
+--   willst, ist das die Zeile dafür:
 --
 --     ALTER TABLE `card_exercises` DROP COLUMN `range_min`, DROP COLUMN `range_max`;
 -- ==========================================================================
