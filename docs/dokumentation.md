@@ -191,6 +191,11 @@ Die übrigen sieben stehen für sich und sind schon im Importformat:
 Die Skripte in `bin/` haben diese Dateien einmal in die Datenbank geschrieben.
 Danach sind es ganz normale Karten und lassen sich wie jede andere bearbeiten.
 
+Nicht alles ist zweisprachig: 31 der 61 Kategorien haben kein `name_en`, und 84
+Karten haben keinen englischen Text. Die App fällt dann auf den deutschen Text
+zurück (`NULL` heißt „nimm `name`") und markiert solche Karten mit „nur Deutsch".
+Das ist so gewollt, es fehlt einfach noch die Übersetzung.
+
 ## 8. Eigenheiten und offene Punkte
 
 Nichts davon ist kaputt, und nichts davon wird ohne Rückfrage geändert. Es steht
