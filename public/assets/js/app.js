@@ -5927,24 +5927,24 @@
     }
 
     /* ----------------------------------------------------------------------
-       The question before a session starts
+       Die Frage vor dem Start einer Einheit
        ---------------------------------------------------------------------- */
 
-    /* The sizes that are offered as one tap. */
+    /* Die Größen, die als ein Tipp angeboten werden. */
     var NEW_CARDS_CHOICES = [5, 10, 20];
 
-    /* What the dialog does when it is answered, and how many cards there are. */
+    /* Was das Fenster tut, wenn es beantwortet wird, und wie viele Karten es gibt. */
     var newCardsHandler = null;
     var newCardsAvailable = 0;
 
     /*
-     * Asks how many new cards this session should introduce and calls the handler
-     * with the answer. Closing the window answers nothing at all.
+     * Fragt, wie viele neue Karten diese Einheit vorstellen soll, und ruft den Handler mit der
+     * Antwort. Das Schließen des Fensters beantwortet gar nichts.
      */
     function openNewCardsDialog(available, handler) {
         var dialog = elements.newCardsDialog;
 
-        /* No window in the page: take everything rather than block the session. */
+        /* Kein Fenster auf der Seite: dann alles nehmen, statt die Einheit zu blockieren. */
         if (dialog === null) {
             handler(available);
             return;
@@ -5963,7 +5963,7 @@
 
         buildNewCardsQuick(available);
 
-        /* What is offered first: the usual ten, or everything if there is less. */
+        /* Was zuerst angeboten wird: die üblichen zehn, oder alles, wenn es weniger gibt. */
         var start = Math.min(10, available);
         elements.newCardsInput.value = String(start);
         markNewCardsQuick(start);
@@ -5978,7 +5978,7 @@
             dialog.classList.add('is-open');
         });
 
-        /* The number is the only thing to do here, so the focus goes there. */
+        /* Die Zahl ist hier das Einzige zu tun, der Fokus geht also dorthin. */
         window.setTimeout(function () {
             elements.newCardsInput.focus();
             elements.newCardsInput.select();
@@ -6003,7 +6003,7 @@
         }, prefersReducedMotion() ? 0 : 200);
     }
 
-    /* The shortcuts: the three usual sizes and "all" - and only what is there. */
+    /* Die Kurzwege: die drei üblichen Größen und "alle" - und nur, was es wirklich gibt. */
     function buildNewCardsQuick(available) {
         elements.newCardsQuick.textContent = '';
 
@@ -6033,7 +6033,7 @@
         return button;
     }
 
-    /* Which shortcut is the chosen one: the one whose number stands in the field. */
+    /* Welcher Kurzweg der gewählte ist: der, dessen Zahl im Feld steht. */
     function markNewCardsQuick(count) {
         Array.prototype.forEach.call(elements.newCardsQuick.children, function (button) {
             var chosen = Number(button.dataset.count) === count;
@@ -6042,8 +6042,8 @@
     }
 
     /*
-     * The answer: a whole number between 0 and what is there. Anything else is
-     * answered with one line under the field and the window stays open.
+     * Die Antwort: eine ganze Zahl zwischen 0 und dem, was da ist. Alles andere wird mit einer
+     * Zeile unter dem Feld beantwortet, und das Fenster bleibt offen.
      */
     function confirmNewCards() {
         var raw = elements.newCardsInput.value.trim();
@@ -6060,7 +6060,7 @@
         newCardsHandler = null;
         closeNewCardsDialog();
 
-        /* Zero is a real answer: only the cards that are due. */
+        /* Null ist eine echte Antwort: nur die Karten, die fällig sind. */
         if (handler !== null) {
             handler(count);
         }
@@ -6081,13 +6081,13 @@
             }
         });
 
-        /* Typing a number moves the mark to whichever shortcut it belongs to. */
+        /* Tippen einer Zahl schiebt die Markierung auf den Kurzweg, zu dem sie gehört. */
         elements.newCardsInput.addEventListener('input', function () {
             elements.newCardsError.hidden = true;
             markNewCardsQuick(Number(elements.newCardsInput.value));
         });
 
-        /* Leaving the window: the session starts only when it was answered. */
+        /* Das Fenster verlassen: die Einheit startet nur, wenn sie beantwortet wurde. */
         [elements.newCardsCancel, elements.newCardsClose].forEach(function (button) {
             button.addEventListener('click', function () {
                 newCardsHandler = null;
@@ -6095,7 +6095,7 @@
             });
         });
 
-        /* Escape closes it like the X - and starts nothing. */
+        /* Escape schließt es wie das X - und startet nichts. */
         dialog.addEventListener('cancel', function (event) {
             event.preventDefault();
             newCardsHandler = null;
@@ -6111,7 +6111,7 @@
         elements.learnNotice.hidden = true;
         document.body.classList.add('is-learning');
 
-        /* The focus goes into the session, so the keyboard works right away. */
+        /* Der Fokus geht in die Einheit, die Tastatur funktioniert also sofort. */
         elements.learnCard.focus();
 
         if (learnSession.hasUser !== true) {
@@ -6120,8 +6120,8 @@
     }
 
     /*
-     * Shows the turn that is on screen: the counter, the line, the two sides and
-     * the four answers with the interval each of them would lead to.
+     * Zeigt die Aufgabe, die auf dem Bildschirm steht: den Zähler, die Zeile, die beiden Seiten
+     * und die vier Antworten mit dem Abstand, zu dem jede von ihnen führen würde.
      */
     function renderLearnCard() {
         if (learnSession === null) {
@@ -6146,9 +6146,9 @@
         elements.learnProgress.setAttribute('aria-valuetext', t('learn.progress', { percent: percent }));
 
         /*
-         * An exercise card shows the task that was rolled for this session. Both
-         * sides come from the same card, so the answer belongs to the numbers on
-         * the other side - and the next session draws new ones.
+         * Eine Übungskarte zeigt die Aufgabe, die für diese Einheit gewürfelt wurde. Beide Seiten
+         * kommen aus derselben Karte, die Antwort gehört also zu den Zahlen auf der anderen Seite -
+         * und die nächste Einheit würfelt neue.
          */
         var task = exerciseTask(entry);
 
@@ -6156,15 +6156,15 @@
         elements.learnBackText.textContent = task === null ? entry.back : task.answer;
 
         /*
-         * Both sides of the card carry the map, and only the marking makes the
-         * difference: the question shows the country or the continent pale, so the
-         * answer is not given away, and the answer side marks the region. On a card
-         * that asks "where is Bavaria?" the person therefore sees the outline of
-         * Germany first and the marked state only after turning the card. A card
-         * that is studied the other way round behaves the same, because the front of
-         * the card is the question whichever text stands on it.
+         * Beide Seiten der Karte tragen die Landkarte, nur die Markierung macht den Unterschied:
+         * die Frage zeigt das Land oder den Erdteil blass, damit die Antwort nicht verraten wird,
+         * und die Antwortseite markiert die Region. Bei einer Karte, die "Wo liegt Bayern?"
+         * fragt, sieht die Person also zuerst den Umriss Deutschlands und den markierten
+         * Regierungsbezirk erst nach dem Umdrehen. Eine Karte, die andersherum gelernt wird,
+         * verhält sich gleich, denn die Vorderseite ist die Frage, welcher Text auch immer
+         * darauf steht.
          *
-         * A card without a region passes null, and then both sides stay empty.
+         * Eine Karte ohne Region übergibt null, dann bleiben beide Seiten leer.
          */
         showMap(elements.learnMapFront, entry.map_region, 'card-map card-map--learn', false);
         showMap(elements.learnMapBack, entry.map_region, 'card-map card-map--learn');
@@ -6172,7 +6172,7 @@
             ? (learnSession.flipped ? entry.back : entry.front)
             : (learnSession.flipped ? task.answer : task.question));
 
-        /* Both faces are written; which one is visible is the flip. */
+        /* Beide Seiten werden geschrieben; welche zu sehen ist, entscheidet das Umdrehen. */
         elements.learnCard.classList.toggle('is-flipped', learnSession.flipped);
         elements.learnStage.classList.toggle('is-flipped', learnSession.flipped);
         var sideKey = learnSession.flipped ? 'learn.answer' : 'learn.question';
