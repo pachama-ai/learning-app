@@ -7179,9 +7179,15 @@
         var languages = el('p', 'import__hint', t('dialog.import.languages'));
         languages.setAttribute('data-i18n', 'dialog.import.languages');
 
+        /*
+         * Die Grenzen kommen aus derselben Konfiguration, die auch die Vorprüfung im Browser
+         * benutzt - die Zeichenzahl pro Feld ist dieselbe, die der Server als
+         * CARD_MAX_TEXT_LENGTH durchsetzt.
+         */
         var limits = el('p', 'import__hint', t('dialog.import.limits', {
             rows: config.limits.importRows,
-            size: Math.round(config.limits.importBytes / (1024 * 1024))
+            size: Math.round(config.limits.importBytes / (1024 * 1024)),
+            chars: config.limits.cardText
         }));
 
         var sample = el('a', 'import__sample', t('dialog.import.sample'));
