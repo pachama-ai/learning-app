@@ -764,12 +764,12 @@
             node.setAttribute('title', t(node.getAttribute('data-i18n-title')));
         });
 
-        /* The counter carries numbers, so it is rewritten rather than translated. */
+        /* Der Zähler trägt Zahlen, er wird also neu geschrieben statt übersetzt. */
         updateTileNavigation();
     }
 
     /* ----------------------------------------------------------------------
-       Headings: one clipped mask per line, each line sliding up on its own
+       Ueberschriften: eine beschnittene Maske je Zeile, jede Zeile gleitet fuer sich hoch
        ---------------------------------------------------------------------- */
 
     function setHeading(element, text) {
@@ -800,7 +800,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Animations
+       Animationen
        ---------------------------------------------------------------------- */
 
     function applyRevealOrder(nodes, startIndex) {
@@ -810,8 +810,8 @@
     }
 
     /*
-     * Counts a number up from zero to the value the API really returned. The
-     * detail view uses it for its subcategory count.
+     * Zählt eine Zahl von null auf den Wert hoch, den die API wirklich zurückgegeben hat.
+     * Die Detailansicht benutzt das für ihre Unterkategorie-Zahl.
      */
     function animateCount(element, value) {
         var target = Number(value) || 0;
@@ -821,8 +821,8 @@
             return;
         }
 
-        /* Hidden from assistive technology while it counts, so a screen reader
-           announces the final value once instead of every intermediate step. */
+        /* Während des Zählens für Hilfstechnik versteckt, damit eine Vorlesehilfe den
+           Endwert einmal nennt und nicht jeden Zwischenschritt. */
         element.setAttribute('aria-hidden', 'true');
 
         var start = null;
@@ -850,7 +850,7 @@
         window.requestAnimationFrame(step);
     }
 
-    /* Thin-line skeletons while the areas are loading. */
+    /* Dünne Linien-Gerüste, während die Bereiche laden. */
     function showSkeletons(container, count) {
         container.textContent = '';
 
@@ -876,17 +876,17 @@
     }
 
     /* ----------------------------------------------------------------------
-       Linked hover between the tiles of the start page
+       Verknuepfter Hover zwischen den Kacheln der Startseite
        ---------------------------------------------------------------------- */
 
     /*
-     * A hovered tile used to dim every other tile of the row. That read as
-     * "the others are not available", although a click simply opens them, so
-     * the dimming is gone: each tile keeps its full strength, and the one under
-     * the pointer lifts itself and gets the shadow instead (see the
-     * stylesheet).
+     * Eine überfahrene Kachel hat früher jede andere Kachel der Reihe abgedunkelt. Das
+     * las sich als "die anderen sind nicht verfügbar", obwohl ein Klick sie einfach
+     * öffnet, das Abdunkeln ist deshalb weg: jede Kachel behält ihre volle Stärke, und
+     * die unter dem Zeiger hebt sich selbst und bekommt den Schatten (siehe das
+     * Stylesheet).
      *
-     * clearLinked() stays: the render path calls it.
+     * clearLinked() bleibt: der Aufbau ruft es auf.
      */
     function clearLinked() {
         linkedTiles.forEach(function (tile) {
@@ -897,7 +897,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       API (the existing endpoints, called exactly as before)
+       API (die vorhandenen Endpunkte, genau wie vorher aufgerufen)
        ---------------------------------------------------------------------- */
 
     function fetchJson(url) {
@@ -923,8 +923,8 @@
             return Promise.resolve(responseCache[query]);
         }
 
-        /* While the first answer is still on its way, this waits for it: asking
-           now would load exactly what is about to be in the store anyway. */
+        /* Während die erste Antwort noch unterwegs ist, wartet das hier auf sie: jetzt zu
+           fragen würde genau das laden, was gleich ohnehin im Speicher stehen wird. */
         if (bootstrapCache.pending) {
             return bootstrapCache.promise.then(function () {
                 return fetchCategories(query);
