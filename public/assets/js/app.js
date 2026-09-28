@@ -1721,7 +1721,7 @@
             return;
         }
 
-        /* The reveal starts at the theme button. */
+        /* Das Aufdecken beginnt am Erscheinungsbild-Knopf. */
         var rect = elements.themeToggle.getBoundingClientRect();
         root.style.setProperty('--reveal-x', (rect.left + rect.width / 2) + 'px');
         root.style.setProperty('--reveal-y', (rect.top + rect.height / 2) + 'px');
@@ -1772,16 +1772,16 @@
             writeStorage(config.storageKeys.language, next);
 
             /*
-             * The store holds card texts and category names in ONE language, so it
-             * cannot serve the other one. It is dropped and asked for again,
-             * without loading the page again.
+             * Der Speicher hält Kartentexte und Kategorienamen in EINER Sprache, er kann die
+             * andere also nicht bedienen. Er wird fallengelassen und neu erfragt, ohne die
+             * Seite neu zu laden.
              *
-             * The new language has to be in place BEFORE the store is asked
-             * again: the request takes the language from `locale`. With the old
-             * value still in it, the fresh answer came back in the language that
-             * was just left - every list was exactly one switch behind. (This was
-             * found in the browser; the request log showed two "language=de"
-             * calls right after a switch to English.)
+             * Die neue Sprache muss stehen, BEVOR der Speicher neu erfragt wird: die Anfrage
+             * nimmt die Sprache aus `locale`. Stand dort noch der alte Wert, kam die frische
+             * Antwort in der Sprache zurück, die gerade verlassen wurde - jede Liste war
+             * genau einen Wechsel hinterher. (Das wurde im Browser gefunden; das
+             * Anfrageprotokoll zeigte zwei "language=de"-Aufrufe direkt nach einem Wechsel
+             * auf Englisch.)
              */
             locale = next;
             bootstrapDropAll();
@@ -1811,17 +1811,17 @@
     }
 
     /* ----------------------------------------------------------------------
-       Building the start page
+       Die Startseite bauen
        ---------------------------------------------------------------------- */
 
     /*
-     * The first character of a displayed name, for the circle of a category that
-     * has no drawing of its own. It is upper case, so "mathematics" and
-     * "Mathematics" both show an "M", and it follows the language switch because
-     * the caller passes the name it already displays.
+     * Der erste Buchstabe eines angezeigten Namens, für den Kreis einer Kategorie ohne
+     * eigene Zeichnung. Er ist groß geschrieben, "mathematik" und "Mathematik" zeigen also
+     * beide ein "M", und er folgt dem Sprachumschalter, weil der Aufrufer den Namen übergibt,
+     * den er ohnehin anzeigt.
      *
-     * Without a name there is no letter and no placeholder character: an empty
-     * circle is honest, a question mark looks like an error.
+     * Ohne Namen gibt es keinen Buchstaben und kein Platzhalterzeichen: ein leerer Kreis ist
+     * ehrlich, ein Fragezeichen sieht wie ein Fehler aus.
      */
     function initialLetter(name) {
         var text = String(name === undefined || name === null ? '' : name).trim();
