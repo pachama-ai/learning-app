@@ -1,38 +1,40 @@
 -- ==========================================================================
--- Migration: category content lives in the database
+-- Migration: der Inhalt einer Kategorie liegt in der Datenbank
 -- ==========================================================================
 --
--- Run this ONCE, by hand (phpMyAdmin or the mysql client). The application never
--- runs it on its own, and nothing here is executed by Copilot.
+-- EINMAL ausführen, von Hand (phpMyAdmin oder der mysql-Client). Die Anwendung
+-- führt sie nie von selbst aus, und Copilot führt hier nichts aus.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/add_category_content.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/add_category_content.sql
 --
--- What it does
---   Adds the columns `categories` needs so that colour, icon, bilingual name and
---   bilingual description are data instead of something the frontend guesses:
+-- Was sie tut
+--   Fügt die Spalten hinzu, die `categories` braucht, damit Farbe, Symbol,
+--   zweisprachiger Name und zweisprachige Beschreibung Daten sind und nicht
+--   etwas, das die Oberfläche errät:
 --
---     color           the hex colour the tile and the bar segment use
---     icon_svg        the sanitised SVG source of the category drawing
---     icon_scale      per drawing size correction (the wind turbine and the globe
---                     are drawn smaller than the other two, which the frontend
---                     currently compensates for with a fixed table)
---     name_en/_de     the display name per language
---     description_en/_de  the description per language
+--     color           die Hex-Farbe, die die Kachel und das Bandsegment benutzen
+--     icon_svg        der entschärfte SVG-Quelltext der Kategoriezeichnung
+--     icon_scale      Größenkorrektur je Zeichnung (die Windräder und der Globus
+--                     sind kleiner gezeichnet als die anderen zwei, was die
+--                     Oberfläche im Moment mit einer festen Tabelle ausgleicht)
+--     name_en/_de     der Anzeigename je Sprache
+--     description_en/_de  die Beschreibung je Sprache
 --
--- What it does NOT do
---   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE of existing values
---   * the existing `name` column keeps its data and stays NOT NULL, so the
---     application keeps working while these columns are still empty
---   * no other table is touched: `users`, `cards` and `user_card_progress` are
---     left exactly as they are
+-- Was sie NICHT tut
+--   * kein DROP, kein RENAME, kein TRUNCATE, kein DELETE, kein UPDATE
+--     vorhandener Werte
+--   * die vorhandene Spalte `name` behält ihre Daten und bleibt NOT NULL, die
+--     Anwendung arbeitet also weiter, solange diese Spalten noch leer sind
+--   * keine andere Tabelle wird angefasst: `users`, `cards` und
+--     `user_card_progress` bleiben genau, wie sie sind
 --
--- Safety
---   Every added column is NULL-able (icon_scale has a default) and the whole
---   statement carries "IF NOT EXISTS", which MariaDB 10.0+ supports, so running
---   the file twice changes nothing the second time.
+-- Sicherheit
+--   Jede hinzugefügte Spalte darf NULL sein (icon_scale hat eine Vorgabe), und
+--   die ganze Anweisung trägt "IF NOT EXISTS", was MariaDB 10.0+ unterstützt,
+--   ein zweiter Lauf ändert beim zweiten Mal also nichts.
 --
--- Rollback (only if you ever want the old state back)
+-- Zurücknehmen (nur falls du den alten Zustand je zurückhaben willst)
 --   ALTER TABLE `categories`
 --       DROP COLUMN `color`, DROP COLUMN `icon_svg`, DROP COLUMN `icon_scale`,
 --       DROP COLUMN `name_en`, DROP COLUMN `name_de`,
@@ -56,8 +58,8 @@ ALTER TABLE `categories`
         COMMENT 'German description; NULL means no description is shown' AFTER `description_en`;
 
 -- ==========================================================================
--- Check afterwards. Expected: the four old columns plus the seven new ones,
--- and the row count of `categories` must be unchanged.
+-- Danach nachsehen. Erwartet: die vier alten Spalten plus die sieben neuen,
+-- und die Zeilenzahl von `categories` muss unverändert sein.
 -- ==========================================================================
 
 -- DESCRIBE `categories`;
