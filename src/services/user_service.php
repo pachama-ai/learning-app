@@ -159,20 +159,20 @@ function user_csrf_valid(?string $token): bool
 }
 
 /* --------------------------------------------------------------------------
-   Checking what was typed
+   Prüfen, was eingetippt wurde
    -------------------------------------------------------------------------- */
 
-/** An identifier with an "@" is an e-mail address, everything else is a name. */
+/** Eine Kennung mit einem "@" ist eine E-Mail-Adresse, alles andere ein Name. */
 function user_identifier_is_email(string $identifier): bool
 {
     return strpos($identifier, '@') !== false;
 }
 
 /**
- * The first problem of an identifier, or null when it is usable.
+ * Das erste Problem einer Kennung oder null, wenn sie brauchbar ist.
  *
- * The codes are the ones the browser turns into a sentence; the server is the
- * only authority, the checks in the browser are only there for quick feedback.
+ * Die Codes sind die, die der Browser in einen Satz verwandelt; maßgeblich ist allein der
+ * Server, die Prüfungen im Browser sind nur für die schnelle Rückmeldung da.
  */
 function user_identifier_problem(string $identifier): ?string
 {
@@ -211,25 +211,25 @@ function user_password_problem(string $password): ?string
 }
 
 /* --------------------------------------------------------------------------
-   Finding, creating and checking an account
+   Ein Konto finden, anlegen und prüfen
    -------------------------------------------------------------------------- */
 
 /**
- * The row of an identifier, or null.
+ * Die Zeile zu einer Kennung oder null.
  *
- * A name is looked up in the name column, an address in the email column - and
- * the address is only asked for when the table really has that column.
+ * Ein Name wird in der Namensspalte gesucht, eine Adresse in der E-Mail-Spalte - und
+ * nach der Adresse wird nur gefragt, wenn die Tabelle diese Spalte wirklich hat.
  */
 function user_find(PDO $pdo, string $identifier): ?array
 {
     /*
-     * SELECT *: the table may or may not have the columns of the migration yet,
-     * and every one of them is wanted here.
+     * SELECT *: die Tabelle hat die Spalten der Migration vielleicht schon oder noch
+     * nicht, und gebraucht werden sie hier alle.
      *
-     * The value is bound twice on purpose - once for the name, once for the
-     * address. PDO with emulated prepares switched off (see the connection in
-     * src/config/database.php) refuses a named placeholder that is used twice in
-     * one statement, so both get their own name.
+     * Der Wert wird absichtlich zweimal gebunden - einmal für den Namen, einmal für die
+     * Adresse. PDO mit abgeschalteten emulierten Vorbereitungen (siehe die Verbindung in
+     * src/config/database.php) lehnt einen benannten Platzhalter ab, der zweimal in einer
+     * Anweisung steht, beide bekommen also ihren eigenen Namen.
      */
     if (user_column_available(user_columns($pdo), 'email')) {
         $statement = $pdo->prepare(
@@ -249,15 +249,15 @@ function user_find(PDO $pdo, string $identifier): ?array
 }
 
 /**
- * Sucht ein Konto ueber seine E-Mail-Adresse.
+ * Sucht ein Konto über seine E-Mail-Adresse.
  *
- * Seit die Anmeldung nur noch ueber die Adresse geht, steht diese Suche getrennt
- * von user_find(): dort wird weiter nach Name ODER Adresse gesucht, weil das
- * Anlegen prueft, ob ein Name schon vergeben ist. Beim Anmelden waere genau das
- * der zweite Weg ins Konto, den es nicht mehr geben soll.
+ * Seit die Anmeldung nur noch über die Adresse geht, steht diese Suche getrennt von
+ * user_find(): dort wird weiter nach Name ODER Adresse gesucht, weil das Anlegen prüft,
+ * ob ein Name schon vergeben ist. Beim Anmelden wäre genau das der zweite Weg ins Konto,
+ * den es nicht mehr geben soll.
  *
- * Getrimmt wird hier, und Gross- oder Kleinschreibung spielt keine Rolle: die
- * Spalte steht in utf8mb4_unicode_ci, der Vergleich ignoriert sie also schon.
+ * Getrimmt wird hier, und Groß- oder Kleinschreibung spielt keine Rolle: die Spalte steht
+ * in utf8mb4_unicode_ci, der Vergleich ignoriert sie also schon.
  *
  * @param PDO $pdo die Datenbankverbindung
  * @param string $email die eingetippte Adresse
@@ -280,7 +280,7 @@ function user_find_by_email(PDO $pdo, string $email): ?array
 }
 
 /**
- * Creates an account.
+ * Legt ein Konto an.
  *
  * @return array{ok: bool, error: ?string, user: ?array{id: int, name: string}}
  */
@@ -293,9 +293,9 @@ function user_register(PDO $pdo, string $identifier, string $password): array
         return ['ok' => false, 'error' => $problem, 'user' => null];
     }
 
-    /* Ohne Adresse gaebe es kein zweites Mal hinein: die Anmeldung kennt nur
-       noch die E-Mail. Sie muss also schon beim Anlegen da sein - sonst waere
-       das neue Konto sofort ausgesperrt. */
+    /* Ohne Adresse gäbe es kein zweites Mal hinein: die Anmeldung kennt nur noch die
+       E-Mail. Sie muss also schon beim Anlegen da sein - sonst wäre das neue Konto
+       sofort ausgesperrt. */
     if (!user_identifier_is_email($identifier)) {
         return ['ok' => false, 'error' => 'invalid_email', 'user' => null];
     }
