@@ -429,10 +429,10 @@ function import_print_file(array $file): void
 }
 
 /**
- * Prints one planned subcategory: the counts and a few example rows.
+ * Gibt eine geplante Unterkategorie aus: die Zahlen und ein paar Beispielzeilen.
  *
- * Mit $onlyGerman werden die englischen Spalten als "-" gezeigt, weil sie auch
- * nicht geschrieben werden - der Plan zeigt, was die Datenbank bekommt.
+ * Mit $onlyGerman werden die englischen Spalten als "-" gezeigt, weil sie auch nicht
+ * geschrieben werden - der Plan zeigt, was die Datenbank bekommt.
  */
 function import_print_group(string $name, array $group, bool $exists, bool $onlyGerman = false): void
 {
@@ -471,14 +471,14 @@ function import_print_group(string $name, array $group, bool $exists, bool $only
 }
 
 /* --------------------------------------------------------------------------
-   Writing
+   Schreiben
    -------------------------------------------------------------------------- */
 
 /**
- * Writes every subcategory and every card of the plan.
+ * Schreibt jede Unterkategorie und jede Karte des Plans.
  *
- * The caller has opened the transaction. Everything that can go wrong throws, so
- * the caller can roll the whole run back and the database stays as it was.
+ * Die Transaktion hat der Aufrufer geöffnet. Alles, was schiefgehen kann, wirft, der
+ * Aufrufer kann den ganzen Lauf also zurückrollen und die Datenbank bleibt, wie sie war.
  *
  * @return array{categories: int, cards: int}
  */
@@ -490,10 +490,10 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
     );
 
     /*
-     * The eight columns of the file, written one by one. front/back are the pair
-     * the card shows; the language columns carry the same text per language, and
-     * front_en/back_en are the swapped pair exactly as the file has them.
-     * map_region keeps its default: this format says nothing about a map.
+     * Die acht Spalten der Datei, eine nach der anderen geschrieben. front/back sind das
+     * Paar, das die Karte zeigt; die Sprachspalten tragen denselben Text je Sprache, und
+     * front_en/back_en sind das vertauschte Paar, genau wie die Datei es hat. map_region
+     * behält seine Vorgabe: dieses Format sagt nichts über eine Karte.
      */
     $insertCard = $pdo->prepare(
         'INSERT INTO cards
@@ -506,8 +506,8 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
     $cards = 0;
 
     foreach ($groups as $name => $group) {
-        /* name_de and name_en carry the same name: the subcategory is called the
-           same in both languages, which is what the other imports do as well. */
+        /* name_de und name_en tragen denselben Namen: die Unterkategorie heißt in beiden
+           Sprachen gleich, und das tun die anderen Importe auch. */
         $insertCategory->bindValue(':parent_id', $areaId, PDO::PARAM_INT);
         $insertCategory->bindValue(':name', $name, PDO::PARAM_STR);
         $insertCategory->bindValue(':name_en', $name, PDO::PARAM_STR);
@@ -526,7 +526,7 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
             $insertCard->bindValue(':back_de', $row['back_de'], PDO::PARAM_STR);
             /* Mit --only-german bleiben die englischen Spalten leer: die Karte ist
                dann eine reine deutsche Karte, statt eine zu sein, die englisch
-               heisst und deutsch aussieht. */
+               heißt und deutsch aussieht. */
             $insertCard->bindValue(':front_en', $onlyGerman ? null : $row['front_en'], $onlyGerman ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $insertCard->bindValue(':back_en', $onlyGerman ? null : $row['back_en'], $onlyGerman ? PDO::PARAM_NULL : PDO::PARAM_STR);
             $insertCard->bindValue(':is_bidirectional', (int) $row['is_bidirectional'], PDO::PARAM_INT);
@@ -540,7 +540,7 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
 }
 
 /* --------------------------------------------------------------------------
-   Main
+   Hauptlauf
    -------------------------------------------------------------------------- */
 
 function import_main(array $argv, string $projectRoot): int
