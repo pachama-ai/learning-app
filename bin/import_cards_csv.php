@@ -3,40 +3,41 @@
 declare(strict_types=1);
 
 /**
- * Imports flashcard CSV files into one learning area.
+ * Importiert Lernkarten-CSV-Dateien in einen Lernbereich.
  *
- * The format is fixed and carries everything the two tables need:
+ * Das Format ist fest und trägt alles, was die beiden Tabellen brauchen:
  *
  *     category,front,back,front_de,back_de,front_en,back_en,is_bidirectional
  *
- *   - `category` is the name of the subcategory a row belongs to. One file may
- *     hold several of them, several files may feed the same one.
- *   - `front`/`back` are the pair the card shows. The four language columns carry
- *     the same text per language, and `front_en`/`back_en` are the SWAPPED pair -
- *     the file is the truth and nothing is mirrored or guessed here.
- *   - `is_bidirectional` is 0 or 1.
+ *   - `category` ist der Name der Unterkategorie, zu der eine Zeile gehört. Eine Datei
+ *     darf mehrere davon enthalten, mehrere Dateien dürfen dieselbe füllen.
+ *   - `front`/`back` sind das Paar, das die Karte zeigt. Die vier Sprachspalten tragen
+ *     denselben Text je Sprache, und `front_en`/`back_en` sind das VERTAUSCHTE Paar -
+ *     die Datei ist die Wahrheit, hier wird nichts gespiegelt und nichts geraten.
+ *   - `is_bidirectional` ist 0 oder 1.
  *
- * There is no per-file knowledge in this tool: the same command reads every file
- * of that format, whatever it is about. Which area the cards land in is said on
- * the command line (--area), not guessed from the file name.
+ * In diesem Werkzeug steckt kein Wissen über einzelne Dateien: dasselbe Kommando liest
+ * jede Datei dieses Formats, worum auch immer sie geht. In welchen Bereich die Karten
+ * landen, steht auf der Kommandozeile (--area) und wird nicht aus dem Dateinamen
+ * geraten.
  *
- * Writing happens in ONE transaction: either every row of every file is in the
- * database or none of it is. Without --execute the tool only reads and reports,
- * so the plan can be read against before anything is written.
+ * Geschrieben wird in EINER Transaktion: entweder ist jede Zeile jeder Datei in der
+ * Datenbank oder keine. Ohne --execute liest und berichtet das Werkzeug nur, der Plan
+ * lässt sich also gegenlesen, bevor etwas geschrieben wird.
  *
- * Usage:
+ * Aufruf:
  *
  *     php bin/import_cards_csv.php --owner=6 --area=English \
  *         --file=b1_vokabelliste.csv --file=b2_vokabelliste.csv --dry-run
  *
- * A learning area that does not exist yet is created with --create-area; its
- * drawing comes from --icon=<path to an svg>.
+ * Ein Lernbereich, den es noch nicht gibt, wird mit --create-area angelegt; seine
+ * Zeichnung kommt aus --icon=<Pfad zu einer svg>.
  *
- * With --only-german the two English columns are NOT written: the cards are then
- * pure German cards, and front_en/back_en stay NULL. This is for files whose
- * "English" columns carry the German text again - without the option those cards
- * would look like English cards in the interface while showing German, which is
- * worse than an empty column.
+ * Mit --only-german werden die beiden englischen Spalten NICHT geschrieben: die Karten
+ * sind dann reine deutsche Karten, und front_en/back_en bleiben NULL. Das ist für Dateien
+ * gedacht, deren "englische" Spalten noch einmal den deutschen Text tragen - ohne diese
+ * Option sähen solche Karten in der Oberfläche wie englische Karten aus, während sie
+ * Deutsch zeigen, und das ist schlimmer als eine leere Spalte.
  */
 
 $projectRoot = dirname(__DIR__);
@@ -44,9 +45,9 @@ $projectRoot = dirname(__DIR__);
 require_once $projectRoot . '/src/config/database.php';
 
 /*
- * Only a command line tool: it has no URL, it is not inside the web root and it
- * prints no credentials, no SQL and no file paths. The guard is here so that a
- * wrongly configured server cannot run it as if it were a page.
+ * Nur ein Kommandozeilen-Werkzeug: es hat keine Adresse, liegt nicht im Web-Verzeichnis
+ * und gibt keine Zugangsdaten, kein SQL und keine Dateipfade aus. Die Sperre steht hier,
+ * damit ein falsch eingerichteter Server es nicht wie eine Seite ausführen kann.
  */
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -54,10 +55,10 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-/** The eight columns this format has, in the order the plan prints them. */
+/** Die acht Spalten, die dieses Format hat, in der Reihenfolge, in der der Plan sie ausgibt. */
 const CARD_CSV_COLUMNS = ['category', 'front', 'back', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
-/** How many example cards the plan shows per subcategory. */
+/** Wie viele Beispielkarten der Plan je Unterkategorie zeigt. */
 const CARD_CSV_SAMPLES = 2;
 
 /* --------------------------------------------------------------------------
