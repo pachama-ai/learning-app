@@ -41,7 +41,7 @@
 </IfModule>
 
 #
-# Zugangsdaten und Verzeichnislisten gehoeren nicht ins Netz.
+# Zugangsdaten und Verzeichnislisten gehören nicht ins Netz.
 #
 # Der DocumentRoot ist public/ - die Datei .env liegt im Projektstamm, also
 # schon außerhalb und ist deshalb gar nicht erreichbar. Diese Sperre ist die
