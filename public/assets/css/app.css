@@ -1107,6 +1107,7 @@ body:has(#view-detail:not([hidden])) .site-footer {
 }
 /* Dialog-Beschriftung */
 .dialog__label {
+    margin-bottom: 8px;
     font-family: var(--font-sans);
     font-size: 0.85rem;
     letter-spacing: 0.01em;
@@ -1877,14 +1878,16 @@ html.is-theme-switching::view-transition-old(root),
 .dialog__field {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
+    margin-bottom: 20px;
 }
 /* Dialog-Eingabefeld */
 .dialog__field.is-invalid .dialog__input {
     border-bottom-color: var(--cat-reserve-rose);
 }
-/* Dialog-Fehler am Feld */
+/* Fehler am Feld: eigener Abstand, weil das Feld selbst keinen mehr hat */
 .dialog__field-error {
+    margin-top: 6px;
     color: var(--cat-reserve-rose);
     font-size: 0.85rem;
     line-height: 1.4;
@@ -1974,6 +1977,15 @@ html.is-theme-switching::view-transition-old(root),
 .dialog__button--primary[disabled] {
     opacity: .55;
     cursor: default;
+}
+/* Dialog-Knopf: Hauptknopf im hellen Thema - schwarz, weil Grün die faelligen Karten meint */
+[data-theme="light"] .dialog__button--primary {
+    background-color: var(--text);
+    color: #FFFFFF;
+}
+/* Dialog-Knopf: Hauptknopf im hellen Thema bei Zeigerkontakt */
+[data-theme="light"] .dialog__button--primary:hover:not([disabled]) {
+    background-color: #33322F;
 }
 /* Dialog-Aktionen */
 .dialog__actions {
