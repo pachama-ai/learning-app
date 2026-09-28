@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Die Lernsitzung als Zeile: wann sie anfing, wann sie endete, wie viel passiert ist.
  *
- * Tabelle und Bedeutung jeder Spalte kommen aus database/add_study_sessions.sql -
+ * Tabelle und Bedeutung jeder Spalte kommen aus database/schema.sql -
  * hier wird keine Spalte erfunden:
  *
  *   started_at     der Moment der ERSTEN Antwort einer Runde. Eine Runde, die
@@ -45,8 +45,8 @@ function study_session_timestamp(int $now): string
 /**
  * Ob die Tabelle die Kategorie-Spalte schon hat.
  *
- * Die Spalte kommt aus database/add_session_category.sql, einer Schemaänderung, die wie
- * jede andere von Hand ausgeführt werden muss. Bis dahin läuft die Anwendung genau wie
+ * Die Spalte steht in database/schema.sql; sie muss wie jede andere Änderung
+ * einmal von Hand ausgeführt werden. Bis dahin läuft die Anwendung genau wie
  * vorher: eine Runde wird ohne Ort geschrieben, und die Serie zählt die ganze Person
  * statt einer Unterkategorie.
  *

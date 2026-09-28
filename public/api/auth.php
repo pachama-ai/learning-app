@@ -98,12 +98,12 @@ function handle_auth_request(string $method): void
 
     if ($result['ok'] !== true) {
         /* "Noch nicht eingerichtet" ist nicht der Fehler des Besuchers, und das
-           sagt die Antwort auch: zuerst muss die Migration in
-           database/add_user_auth.sql von Hand ausgeführt werden. */
+           sagt die Antwort auch: zuerst muss database/schema.sql von Hand auf der
+           Datenbank ausgeführt werden. */
         if ($result['error'] === 'sign_in_not_ready') {
             send_json_error(
                 'sign_in_not_ready',
-                'Signing in is not set up yet. The file database/add_user_auth.sql has to be run first.',
+                'Signing in is not set up yet. The file database/schema.sql has to be run first.',
                 503
             );
         }

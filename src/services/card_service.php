@@ -338,8 +338,8 @@ function delete_progress_of_categories(PDO $pdo, array $categoryIds, int $ownerU
  * steht in der Tabelle `card_exercises`: höchstens eine Zeile je Karte, weil card_id
  * der Primärschlüssel dieser Tabelle ist.
  *
- * Die Tabelle ist in dem Sinn freiwillig: eine Installation, in der
- * database/add_card_exercises.sql noch nicht gelaufen ist, arbeitet genau wie vorher.
+ * Die Tabelle ist in dem Sinn freiwillig: eine Installation, in der sie fehlt
+ * (database/schema.sql muss einmal ausgeführt werden), arbeitet genau wie vorher.
  * Deshalb wird einmal je Anfrage nachgesehen, und deshalb verbinden die Leseabfragen
  * sie nur, wenn es sie wirklich gibt.
  */
@@ -371,11 +371,11 @@ function card_exercise_table_available(PDO $pdo): bool
 /**
  * Ob die Spalte existiert, die die Zahlen einer Aufgabe hält.
  *
- * Die Zahlen kamen später als die Tabelle: eine Installation, in der
- * database/add_card_exercises.sql, aber nicht database/add_exercise_params.sql gelaufen
- * ist, kann ihre Karten weiterhin lesen (eine Karte zeigt ihre Aufgabe dann mit den
- * Vorgabezahlen), sie kann eine Aufgabe aber nicht speichern. Einmal je Anfrage
- * gefragt, wie die Tabelle selbst.
+ * Die Zahlen kamen später als die Tabelle: eine Installation, in der die Tabelle
+ * `card_exercises` die Spalte `exercise_params` noch nicht hat (also vor
+ * database/schema.sql eingerichtet wurde), kann ihre Karten weiterhin lesen (eine
+ * Karte zeigt ihre Aufgabe dann mit den Vorgabezahlen), sie kann eine Aufgabe
+ * aber nicht speichern. Einmal je Anfrage gefragt, wie die Tabelle selbst.
  */
 function card_exercise_params_available(PDO $pdo): bool
 {

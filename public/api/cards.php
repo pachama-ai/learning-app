@@ -101,7 +101,7 @@ if ($method === 'POST') {
         if ($exercise !== null && (!card_exercise_table_available($pdo) || !card_exercise_params_available($pdo))) {
             send_json_error(
                 'exercise_unavailable',
-                'Exercise cards need the migration database/add_exercise_params.sql first.',
+                'Exercise cards need the table from database/schema.sql first.',
                 400
             );
         }

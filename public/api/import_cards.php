@@ -131,9 +131,9 @@ try {
 
     if ($fatal === null) {
         /*
-         * Ob diese Installation überhaupt Aufgaben speichern kann - eine Datenbank, in
-         * der database/add_exercise_params.sql nie gelaufen ist, kann trotzdem feste
-         * Karten importieren.
+         * Ob diese Installation überhaupt Aufgaben speichern kann - eine Datenbank,
+         * in der die Tabelle `card_exercises` fehlt (database/schema.sql wurde dort
+         * nie ausgeführt), kann trotzdem feste Karten importieren.
          */
         $exercisesPossible = card_exercise_table_available($pdo) && card_exercise_params_available($pdo);
         $checked = card_import_validate($read, card_import_existing_fronts($pdo, $categoryId, $userId), $tableColumns, $exercisesPossible);

@@ -29,12 +29,12 @@ const DASHBOARD_STREAK_MAX_DAYS = 400;
  *
  * Ein Tag zählt, wenn `study_sessions` mindestens eine Zeile für diese Person hat, deren
  * `started_at` auf diesen Tag fällt - der Moment, in dem die Sitzung wirklich begann,
- * siehe database/add_study_sessions.sql. Zwei Sitzungen am selben Tag sind trotzdem ein
+ * siehe database/schema.sql. Zwei Sitzungen am selben Tag sind trotzdem ein
  * Tag, deshalb fragt die Abfrage nach den verschiedenen Daten.
  *
  * Mit einer Kategorie geht es um EINE Unterkategorie: die Tage in Folge, an denen diese
  * Unterkategorie gelernt wurde - egal ob die Person dazwischen woanders gelernt hat. Vor
- * der Migration, die `category_id` bringt (database/add_session_category.sql), gibt es
+ * der Migration, die `category_id` bringt (database/schema.sql), gibt es
  * keinen Ort in einer Zeile, und die Antwort ist die Zahl für die ganze Person; der
  * Aufrufer muss nicht wissen, welche der beiden er bekommt.
  *
@@ -49,7 +49,7 @@ const DASHBOARD_STREAK_MAX_DAYS = 400;
  *   - true  -> es gibt Sitzungen, und `days` ist die echte Zahl (auch 0 möglich)
  *
  * Das Lesen kann scheitern: die Tabelle kommt aus einer Migration, die von Hand
- * ausgeführt werden muss (database/add_study_sessions.sql), sie kann auf einem Rechner
+ * ausgeführt werden muss (database/schema.sql), sie kann auf einem Rechner
  * also fehlen, wo dieser Schritt nicht gemacht wurde. Das ist kein Fehler, den die
  * Oberfläche melden muss - sie hat dann einfach nichts zu zeigen, was dieselbe Antwort
  * ist wie "noch keine Sitzungen".

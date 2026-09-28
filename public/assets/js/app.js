@@ -199,7 +199,7 @@
      * nicht dasselbe wie "keine Zahlen", sie antwortet deshalb mit "hier noch nichts
      * gelernt" statt auf die Zahl einer anderen Liste zurückzufallen. Nur wenn der Server
      * gar keine Zuordnung schickt (die Kategoriespalte von study_sessions gibt es noch
-     * nicht, siehe database/add_session_category.sql), gilt die Zahl der ganzen Person,
+     * nicht, siehe database/schema.sql), gilt die Zahl der ganzen Person,
      * genau wie vor dieser Migration.
      */
     function streakForCategory(categoryId) {
@@ -6667,7 +6667,7 @@
      * Wird nicht abgewartet: das Verlassen der Lernansicht darf nie auf das Netzwerk warten.
      * Ein Aufruf, der scheitert, kostet nichts - die Zeile bleibt offen, genau das, was ein
      * abgeschossener Browserreiter hinterlässt, und die Reihe zählt ohnehin nach started_at
-     * (siehe database/add_study_sessions.sql).
+     * (siehe database/schema.sql).
      */
     function endLearnSessionOnServer() {
         if (learnSession === null || !learnSession.sessionId || learnSession.hasUser !== true) {

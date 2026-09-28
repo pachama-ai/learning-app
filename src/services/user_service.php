@@ -23,7 +23,7 @@ declare(strict_types=1);
  *   * Jede Anfrage an diese Datei trägt den Token aus user_csrf_token(). Er liegt in der
  *     Sitzung, eine andere Seite kann ihn also nicht lesen und niemanden hinter dessen
  *     Rücken anmelden.
- *   * Die Tabelle wird nur durch die prüfbare Datei database/add_user_auth.sql erweitert,
+ *   * Die Tabelle wird nur durch die prüfbare Datei database/schema.sql erweitert,
  *     die eine Person von Hand laufen lässt. Bis dahin ist user_sign_in_ready() falsch
  *     und jeder Versuch antwortet mit "noch nicht eingerichtet" statt in einen
  *     Datenbankfehler zu laufen.
@@ -110,7 +110,7 @@ function user_column_available(array $columns, string $column): bool
 
 /**
  * Meldet, ob Anmelden möglich ist: die Passwortspalte ist das eine Stück, auf das die
- * Tabelle nicht verzichten kann, und sie kommt mit database/add_user_auth.sql.
+ * Tabelle nicht verzichten kann, und sie kommt mit database/schema.sql.
  */
 function user_sign_in_ready(PDO $pdo): bool
 {
@@ -266,7 +266,7 @@ function user_find(PDO $pdo, string $identifier): ?array
 function user_find_by_email(PDO $pdo, string $email): ?array
 {
     /* Ohne die Spalte gibt es keine Adresse zu suchen - das kann nur passieren,
-       solange die Migration database/add_user_auth.sql noch nicht lief. */
+       solange die Migration database/schema.sql noch nicht lief. */
     if (!user_column_available(user_columns($pdo), 'email')) {
         return null;
     }
@@ -420,7 +420,7 @@ function user_sign_in(PDO $pdo, string $identifier, string $password): array
  * viel Zeit wie ein erfolgreicher, niemand erfährt also etwas daraus.
  *
  * Jeder Fall von "es gibt nichts zu vergleichen" antwortet mit false: kein solches Konto,
- * ein leeres Passwort, eine Tabelle ohne die Spalte (siehe database/add_user_auth.sql).
+ * ein leeres Passwort, eine Tabelle ohne die Spalte (siehe database/schema.sql).
  */
 function user_password_matches(PDO $pdo, int $userId, string $password): bool
 {
