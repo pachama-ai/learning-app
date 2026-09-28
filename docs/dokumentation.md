@@ -161,35 +161,37 @@ DocumentRoot).
 
 ## 7. Woher die Inhalte kommen
 
-Zwei Quellen: Karten, die man in der Anwendung anlegt, und die CSV-Dateien in
-`database/import/`. Dort liegen **23** Dateien, und sie haben zwei Formen:
+Zwei Quellen: Karten, die man in der Anwendung anlegt, und die Listen, die einmal
+als CSV-Datei daneben lagen. Diese **Quelldateien sind am 28.09.2026 gelöscht
+worden** – sie waren nur die Rohfassung, ihr Inhalt steht in der Datenbank. Dort
+sind es ganz normale Karten, die sich wie jede andere bearbeiten lassen.
 
-- **Das Importformat** – Kopfzeile
-  `category,front,back,front_de,back_de,front_en,back_en,is_bidirectional`. Das ist
-  das Format, das `bin/import_cards_csv.php` liest.
-- **Die bereinigten Quelllisten** – Kopfzeile `English;Deutsch;Wortart;Level`. Sie
-  haben zwei Spalten mehr und sind das, woraus die Importdateien gebaut wurden.
+Damit die Löschung keine Lücke ist, wurde nachgezählt: die 500 Vokabeln je Niveau
+(B1 bis C2), 400 Energie-Fachbegriffe, 200 Redewendungen, 162 unregelmäßige Verben
+und 54 Zeitformen füllen genau die acht Unterkategorien des Bereichs „English"
+(2816 Karten), und die sieben Informatik-Listen bilden genau die sieben
+Unterkategorien von „Informatik" (172 Karten).
 
-Für acht Themen gibt es beide Formen, eine Datei und ihre `_bereinigt`-Fassung sind
-also **nicht** zwei Versionen desselben Inhalts, sondern zwei Schritte eines Weges:
+Wie die Dateien hießen, steht hier, weil es zeigt, woher die Themen kommen. Acht
+davon gab es in zwei Formen: als bereinigte Liste (`English;Deutsch;Wortart;Level`)
+und als daraus gebaute Importdatei (`category,front,back,front_de,back_de,
+front_en,back_en,is_bidirectional`). Eine Datei und ihre `_bereinigt`-Fassung waren
+also nicht zwei Versionen desselben Inhalts, sondern zwei Schritte eines Weges:
+`b1_vokabelliste_500_bereinigt.csv` → `b1_vokabelliste.csv` (ebenso B2, C1, C2),
+`englische_redewendungen_200_bereinigt.csv` → `redewendungen.csv`,
+`unregelmaessige_verben_gesamt_bereinigt.csv` → `unregelmaessige_verben.csv`,
+`tennet_energie_fachvokabular_mit_kategorien_bereinigt.csv` →
+`energie_fachvokabular.csv` und `englische_zeiten_uebersicht_bereinigt.csv` →
+`zeitformen.csv`.
 
-| Bereinigte Liste | Daraus gebaute Importdatei |
-| --- | --- |
-| `b1_vokabelliste_500_bereinigt.csv` | `b1_vokabelliste.csv` |
-| `b2_vokabelliste_500_bereinigt.csv` | `b2_vokabelliste.csv` |
-| `c1_vokabelliste_500_bereinigt.csv` | `c1_vokabelliste.csv` |
-| `c2_vokabelliste_500_bereinigt.csv` | `c2_vokabelliste.csv` |
-| `englische_redewendungen_200_bereinigt.csv` | `redewendungen.csv` |
-| `unregelmaessige_verben_gesamt_bereinigt.csv` | `unregelmaessige_verben.csv` |
-| `tennet_energie_fachvokabular_mit_kategorien_bereinigt.csv` | `energie_fachvokabular.csv` |
-| `englische_zeiten_uebersicht_bereinigt.csv` | `zeitformen.csv` |
+Dazu kamen sieben Dateien, die schon im Importformat waren: Betriebssysteme, SQL,
+Excel, Datenbanken, Git, Linux und Hardware/Netzwerke.
 
-Die übrigen sieben stehen für sich und sind schon im Importformat:
-`betriebssysteme.csv`, `datenbank_konzepte.csv`, `excel_funktionen.csv`,
-`git_github.csv`, `hardware_netzwerke.csv`, `linux_wsl.csv`, `sql_grundlagen.csv`.
-
-Die Skripte in `bin/` haben diese Dateien einmal in die Datenbank geschrieben.
-Danach sind es ganz normale Karten und lassen sich wie jede andere bearbeiten.
+Gelesen hat sie damals `bin/`. Diese Skripte können ohne die Dateien nicht mehr
+laufen – das ist in Ordnung, sie waren einmalige Werkzeuge. Neue Karten kommen über
+den Import-Dialog in der Anwendung; der nimmt jede CSV mit der Kopfzeile
+`front_de;back_de;front_en;back_en;is_bidirectional`. Eine Beispieldatei dafür
+liegt weiterhin unter `public/assets/samples/`.
 
 Nicht alles ist zweisprachig: 31 der 61 Kategorien haben kein `name_en`, und 84
 Karten haben keinen englischen Text. Die App fällt dann auf den deutschen Text
