@@ -643,7 +643,7 @@ function exercise_fraction_text(int $numerator, int $denominator): string
     return $sign . $top . '/' . $bottom;
 }
 
-/** The largest number that divides both numbers without a remainder (Euclid). */
+/** Die größte Zahl, die beide Zahlen ohne Rest teilt (Euklid). */
 function exercise_greatest_common_divisor(int $first, int $second): int
 {
     $first = abs($first);
@@ -658,7 +658,7 @@ function exercise_greatest_common_divisor(int $first, int $second): int
     return max(1, $first);
 }
 
-/** The smallest number that both numbers divide without a remainder. */
+/** Die kleinste Zahl, die beide Zahlen ohne Rest teilen. */
 function exercise_least_common_multiple(int $first, int $second): int
 {
     if ($first === 0 || $second === 0) {
@@ -669,12 +669,12 @@ function exercise_least_common_multiple(int $first, int $second): int
 }
 
 /**
- * A number between low and high that is a multiple of step.
+ * Eine Zahl zwischen low und high, die ein Vielfaches von step ist.
  *
- * Used where a task has to come out exactly: a base a percentage divides evenly,
- * a list whose mean is a whole number, a series whose sum is a multiple of four.
- * The next multiple above the range is used when the range holds none, so that a
- * narrow range still shows a task instead of none.
+ * Benutzt, wo eine Aufgabe genau aufgehen muss: eine Grundzahl, die ein Prozentsatz
+ * glatt teilt, eine Liste, deren Mittelwert eine ganze Zahl ist, eine Reihe, deren Summe
+ * ein Vielfaches von vier ist. Liegt kein Vielfaches im Bereich, wird das nächste darüber
+ * genommen, damit ein enger Bereich trotzdem eine Aufgabe zeigt statt keiner.
  */
 function exercise_draw_multiple(int $low, int $high, int $step): int
 {
@@ -690,7 +690,7 @@ function exercise_draw_multiple(int $low, int $high, int $step): int
 }
 
 /**
- * A list of whole numbers, one after the other, from low to high.
+ * Eine Liste ganzer Zahlen, eine nach der anderen, von low bis high.
  *
  * @return list<int>
  */
@@ -706,7 +706,7 @@ function exercise_draw_series(int $count, int $low, int $high): array
 }
 
 /**
- * A list of numbers written down the way it is shown on a card: "3, 7, 11".
+ * Eine Liste von Zahlen, so aufgeschrieben, wie sie auf einer Karte steht: "3, 7, 11".
  *
  * @param list<int> $values
  */
@@ -716,16 +716,17 @@ function exercise_series_text(array $values): string
 }
 
 /* -------------------------------------------------------------------------
-   The fixed lists of units
+   Die festen Listen der Einheiten
    ------------------------------------------------------------------------- */
 
 /**
- * The units a conversion task may use, grouped by what they measure.
+ * Die Einheiten, die eine Umrechnungsaufgabe benutzen darf, nach dem gruppiert, was
+ * sie messen.
  *
- * Each entry is a list from the smallest unit upwards, together with how many of
- * the smallest unit one of them is. The factor between two units of a family is
- * the quotient of those numbers, which is always a power of ten - that is why
- * every conversion in these families comes out exactly.
+ * Jeder Eintrag ist eine Liste von der kleinsten Einheit aufwärts, zusammen mit der
+ * Angabe, wie viele der kleinsten Einheit eine davon ist. Der Faktor zwischen zwei
+ * Einheiten einer Familie ist der Quotient dieser Zahlen, und der ist immer eine
+ * Zehnerpotenz - deshalb geht jede Umrechnung in diesen Familien genau auf.
  *
  * @return array<string, array<string, int>>
  */
@@ -736,34 +737,35 @@ function exercise_unit_families(): array
         'v' => ['V' => 1, 'kV' => 1000],
         /* Watt. */
         'w' => ['W' => 1, 'kW' => 1000, 'MW' => 1000000],
-        /* Wattstunden: what a counter counts and a bill is written for. */
+        /* Wattstunden: wovon ein Zähler zählt und eine Rechnung geschrieben wird. */
         'wh' => ['Wh' => 1, 'kWh' => 1000, 'MWh' => 1000000, 'GWh' => 1000000000],
-        /* Volume. The litre is the exact thousandth of a cubic metre. */
+        /* Volumen. Der Liter ist genau ein Tausendstel eines Kubikmeters. */
         'volume' => ['l' => 1, 'm³' => 1000],
     ];
 }
 
 /* -------------------------------------------------------------------------
-   Reading a cell of an imported file
+   Eine Zelle aus einer importierten Datei lesen
    ------------------------------------------------------------------------- */
 
 /**
- * Reads one exercise cell, the way an imported file writes it:
+ * Liest eine Übungszelle, so wie eine importierte Datei sie schreibt:
  *
- *   "<kind of task>"                          the defaults of that kind of task
- *   "<kind of task>:<name>=<value>,<name>=<value>"   with numbers of its own
+ *   "<Aufgabenart>"                          die Vorgaben dieser Aufgabenart
+ *   "<Aufgabenart>:<name>=<wert>,<name>=<wert>"   mit eigenen Zahlen
  *
- * A parameter that allows several options at once is written with a pipe
- * (variants=mix|storage_level), a yes/no parameter takes yes or no. Everything is
- * checked with the same rules the card dialog is checked with, so a file can
- * never store numbers that no task can be built from.
+ * Ein Parameter, der mehrere Auswahlen auf einmal erlaubt, wird mit einem senkrechten
+ * Strich geschrieben (variants=mix|storage_level), ein Ja/Nein-Parameter nimmt yes oder
+ * no. Geprüft wird alles mit denselben Regeln, mit denen der Kartendialog geprüft wird,
+ * eine Datei kann also nie Zahlen speichern, aus denen keine Aufgabe zu bauen ist.
  *
- * The syntax is here and nowhere else: the command line importer, the import in
- * the browser and the card dialog all end up in this function, so the same cell
- * means the same thing everywhere.
+ * Die Schreibweise steht hier und nirgends sonst: der Import auf der Kommandozeile, der
+ * Import im Browser und der Kartendialog landen alle in dieser Funktion, dieselbe Zelle
+ * bedeutet also überall dasselbe.
  *
- * "code" tells the caller WHICH mistake it was, so each interface can say it in
- * its own language; "error" is the English sentence the command line prints.
+ * "code" sagt dem Aufrufer, WELCHER Fehler es war, damit jede Oberfläche ihn in ihrer
+ * eigenen Sprache sagen kann; "error" ist der englische Satz, den die Kommandozeile
+ * ausgibt.
  *
  * @return array{exercise: array{type: string, params: array<string, mixed>}|null, error: string|null, code: string|null}
  */
@@ -771,7 +773,7 @@ function exercise_parse_cell(string $cell): array
 {
     $cell = trim($cell);
 
-    /* An empty cell means a fixed card. */
+    /* Eine leere Zelle heißt eine feste Karte. */
     if ($cell === '') {
         return ['exercise' => null, 'error' => null, 'code' => null];
     }
