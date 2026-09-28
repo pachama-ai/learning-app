@@ -3,28 +3,31 @@
 declare(strict_types=1);
 
 /**
- * The learning session of one subcategory.
+ * Die Lerneinheit einer Unterkategorie.
  *
- * GET  /api/review.php?category_id=50            -> the queue of the session
+ * GET  /api/review.php?category_id=50            -> die Schlange der Einheit
  * GET  /api/review.php?category_id=50&mode=difficult
- *                                                -> only the cards that were
- *                                                   answered "Again" or "Hard"
- * POST /api/review.php   {"action":"rate", ...}  -> store one rating
- * POST /api/review.php   {"action":"undo", ...}  -> take the last rating back
- * POST /api/review.php   {"action":"session_end"} -> close the learning run
+ *                                                -> nur die Karten, die mit
+ *                                                   "Nochmal" oder "Schwer"
+ *                                                   beantwortet wurden
+ * POST /api/review.php   {"action":"rate", ...}  -> eine Bewertung speichern
+ * POST /api/review.php   {"action":"undo", ...}  -> die letzte Bewertung zurücknehmen
+ * POST /api/review.php   {"action":"session_end"} -> den Lerndurchgang schließen
  *
- * A rating also writes the learning run it happened in (study_sessions, see
- * src/services/study_session_service.php). The first answer of a run creates that
- * row and the answer of the server carries its id; the browser sends the id back
- * with every further answer, and "session_end" closes the run when the learning
- * view is left - whether the queue ran out or the person stopped early.
+ * Eine Bewertung schreibt auch den Lerndurchgang mit, in dem sie passiert ist
+ * (study_sessions, siehe src/services/study_session_service.php). Die erste Antwort
+ * eines Durchgangs legt diese Zeile an, und die Antwort des Servers trägt ihre Id; der
+ * Browser schickt die Id bei jeder weiteren Antwort zurück, und "session_end" schließt
+ * den Durchgang, wenn die Lernansicht verlassen wird - egal ob die Schlange leer
+ * wurde oder die Person früher aufgehört hat.
  *
- * The queue is built here and not in the browser: which card comes first, and
- * what its status is, are decisions of the server. The browser may show them and
- * nothing else.
+ * Die Schlange entsteht hier und nicht im Browser: welche Karte zuerst kommt und
+ * welchen Stand sie hat, entscheidet der Server. Der Browser darf sie zeigen und
+ * sonst nichts.
  *
- * Every write needs a signed-in user. Without one there is no id to store the
- * progress under, and the answer says exactly that instead of inventing one.
+ * Jeder Schreibvorgang braucht ein angemeldetes Konto. Ohne eines gibt es keine Id,
+ * unter der der Fortschritt liegen könnte, und die Antwort sagt genau das, statt eine
+ * zu erfinden.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
@@ -42,11 +45,11 @@ if ($method !== 'GET' && $method !== 'POST') {
     send_json_error('method_not_allowed', 'Only GET and POST requests are allowed.', 405);
 }
 
-/** The mode names this endpoint accepts. */
+/** Die Modusnamen, die dieser Endpunkt annimmt. */
 const REVIEW_MODES = ['all', 'difficult'];
 
 /* -------------------------------------------------------------------------
-   POST: one rating, or taking one back
+   POST: eine Bewertung oder ihr Zurücknehmen
    ------------------------------------------------------------------------- */
 
 if ($method === 'POST') {
@@ -60,8 +63,8 @@ if ($method === 'POST') {
     $categoryId = optional_positive_id($body, 'category_id', 'invalid_category_id');
     $cardId = optional_positive_id($body, 'card_id', 'invalid_card_id');
 
-    /* Closing the run needs neither a card nor a category, so those two checks
-       only count for a rating and for an undo. */
+    /* Das Schließen des Durchgangs braucht weder Karte noch Kategorie, die beiden
+       Prüfungen gelten also nur für eine Bewertung und für ein Zurücknehmen. */
     if ($action !== 'session_end') {
         if ($categoryId === null) {
             send_json_error('invalid_category_id', 'The field "category_id" must be a positive whole number.', 400);
@@ -85,8 +88,9 @@ if ($method === 'POST') {
     }
 
     /*
-     * A taken-back answer carries the answer it takes back, so the counters of
-     * the run can follow it. Missing means: the counters stay as they are.
+     * Eine zurückgenommene Antwort trägt die Antwort mit, die sie zurücknimmt, damit
+     * die Zähler des Durchgangs ihr folgen können. Fehlt sie, bleiben die Zähler, wie
+     * sie sind.
      */
     if ($action === 'undo') {
         $rawUndoRating = $body['rating'] ?? null;
@@ -97,16 +101,17 @@ if ($method === 'POST') {
     }
 
     /*
-     * The learning run this call belongs to. The browser sends null with the first
-     * answer of a run and gets the new id back (study_session_service.php).
+     * Der Lerndurchgang, zu dem dieser Aufruf gehört. Der Browser schickt bei der
+     * ersten Antwort eines Durchgangs null und bekommt die neue Id zurück
+     * (study_session_service.php).
      */
     $sessionId = optional_positive_id($body, 'session_id', 'invalid_session_id');
 
     try {
         $pdo = create_database_connection();
 
-        /* Nobody signed in: the progress cannot be stored, and saying so is the
-           only honest answer. No default user is used. */
+        /* Niemand angemeldet: der Fortschritt kann nicht gespeichert werden, und das
+           zu sagen ist die einzige ehrliche Antwort. Ein Standardkonto gibt es nicht. */
         $userId = current_user_id($pdo);
 
         if ($userId === null) {
@@ -116,9 +121,9 @@ if ($method === 'POST') {
         }
 
         /*
-         * The run is over. It stands before the category check, because closing
-         * needs neither a category nor a card - and send_json_success ends the
-         * request right here.
+         * Der Durchgang ist zu Ende. Das steht vor der Kategorie-Prüfung, weil das
+         * Schließen weder eine Kategorie noch eine Karte braucht - und
+         * send_json_success die Anfrage genau hier beendet.
          */
         if ($action === 'session_end') {
             send_json_success([
@@ -154,8 +159,8 @@ if ($method === 'POST') {
 
         send_json_success($result['data']);
     } catch (Throwable $error) {
-        /* The reason stays in the server log. It can hold SQL and connection
-           details, which the browser must never see. */
+        /* Der Grund bleibt im Server-Protokoll. Darin können SQL und Verbindungsdaten
+           stehen, die der Browser nie sehen darf. */
         error_log('Rating a card failed: ' . $error->getMessage());
 
         send_json_error('review_failed', 'This answer could not be saved.', 500);
@@ -163,7 +168,7 @@ if ($method === 'POST') {
 }
 
 /* -------------------------------------------------------------------------
-   GET: the queue of the session
+   GET: die Schlange der Einheit
    ------------------------------------------------------------------------- */
 
 $categoryId = require_query_id('category_id', 'invalid_category_id');
@@ -183,10 +188,10 @@ try {
     $userId = current_user_id($pdo);
 
     /*
-     * A category belongs to an account. Without one there is no queue to build:
-     * the answer is the empty session with 200, so the interface can show its own
-     * "nothing to study" state instead of an error (decided with the account
-     * work).
+     * Eine Kategorie gehört einem Konto. Ohne eines gibt es keine Schlange zu bauen:
+     * die Antwort ist die leere Einheit mit 200, damit die Oberfläche ihren eigenen
+     * Zustand "nichts zu lernen" zeigen kann statt eines Fehlers (so mit der
+     * Konten-Arbeit entschieden).
      */
     if ($userId === null) {
         send_json_success([
@@ -205,10 +210,11 @@ try {
     }
 
     /*
-     * The session belongs to the entry that was opened. A subcategory brings its
-     * own cards; a learning area brings the cards of its subcategories as well,
-     * which is what makes "Study all" possible without touching the repetition
-     * logic - the queue and the scheduler see exactly the same cards as before.
+     * Die Einheit gehört zu dem Eintrag, der geöffnet wurde. Eine Unterkategorie
+     * bringt ihre eigenen Karten mit; ein Lernbereich bringt auch die Karten seiner
+     * Unterkategorien mit, und genau das macht "Alles lernen" möglich, ohne die
+     * Wiederholungslogik anzufassen - Schlange und Planer sehen genau dieselben Karten
+     * wie vorher.
      */
     $branchIds = review_branch_category_ids($pdo, $categoryId, $userId);
     $cards = review_cards_in_categories($pdo, $branchIds, $userId, optional_query_language());
@@ -228,9 +234,9 @@ try {
     $built = review_build_queue($cardsForQueue, $statuses, $isDue, $mode);
 
     /*
-     * Every entry of the queue carries what each of the four answers would do to
-     * its card. The numbers come from the scheduler in the service, so the button
-     * under the card promises exactly what the rating will then store.
+     * Jeder Eintrag der Schlange trägt mit, was jede der vier Antworten mit seiner
+     * Karte machen würde. Die Zahlen kommen vom Planer im Service, der Knopf unter der
+     * Karte verspricht also genau das, was die Bewertung anschließend speichert.
      */
     $progressByCard = [];
 
@@ -248,7 +254,8 @@ try {
     send_json_success([
         'category_id' => $categoryId,
         'mode' => $mode,
-        /* false tells the browser that an answer cannot be stored yet and why. */
+        /* false sagt dem Browser, dass eine Antwort noch nicht gespeichert werden
+           kann - und warum. */
         'has_user' => $userId !== null,
         'summary' => $summary,
         'counts' => $built['counts'],
