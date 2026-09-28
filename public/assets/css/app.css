@@ -458,8 +458,7 @@ input {
 .crumb,
 .lang-switch__option,
 .lang-switch__separator,
-.sidebar__link,
-.row__index {
+.sidebar__link {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
 }
@@ -1556,6 +1555,26 @@ img {
 }
 
 /*
+ * Derselbe "..."-Knopf, aber in einer KARTENZEILE vorne statt rechts: dort steht
+ * er an der Stelle, an der frueher die Nummer der Karte stand.
+ *
+ * Das Menue ist im DOM das letzte Element der Zeile und wird nur optisch nach
+ * vorne gestellt (order wirkt auf die Flex-Kinder von .row__link). Dadurch liest
+ * eine Vorlesehilfe erst den Kartentext und dann die Befehle, und fuer die
+ * Tastatur aendert sich nichts: der Knopf ist das einzige Element der Zeile, das
+ * den Fokus nehmen kann.
+ *
+ * Der Knopf ist 32 px hoch, die erste Textzeile der Karte etwa 22 px. Die 5 px
+ * ziehen ihn nach oben, damit seine Mitte auf der Mitte dieser ersten Zeile liegt
+ * und der Knopf nicht tiefer wirkt als der Text daneben.
+ */
+.row__menu--leading {
+    order: -1;
+    align-self: flex-start;
+    margin-top: -5px;
+}
+
+/*
  * The link takes the whole room left of the button: the name is the way into the
  * subcategory, and there is nothing else in the row any more - no number, no
  * track, no arrow. A card row sets its own grid a few hundred lines down.
@@ -1571,19 +1590,6 @@ img {
 
 .row__name {
     font-size: 1.02rem;
-}
-
-/*
- * The number in front of a CARD row ("[01]"). A subcategory row has none any
- * more - it carries its name and the button that starts the session - so this
- * only serves the flashcards themselves.
- */
-.row__index {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -6466,12 +6472,6 @@ h2,
 [data-theme="light"] .learn__rating-label,
 [data-theme="light"] .learn__counter,
 [data-theme="light"] .dialog__label {
-    color: var(--text-faint);
-}
-
-.row__index {
-    font-family: var(--font-mono);
-    font-size: 11px;
     color: var(--text-faint);
 }
 

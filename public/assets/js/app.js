@@ -618,11 +618,6 @@
         }
     }
 
-    /* Zwei Ziffern mit führender Null: aus 8 wird "08". */
-    function pad2(value) {
-        return value < 10 ? '0' + value : String(value);
-    }
-
     /*
      * Wie eine Zeile auf der Seite heißt.
      *
@@ -2434,10 +2429,6 @@
         var body = document.createElement('span');
         body.className = 'row__link row__link--static';
 
-        var number = document.createElement('span');
-        number.className = 'row__index';
-        number.textContent = '[' + pad2(index + 1) + ']';
-
         var stack = document.createElement('span');
         stack.className = 'row__stack';
 
@@ -2551,7 +2542,16 @@
         metaLine.appendChild(languageBadge);
         metaLine.appendChild(status);
         metaColumn.appendChild(metaLine);
-        metaColumn.appendChild(buildMenu([
+
+        /*
+         * Das "..."-Menü steht vorne, dort, wo früher die Nummer der Karte stand
+         * ("[01]"). Im DOM bleibt es trotzdem das LETZTE Element der Zeile, denn es
+         * ist hier das einzige, was den Fokus nehmen kann: eine Vorlesehilfe liest
+         * damit erst den Kartentext und danach die beiden Befehle, statt vor jeder
+         * Karte "Bearbeiten, Löschen" anzusagen. Nach links kommt es nur optisch,
+         * per order im Stylesheet (siehe .row__menu--leading).
+         */
+        var menu = buildMenu([
             {
                 label: t('action.edit'),
                 run: function () {
@@ -2565,11 +2565,12 @@
                     requestDelete('card', card, item);
                 }
             }
-        ], card.front));
+        ], card.front);
+        menu.classList.add('row__menu--leading');
 
-        body.appendChild(number);
         body.appendChild(stack);
         body.appendChild(metaColumn);
+        body.appendChild(menu);
 
         item.appendChild(body);
 
