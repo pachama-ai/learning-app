@@ -523,16 +523,16 @@ function review_calculate($progress, int $rating, int $now): array
 }
 
 /* -------------------------------------------------------------------------
-   Writing
+   Schreiben
    ------------------------------------------------------------------------- */
 
 /**
- * Stores one rating and returns what was stored.
+ * Speichert eine Bewertung und liefert zurück, was gespeichert wurde.
  *
- * The card is checked again here - it must exist and it must belong to the
- * category the person was looking at - because the browser is not a trustworthy
- * source for either. Everything happens in one transaction, so a card can never
- * end up half rated.
+ * Die Karte wird hier noch einmal geprüft - sie muss existieren und sie muss zu der
+ * Kategorie gehören, die die Person vor sich hatte -, denn für beides ist der Browser
+ * keine verlässliche Quelle. Alles passiert in einer Transaktion, eine Karte kann also
+ * nie halb bewertet dastehen.
  *
  * @return array{ok: bool, code?: string, message?: string, data?: array<string, mixed>}
  */
@@ -543,8 +543,9 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
     }
 
     /*
-     * The owner is part of the lookup: find_card() only answers with a card of a
-     * category this person owns, so a foreign card id ends here as "not found".
+     * Der Besitzer ist Teil der Suche: find_card() antwortet nur mit einer Karte aus
+     * einer Kategorie, die diese Person besitzt, eine fremde Karten-Id endet hier also
+     * als "nicht gefunden".
      */
     $card = find_card($pdo, $cardId, $userId);
 
@@ -561,9 +562,9 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
     $next = review_calculate($previous, $rating, $now);
 
     /*
-     * The id of the learning run this answer belongs to. It is decided inside the
-     * transaction below: the browser sends null with the first answer of a run and
-     * gets the new id back, see study_session_service.php.
+     * Die Id des Lerndurchgangs, zu dem diese Antwort gehört. Sie wird in der
+     * Transaktion darunter entschieden: der Browser schickt bei der ersten Antwort eines
+     * Durchgangs null und bekommt die neue Id zurück, siehe study_session_service.php.
      */
     $runId = $sessionId;
 
@@ -571,9 +572,10 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
         review_store_progress($pdo, $userId, $cardId, $next);
 
         /*
-         * The session row is written in the SAME transaction as the progress:
-         * either both are there or neither is. A rating that was stored but not
-         * counted - or the other way round - could never be explained afterwards.
+         * Die Durchgangszeile wird in DERSELBEN Transaktion geschrieben wie der
+         * Fortschritt: entweder sind beide da oder keine. Eine Bewertung, die gespeichert,
+         * aber nicht gezählt wurde - oder umgekehrt -, ließe sich hinterher nicht
+         * erklären.
          */
         $runId = study_session_record_rating($pdo, $userId, $categoryId, $sessionId, $rating, $now);
     });
@@ -585,20 +587,19 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
             'rating' => $rating,
             'rating_name' => REVIEW_RATINGS[$rating],
             /*
-             * The learning run this answer was counted in. The browser sends this
-             * id with its next answer, so one run stays one row in
-             * study_sessions (see study_session_service.php).
+             * Der Lerndurchgang, in dem diese Antwort gezählt wurde. Der Browser schickt
+             * diese Id mit seiner nächsten Antwort, ein Durchgang bleibt also eine Zeile in
+             * study_sessions (siehe study_session_service.php).
              */
             'session_id' => $runId,
-            /* What the card looks like now. */
+            /* Wie die Karte jetzt aussieht. */
             'progress' => review_public_progress($next, $now),
             'interval_days' => $next['interval_days'],
             'due_at' => $next['due_at'],
             'status' => review_status_of($next, $now),
             /*
-             * What it looked like before, so the last rating can be taken back.
-             * The browser only carries these values around; it never calculates
-             * with them.
+             * Wie sie vorher aussah, damit die letzte Bewertung zurückgenommen werden kann.
+             * Der Browser trägt diese Werte nur mit sich herum; er rechnet nie damit.
              */
             'previous' => $previous === null ? null : review_public_progress($previous, $now),
             'previous_state' => $previous === null ? null : [
@@ -610,7 +611,8 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
                 'stability' => $previous['stability'],
                 'difficulty' => $previous['difficulty'],
             ],
-            /* What was just written, so an undo can prove nothing changed since. */
+            /* Was gerade geschrieben wurde, damit ein Zurücknehmen beweisen kann, dass
+               sich seither nichts geändert hat. */
             'stored' => [
                 'state' => $next['state'],
                 'due_at' => $next['due_at'],
@@ -626,17 +628,17 @@ function review_rate_card(PDO $pdo, int $userId, int $cardId, int $rating, int $
 }
 
 /**
- * Runs a piece of work in a transaction.
+ * Führt ein Stück Arbeit in einer Transaktion aus.
  *
- * When a transaction is already open - because the caller started one, or
- * because a bigger operation called this service - the work joins it instead of
- * opening a second one. MySQL has no nested transactions, so calling
- * beginTransaction() twice would fail; joining keeps the service usable from a
- * larger piece of work and still guarantees that a half written rating cannot
- * happen.
+ * Ist schon eine Transaktion offen - weil der Aufrufer eine begonnen hat oder weil ein
+ * größerer Vorgang diesen Service gerufen hat -, tritt die Arbeit ihr bei, statt eine
+ * zweite zu öffnen. MySQL kennt keine verschachtelten Transaktionen, ein zweites
+ * beginTransaction() würde also scheitern; das Beitreten hält den Service aus einem
+ * größeren Vorgang heraus benutzbar und garantiert trotzdem, dass keine halb
+ * geschriebene Bewertung entstehen kann.
  *
  * @param callable(): mixed $work
- * @return mixed whatever $work returned
+ * @return mixed was $work zurückgegeben hat
  */
 function review_run_in_transaction(PDO $pdo, callable $work)
 {
@@ -664,8 +666,9 @@ function review_run_in_transaction(PDO $pdo, callable $work)
 }
 
 /**
- * Writes one row of progress. The primary key (user_id, card_id) already exists,
- * so an existing row is updated in place - no second row, no schema change.
+ * Schreibt eine Fortschrittszeile. Den Primärschlüssel (user_id, card_id) gibt es
+ * schon, eine vorhandene Zeile wird also an Ort und Stelle geändert - keine zweite
+ * Zeile, keine Änderung an der Struktur.
  *
  * @param array<string, mixed> $values
  */
@@ -699,24 +702,25 @@ function review_store_progress(PDO $pdo, int $userId, int $cardId, array $values
 }
 
 /**
- * Takes the last rating back.
+ * Nimmt die letzte Bewertung zurück.
  *
- * It is only allowed while nothing has changed since: the caller has to send the
- * values that were just written, the row is read again and compared with them.
- * If somebody rated the same card in another tab in the meantime, the undo is
- * refused instead of throwing that newer answer away.
+ * Erlaubt ist das nur, solange sich seither nichts geändert hat: der Aufrufer muss die
+ * Werte mitschicken, die gerade geschrieben wurden, die Zeile wird erneut gelesen und
+ * damit verglichen. Hat jemand in der Zwischenzeit dieselbe Karte in einem anderen
+ * Reiter bewertet, wird das Zurücknehmen abgelehnt, statt diese neuere Antwort
+ * wegzuwerfen.
  *
- * A card that had no progress before the rating gets its row removed again; that
- * row was created by the rating that is being taken back, a moment ago, and
- * removing it is the only way back to "never learned".
+ * Eine Karte, die vor der Bewertung keinen Fortschritt hatte, bekommt ihre Zeile wieder
+ * entfernt; diese Zeile hat die Bewertung, die gerade zurückgenommen wird, vor einem
+ * Augenblick angelegt, und ihr Entfernen ist der einzige Weg zurück zu "nie gelernt".
  *
- * @param array<string, mixed>|null $stored what the rating wrote
- * @param array<string, mixed>|null $previous what was there before the rating
+ * @param array<string, mixed>|null $stored was die Bewertung geschrieben hat
+ * @param array<string, mixed>|null $previous was vor der Bewertung da war
  * @return array{ok: bool, code?: string, message?: string, data?: array<string, mixed>}
  */
 function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previous, int $categoryId, ?int $sessionId = null, int $rating = 0): array
 {
-    /* Same owner check as the rating itself, see review_rate_card(). */
+    /* Dieselbe Besitzerprüfung wie bei der Bewertung selbst, siehe review_rate_card(). */
     $card = find_card($pdo, $cardId, $userId);
 
     if ($card === null || (int) $card['category_id'] !== $categoryId) {
