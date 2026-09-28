@@ -6641,7 +6641,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Wiring: the study button, the search, the session keys and the swipe
+       Verdrahtung: der Lernknopf, die Suche, die Tasten der Einheit und das Wischen
        ---------------------------------------------------------------------- */
 
     function wireLearning() {
@@ -6650,11 +6650,11 @@
         });
 
         /*
-         * The search field arrives read-only, which is what keeps the browser's
-         * autofill out of it - the reason is written next to the input in
-         * index.php. A read-only field still takes focus and still receives
-         * clicks, so the first interaction is where it is handed over to the
-         * person. Setting readOnly to false twice is harmless.
+         * Das Suchfeld kommt schreibgeschützt an, nur so bleibt die Autovervollständigung des
+         * Browsers draußen - der Grund steht neben dem Feld in index.php. Ein schreibgeschütztes
+         * Feld nimmt trotzdem den Fokus und Klicks an, die erste Berührung ist also die Stelle,
+         * an der es an die Person übergeben wird. readOnly zweimal auf false zu setzen schadet
+         * nicht.
          */
         ['focus', 'mousedown', 'touchstart'].forEach(function (name) {
             elements.cardSearch.addEventListener(name, function () {
@@ -6662,7 +6662,7 @@
             });
         });
 
-        /* The search filters the loaded list; it never asks the server. */
+        /* Die Suche filtert die geladene Liste; sie fragt nie den Server. */
         elements.cardSearch.addEventListener('input', function () {
             cardSearchQuery = elements.cardSearch.value;
 
@@ -6683,7 +6683,7 @@
             startLearning('difficult');
         });
 
-        /* A click on the card turns it over - on a phone this is the tap. */
+        /* Ein Klick auf die Karte dreht sie um - auf dem Telefon ist das ein Tipp. */
         elements.learnCard.addEventListener('click', function (event) {
             if (event.target.closest('button') === null) {
                 flipLearnCard();
@@ -6695,12 +6695,12 @@
     }
 
     /*
-     * The keys of a session: space and Enter turn the card over, 1 to 4 answer
-     * it, the left arrow takes the last answer back and Escape ends the session.
+     * Die Tasten einer Einheit: Leertaste und Enter drehen die Karte um, 1 bis 4 beantworten sie,
+     * der Pfeil nach links nimmt die letzte Antwort zurück und Escape beendet die Einheit.
      *
-     * The listener sits on the document, so it works no matter which element has
-     * the focus - but it stays out of the way while a button is focused, because
-     * Enter and space belong to that button then.
+     * Der Zuhörer sitzt am Dokument, er funktioniert also unabhängig davon, welches Element den
+     * Fokus hat - er hält sich aber heraus, solange ein Knopf den Fokus hat, weil Enter und
+     * Leertaste dann diesem Knopf gehören.
      */
     function wireLearnKeyboard() {
         document.addEventListener('keydown', function (event) {
@@ -6708,7 +6708,7 @@
                 return;
             }
 
-            /* A question about ending the session owns the keyboard. */
+            /* Eine Frage zum Beenden der Einheit besitzt die Tastatur. */
             if (!elements.learnAsk.hidden) {
                 if (event.key === 'Escape') {
                     event.preventDefault();
@@ -6753,8 +6753,8 @@
     }
 
     /*
-     * Swiping: to the left means "Again", to the right means "Good". The four
-     * buttons stay where they are - a swipe is a shortcut, not the only way.
+     * Wischen: nach links heißt "Nochmal", nach rechts heißt "Gut". Die vier Knöpfe bleiben, wo
+     * sie sind - ein Wischen ist ein Kurzweg und nicht der einzige Weg.
      */
     function wireLearnSwipe() {
         var start = null;
@@ -6777,7 +6777,7 @@
                 return;
             }
 
-            /* Only a clearly horizontal movement counts as a swipe. */
+            /* Nur eine klar waagerechte Bewegung zählt als Wischen. */
             if (Math.abs(dx) < 70 || Math.abs(dy) > 60) {
                 return;
             }
@@ -6792,28 +6792,27 @@
 
     wireLearning();
     /* ----------------------------------------------------------------------
-       The two languages of a card
+       Die beiden Sprachen einer Karte
        ---------------------------------------------------------------------- */
 
     /*
      * Which languages a card can carry. There is one until the English columns
-     * exist in the table - the API reports the truth and this side only follows
-     * it, so the language tabs appear by themselves the moment the migration has
-     * been run.
+     * in der Tabelle stehen - die API meldet die Wahrheit und diese Seite folgt ihr nur, die
+     * Sprachreiter erscheinen also von selbst, sobald die Migration gelaufen ist.
      */
     var cardContentLanguages = ['de'];
 
-    /* What is in the two fields, per language, while the card dialog is open. */
+    /* Was in den beiden Feldern steht, je Sprache, solange das Kartenfenster offen ist. */
     var cardDraft = null;
     var cardTab = 'de';
     var cardTabs = {};
 
     /*
-     * One side of a card in one language.
+     * Eine Seite einer Karte in einer Sprache.
      *
-     * The German text lives in the two original columns (`front` and `back`), so
-     * this falls back to them when the language-specific key is not there. That
-     * keeps the dialog correct with and without the English columns.
+     * Der deutsche Text liegt in den beiden ursprünglichen Spalten (`front` und `back`), hier
+     * wird also darauf zurückgefallen, wenn der sprachspezifische Schlüssel fehlt. Dadurch bleibt
+     * das Fenster mit und ohne die englischen Spalten richtig.
      */
     function cardText(card, side, language) {
         var value = card[side + '_' + language];
@@ -6825,14 +6824,14 @@
         return typeof value === 'string' ? value : '';
     }
 
-    /* The name of a language, in the language of the interface. */
+    /* Der Name einer Sprache, in der Sprache der Oberfläche. */
     function cardLanguageName(code) {
         return t(code === 'en' ? 'dialog.card.languageEn' : 'dialog.card.languageDe');
     }
 
     /*
-     * The small switch above the two fields: "Deutsch" and "English". It only
-     * exists while the table really holds two languages.
+     * Der kleine Umschalter über den beiden Feldern: "Deutsch" und "English". Er existiert nur,
+     * solange die Tabelle wirklich zwei Sprachen trägt.
      */
     function buildLanguageTabs() {
         var wrap = el('div', 'dialog__field dialog__field--languages');
@@ -6876,13 +6875,13 @@
         return wrap;
     }
 
-    /* Changes which language the two fields are showing. */
+    /* Wechselt, welche Sprache die beiden Felder zeigen. */
     function switchCardLanguage(code) {
         if (cardDraft === null || dialogFields.front === undefined || code === cardTab) {
             return;
         }
 
-        /* Nothing is lost: what was typed stays with its language. */
+        /* Nichts geht verloren: was getippt wurde, bleibt bei seiner Sprache. */
         cardDraft[cardTab].front = dialogFields.front.control.value;
         cardDraft[cardTab].back = dialogFields.back.control.value;
 
