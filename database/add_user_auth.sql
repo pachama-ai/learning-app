@@ -1,28 +1,31 @@
 -- ---------------------------------------------------------------------------
--- Signing in: the columns the users table needs for it
+-- Anmelden: die Spalten, die die Tabelle users dafür braucht
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND in phpMyAdmin. Nothing in the
--- application runs this file, and nothing changes the structure on its own.
+-- ERST DURCHLESEN, DANN VON HAND in phpMyAdmin AUSFÜHREN. Nichts in der
+-- Anwendung führt diese Datei aus, und nichts ändert die Struktur von selbst.
 --
--- Why these three columns:
+-- Warum diese drei Spalten:
 --
---   password_hash  The password is never stored, only the hash that
---                  password_hash() with PASSWORD_DEFAULT produces (bcrypt, so
---                  255 characters are plenty). NULL means: this row cannot sign
---                  in - useful for an account that is created another way.
---   email          Optional. It lets somebody sign in with an address instead
---                  of a name. An account without one simply keeps NULL.
---   created_at     When the account was made. Informational only.
+--   password_hash  Das Passwort wird nie gespeichert, nur der Hash, den
+--                  password_hash() mit PASSWORD_DEFAULT erzeugt (bcrypt, 255
+--                  Zeichen sind also reichlich). NULL heißt: diese Zeile kann
+--                  sich nicht anmelden - nützlich für ein Konto, das auf einem
+--                  anderen Weg entsteht.
+--   email          Freiwillig. Sie lässt jemanden mit einer Adresse statt mit
+--                  einem Namen anmelden. Ein Konto ohne sie behält einfach NULL.
+--   created_at     Wann das Konto angelegt wurde. Nur zur Information.
 --
--- Why the two unique keys:
---   The name and the address are what somebody signs in WITH. Two rows sharing
---   one of them would make a sign-in ambiguous, so the database refuses it.
---   Several NULL values in email are allowed (MySQL and MariaDB both allow it in
---   a unique index), which is what an account without an address needs.
+-- Warum die beiden eindeutigen Schlüssel:
+--   Mit dem Namen und der Adresse meldet man sich AN. Zwei Zeilen, die sich
+--   einen davon teilen, machten die Anmeldung mehrdeutig, die Datenbank weigert
+--   sich also. Mehrere NULL-Werte in email sind erlaubt (MySQL und MariaDB
+--   lassen das in einem eindeutigen Index zu), und das braucht ein Konto ohne
+--   Adresse auch.
 --
--- What this file does NOT do: it deletes no row, renames no column, drops no
--- index and touches no other table. The users table is empty at the moment
--- (0 rows), so no existing data can be affected either way.
+-- Was diese Datei NICHT tut: sie löscht keine Zeile, benennt keine Spalte um,
+-- wirft keinen Index weg und fasst keine andere Tabelle an. Die Tabelle users
+-- ist im Moment leer (0 Zeilen), vorhandene Daten können also in keiner
+-- Richtung betroffen sein.
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE `users`
@@ -32,7 +35,7 @@ ALTER TABLE `users`
     ADD UNIQUE KEY `uniq_users_name` (`name`),
     ADD UNIQUE KEY `uniq_users_email` (`email`);
 
--- Undo, if it is ever wanted:
+-- Zurücknehmen, falls das je gewünscht ist:
 --
 -- ALTER TABLE `users`
 --     DROP INDEX `uniq_users_email`,
