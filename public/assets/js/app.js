@@ -6489,8 +6489,8 @@
     }
 
     /*
-     * The end of a session: how many cards are known now, how the answers were
-     * spread, and the two ways on.
+     * Das Ende einer Einheit: wie viele Karten jetzt sitzen, wie sich die Antworten verteilt
+     * haben, und die beiden Wege weiter.
      */
     function showLearnSummary() {
         if (learnSession === null) {
@@ -6547,7 +6547,7 @@
             elements.learnSummaryBars.appendChild(item);
         });
 
-        /* The difficult cards of this session can be repeated right away. */
+        /* Die schwierigen Karten dieser Einheit lassen sich sofort wiederholen. */
         var difficult = learnSession.ratings.filter(function (rating) {
             return rating === 1 || rating === 2;
         }).length;
@@ -6559,15 +6559,15 @@
         elements.learnFinish.focus();
     }
 
-    /* Leaves the session and reloads the list, so the dots are up to date. */
+    /* Verlässt die Einheit und lädt die Liste neu, damit die Punkte auf dem neuesten Stand sind. */
     /*
-     * Tells the server that the run is over, so the row in study_sessions gets its
-     * ended_at.
+     * Meldet dem Server, dass der Lauf vorbei ist, damit die Zeile in study_sessions ihr
+     * ended_at bekommt.
      *
-     * Not awaited: leaving the learning view must never wait for the network. A
-     * call that fails costs nothing - the row stays open, exactly what a killed
-     * browser tab leaves behind, and the streak counts by started_at anyway (see
-     * database/add_study_sessions.sql).
+     * Wird nicht abgewartet: das Verlassen der Lernansicht darf nie auf das Netzwerk warten.
+     * Ein Aufruf, der scheitert, kostet nichts - die Zeile bleibt offen, genau das, was ein
+     * abgeschossener Browserreiter hinterlässt, und die Reihe zählt ohnehin nach started_at
+     * (siehe database/add_study_sessions.sql).
      */
     function endLearnSessionOnServer() {
         if (learnSession === null || !learnSession.sessionId || learnSession.hasUser !== true) {
@@ -6583,13 +6583,13 @@
     function closeLearnView() {
         window.clearTimeout(learnTimer);
 
-        /* The run ends with the view, and it is closed before the session object
-           is dropped - the id is needed for the call. */
+        /* Der Lauf endet mit der Ansicht, und er wird geschlossen, bevor das Einheitsobjekt
+           weggeworfen wird - die Kennung wird für den Aufruf gebraucht. */
         endLearnSessionOnServer();
 
         /*
-         * Which category was studied, before the session is dropped: the cards of
-         * exactly this category changed their status and leave the store.
+         * Welche Kategorie gelernt wurde, noch bevor die Einheit weggeworfen wird: die Karten
+         * genau dieser Kategorie haben ihren Zustand geändert und verlassen den Speicher.
          */
         bootstrapDropCards(learnSession === null ? null : learnSession.categoryId);
         learnSession = null;
@@ -6600,20 +6600,20 @@
         elements.learnCard.classList.remove('is-flipped', 'is-leaving-left', 'is-entering-right');
         document.body.classList.remove('is-learning');
 
-        /* The tree carries the counters of the area and the subcategory, so it
-           is dropped as well - the cards of the other categories stay. */
+        /* Der Baum trägt die Zähler des Bereichs und der Unterkategorie, er wird also auch
+           weggeworfen - die Karten der anderen Kategorien bleiben. */
         bootstrapDropCategories();
         render();
 
-        /* Back to the way in that was used - if it is still on the page. */
+        /* Zurück zu dem Weg hinein, der benutzt wurde - falls er noch auf der Seite ist. */
         if (!elements.learnButton.hidden) {
             elements.learnButton.focus();
         }
     }
 
     /*
-     * Closing asks first when answers were already stored. A session that has
-     * only been looked at closes straight away - there is nothing to lose.
+     * Das Schließen fragt zuerst, wenn schon Antworten gespeichert wurden. Eine Einheit, in die
+     * nur hineingeschaut wurde, schließt sofort - es gibt nichts zu verlieren.
      */
     function askBeforeClosingLearn() {
         if (learnSession === null) {
