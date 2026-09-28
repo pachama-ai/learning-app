@@ -4316,7 +4316,7 @@
         return payload;
     }
 
-    /* "2 subcategories, 1 flashcard" in the language that is switched on. */
+    /* "2 Unterkategorien, 1 Lernkarte" in der Sprache, die gerade eingestellt ist. */
     function deletePreviewParts(preview) {
         var parts = [];
 
@@ -4338,13 +4338,13 @@
     }
 
     /*
-     * How much sits inside a category, as far as this page knows.
+     * Wie viel in einer Kategorie liegt, soweit diese Seite es weiß.
      *
-     * Two sources, one shape: a category read on its own
-     * (api/categories.php?id=N) carries a delete_preview for the whole subtree,
-     * a tile from the list counts its direct subcategories and the cards of that
-     * branch. null means "unknown" - then the dialog is opened instead of
-     * guessing, and the server counts again inside its own transaction anyway.
+     * Zwei Quellen, eine Form: eine einzeln gelesene Kategorie
+     * (api/categories.php?id=N) trägt eine delete_preview für den ganzen Teilbaum, eine
+     * Kachel aus der Liste zählt ihre direkten Unterkategorien und die Karten dieses Zweigs.
+     * null heißt "unbekannt" - dann wird das Fenster geöffnet, statt zu raten, und der
+     * Server zählt in seiner eigenen Transaktion ohnehin noch einmal.
      */
     function knownDependents(target) {
         if (target === null || typeof target !== 'object') {
@@ -4366,60 +4366,58 @@
     }
 
     /*
-     * The one entry point of every delete button in this app.
+     * Der eine Einstiegspunkt jedes Löschknopfes in dieser Anwendung.
      *
-     * Three cases, one rule: the more sits inside, the more is asked.
+     * Drei Fälle, eine Regel: je mehr darin liegt, desto mehr wird gefragt.
      *
-     *   - the entry whose own page is open: nothing to decide, so it goes
-     *     straight away (the page has to leave anyway)
-     *   - a category with subcategories or cards: the shared dialog names the
-     *     counts and asks once, nothing is typed
-     *   - everything else - a card, or a category that is empty: it goes at
-     *     once, and the message that appears can still take it back
-     *     (see queueDelete)
+     *   - der Eintrag, dessen eigene Seite offen ist: nichts zu entscheiden, er geht also
+     *     sofort (die Seite muss ohnehin verlassen werden)
+     *   - eine Kategorie mit Unterkategorien oder Karten: das gemeinsame Fenster nennt die
+     *     Zahlen und fragt einmal, es wird nichts getippt
+     *   - alles andere - eine Karte oder eine leere Kategorie: es geht sofort, und die Meldung,
+     *     die erscheint, kann es noch zurücknehmen (siehe queueDelete)
      *
-     * $node is the element that shows the entry; it is removed right away so the
-     * page does not keep a row that the person has just deleted.
+     * $node ist das Element, das den Eintrag zeigt; es wird sofort entfernt, damit die Seite
+     * keine Zeile behält, die die Person gerade gelöscht hat.
      *
-     * Every deletion is asked about first - an empty entry as well. It used to be
-     * different: an empty entry disappeared straight away and only one with
-     * content was asked about, so the same click sometimes deleted something and
-     * sometimes did not. A question in front of every deletion is the only
-     * behaviour a person can predict.
+     * Jedes Löschen wird vorher gefragt - ein leerer Eintrag genauso. Das war früher anders:
+     * ein leerer Eintrag verschwand sofort und nur einer mit Inhalt wurde gefragt, derselbe
+     * Klick löschte also manchmal etwas und manchmal nicht. Eine Frage vor jedem Löschen ist
+     * das einzige Verhalten, das eine Person vorhersagen kann.
      */
     function requestDelete(kind, target, node) {
-        /* Only one deletion waits at a time: a second one finishes the first. */
+        /* Nur ein Löschen wartet zugleich: ein zweites führt das erste zu Ende. */
         finishPendingDelete();
 
         openDeleteDialog(kind, target, node === undefined ? null : node);
     }
 
-    /* What happens after the question was answered with "Delete". */
+    /* Was passiert, nachdem die Frage mit "Löschen" beantwortet wurde. */
     function confirmDelete(kind, target, node) {
         var isCategory = kind === 'category';
         var openEntry = isCategory && currentEntry !== null && currentEntry.id === target.id;
 
         if (openEntry) {
-            /* The page itself is going away, so there is no row to take back. */
+            /* Die Seite selbst geht weg, es gibt also keine Zeile zum Zurücknehmen. */
             sendDelete(kind, target, false, false);
             return;
         }
 
         /*
-         * A row that stays on the page is taken off the screen first and really
-         * deleted when the undo window has passed, so "Undo" can bring it back
-         * with everything that belongs to it.
+         * Eine Zeile, die auf der Seite bleibt, wird zuerst vom Bildschirm genommen und
+         * wirklich gelöscht, wenn die Frist zum Zurücknehmen verstrichen ist, damit
+         * "Rückgängig" sie mit allem, was dazugehört, zurückbringen kann.
          */
         queueDelete(kind, target, node);
     }
 
     /*
-     * The deletion waits, so "Undo" is possible.
+     * Das Löschen wartet, damit "Rückgängig" möglich ist.
      *
-     * Nothing is sent to the server yet: the row is only taken off the screen,
-     * and the request follows when the undo window has passed. Taking it back
-     * therefore restores the entry exactly as it was - including every card and
-     * every bit of learning progress, because none of it was ever touched.
+     * An den Server geht noch nichts: die Zeile wird nur vom Bildschirm genommen, und die
+     * Anfrage folgt, wenn die Frist zum Zurücknehmen verstrichen ist. Ein Zurücknehmen stellt
+     * den Eintrag dadurch genau so wieder her, wie er war - samt jeder Karte und jedem Stück
+     * Lernfortschritt, weil nichts davon je angefasst wurde.
      */
     function queueDelete(kind, target, node) {
         var label = displayName(target);
@@ -4447,7 +4445,7 @@
         });
     }
 
-    /* "Undo" was pressed: the deletion never happened, so the page is enough. */
+    /* "Rückgängig" wurde gedrückt: das Löschen hat nie stattgefunden, ein Neuzeichnen genügt. */
     function undoPendingDelete() {
         if (pendingDelete === null) {
             return;
@@ -4460,7 +4458,7 @@
         showFeedback(t('feedback.undone'));
     }
 
-    /* Another deletion started: the waiting one is sent before it. */
+    /* Ein weiteres Löschen beginnt: das wartende wird vorher abgeschickt. */
     function finishPendingDelete() {
         if (pendingDelete === null) {
             return;
