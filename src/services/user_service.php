@@ -450,7 +450,7 @@ function user_password_matches(PDO $pdo, int $userId, string $password): bool
  * Merkt sich, wer angemeldet ist.
  *
  * Das ist die eine Stelle, die $_SESSION['user_id'] schreibt; session_user.php ist
- * the one place that reads it. Nothing else has to know about the session.
+ * die eine Stelle, die sie liest. Sonst muss nichts von der Sitzung wissen.
  *
  * @param array{id: int, name: string} $user
  */
@@ -458,12 +458,12 @@ function user_sign_in_session(array $user): void
 {
     session_user_id_from_php_session();
 
-    /* New session id, old one thrown away (session fixation). */
+    /* Neue Sitzungs-Id, die alte wird weggeworfen (gegen Sitzungsübernahme). */
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int) $user['id'];
 }
 
-/** Forgets the signed-in user and ends the session. */
+/** Vergisst die angemeldete Person und beendet die Sitzung. */
 function user_sign_out_session(): void
 {
     session_user_id_from_php_session();
@@ -485,20 +485,20 @@ function user_sign_out_session(): void
 }
 
 /* --------------------------------------------------------------------------
-   What the header shows
+   Was die Kopfzeile zeigt
    -------------------------------------------------------------------------- */
 
 /**
- * The little that the browser may know about a signed-in user.
+ * Das Wenige, was der Browser über eine angemeldete Person wissen darf.
  *
  * @return array{id: int, name: string, initials: string}|null
  */
 function user_public_data(PDO $pdo, int $userId): ?array
 {
     /*
-     * SELECT *: the table may carry optional columns (an address, the date the
-     * account was made). Every one of them is read below only after asking
-     * whether it exists, so the same code serves a table with and without them.
+     * SELECT *: die Tabelle kann freiwillige Spalten tragen (eine Adresse, das Datum der
+     * Anlage). Jede davon wird unten erst gelesen, nachdem gefragt wurde, ob es sie gibt,
+     * derselbe Code dient also einer Tabelle mit und ohne sie.
      */
     $statement = $pdo->prepare('SELECT * FROM users WHERE id = :id');
     $statement->bindValue(':id', $userId, PDO::PARAM_INT);
@@ -514,11 +514,11 @@ function user_public_data(PDO $pdo, int $userId): ?array
     $data = ['id' => (int) $row['id'], 'name' => $name, 'initials' => user_initials($name)];
 
     /*
-     * The two quiet lines of the account popup: the address and the date the
-     * account was made. They are read with the same check every other optional
-     * column uses, so a missing column means one line less in the list instead of
-     * an error. Neither value is a secret to the person who is signed in - it is
-     * their own account, and nothing here is ever shown to anybody else.
+     * Die zwei leisen Zeilen des Kontomenüs: die Adresse und das Datum der Anlage. Sie
+     * werden mit derselben Prüfung gelesen, die jede andere freiwillige Spalte benutzt,
+     * eine fehlende Spalte heißt also eine Zeile weniger in der Liste statt eines Fehlers.
+     * Keiner der beiden Werte ist für die angemeldete Person ein Geheimnis - es ist ihr
+     * eigenes Konto, und nichts davon wird je jemand anderem gezeigt.
      */
     $columns = user_columns($pdo);
 
@@ -536,12 +536,12 @@ function user_public_data(PDO $pdo, int $userId): ?array
 }
 
 /**
- * Two letters for the small circle in the header: the first letter of the first
- * two words, so "Anna Beispiel" becomes "AB" and "selina.schneider" becomes "SS".
+ * Zwei Buchstaben für den kleinen Kreis in der Kopfzeile: der erste Buchstabe der ersten
+ * beiden Wörter, "Anna Beispiel" wird also "AB" und "selina.schneider" wird "SS".
  *
- * A name that is a single word would give one letter only, and one letter in a
- * circle tells nobody anything - so the second letter of that same word follows,
- * which turns "Selina" into "SE".
+ * Ein Name aus einem einzigen Wort gäbe nur einen Buchstaben, und ein Buchstabe in einem
+ * Kreis sagt niemandem etwas - also folgt der zweite Buchstabe desselben Wortes, und
+ * "Selina" wird zu "SE".
  */
 function user_initials(string $name): string
 {
@@ -565,7 +565,7 @@ function user_initials(string $name): string
         }
     }
 
-    /* One word, one letter so far: take the second letter of it as well. */
+    /* Ein Wort, bisher ein Buchstabe: den zweiten davon auch noch nehmen. */
     if (mb_strlen($initials) === 1 && count($parts) === 1) {
         $word = (string) $parts[0];
 
@@ -583,17 +583,17 @@ function user_initials(string $name): string
    --------------------------------------------------------------------------- */
 
 /**
- * Deletes an account and everything that belongs to it, in one transaction.
+ * Löscht ein Konto und alles, was dazugehört, in einer Transaktion.
  *
- * What goes with it: the learning progress (user_card_progress) and the learning
- * sessions (study_sessions). Both hang on the user row with ON DELETE CASCADE, and
- * both are written out here EXPLICITLY anyway - so anybody reading this function
- * sees what disappears instead of having to look up a schema rule.
+ * Was mitgeht: der Lernfortschritt (user_card_progress) und die Lerneinheiten
+ * (study_sessions). Beide hängen mit ON DELETE CASCADE an der Kontozeile, und beide
+ * werden hier trotzdem AUSDRÜCKLICH ausgeschrieben - wer diese Funktion liest, sieht also,
+ * was verschwindet, statt eine Regel der Struktur nachschlagen zu müssen.
  *
- * What stays: cards, categories, card_exercises. They belong to nobody, so an
- * account leaving never takes learning material away from the others.
+ * Was bleibt: Karten, Kategorien, card_exercises. Sie gehören niemandem, ein gehendes
+ * Konto nimmt den anderen also nie Lernmaterial weg.
  *
- * @return bool false when there is no such account (any more).
+ * @return bool false, wenn es kein solches Konto (mehr) gibt.
  */
 function delete_user_account(PDO $pdo, int $userId): bool
 {
@@ -622,7 +622,7 @@ function delete_user_account(PDO $pdo, int $userId): bool
 
         $pdo->commit();
     } catch (Throwable $error) {
-        /* Half a deletion is worse than none: everything goes back. */
+        /* Eine halbe Löschung ist schlimmer als keine: alles geht zurück. */
         $pdo->rollBack();
 
         throw $error;
