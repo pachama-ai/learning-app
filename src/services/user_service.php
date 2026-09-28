@@ -3,71 +3,74 @@
 declare(strict_types=1);
 
 /**
- * Signing in.
+ * Das Anmelden.
  *
- * This is the only place where an account is created and where a session gets a
- * user id. That id is what src/helpers/session_user.php hands to everything
- * else, and it is the reason progress can be stored at all: without it, the app
- * still shows cards, it just cannot remember an answer.
+ * Das ist die einzige Stelle, an der ein Konto entsteht und an der eine Sitzung eine
+ * Konto-Id bekommt. Diese Id ist es, die src/helpers/session_user.php an alles andere
+ * weiterreicht, und sie ist der Grund, warum Fortschritt überhaupt gespeichert werden
+ * kann: ohne sie zeigt die Anwendung weiter Karten, sie kann sich nur keine Antwort
+ * merken.
  *
- * The decisions behind it
+ * Die Entscheidungen dahinter
  *
- *   * The password is never stored and never written into a log - only the hash
- *     from password_hash() with PASSWORD_DEFAULT, checked with password_verify().
- *   * A failed sign-in and an unknown name answer with the SAME code, and a
- *     failed sign-in waits a moment before answering. Neither the words nor the
- *     time of the answer say which names exist.
- *   * The session id is renewed when somebody signs in, so an id that was known
- *     before the sign-in cannot be used afterwards.
- *   * Every request of this file carries the token from user_csrf_token(). It
- *     lives in the session, so another site cannot read it and cannot sign
- *     anybody in behind their back.
- *   * The table is only extended by the reviewable file
- *     database/add_user_auth.sql, which a person runs by hand. Until then
- *     user_sign_in_ready() is false and every attempt answers "not set up yet"
- *     instead of running into a database error.
+ *   * Das Passwort wird nie gespeichert und nie in ein Protokoll geschrieben - nur der
+ *     Hash aus password_hash() mit PASSWORD_DEFAULT, geprüft mit password_verify().
+ *   * Eine gescheiterte Anmeldung und eine unbekannte Adresse antworten mit DEMSELBEN
+ *     Code, und eine gescheiterte Anmeldung wartet einen Moment, bevor sie antwortet.
+ *     Weder die Worte noch die Dauer der Antwort verraten, welche Adressen es gibt.
+ *   * Die Sitzungs-Id wird erneuert, wenn sich jemand anmeldet, eine Id, die vor dem
+ *     Anmelden bekannt war, kann danach also nicht mehr benutzt werden.
+ *   * Jede Anfrage an diese Datei trägt den Token aus user_csrf_token(). Er liegt in der
+ *     Sitzung, eine andere Seite kann ihn also nicht lesen und niemanden hinter dessen
+ *     Rücken anmelden.
+ *   * Die Tabelle wird nur durch die prüfbare Datei database/add_user_auth.sql erweitert,
+ *     die eine Person von Hand laufen lässt. Bis dahin ist user_sign_in_ready() falsch
+ *     und jeder Versuch antwortet mit "noch nicht eingerichtet" statt in einen
+ *     Datenbankfehler zu laufen.
  *
- * What this file never does: it writes no user_card_progress row, it changes no
- * table structure, and it deletes no account.
+ * Was diese Datei nie tut: sie schreibt keine Zeile in user_card_progress, sie ändert
+ * keine Tabellenstruktur und sie löscht kein Konto.
  */
 
 require_once __DIR__ . '/../helpers/session_user.php';
 
-/** The rules a name has to follow. The limit is the width of the column. */
+/** Die Regeln, denen ein Name folgen muss. Die Grenze ist die Breite der Spalte. */
 const USER_NAME_MIN_LENGTH = 3;
 const USER_NAME_MAX_LENGTH = 100;
 
-/** The limit of the email column. */
+/** Die Grenze der E-Mail-Spalte. */
 const USER_EMAIL_MAX_LENGTH = 190;
 
-/** The rules a password has to follow. */
+/** Die Regeln, denen ein Passwort folgen muss. */
 const USER_PASSWORD_MIN_LENGTH = 8;
 const USER_PASSWORD_MAX_LENGTH = 200;
 
-/** The role every account created in the browser gets. */
+/** Die Rolle, die jedes im Browser angelegte Konto bekommt. */
 const USER_DEFAULT_ROLE = 'learner';
 
 /**
- * How long a failed sign-in waits before it answers, in microseconds.
+ * Wie lange eine gescheiterte Anmeldung wartet, bevor sie antwortet, in Mikrosekunden.
  *
- * This is not a lock-out: it only keeps the answer from being a fast "this name
- * does not exist" and a slow "the password was wrong".
+ * Das ist keine Sperre: es verhindert nur, dass die Antwort ein schnelles "diese Adresse
+ * gibt es nicht" und ein langsames "das Passwort war falsch" ist.
  */
 const USER_FAILED_SIGN_IN_DELAY = 400000;
 
 /**
- * The hash used when a name does not exist, so that password_verify() does the
- * same work in both cases. It is a hash of nothing anybody can type.
+ * Der Hash, der benutzt wird, wenn es eine Adresse nicht gibt, damit password_verify()
+ * in beiden Fällen dieselbe Arbeit tut. Es ist der Hash von nichts, was jemand eintippen
+ * kann.
  */
 const USER_DUMMY_HASH = '$2y$10$usesomesillystringfore7hnbRJHxXVLeakoG8K30oukPsA.ztMG';
 
 /* --------------------------------------------------------------------------
-   What the users table can hold
+   Was die Tabelle users halten kann
    -------------------------------------------------------------------------- */
 
 /**
- * The real columns of the users table, read from the metadata of a query that
- * returns no rows - the same trick card_columns() uses for the cards table.
+ * Die echten Spalten der Tabelle users, gelesen aus den Angaben zu einer Abfrage, die
+ * keine Zeilen liefert - derselbe Kniff, den card_columns() für die Tabelle cards
+ * benutzt.
  *
  * @return list<string>
  */
@@ -106,8 +109,8 @@ function user_column_available(array $columns, string $column): bool
 }
 
 /**
- * Reports whether sign-in is possible: the password column is the one piece the
- * table cannot do without, and it arrives with database/add_user_auth.sql.
+ * Meldet, ob Anmelden möglich ist: die Passwortspalte ist das eine Stück, auf das die
+ * Tabelle nicht verzichten kann, und sie kommt mit database/add_user_auth.sql.
  */
 function user_sign_in_ready(PDO $pdo): bool
 {
@@ -115,20 +118,21 @@ function user_sign_in_ready(PDO $pdo): bool
 }
 
 /* --------------------------------------------------------------------------
-   The token that every sign-in request has to carry
+   Der Token, den jede Anmelde-Anfrage tragen muss
    -------------------------------------------------------------------------- */
 
 /**
- * The token of this session, made when it is asked for the first time.
+ * Der Token dieser Sitzung, angelegt, wenn er zum ersten Mal gefragt wird.
  *
- * It travels to the browser with the page and back with every sign-in request.
- * Another site can send a request, but it cannot read this value, so it cannot
- * make anybody sign in (or sign out) without touching the form.
+ * Er reist mit der Seite zum Browser und mit jeder Anmelde-Anfrage zurück. Eine andere
+ * Seite kann eine Anfrage schicken, aber sie kann diesen Wert nicht lesen, sie kann also
+ * niemanden anmelden (oder abmelden), ohne das Formular anzufassen.
  */
 function user_csrf_token(): string
 {
-    /* Starting the session is safe here: session_user.php starts it with the
-       httpOnly, SameSite=Lax cookie it was written for anyway. */
+    /* Die Sitzung zu starten ist hier ungefährlich: session_user.php startet sie
+       ohnehin mit dem httpOnly- und SameSite=Lax-Cookie, für das sie geschrieben
+       wurde. */
     session_user_id_from_php_session();
 
     if (!isset($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
@@ -144,9 +148,9 @@ function user_csrf_valid(?string $token): bool
         return false;
     }
 
-    /* The session has to be open before it can be read. A request that only
-       checks the token has no other reason to start one, and without this line
-       the comparison would always run against an empty session. */
+    /* Die Sitzung muss offen sein, bevor man in ihr lesen kann. Eine Anfrage, die nur
+       den Token prüft, hat keinen anderen Grund, eine zu starten, und ohne diese Zeile
+       liefe der Vergleich immer gegen eine leere Sitzung. */
     session_user_id_from_php_session();
 
     $expected = $_SESSION['csrf_token'] ?? null;
