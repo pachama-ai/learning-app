@@ -3,62 +3,63 @@
 declare(strict_types=1);
 
 /**
- * Generated exercises: which kinds of task this application can build, what each
- * of them may be given, and how a task is put together.
+ * Erzeugte Aufgaben: welche Aufgabenarten diese Anwendung bauen kann, was jede von
+ * ihnen bekommen darf und wie eine Aufgabe zusammengesetzt wird.
  *
- * A fixed card shows text somebody wrote. A generated card shows a task that is
- * built at the moment the card is displayed, with numbers that are drawn again on
- * every display. The database stores only WHICH kind of task a card is and the
- * numbers it may use (the table `card_exercises`: `exercise_type` and
- * `exercise_params` as JSON). Everything else happens here and in
- * exercise_tasks.php.
+ * Eine feste Karte zeigt Text, den jemand geschrieben hat. Eine erzeugte Karte zeigt
+ * eine Aufgabe, die in dem Moment gebaut wird, in dem die Karte angezeigt wird, mit
+ * Zahlen, die bei jedem Anzeigen neu gezogen werden. Die Datenbank speichert nur,
+ * WELCHE Art von Aufgabe eine Karte ist, und die Zahlen, die sie benutzen darf (die
+ * Tabelle `card_exercises`: `exercise_type` und `exercise_params` als JSON). Alles
+ * andere passiert hier und in exercise_tasks.php.
  *
- * There is no formula anywhere: not in the database, not in a request, not in
- * this file as text that is worked out later. The keys in `exercise_params` are
- * looked up in exercise_catalog() below; a key that is not in that list is
- * refused, and a value outside its limits is pulled into them. Every kind of task
- * is one function in exercise_tasks.php that draws its numbers and computes its
- * answer in the same step. A new kind of task therefore only comes into being by
- * writing new code - never by data.
+ * Eine Formel steht nirgends: nicht in der Datenbank, nicht in einer Anfrage, nicht in
+ * dieser Datei als Text, der später ausgerechnet wird. Die Schlüssel in
+ * `exercise_params` werden unten in exercise_catalog() nachgesehen; ein Schlüssel, der
+ * nicht in dieser Liste steht, wird abgelehnt, und ein Wert außerhalb seiner Grenzen
+ * wird in sie hineingezogen. Jede Aufgabenart ist eine Funktion in exercise_tasks.php,
+ * die ihre Zahlen zieht und ihre Antwort im selben Schritt ausrechnet. Eine neue
+ * Aufgabenart entsteht deshalb nur durch neuen Code - nie durch Daten.
  *
- * The catalogue is also the single source of truth for the interface:
- * public/index.php hands it to the browser as config.exerciseTypes, so the card
- * dialog offers exactly the kinds of task that exist here, with exactly the
- * fields each of them needs.
+ * Der Katalog ist außerdem die einzige Quelle für die Oberfläche: public/index.php
+ * reicht ihn dem Browser als config.exerciseTypes weiter, der Kartendialog bietet also
+ * genau die Aufgabenarten an, die es hier gibt, mit genau den Feldern, die jede von
+ * ihnen braucht.
  */
 
 require_once __DIR__ . '/exercise_tasks.php';
 require_once __DIR__ . '/exercise_tasks_energy.php';
 require_once __DIR__ . '/../helpers/translations.php';
 
-/** The denominators a fraction task may use. */
+/** Die Nenner, die eine Bruch-Aufgabe benutzen darf. */
 const EXERCISE_FRACTION_DENOMINATORS = [2, 3, 4, 5, 6, 8, 10, 12];
 
-/** The percentages a percentage task may use: familiar ones only. */
+/** Die Prozentsätze, die eine Prozent-Aufgabe benutzen darf: nur geläufige. */
 const EXERCISE_PERCENTAGES = [5, 10, 15, 20, 25, 40, 50, 60, 75];
 
-/** How many decimals a rounded answer gets unless its kind says otherwise. */
+/** Wie viele Nachkommastellen eine gerundete Antwort bekommt, wenn ihre Art nichts anderes sagt. */
 const EXERCISE_DECIMALS = 2;
 
 /**
- * Every kind of task, with everything it may be given.
+ * Jede Aufgabenart, mit allem, was sie bekommen darf.
  *
- *   label   translation key of the name of the kind of task
- *   hint    translation key of the sentence that explains it in the dialog
- *   params  what a card of this kind may be told, as a small schema that the
- *           server and the card dialog both read:
+ *   label   Übersetzungsschlüssel des Namens der Aufgabenart
+ *   hint    Übersetzungsschlüssel des Satzes, der sie im Dialog erklärt
+ *   params  was einer Karte dieser Art gesagt werden darf, als kleines Schema, das der
+ *           Server und der Kartendialog beide lesen:
  *
- *             kind     'int'    a whole number between lowest and highest
- *                      'select' exactly one of options
- *                      'multi'  any number of options
- *                      'flag'   yes or no
- *             default  what a new card gets
- *             lowest   the limits of an 'int'
+ *             kind     'int'    eine ganze Zahl zwischen lowest und highest
+ *                      'select' genau eine von options
+ *                      'multi'  beliebig viele von options
+ *                      'flag'   ja oder nein
+ *             default  was eine neue Karte bekommt
+ *             lowest   die Grenzen eines 'int'
  *             highest
- *             options  the allowed values of 'select' and 'multi'
+ *             options  die erlaubten Werte von 'select' und 'multi'
  *
- * A parameter is shown under exercise.param.<name> and an option under
- * exercise.option.<value>, so no label has to be repeated per kind of task.
+ * Ein Parameter wird unter exercise.param.<name> gezeigt und eine Auswahl unter
+ * exercise.option.<value>, es muss also keine Beschriftung je Aufgabenart wiederholt
+ * werden.
  *
  * @return array<string, array<string, mixed>>
  */
@@ -72,11 +73,11 @@ function exercise_catalog(): array
     };
 
     /*
-     * A parameter of kind "multi" may carry several of its options at once, so its
-     * value is always a LIST - including the default. With a bare string there the
-     * check in exercise_params_are_valid() refused every card that wanted to use
-     * the default, and a new exercise card of those kinds could not be saved at
-     * all. (Found while creating exercise cards, not in the code.)
+     * Ein Parameter der Art "multi" darf mehrere seiner Auswahlen auf einmal tragen, sein
+     * Wert ist also immer eine LISTE - auch die Vorgabe. Mit einer bloßen Zeichenkette
+     * dort lehnte die Prüfung in exercise_params_are_valid() jede Karte ab, die die
+     * Vorgabe benutzen wollte, und eine neue Übungskarte dieser Arten ließ sich gar nicht
+     * speichern. (Beim Anlegen von Übungskarten gefunden, nicht im Code.)
      */
     $choice = static function (array $options, $default, string $kind = 'select'): array {
         return [
@@ -863,4 +864,4 @@ function exercise_parse_cell(string $cell): array
     }
 
     return ['exercise' => ['type' => $type, 'params' => $params], 'error' => null, 'code' => null];
-}
+}
