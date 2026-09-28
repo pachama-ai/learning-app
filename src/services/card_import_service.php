@@ -3,34 +3,35 @@
 declare(strict_types=1);
 
 /**
- * Importing flashcards from a CSV file into ONE subcategory.
+ * Lernkarten aus einer CSV-Datei in EINE Unterkategorie importieren.
  *
- * The file is a semicolon separated CSV in UTF-8. The first line is the header
- * and names the columns; the order does not matter and the names are not case
- * sensitive. The canonical header - the one shown in the dialog and written in
- * the sample file - is
+ * Die Datei ist eine mit Semikolon getrennte CSV in UTF-8. Die erste Zeile ist die
+ * Kopfzeile und benennt die Spalten; die Reihenfolge ist egal und die Namen achten nicht
+ * auf Groß- und Kleinschreibung. Die vorgesehene Kopfzeile - die, die der Dialog zeigt
+ * und die Beispieldatei benutzt - ist
  *
  *     front_de;back_de;front_en;back_en;is_bidirectional
  *
- * German and English are the two languages a card can carry (see
- * card_language_columns() in card_service.php). A row must have at least ONE
- * complete language: a front side AND a back side. The second language may be
- * missing completely, but not half filled.
+ * Deutsch und Englisch sind die beiden Sprachen, die eine Karte tragen kann (siehe
+ * card_language_columns() in card_service.php). Eine Zeile muss mindestens EINE
+ * vollständige Sprache haben: eine Vorderseite UND eine Rückseite. Die zweite Sprache
+ * darf ganz fehlen, aber nicht halb gefüllt sein.
  *
- * What this file does NOT do
+ * Was diese Datei NICHT tut
  *
- *   * it never changes the table structure,
- *   * it never writes a user_card_progress row (imported cards are new cards),
- *   * it never deletes anything,
- *   * it never writes into another category than the one that was passed in.
+ *   * sie ändert nie die Tabellenstruktur,
+ *   * sie schreibt nie eine Zeile in user_card_progress (importierte Karten sind neue
+ *     Karten),
+ *   * sie löscht nie etwas,
+ *   * sie schreibt nie in eine andere Kategorie als die übergebene.
  *
- * Why the rows are checked here and not with clean_input_text()
+ * Warum die Zeilen hier geprüft werden und nicht mit clean_input_text()
  *
- * The helpers in request_input.php report the FIRST problem by ending the
- * request, which is right for a form with one card. A file has many rows, and
- * the person who uploads it wants to see every problem at once - so the same
- * rules (valid UTF-8, at most 2000 characters, no control characters) are applied
- * here row by row, and the problems are collected instead of thrown.
+ * Die Helfer in request_input.php melden das ERSTE Problem, indem sie die Anfrage
+ * beenden, und das ist für ein Formular mit einer Karte richtig. Eine Datei hat viele
+ * Zeilen, und wer sie hochlädt, möchte alle Probleme auf einmal sehen - deshalb gelten
+ * dieselben Regeln (gültiges UTF-8, höchstens 2000 Zeichen, keine Steuerzeichen) hier
+ * Zeile für Zeile, und die Probleme werden gesammelt statt geworfen.
  */
 
 require_once __DIR__ . '/card_service.php';
@@ -38,40 +39,40 @@ require_once __DIR__ . '/exercise_service.php';
 require_once __DIR__ . '/../helpers/request_input.php';
 
 /**
- * The header as this import documents it and as the sample file uses it.
+ * Die Kopfzeile, wie dieser Import sie dokumentiert und wie die Beispieldatei sie benutzt.
  *
  * @var list<string>
  */
 const CARD_IMPORT_HEADER = ['front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
 /**
- * Columns that may stand in the header without being required.
+ * Spalten, die in der Kopfzeile stehen dürfen, ohne nötig zu sein.
  *
- * "exercise" names a generated task instead of a fixed card: the kind of task
- * and, after a colon, the numbers it may use. The syntax is read by
- * exercise_parse_cell() in src/services/exercise_service.php, the same function
- * the command line importer uses. A file without the column keeps working
- * unchanged.
+ * "exercise" benennt eine erzeugte Aufgabe statt einer festen Karte: die Aufgabenart
+ * und, nach einem Doppelpunkt, die Zahlen, die sie benutzen darf. Die Schreibweise liest
+ * exercise_parse_cell() in src/services/exercise_service.php, dieselbe Funktion, die auch
+ * der Import auf der Kommandozeile benutzt. Eine Datei ohne diese Spalte arbeitet
+ * unverändert weiter.
  *
  * @var list<string>
  */
 const CARD_IMPORT_OPTIONAL = ['exercise'];
 
-/** The file must not be bigger than this. Must match the value in index.php. */
+/** Die Datei darf nicht größer sein als das. Muss zum Wert in index.php passen. */
 const CARD_IMPORT_MAX_BYTES = 1048576;
 
-/** The file must not have more data rows than this. Must match index.php. */
+/** Die Datei darf nicht mehr Datenzeilen haben als das. Muss zu index.php passen. */
 const CARD_IMPORT_MAX_ROWS = 1000;
 
-/** The separator of the file. A CSV that uses it is read by fgetcsv(). */
+/** Das Trennzeichen der Datei. Eine CSV, die es benutzt, wird von fgetcsv() gelesen. */
 const CARD_IMPORT_SEPARATOR = ';';
 
 /**
- * Every name a column of the file may have, lower case.
+ * Jeder Name, den eine Spalte der Datei haben darf, klein geschrieben.
  *
- * The canonical names are the ones the sample file uses; the others are accepted
- * so a file written by hand - or exported from another tool - does not have to be
- * renamed first.
+ * Die vorgesehenen Namen sind die, die die Beispieldatei benutzt; die anderen werden
+ * angenommen, damit eine von Hand geschriebene - oder aus einem anderen Werkzeug
+ * ausgeführte - Datei nicht erst umbenannt werden muss.
  *
  * @var array<string, list<string>>
  */
@@ -84,15 +85,15 @@ const CARD_IMPORT_ALIASES = [
     'exercise' => ['exercise', 'aufgabe', 'uebung', 'übung'],
 ];
 
-/** Values that mean "yes" and "no" in the optional 0/1 column. */
+/** Werte, die in der freiwilligen 0/1-Spalte "ja" und "nein" heißen. */
 const CARD_IMPORT_TRUE_VALUES = ['1', 'true', 'yes', 'ja', 'j', 'x', 'wahr'];
 const CARD_IMPORT_FALSE_VALUES = ['0', 'false', 'no', 'nein', 'n', ''];
 
 /**
- * Reads the file and returns the header and the raw rows.
+ * Liest die Datei und liefert die Kopfzeile und die rohen Zeilen.
  *
- * Nothing is validated against the database here - this function only turns the
- * bytes into rows, so preview and import look at exactly the same data.
+ * Hier wird nichts gegen die Datenbank geprüft - diese Funktion macht nur aus den Bytes
+ * Zeilen, Vorschau und Import sehen also genau dieselben Daten an.
  *
  * @return array{
  *     columns: list<string>,
@@ -111,9 +112,10 @@ function card_import_read_file(string $path): array
     }
 
     /*
-     * A byte order mark in front of the first header name would make the name
-     * unrecognisable, so the three bytes are read and dropped before fgetcsv()
-     * sees them - the same trick the command line importer uses.
+     * Eine Bytereihenfolge-Markierung vor dem ersten Spaltennamen würde den Namen
+     * unkenntlich machen, die drei Bytes werden also gelesen und verworfen, bevor
+     * fgetcsv() sie zu sehen bekommt - derselbe Kniff, den der Import auf der
+     * Kommandozeile benutzt.
      */
     if (fread($handle, 3) !== "\xEF\xBB\xBF") {
         rewind($handle);
