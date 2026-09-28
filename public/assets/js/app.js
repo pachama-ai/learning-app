@@ -542,7 +542,7 @@
         learnLabel: document.getElementById('learn-button-label'),
         addEntryButton: document.getElementById('add-entry-button'),
 
-        /* The study session. */
+        /* Die Lerneinheit. */
         learn: document.getElementById('learn'),
         learnStage: document.getElementById('learn-stage'),
         learnCard: document.getElementById('learn-card'),
@@ -567,11 +567,11 @@
         learnAskConfirm: document.getElementById('learn-ask-confirm'),
         learnClose: document.getElementById('learn-close'),
         learnNotice: document.getElementById('learn-notice'),
-        /* The two faces of the study card can carry a map. */
+        /* Die zwei Seiten der Lernkarte können ein Kartenbild tragen. */
         learnMapFront: document.getElementById('learn-map-front'),
         learnMapBack: document.getElementById('learn-map-back'),
 
-        /* The second button of the card dialog. */
+        /* Der zweite Knopf des Kartendialogs. */
         dialogSaveNext: document.getElementById('app-dialog-save-next')
     };
 
@@ -614,27 +614,27 @@
         try {
             window.localStorage.setItem(key, value);
         } catch (error) {
-            /* The page still works, only the memory is missing. */
+            /* Die Seite arbeitet weiter, es fehlt nur die Erinnerung. */
         }
     }
 
-    /* Two digits with a leading zero: 8 becomes "08". */
+    /* Zwei Ziffern mit führender Null: aus 8 wird "08". */
     function pad2(value) {
         return value < 10 ? '0' + value : String(value);
     }
 
     /*
-     * What a row is called on the page.
+     * Wie eine Zeile auf der Seite heißt.
      *
-     * A category is named by the database: `categories.name_<language>` is used
-     * when it holds something, and `categories.name` otherwise. Nothing in this
-     * file knows the name of a category, so renaming a row in the database
-     * renames it on the page - in the language that is switched on.
+     * Eine Kategorie wird von der Datenbank benannt: `categories.name_<language>` wird
+     * benutzt, wenn darin etwas steht, sonst `categories.name`. Nichts in dieser Datei
+     * kennt den Namen einer Kategorie, ein Umbenennen in der Datenbank benennt die Zeile
+     * also auch auf der Seite - in der Sprache, die gerade eingeschaltet ist.
      *
-     * A card has no name column. Its front side is what a person recognises it
-     * by, so that is what is used here. It has to be flattened and cut short
-     * first, because a front can be a whole sentence and this name is quoted
-     * inside other sentences ("Delete \"...\"?", "... was deleted.").
+     * Eine Karte hat keine Namensspalte. Erkannt wird sie an ihrer Vorderseite, die wird
+     * hier also benutzt. Sie muss vorher geglättet und gekürzt werden, denn eine
+     * Vorderseite kann ein ganzer Satz sein und dieser Name steht in anderen Sätzen in
+     * Anführungszeichen ("... löschen?", "... wurde gelöscht.").
      */
     function displayName(row) {
         var translated = row['name_' + locale];
@@ -651,15 +651,17 @@
     }
 
     /*
-     * A text reduced to one line of at most 90 characters.
+     * Ein Text, auf eine Zeile mit höchstens 90 Zeichen gebracht.
      *
-     * Cut on a space where one is near the end, so no word is torn apart, and
-     * marked with an ellipsis so it is clear that something is missing.
+     * An einem Leerzeichen geschnitten, wenn eines in der Nähe des Endes liegt, damit
+     * kein Wort zerrissen wird, und mit Auslassungspunkten markiert, damit klar ist, dass
+     * etwas fehlt.
      *
-     * Anything that is not a string becomes an empty string. That matters: an
-     * `undefined` handed to t() would be joined into the sentence as a comma,
-     * because String#split(...).join(undefined) falls back to the default
-     * separator - which is how a dialog title ended up reading 'Delete ","?'.
+     * Alles, was keine Zeichenkette ist, wird zu einer leeren Zeichenkette. Das ist
+     * wichtig: ein `undefined`, das an t() gereicht wird, würde als Komma in den Satz
+     * eingefügt, weil String#split(...).join(undefined) auf das voreingestellte
+     * Trennzeichen zurückfällt - so kam ein Dialogtitel zustande, der 'Löschen ","?'
+     * las.
      */
     function shortLabel(text) {
         if (typeof text !== 'string') {
@@ -684,11 +686,11 @@
 
 
     /*
-     * Everything the page needs to draw one learning area.
+     * Alles, was die Seite braucht, um einen Lernbereich zu zeichnen.
      *
-     * The drawing comes from the database through api/category_icon.php. Only a
-     * category that has no drawing of its own falls back to the neutral
-     * placeholder; no icon file is ever chosen by name.
+     * Die Zeichnung kommt über api/category_icon.php aus der Datenbank. Nur eine
+     * Kategorie ohne eigene Zeichnung fällt auf den neutralen Platzhalter zurück; eine
+     * Symboldatei wird nie über ihren Namen gewählt.
      */
     function categoryMeta(row) {
         var scale = typeof row.icon_scale === 'number' ? row.icon_scale : 1;
@@ -698,8 +700,8 @@
         }
 
         /*
-         * null means "this category has no drawing of its own". The circle then
-         * shows the first letter of the name instead of staying empty.
+         * null heißt "diese Kategorie hat keine eigene Zeichnung". Der Kreis zeigt dann den
+         * ersten Buchstaben des Namens, statt leer zu bleiben.
          */
         return {
             title: displayName(row),
@@ -709,24 +711,23 @@
     }
 
     /*
-     * There is deliberately no colour helper any more.
+     * Einen Farb-Helfer gibt es absichtlich nicht mehr.
      *
-     * The `color` column is still in the database, but nothing in this
-     * application reads, writes or shows it: a category is neutral by design,
-     * and the tiles of the light theme take their colour from their position in
-     * the row (see the stylesheet, --palette-1 .. --palette-8).
+     * Die Spalte `color` steht noch in der Datenbank, aber nichts in dieser Anwendung
+     * liest, schreibt oder zeigt sie: eine Kategorie ist von der Gestaltung her neutral,
+     * und die Kacheln des hellen Erscheinungsbilds nehmen ihre Farbe aus ihrer Position in
+     * der Reihe (siehe das Stylesheet, --palette-1 .. --palette-8).
      */
 
     /*
-     * The information line of a tile. Every number in it was counted by the
-     * database:
+     * Die Informationszeile einer Kachel. Jede Zahl darin wurde von der Datenbank gezählt:
      *
-     *   8 subcategories            - what really sits inside
-     *   8 subcategories \u00b7 24 cards - plus the cards, once there are any
-     *   No subcategories yet       - the empty state, in the current language
+     *   8 Unterkategorien              - was wirklich darin liegt
+     *   8 Unterkategorien · 24 Karten  - plus die Karten, sobald es welche gibt
+     *   Noch keine Unterkategorien     - der leere Zustand, in der aktuellen Sprache
      *
-     * No pad2 here: this is prose and not a counter, and a zero is never shown as
-     * a number.
+     * Hier kein pad2: das ist Fließtext und kein Zähler, und eine Null wird nie als Zahl
+     * gezeigt.
      */
     function tileDataLine(area) {
         if (area.subcategory_count === 0) {
@@ -743,7 +744,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Translation
+       Uebersetzung
        ---------------------------------------------------------------------- */
 
     function translateStaticText() {
