@@ -133,7 +133,7 @@ function card_import_read_file(string $path): array
         $labels[0] = substr((string) $labels[0], 3);
     }
 
-    /* The header is trimmed; the text of a card never is. */
+    /* Die Kopfzeile wird getrimmt; der Text einer Karte nie. */
     $labels = array_map(static fn ($label): string => trim((string) $label), $labels);
     $map = [];
     $columns = [];
@@ -151,7 +151,7 @@ function card_import_read_file(string $path): array
         }
 
         if (isset($map[$column])) {
-            /* The same column twice: the first one wins, the file is refused. */
+            /* Dieselbe Spalte zweimal: die erste gewinnt, die Datei wird abgelehnt. */
             $unknown[] = $label;
 
             continue;
@@ -164,7 +164,7 @@ function card_import_read_file(string $path): array
     if ($unknown !== []) {
         fclose($handle);
 
-        /* Kept as a list of names, so the message can name what was not known. */
+        /* Als Liste von Namen behalten, damit die Meldung nennen kann, was unbekannt war. */
         $empty['fatal'] = ['code' => 'header_unknown', 'params' => ['columns' => implode(', ', $unknown)]];
 
         return $empty;
@@ -187,7 +187,7 @@ function card_import_read_file(string $path): array
         $lineNumber++;
 
         if ($cells === [null] || card_import_row_is_empty($cells)) {
-            /* A blank line carries nothing, so it is not a row. */
+            /* Eine leere Zeile trägt nichts, sie ist also keine Zeile. */
             continue;
         }
 
@@ -201,12 +201,12 @@ function card_import_read_file(string $path): array
 
         $values = [];
 
-        /* The required columns first, then the optional ones: a file without the
-           exercise column simply fills that entry with an empty text. */
+        /* Zuerst die nötigen Spalten, dann die freiwilligen: eine Datei ohne die
+           Aufgaben-Spalte füllt diesen Eintrag einfach mit leerem Text. */
         foreach (array_merge(CARD_IMPORT_HEADER, CARD_IMPORT_OPTIONAL) as $column) {
             $index = $map[$column] ?? null;
-            /* A trailing carriage return of a CRLF file belongs to the line
-               ending, not to the text. */
+            /* Ein abschließender Wagenrücklauf einer CRLF-Datei gehört zum
+               Zeilenende und nicht zum Text. */
             $values[$column] = $index === null || !isset($cells[$index])
                 ? ''
                 : rtrim((string) $cells[$index], "\r");
@@ -221,7 +221,7 @@ function card_import_read_file(string $path): array
 }
 
 /**
- * The canonical column a header label means, or null when nothing matches.
+ * Die vorgesehene Spalte, die ein Kopfzeilenname meint, oder null, wenn nichts passt.
  */
 function card_import_column_for(string $label): ?string
 {
@@ -237,11 +237,11 @@ function card_import_column_for(string $label): ?string
 }
 
 /**
- * Which of the four required text columns are missing.
+ * Welche der vier nötigen Textspalten fehlen.
  *
- * A file may leave out a whole language, but it cannot leave out half of every
- * language: at least one pair (front and back of the same language) has to exist
- * as columns.
+ * Eine Datei darf eine ganze Sprache weglassen, aber nicht von jeder Sprache die Hälfte:
+ * mindestens ein Paar (Vorder- und Rückseite derselben Sprache) muss es als Spalten
+ * geben.
  *
  * @param list<string> $columns
  * @return list<string>
@@ -255,12 +255,12 @@ function card_import_missing_columns(array $columns): array
         return [];
     }
 
-    /* Nothing usable was found: name the four columns this import needs. */
+    /* Nichts Brauchbares gefunden: die vier Spalten nennen, die dieser Import braucht. */
     return ['front_de', 'back_de', 'front_en', 'back_en'];
 }
 
 /**
- * True when every cell of the line is empty.
+ * Wahr, wenn jede Zelle der Zeile leer ist.
  *
  * @param list<string|null> $cells
  */
@@ -276,7 +276,7 @@ function card_import_row_is_empty(array $cells): bool
 }
 
 /**
- * Marks a file as unreadable and keeps the answer in the same shape.
+ * Merkt eine Datei als unlesbar vor und behält die Antwort in derselben Form.
  *
  * @param array<string, mixed> $result
  * @return array<string, mixed>
@@ -289,11 +289,11 @@ function card_import_fatal(array $result, string $code, array $params = []): arr
 }
 
 /**
- * Checks every row and builds the cards that would be imported.
+ * Prüft jede Zeile und baut die Karten, die importiert würden.
  *
- * @param array<string, mixed> $read The result of card_import_read_file().
- * @param list<string>         $existingFronts The normalised fronts that already exist in this subcategory.
- * @param list<string>         $tableColumns The columns the cards table really has.
+ * @param array<string, mixed> $read Das Ergebnis von card_import_read_file().
+ * @param list<string>         $existingFronts Die normalisierten Vorderseiten, die es in dieser Unterkategorie schon gibt.
+ * @param list<string>         $tableColumns Die Spalten, die die Tabelle cards wirklich hat.
  * @return array{
  *     cards: list<array<string, mixed>>,
  *     errors: list<array{line: int, code: string, params: array<string, string|int>}>,
