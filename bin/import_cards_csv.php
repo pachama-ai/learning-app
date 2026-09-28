@@ -62,11 +62,11 @@ const CARD_CSV_COLUMNS = ['category', 'front', 'back', 'front_de', 'back_de', 'f
 const CARD_CSV_SAMPLES = 2;
 
 /* --------------------------------------------------------------------------
-   Arguments
+   Argumente
    -------------------------------------------------------------------------- */
 
 /**
- * Reads --owner, --area, --file, --create-area, --icon, --expect, --dry-run and
+ * Liest --owner, --area, --file, --create-area, --icon, --expect, --dry-run und
  * --execute.
  *
  * @return array{owner: int, area: string, files: list<string>, createArea: bool,
@@ -405,10 +405,10 @@ function import_group_rows(array $files): array
 }
 
 /* --------------------------------------------------------------------------
-   The plan
+   Der Plan
    -------------------------------------------------------------------------- */
 
-/** One line that says where the cards of this file would go. */
+/** Eine Zeile, die sagt, wohin die Karten dieser Datei gehen würden. */
 function import_print_file(array $file): void
 {
     echo 'FILE  ' . $file['name'] . "\n";
