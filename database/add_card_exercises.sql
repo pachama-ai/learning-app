@@ -1,62 +1,65 @@
 -- ==========================================================================
--- A second kind of card: the exercise whose numbers are drawn anew each time
+-- Eine zweite Art von Karte: die Übung, deren Zahlen jedes Mal neu gezogen werden
 -- ==========================================================================
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
--- Nothing in the application runs this file, and Copilot never executes a
--- structural change on its own.
+-- ERST DURCHLESEN, DANN VON HAND AUSFÜHREN (phpMyAdmin oder der mysql-Client).
+-- Nichts in der Anwendung führt diese Datei aus, und Copilot führt eine
+-- strukturelle Änderung nie von selbst aus.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/add_card_exercises.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/add_card_exercises.sql
 --
--- Why a table of its own
---   A fixed card shows the text somebody wrote into `cards.front` and
---   `cards.back`. An exercise card shows a task that is built when the card is
---   displayed, with numbers that are drawn again on every display. So the
---   exercise needs three things a fixed card does not have: which kind of task
---   it is, and the lowest and the highest number that may appear in it.
+-- Warum eine eigene Tabelle
+--   Eine feste Karte zeigt den Text, den jemand in `cards.front` und
+--   `cards.back` geschrieben hat. Eine Übungskarte zeigt eine Aufgabe, die
+--   entsteht, wenn die Karte angezeigt wird, mit Zahlen, die bei jedem Anzeigen
+--   neu gezogen werden. Die Übung braucht also drei Dinge, die eine feste Karte
+--   nicht hat: welche Art von Aufgabe es ist, und die kleinste und die größte
+--   Zahl, die darin vorkommen darf.
 --
---   Those three values are the only thing stored. The task itself - "34 + 58",
---   the answer "92", all of it - is produced by the code in
---   `src/services/exercise_service.php`, and only for the kinds of task that
---   are listed in that file. Nothing here holds a formula, and no formula is
---   ever taken from the database and worked out at run time. A new kind of task
---   therefore only comes into being by writing new PHP.
+--   Diese drei Werte sind alles, was gespeichert wird. Die Aufgabe selbst -
+--   "34 + 58", die Antwort "92", das Ganze - entsteht durch den Code in
+--   `src/services/exercise_service.php`, und nur für die Aufgabenarten, die in
+--   dieser Datei stehen. Hier hält nichts eine Formel, und es wird nie eine
+--   Formel aus der Datenbank geholt und zur Laufzeit ausgerechnet. Eine neue
+--   Aufgabenart entsteht deshalb nur durch neues PHP.
 --
--- What it does
---   Creates exactly one new table, `card_exercises`:
+-- Was sie tut
+--   Legt genau eine neue Tabelle an, `card_exercises`:
 --
---     card_id        the card this exercise belongs to. It is the primary key
---                    at the same time, so a card carries at most one exercise,
---                    and deleting the card deletes its exercise with it.
---     exercise_type  the key of one of the kinds of task that the service
---                    knows, for example 'add' or 'multiply'. The code refuses
---                    any key it does not know, so a wrong value in this column
---                    cannot do anything - it only makes the card fall back to
---                    being shown as a fixed card.
---     range_min/_max the numbers the task may be built from. For 'add' these
---                    are the two summands, for 'multiply' the two factors.
---                    How exactly they are used is written down next to each
---                    kind of task in the service.
+--     card_id        die Karte, zu der diese Übung gehört. Sie ist gleichzeitig
+--                    der Primärschlüssel, eine Karte trägt also höchstens eine
+--                    Übung, und das Löschen der Karte löscht ihre Übung mit.
+--     exercise_type  der Schlüssel einer der Aufgabenarten, die der Service
+--                    kennt, zum Beispiel 'add' oder 'multiply'. Der Code weist
+--                    jeden Schlüssel ab, den er nicht kennt; ein falscher Wert
+--                    in dieser Spalte kann also nichts anrichten - er lässt die
+--                    Karte nur wieder als feste Karte erscheinen.
+--     range_min/_max die Zahlen, aus denen die Aufgabe gebaut werden darf. Bei
+--                    'add' sind das die beiden Summanden, bei 'multiply' die
+--                    beiden Faktoren. Wie genau sie benutzt werden, steht bei
+--                    jeder Aufgabenart im Service.
 --
--- What it does NOT do
---   * it does not touch `cards`: no new column, no changed column, no removed
---     column. Every card that exists stays a fixed card, and the application
---     works exactly as before while this table is still empty
---   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE of existing values
---   * no other table is touched: `users`, `categories`, `cards` and
---     `user_card_progress` are left exactly as they are
+-- Was sie NICHT tut
+--   * sie fasst `cards` nicht an: keine neue Spalte, keine geänderte Spalte,
+--     keine entfernte Spalte. Jede vorhandene Karte bleibt eine feste Karte,
+--     und die Anwendung arbeitet genau wie vorher, solange diese Tabelle noch
+--     leer ist
+--   * kein DROP, kein RENAME, kein TRUNCATE, kein DELETE, kein UPDATE
+--     vorhandener Werte
+--   * keine andere Tabelle wird angefasst: `users`, `categories`, `cards` und
+--     `user_card_progress` bleiben genau, wie sie sind
 --
--- Safety
---   The statement carries "IF NOT EXISTS", so running the file twice changes
---   nothing the second time. The table is empty when it is created, so there is
---   no data that could be lost.
+-- Sicherheit
+--   Die Anweisung trägt "IF NOT EXISTS", ein zweiter Lauf ändert beim zweiten
+--   Mal also nichts. Die Tabelle ist beim Anlegen leer, es gibt also keine
+--   Daten, die verloren gehen könnten.
 --
--- Rollback (only if you ever want the old state back)
+-- Zurücknehmen (nur falls du den alten Zustand je zurückhaben willst)
 --   DROP TABLE `card_exercises`;
 --
---   That is harmless for the cards themselves: `cards` was never changed, so
---   every exercise card simply shows its front and back text again.
+--   Das ist für die Karten selbst harmlos: `cards` wurde nie geändert, jede
+--   Übungskarte zeigt also einfach wieder ihren Vorder- und Rückseitentext.
 -- ==========================================================================
 
 CREATE TABLE IF NOT EXISTS `card_exercises` (
