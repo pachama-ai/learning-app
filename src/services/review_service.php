@@ -739,9 +739,9 @@ function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previo
 
     review_run_in_transaction($pdo, static function () use ($pdo, $userId, $cardId, $previous, $sessionId, $rating): void {
         /*
-         * The taken-back answer leaves the run as well, so its counters keep
-         * matching what the learning view shows. It happens first, because the
-         * branch below may return early.
+         * Die zurückgenommene Antwort verlässt auch den Durchgang, damit dessen Zähler
+         * weiter zu dem passen, was die Lernansicht zeigt. Das passiert zuerst, weil der
+         * Zweig darunter vorzeitig zurückkehren kann.
          */
         study_session_take_back_rating($pdo, $userId, $sessionId, $rating);
 
@@ -777,7 +777,7 @@ function review_undo_rating(PDO $pdo, int $userId, int $cardId, $stored, $previo
 }
 
 /**
- * Compares a stored row with the values an undo expects to find.
+ * Vergleicht eine gespeicherte Zeile mit den Werten, die ein Zurücknehmen erwartet.
  *
  * @param array<string, mixed> $row
  * @param array<string, mixed> $expected
@@ -792,9 +792,9 @@ function review_row_matches(array $row, array $expected): bool
         $left = $row[$key] === null ? null : (string) $row[$key];
         $right = $expected[$key] === null ? null : (string) $expected[$key];
 
-        /* MySQL keeps the second in a DATETIME, so "2026-09-21 15:04:05" comes
-           back exactly as it was written and can be compared as text. A value
-           that arrives as a number is rounded the same way. */
+        /* MySQL behält die Sekunde in einem DATETIME, "2026-09-21 15:04:05" kommt also
+           genauso zurück, wie es geschrieben wurde, und lässt sich als Text vergleichen.
+           Ein Wert, der als Zahl ankommt, wird genauso gerundet. */
         if ($key === 'repetitions' || $key === 'lapses') {
             if ((int) $left !== (int) $right) {
                 return false;
@@ -812,26 +812,26 @@ function review_row_matches(array $row, array $expected): bool
 }
 
 /* -------------------------------------------------------------------------
-   The learning session
+   Die Lerneinheit
    ------------------------------------------------------------------------- */
 
 /**
- * Builds the queue of one learning session for a subcategory.
+ * Baut die Schlange einer Lerneinheit für eine Unterkategorie.
  *
- * The order is the one the application promises:
- *   1. cards that are due or overdue,
- *   2. then cards that were never learned,
- *   3. and only when those two are empty, the cards that are not due yet.
+ * Die Reihenfolge ist die, die die Anwendung verspricht:
+ *   1. fällige oder überfällige Karten,
+ *   2. dann Karten, die nie gelernt wurden,
+ *   3. und erst wenn diese beiden leer sind, die Karten, die noch nicht fällig sind.
  *
- * A card that is meant to be practised both ways appears twice - once as
- * front -> back and once as back -> front. The direction is a property of the
- * session, not of the card: nothing is added to the database for it, and the
- * progress of both turns belongs to the same card id.
+ * Eine Karte, die in beide Richtungen geübt werden soll, erscheint zweimal - einmal
+ * vorn -> hinten und einmal hinten -> vorn. Die Richtung ist eine Eigenschaft der
+ * Einheit und nicht der Karte: für sie wird nichts in die Datenbank geschrieben, und der
+ * Fortschritt beider Durchgänge gehört zu derselben Karten-Id.
  *
- * @param list<array<string, mixed>> $cards the cards of the subcategory, as the API lists them
- * @param array<string, string> $statuses card id => "new" | "unsure" | "known"
- * @param array<int, bool> $isDue card id => is the card due right now
- * @param string $mode "all" or "difficult"
+ * @param list<array<string, mixed>> $cards die Karten der Unterkategorie, wie die API sie auflistet
+ * @param array<string, string> $statuses Karten-Id => "new" | "unsure" | "known"
+ * @param array<int, bool> $isDue Karten-Id => ist die Karte gerade fällig
+ * @param string $mode "all" oder "difficult"
  * @return array{queue: list<array<string, mixed>>, counts: array<string, int>}
  */
 function review_build_queue(array $cards, array $statuses, array $isDue, string $mode = 'all'): array
@@ -860,8 +860,8 @@ function review_build_queue(array $cards, array $statuses, array $isDue, string 
         }
 
         /*
-         * "Difficult" is a second session with the cards that were answered
-         * "Again" or "Hard": those are exactly the cards in the learning state.
+         * "Difficult" ist eine zweite Einheit mit den Karten, die mit "Nochmal" oder
+         * "Schwer" beantwortet wurden: das sind genau die Karten im Lernzustand.
          */
         if ($mode === 'difficult' && $status !== 'unsure') {
             continue;
@@ -887,8 +887,8 @@ function review_build_queue(array $cards, array $statuses, array $isDue, string 
 
     $queue = array_merge($due, $fresh);
 
-    /* The cards that are not due yet come last, and only when there is nothing
-       else to do: a session should not be over before it started. */
+    /* Die noch nicht fälligen Karten kommen zuletzt, und nur wenn sonst nichts zu tun
+       ist: eine Einheit sollte nicht enden, bevor sie angefangen hat. */
     if ($queue === []) {
         $queue = $later;
     }
@@ -897,7 +897,7 @@ function review_build_queue(array $cards, array $statuses, array $isDue, string 
 }
 
 /**
- * The one or two turns a card has in a session.
+ * Die eine oder die zwei Runden, die eine Karte in einer Einheit hat.
  *
  * @param array<string, mixed> $card
  * @return list<array<string, mixed>>
@@ -912,16 +912,16 @@ function review_directions_of(array $card, string $status, bool $isDue): array
         'status' => $status,
         'is_due' => $isDue,
         'is_bidirectional' => (bool) $card['is_bidirectional'],
-        /* Only a value that passes the pattern goes to the browser, so the
-           session never receives anything it would have to distrust. */
+        /* Nur ein Wert, der zum Muster passt, geht zum Browser, die Einheit bekommt also
+           nie etwas, dem sie misstrauen müsste. */
         'map_region' => isset($card['map_region']) && card_map_region_is_valid((string) $card['map_region'])
             ? (string) $card['map_region']
             : null,
         /*
-         * The exercise of the card, when it is one. Its task is not a column: it is
-         * rolled again every time the card is read, so every session gets new
-         * numbers. Without this the session would only receive the title and an
-         * empty answer, and the learn card would show exactly that.
+         * Die Aufgabe der Karte, wenn sie eine ist. Ihre Aufgabe ist keine Spalte: sie
+         * wird bei jedem Lesen der Karte neu ausgewürfelt, jede Einheit bekommt also neue
+         * Zahlen. Ohne das bekäme die Einheit nur die Überschrift und eine leere Antwort,
+         * und die Lernkarte würde genau das zeigen.
          */
         'exercise' => $card['exercise'] ?? null,
     ];
@@ -936,8 +936,8 @@ function review_directions_of(array $card, string $status, bool $isDue): array
     $reverse['back'] = (string) $card['front'];
 
     /*
-     * The other way round asks for the answer and shows the task: question and
-     * answer change places, everything else stays as it is.
+     * Andersherum wird nach der Antwort gefragt und die Aufgabe gezeigt: Frage und Antwort
+     * tauschen die Plätze, alles andere bleibt, wie es ist.
      */
     if (is_array($reverse['exercise']) && isset($reverse['exercise']['task'])) {
         $task = $reverse['exercise']['task'];
@@ -952,14 +952,14 @@ function review_directions_of(array $card, string $status, bool $isDue): array
 }
 
 /**
- * Every card of every category in ONE read, grouped by category.
+ * Jede Karte jeder Kategorie in EINEM Lesevorgang, nach Kategorie gruppiert.
  *
- * This is what api/bootstrap.php needs: the browser loads it once and renders the
- * other views out of it. One query instead of one per subcategory, because a
- * subcategory list would otherwise cost forty round trips.
+ * Das braucht api/bootstrap.php: der Browser lädt es einmal und baut die anderen
+ * Ansichten daraus auf. Eine Abfrage statt einer pro Unterkategorie, denn eine Liste
+ * von Unterkategorien würde sonst vierzig Hin- und Rückwege kosten.
  *
- * The shape of a single card is exactly the shape api/cards.php returns, so the
- * browser does not have to know two of them.
+ * Die Form einer einzelnen Karte ist genau die Form, die api/cards.php zurückgibt, der
+ * Browser muss also nicht zwei davon kennen.
  *
  * @return array{cards: array<int, list<array<string, mixed>>>, summaries: array<int, array<string, mixed>>}
  */
@@ -997,7 +997,7 @@ function review_cards_all_categories(PDO $pdo, ?int $userId, string $language = 
 
     if ($userId === null) {
         $statement->bindValue(':user_id', null, PDO::PARAM_NULL);
-        /* Signed out means an empty answer, not every card in the database. */
+        /* Abgemeldet heißt leere Antwort und nicht jede Karte der Datenbank. */
         $statement->bindValue(':owner_user_id', null, PDO::PARAM_NULL);
     } else {
         $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
