@@ -101,6 +101,8 @@ function user_columns(PDO $pdo): array
 }
 
 /**
+ * Ob diese Spalte in der Tabelle users wirklich existiert.
+ *
  * @param list<string> $columns
  */
 function user_column_available(array $columns, string $column): bool

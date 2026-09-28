@@ -632,7 +632,12 @@ function card_map_region_is_valid(string $value): bool
         && preg_match(CARD_MAP_REGION_PATTERN, $value) === 1;
 }
 
-/** The column pairs per language. German uses the two original columns. */
+/**
+ * Die Spaltenpaare je Sprache. Deutsch liegt in den beiden urspruenglichen
+ * Spalten, Englisch in den beiden, die spaeter dazugekommen sind.
+ *
+ * @return array<string, list<string>>
+ */
 function card_language_columns(array $columns = []): array
 {
     $known = [
@@ -699,6 +704,8 @@ function card_columns(PDO $pdo): array
 }
 
 /**
+ * Ob diese Spalte in der Tabelle cards wirklich existiert.
+ *
  * @param list<string> $columns
  */
 function card_column_available(array $columns, string $column): bool

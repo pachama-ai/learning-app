@@ -285,5 +285,5 @@ function optional_query_language(string $key = 'language', string $fallback = 'd
     return $value;
 }
 
-/** The languages card text can be stored in. */
+/** Die Sprachen, in denen Kartentext liegen darf. */
 const SUPPORTED_CONTENT_LANGUAGES = ['de', 'en'];
