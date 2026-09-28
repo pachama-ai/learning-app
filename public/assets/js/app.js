@@ -3918,8 +3918,8 @@
             reader.readAsText(selected);
         }
 
-        /* The whole row is the target: clicking it, or pressing Enter on it,
-           opens the file picker. */
+        /* Die ganze Reihe ist das Ziel: ein Klick darauf, oder Enter darauf, öffnet die
+           Dateiauswahl. */
         row.addEventListener('click', function (event) {
             if (event.target === remove) {
                 return;
@@ -3937,7 +3937,7 @@
 
         file.addEventListener('change', function () {
             acceptFile(file.files && file.files.length > 0 ? file.files[0] : null);
-            /* Lets the same file be chosen again after it was refused. */
+            /* Damit dieselbe Datei nach einer Ablehnung noch einmal gewählt werden kann. */
             file.value = '';
         });
 
@@ -3980,11 +3980,11 @@
     }
 
     /* ----------------------------------------------------------------------
-       The three forms that use the shared dialog
+       Die drei Formulare, die das gemeinsame Fenster benutzen
        ---------------------------------------------------------------------- */
 
 
-    /* mode "create"/"edit", entry the row, parentId where a new row belongs. */
+    /* mode "create"/"edit", entry die Zeile, parentId wohin eine neue Zeile gehört. */
     function openCategoryForm(mode, entry, parentId) {
         var isEdit = mode === 'edit' && entry !== null;
         var isSubcategory = isEdit ? entry.parent_id !== null : parentId !== null;
@@ -4025,8 +4025,8 @@
             placeholderKey: 'dialog.namePlaceholder',
             maxLength: config.limits.name,
             value: isEdit ? entry.name : '',
-            /* Without a drawing the circle shows the first letter of the name,
-               so it has to follow what is being typed. */
+            /* Ohne Zeichnung zeigt der Kreis den ersten Buchstaben des Namens, er muss dem
+               also folgen, was gerade getippt wird. */
             onInput: function () {
                 renderIconPreview();
             }
@@ -4038,13 +4038,13 @@
         openDialog();
 
         /*
-         * The first field takes the focus (see the spec of the dialog system):
-         * the name, which is the one field nobody can skip.
+         * Das erste Feld bekommt den Fokus (siehe die Vorgabe zum Fenstersystem): der Name, das
+         * einzige Feld, das niemand überspringen kann.
          */
         dialogFields.name.control.focus();
     }
 
-    /* The icon payload of the open category form, or null when nothing changed. */
+    /* Die Zeichnungsdaten des offenen Kategorieformulars, oder null, wenn sich nichts geändert hat. */
     function iconPayload() {
         if (dialogIcon.removed) {
             return null;
@@ -4120,9 +4120,9 @@
         elements.dialogSubmit.disabled = false;
 
         /*
-         * Both languages of this card while the dialog is open. Switching a tab
-         * never loses what was typed in the other one: the fields are written
-         * into this draft before the language changes.
+         * Beide Sprachen dieser Karte, solange das Fenster offen ist. Ein Wechsel des Reiters
+         * verliert nie, was in dem anderen getippt wurde: die Felder werden vor dem
+         * Sprachwechsel in diesen Entwurf geschrieben.
          */
         cardDraft = {
             de: {
