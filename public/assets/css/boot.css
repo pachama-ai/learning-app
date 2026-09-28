@@ -1,14 +1,15 @@
 /*
- * The loading screen of the very first load - and only that.
+ * Der Ladebildschirm des allerersten Aufbaus - und nur der.
  *
- * It covers the page until the first view really stands there, so nobody sees a
- * half built page. What it shows is one quiet line of text; everything else it
- * used to show is gone, because a screen that explains itself is worth more than
- * a screen that performs.
+ * Er bedeckt die Seite, bis die erste Ansicht wirklich steht, niemand sieht also
+ * eine halb gebaute Seite. Zu sehen ist eine leise Zeile Text; alles andere, was
+ * er früher zeigte, ist weg, denn ein Bildschirm, der sich erklärt, ist mehr wert
+ * als einer, der etwas vorführt.
  *
- * It is shown and hidden by a few lines of JavaScript in index.php and not by
- * app.js, so a broken application script still ends in the message with the retry
- * button instead of a screen that never goes away.
+ * Gezeigt und versteckt wird er von ein paar Zeilen JavaScript in index.php und
+ * nicht von app.js, ein kaputtes Anwendungsskript endet also immer noch bei der
+ * Meldung mit dem Knopf "Erneut versuchen" statt bei einem Bildschirm, der nie
+ * weggeht.
  */
 
 .boot {
@@ -21,32 +22,33 @@
     justify-content: center;
     gap: 22px;
     /*
-     * Opaque on purpose: while the first view is still being built, nothing of it
-     * may shine through. The pools of the page are painted again on top of it
-     * (see .boot__bg in the markup), so the overlay looks like the page it covers.
+     * Absichtlich deckend: solange die erste Ansicht noch gebaut wird, darf nichts
+     * von ihr durchscheinen. Die Flächen der Seite werden darüber neu gezeichnet
+     * (siehe .boot__bg im Markup), die Überlagerung sieht also aus wie die Seite,
+     * die sie bedeckt.
      */
     background-color: var(--bg);
     background-image: var(--bg-image, none);
     /*
-     * Visible from the first painted line on; only going away is a fade, and while
-     * it happens the screen may not swallow clicks.
+     * Sichtbar von der ersten gezeichneten Zeile an; nur das Weggehen ist ein
+     * Ausblenden, und währenddessen darf der Bildschirm keine Klicks schlucken.
      */
     opacity: 1;
     transition: opacity 300ms var(--ease);
     pointer-events: none;
 }
 
-/* The overlay fading out. */
+/* Die Überlagerung beim Ausblenden. */
 .boot.is-hiding {
     opacity: 0;
 }
 
-/* When something went wrong it has to be clickable. */
+/* Wenn etwas schiefging, muss sie anklickbar sein. */
 .boot.is-failed {
     pointer-events: auto;
 }
 
-/* The pools behind everything, exactly as the page paints them. */
+/* Die Flächen hinter allem, genau so, wie die Seite sie malt. */
 .boot__bg {
     z-index: 1;
 }
@@ -62,7 +64,7 @@
     padding: 0 16px;
 }
 
-/* The message after eight seconds, and the way back. */
+/* Die Meldung nach acht Sekunden und der Weg zurück. */
 .boot__error {
     position: relative;
     z-index: 2;
@@ -96,7 +98,7 @@
     outline-offset: 2px;
 }
 
-/* Nothing to see on paper, and nothing that needs the overlay. */
+/* Auf Papier gibt es nichts zu sehen, und nichts braucht die Überlagerung. */
 @media print {
     .boot {
         display: none !important;
