@@ -462,17 +462,17 @@ function exercise_task_builders(): array
 }
 
 /**
- * Builds one task of this kind from these numbers.
+ * Baut eine Aufgabe dieser Art aus diesen Zahlen.
  *
- * The answer belongs to the numbers that were drawn in this very call: question
- * and answer are made together, so they always belong to each other, while a
- * later call draws new numbers.
+ * Die Antwort gehört zu den Zahlen, die in genau diesem Aufruf gezogen wurden: Frage
+ * und Antwort entstehen zusammen, sie gehören also immer zueinander, während ein späterer
+ * Aufruf neue Zahlen zieht.
  *
- * Both languages travel along. Tasks that are numbers and arithmetic signs only
- * read the same in both languages; the ones that carry a sentence are built from
- * translation keys, so only the wording differs.
+ * Beide Sprachen reisen mit. Aufgaben aus Zahlen und Rechenzeichen lesen sich in beiden
+ * Sprachen gleich; die mit einem Satz entstehen aus Übersetzungsschlüsseln, es
+ * unterscheidet sich also nur der Wortlaut.
  *
- * Returns null when the kind of task cannot be built.
+ * Liefert null, wenn die Aufgabenart nicht gebaut werden kann.
  *
  * @param array<string, mixed> $params
  * @return array{type: string, label: string, question: array<string, string>, answer: array<string, string>}|null
@@ -501,10 +501,10 @@ function exercise_build_task(string $type, array $params): ?array
 }
 
 /* -------------------------------------------------------------------------
-   Drawing numbers and writing them down
+   Zahlen ziehen und aufschreiben
    ------------------------------------------------------------------------- */
 
-/** A whole number from low to high, both included. */
+/** Eine ganze Zahl von low bis high, beide mitgezählt. */
 function exercise_draw(int $low, int $high): int
 {
     if ($high <= $low) {
@@ -515,7 +515,7 @@ function exercise_draw(int $low, int $high): int
 }
 
 /**
- * One entry of a fixed list, drawn by chance.
+ * Ein Eintrag aus einer festen Liste, nach Zufall gezogen.
  *
  * @param list<mixed> $values
  * @return mixed
@@ -526,11 +526,11 @@ function exercise_pick(array $values)
 }
 
 /**
- * Writes a number in the two languages of this interface.
+ * Schreibt eine Zahl in den beiden Sprachen dieser Oberfläche.
  *
- * The only difference between them is the decimal separator: German writes 1,5
- * and English 1.5. Thousands are separated by a space in both, because that is
- * readable and means the same in either of them.
+ * Der einzige Unterschied ist das Komma: Deutsch schreibt 1,5 und Englisch 1.5.
+ * Tausender werden in beiden durch ein Leerzeichen getrennt, weil das lesbar ist und in
+ * beiden dasselbe bedeutet.
  */
 function exercise_number(float $value, int $decimals = 0): array
 {
@@ -540,7 +540,7 @@ function exercise_number(float $value, int $decimals = 0): array
     ];
 }
 
-/** A number in one language, without useless trailing zeros. */
+/** Eine Zahl in einer Sprache, ohne überflüssige Nullen am Ende. */
 function exercise_decimal(float $value, int $decimals, string $language): string
 {
     $separator = $language === 'en' ? '.' : ',';
@@ -554,10 +554,10 @@ function exercise_decimal(float $value, int $decimals, string $language): string
 }
 
 /**
- * A number that had to be rounded, with the sign that says so.
+ * Eine Zahl, die gerundet werden musste, mit dem Zeichen, das das sagt.
  *
- * "≈ 5,83" instead of "5,83": whoever reads the card should see that the exact
- * value is not a short one. The sign is the same in both languages.
+ * "≈ 5,83" statt "5,83": wer die Karte liest, soll sehen, dass der genaue Wert keine
+ * kurze Zahl ist. Das Zeichen ist in beiden Sprachen dasselbe.
  */
 function exercise_rounded(float $value, int $decimals = EXERCISE_DECIMALS): array
 {
@@ -568,7 +568,7 @@ function exercise_rounded(float $value, int $decimals = EXERCISE_DECIMALS): arra
 }
 
 /**
- * The two texts of something that reads the same in German and in English.
+ * Die zwei Texte von etwas, das sich auf Deutsch und auf Englisch gleich liest.
  *
  * @return array{de: string, en: string}
  */
@@ -578,7 +578,7 @@ function exercise_same(string $text): array
 }
 
 /**
- * The two texts of a sentence that has to be translated.
+ * Die zwei Texte eines Satzes, der übersetzt werden muss.
  *
  * @param array<string, string|int|float> $params
  * @return array{de: string, en: string}
@@ -591,7 +591,7 @@ function exercise_sentence(string $key, array $params = []): array
     ];
 }
 
-/** A whole number written with a superscript exponent: 10³, 10⁶. */
+/** Eine ganze Zahl mit hochgestellter Potenz: 10³, 10⁶. */
 function exercise_superscript(int $exponent): string
 {
     $digits = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
@@ -605,10 +605,10 @@ function exercise_superscript(int $exponent): string
 }
 
 /**
- * A fraction written as small as it can be: 6/8 becomes 3/4, 8/8 becomes 1.
+ * Ein Bruch, so klein geschrieben, wie er geht: 6/8 wird 3/4, 8/8 wird 1.
  *
- * The arithmetic behind it is exact; only the look is decided here. A minus sign
- * is put in front of the fraction, the way it is written down by hand.
+ * Die Rechnung dahinter ist genau; nur das Aussehen wird hier entschieden. Ein Minuszeichen
+ * steht vor dem Bruch, so wie er von Hand aufgeschrieben wird.
  */
 function exercise_fraction_text(int $numerator, int $denominator): string
 {
