@@ -2706,15 +2706,15 @@
     }
 
     /*
-     * The detail view shows whatever is inside ONE category:
-     *   - a learning area: its subcategories, and the flashcards that sit
-     *     directly in the area when there are any
-     *   - a subcategory: its flashcards
+     * Die Detailansicht zeigt, was in EINER Kategorie liegt:
+     *   - ein Lernbereich: seine Unterkategorien und die Lernkarten, die direkt im Bereich
+     *     liegen, falls es welche gibt
+     *   - eine Unterkategorie: ihre Lernkarten
      *
-     * Four requests are made at the same time: the area list (for the sidebar
-     * and the footer counter), the category itself, its children and its cards.
-     * The category is read with apiRequest so that "this does not exist"
-     * (404) can be told apart from "the server is not answering".
+     * Vier Anfragen laufen gleichzeitig: die Bereichsliste (für die Seitenleiste und den
+     * Zähler im Fuß), die Kategorie selbst, ihre Kinder und ihre Karten. Die Kategorie wird
+     * mit apiRequest gelesen, damit "das gibt es nicht" (404) von "der Server antwortet
+     * nicht" unterschieden werden kann.
      */
     function renderDetail(categoryId) {
         elements.homeView.hidden = true;
@@ -2749,9 +2749,9 @@
             });
 
             if (!single.ok) {
-                /* The id is in the URL but the category is gone. This notice
-                   keeps its second line: it explains what happened. There is no
-                   area to draw, so the circle stays away. */
+                /* Die Kennung steht in der Adresse, die Kategorie ist aber weg. Dieser Hinweis
+                   behält seine zweite Zeile: sie erklärt, was passiert ist. Es gibt keinen
+                   Bereich zum Zeichnen, der Kreis bleibt also weg. */
                 setHeading(elements.detailHeading, t('detail.notFound.title'));
                 elements.entryEmptyBlob.hidden = true;
                 elements.entryEmptyBlob.textContent = '';
@@ -2762,10 +2762,10 @@
                 elements.entryEmpty.hidden = false;
 
                 /*
-                 * The footer follows the view that is really there and not the
-                 * one that was asked for: this is not the start page, so the plus
-                 * button goes away - and it would have nothing to act on anyway,
-                 * because there is no entry to add to.
+                 * Der Fuß folgt der Ansicht, die wirklich da ist, und nicht der, die gewünscht
+                 * war: das ist nicht die Startseite, der Plus-Knopf verschwindet also - und er
+                 * hätte ohnehin nichts, worauf er sich beziehen könnte, weil es keinen Eintrag
+                 * gibt, zu dem etwas hinzukäme.
                  */
                 updateFooterControls('detail');
                 return;
@@ -2785,9 +2785,9 @@
 
             currentEntry = current;
             /*
-             * The card list arrives as cards plus the counts the API made in the
-             * same query. A card of an older answer without that envelope would
-             * still be an array, so both shapes are understood.
+             * Die Kartenliste kommt als Karten plus die Zählungen, die die API in derselben
+             * Abfrage gemacht hat. Eine Karte aus einer älteren Antwort ohne diesen Umschlag
+             * wäre immer noch ein Array, beide Formen werden also verstanden.
              */
             var cardsPayload = cardsResult.ok && cardsResult.data !== null && typeof cardsResult.data === 'object'
                 ? cardsResult.data
@@ -2799,9 +2799,9 @@
                 openCardStreak = typeof cardsPayload.streak === 'object' ? cardsPayload.streak : null;
 
                 /*
-                 * Which languages a card can have is decided by the table, not
-                 * by this script: the API reports it, and the card dialog shows
-                 * the language tabs only when there really are two.
+                 * Welche Sprachen eine Karte haben kann, entscheidet die Tabelle und nicht
+                 * dieses Skript: die API meldet es, und das Kartenfenster zeigt die
+                 * Sprachreiter nur, wenn es wirklich zwei gibt.
                  */
                 if (Array.isArray(cardsPayload.content_languages) && cardsPayload.content_languages.length > 0) {
                     cardContentLanguages = cardsPayload.content_languages;
@@ -2815,11 +2815,11 @@
             var pageTitle = displayName(current);
 
             /*
-             * The head zone wears the colour of the learning area this page
-             * belongs to. A learning area is its own area; a subcategory takes
-             * the colour of its parent, so both levels of one branch look alike.
-             * The value is the same palette token the tile uses, chosen by the
-             * position of the area in the list.
+             * Die Kopfzone trägt die Farbe des Lernbereichs, zu dem diese Seite gehört. Ein
+             * Lernbereich ist sein eigener Bereich; eine Unterkategorie übernimmt die Farbe
+             * ihres Elternteils, beide Ebenen eines Zweigs sehen also gleich aus. Der Wert ist
+             * dasselbe Palettentoken, das die Kachel benutzt, gewählt nach der Position des
+             * Bereichs in der Liste.
              */
             var areaRow = isSubcategory && parent !== null ? parent : current;
             var areaIndex = 0;
@@ -2834,8 +2834,8 @@
             fillIconCircle(elements.detailBlob, categoryMeta(areaRow));
 
             /*
-             * One menu instead of two labelled buttons: the same control that
-             * every row and every tile carries, with the same two entries.
+             * Ein Menü statt zwei beschrifteter Knöpfe: dieselbe Bedienung, die jede Zeile
+             * und jede Kachel trägt, mit denselben zwei Einträgen.
              */
             elements.detailActions.textContent = '';
             elements.detailActions.appendChild(buildMenu([
