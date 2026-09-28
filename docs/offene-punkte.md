@@ -7,28 +7,37 @@ Stand: 2026-09-28
 
 ---
 
-## 1. Import: zwölf Fehlercodes ohne Satz
+## 1. Import: Fehlercodes ohne Satz — erledigt
 
-`public/assets/js/app.js` baut die Meldung aus dem Fehlercode:
+`public/assets/js/app.js` baut die Meldung aus dem Fehlercode, und zwar auf zwei
+Wegen:
 
 ```js
-var key = 'import.error.' + String(code || '');
+t('import.row.' + entry.code)     // ein Fehler in einer Zeile der Datei
+'import.error.' + code            // ein Fehler der Datei oder der Anfrage
 ```
 
-In `src/helpers/translations.php` gibt es 13 Schlüssel `import.error.*`. Der
-Import-Endpunkt und die Zeilenprüfung können aber mehr Codes senden, und für
-diese zwölf fehlt ein Schlüssel:
+Für die Zeilenfehler gibt es zwölf Schlüssel `import.row.*`, und alle zwölf sind
+da (`fields_count`, `encoding`, `too_long`, `control_characters`, `flag_value`,
+`language_half`, `language_unavailable`, `no_language`, `exercise_unknown_type`,
+`exercise_invalid`, `exercise_no_title`, `exercise_unavailable`).
 
-`invalid_category_id`, `method_not_allowed`, `control_characters`, `encoding`,
-`exercise_no_title`, `exercise_unavailable`, `fields_count`, `flag_value`,
-`language_half`, `language_unavailable`, `no_language`, `too_long`
+Für die Anfrage- und Dateifehler fehlten dagegen zwei Sätze:
 
-`importMessage()` fängt das ab (`sentence === key ? errorMessage(code) : sentence`),
-der Nutzer sieht also *eine* Meldung — nur nicht den genauen Satz. Für
-`exercise_unavailable` wäre das schade, denn dieser Satz erklärt, dass eine
-Migration fehlt.
+* `invalid_category_id` — eine Anfrage ohne brauchbare Unterkategorie
+* `method_not_allowed` — eine Anfrage, die nicht POST ist
 
-**Status: in Arbeit.** Die fehlenden Schlüssel werden ergänzt.
+Beide sind am 2026-09-28 auf Deutsch und Englisch ergänzt worden. Eine Prüfung,
+die für jeden möglichen Code beide Sprachen auflöst, zählt **25 Codes und 0
+fehlende Sätze**. Getestet wurde mit kaputten CSV-Dateien; die Codes
+`header_unknown`, `header_missing`, `too_many_rows`, `invalid_category_id` und
+`method_not_allowed` kommen aus der Datei bzw. der Anfrage, die übrigen aus einer
+Zeile.
+
+**Eine Anmerkung, damit der Fehler nicht zurückkommt:** Hier stand zuerst
+„zwölf fehlende Codes". Das war falsch, weil die Zeilenfehler mit den
+Anfragefehlern verglichen wurden. Wer hier etwas ändert, muss auf beide Präfixe
+schauen.
 
 ---
 
