@@ -2175,9 +2175,10 @@
                 highlighted.classList.add('is-new', 'is-highlighted');
 
                 /*
-                 * Both classes are removed again afterwards. "item-in" ends with
-                 * animation-fill-mode "both", which would keep opacity at 1 and
-                 * silently stop the linked-hover dimming on this one tile.
+                 * Beide Klassen werden danach wieder entfernt. "item-in" endet mit
+                 * animation-fill-mode "both", das würde die Deckkraft auf 1 halten und das
+                 * Abdunkeln beim Überfahren an genau dieser einen Kachel stillschweigend
+                 * abstellen.
                  */
                 window.setTimeout(function () {
                     highlighted.classList.remove('is-highlighted');
@@ -2194,15 +2195,15 @@
     }
 
     /* ----------------------------------------------------------------------
-       Detail view (unchanged behaviour)
+       Detailansicht (Verhalten unveraendert)
        ---------------------------------------------------------------------- */
 
     /*
-     * One learning area in the sidebar.
+     * Ein Lernbereich in der Seitenleiste.
      *
-     * No counter in front of the name any more: the dot carries the colour of
-     * that area instead, which is the same colour its tile has on the start
-     * page. The order still comes from the list itself, so nothing shifts.
+     * Kein Zähler mehr vor dem Namen: der Punkt trägt stattdessen die Farbe dieses
+     * Bereichs, dieselbe Farbe, die seine Kachel auf der Startseite hat. Die Reihenfolge
+     * kommt weiter aus der Liste selbst, es verschiebt sich also nichts.
      */
     function buildSidebarLink(area, index, isActive) {
         var link = document.createElement('a');
@@ -2223,9 +2224,9 @@
     }
 
     /*
-     * A small "..." button with a menu. It is the only place where an entry can
-     * be changed or removed, and it really is a button, so it works with a
-     * keyboard: Enter opens the menu, Escape closes it again.
+     * Ein kleiner "..."-Knopf mit einem Menü. Er ist die einzige Stelle, an der ein Eintrag
+     * geändert oder entfernt werden kann, und er ist wirklich ein Knopf, er funktioniert also
+     * mit einer Tastatur: Enter öffnet das Menü, Escape schließt es wieder.
      */
     function buildMenu(actions, label, wrapperClass) {
         var wrap = document.createElement('span');
@@ -2277,8 +2278,8 @@
         });
 
         button.addEventListener('click', function (event) {
-            /* Without this the document listener would close the menu again at
-               once, because the click is still on its way up. */
+            /* Ohne das würde der Listener am Dokument das Menü sofort wieder schließen,
+               weil der Klick noch auf dem Weg nach oben ist. */
             event.stopPropagation();
             toggleMenu(wrap, button, menu);
         });
@@ -2313,18 +2314,18 @@
     }
 
     /*
-     * One subcategory row: the name as the way to its page, and one button that
-     * starts the session of this subcategory right away.
+     * Eine Unterkategorie-Zeile: der Name als Weg zu ihrer Seite, und ein Knopf, der die
+     * Einheit dieser Unterkategorie sofort startet.
      *
-     * There is no number in front of the name, no progress track, no arrow and no
-     * menu any more: the whole row is the link, and everything that changes the
-     * category happens on the page it opens. The one thing left beside the name is
-     * the button, with the number of cards that are due right now.
+     * Vor dem Namen steht keine Zahl mehr, es gibt keine Fortschrittsspur, keinen Pfeil und
+     * kein Menü mehr: die ganze Zeile ist der Verweis, und alles, was die Kategorie ändert,
+     * passiert auf der Seite, die sie öffnet. Das Einzige, was neben dem Namen geblieben ist,
+     * ist der Knopf mit der Zahl der Karten, die gerade fällig sind.
      *
-     * "row--category" is not decoration: the loading screen in index.php waits
-     * for ".row--category" (or ".row--card") before it takes itself away, so a
-     * subcategory page that is opened directly - by reload, by bookmark or by
-     * link - would keep showing the overlay without it.
+     * "row--category" ist keine Verzierung: der Ladebildschirm in index.php wartet auf
+     * ".row--category" (oder ".row--card"), bevor er sich wegnimmt, eine direkt geöffnete
+     * Unterkategorieseite - per Neuladen, Lesezeichen oder Verweis - würde ohne sie die
+     * Überlagerung weiter zeigen.
      */
     function buildEntryRow(entry, index) {
         var item = document.createElement('li');
