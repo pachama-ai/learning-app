@@ -634,7 +634,7 @@ function import_read_csv(string $path): array
         $flag = trim((string) $cells[6]);
         $region = $hasRegion ? trim((string) $cells[7]) : '';
 
-        /* The exercise column, wherever it sits. */
+        /* Die Aufgaben-Spalte, wo auch immer sie steht. */
         $exerciseCell = '';
 
         if ($hasExercise) {
@@ -661,16 +661,16 @@ function import_read_csv(string $path): array
         }
 
         /*
-         * An exercise card carries a title instead of an answer: its answer is built
-         * when the card is shown. The same rule the application uses, so a file and
-         * the card dialog ask for the same thing.
+         * Eine Übungskarte trägt eine Überschrift statt einer Antwort: ihre Antwort
+         * entsteht, wenn die Karte gezeigt wird. Dieselbe Regel, die die Anwendung
+         * benutzt, eine Datei und der Kartendialog verlangen also dasselbe.
          */
         if ($exerciseCell !== '') {
             if (trim($frontDe) === '' && trim($frontEn) === '') {
                 $errors[] = ['line' => $lineNumber, 'message' => 'an exercise card needs a title in at least one language (front_de or front_en)'];
             }
         } else {
-            /* At least one language has to be complete, and no language may be half. */
+            /* Mindestens eine Sprache muss vollständig sein, und keine darf halb sein. */
             $germanComplete = trim($frontDe) !== '' && trim($backDe) !== '';
             $englishComplete = trim($frontEn) !== '' && trim($backEn) !== '';
 
@@ -701,9 +701,9 @@ function import_read_csv(string $path): array
             $errors[] = ['line' => $lineNumber, 'message' => 'map_region must look like "DE:Bayern", "EU:FR" or "WORLD:CN" - found "' . $region . '"'];
         }
 
-        /* The same question in the same subcategory twice is not a duplicate card
-           to skip here - in this one-off import it means the file is not the one
-           this import expects, so it is reported. */
+        /* Dieselbe Frage zweimal in derselben Unterkategorie ist hier keine Karte, die
+           man überspringt - in diesem einmaligen Import heißt sie, dass die Datei nicht
+           die ist, die dieser Import erwartet, sie wird also gemeldet. */
         $key = trim($subcategory) . "\n" . mb_strtolower(trim($frontDe === '' ? $frontEn : $frontDe));
 
         if (isset($seenFronts[$key])) {
@@ -725,9 +725,9 @@ function import_read_csv(string $path): array
             $withRegion++;
         }
 
-        /* The text is stored exactly as the file has it: no shortening, no
-           reformatting, no HTML encoding - only the checks above look at a
-           trimmed copy. */
+        /* Der Text wird genau so gespeichert, wie die Datei ihn hat: keine Kürzung,
+           keine Umformatierung, keine HTML-Kodierung - nur die Prüfungen oben sehen
+           sich eine getrimmte Kopie an. */
         $rows[] = [
             'line' => $lineNumber,
             'subcategory' => $name,
