@@ -1624,7 +1624,7 @@
         return t('dialog.errorServer');
     }
 
-    /* Takes the message away, together with any button that belonged to it. */
+    /* Nimmt die Meldung weg, zusammen mit jedem Knopf, der dazugehörte. */
     function hideFeedback() {
         window.clearTimeout(feedbackTimer);
         feedbackTimer = null;
@@ -1634,13 +1634,13 @@
     }
 
     /*
-     * Short message at the bottom of the page, for a moment.
+     * Kurze Meldung am unteren Rand der Seite, für einen Augenblick.
      *
-     * With an action the message becomes an offer: it stays a little longer and
-     * the button next to it can still take the last step back. The button is
-     * removed with the message, so a stale button can never be clicked - and it
-     * is one-shot, because a second click after an undo would undo what was
-     * already kept.
+     * Mit einer Aktion wird aus der Meldung ein Angebot: sie bleibt etwas länger und der
+     * Knopf daneben kann den letzten Schritt noch zurücknehmen. Der Knopf verschwindet mit
+     * der Meldung, ein veralteter Knopf kann also nie geklickt werden - und er ist
+     * einmalig, denn ein zweiter Klick nach einem Zurücknehmen würde zurücknehmen, was
+     * schon behalten wurde.
      *
      * options: { actionLabel, onAction, duration }
      */
@@ -1669,7 +1669,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Theme and language
+       Erscheinungsbild und Sprache
        ---------------------------------------------------------------------- */
 
     function updateThemeControl() {
@@ -1680,10 +1680,10 @@
         );
     }
 
-    /* The moon or sun turns 90 degrees on every switch. */
+    /* Mond oder Sonne dreht sich bei jedem Umschalten um 90 Grad. */
     function rotateThemeIcon() {
         elements.themeToggle.classList.remove('is-rotating');
-        /* Reading a layout value restarts the animation on a repeated click. */
+        /* Das Lesen eines Layoutwerts startet die Animation bei einem erneuten Klick neu. */
         void elements.themeToggle.offsetWidth;
         elements.themeToggle.classList.add('is-rotating');
 
