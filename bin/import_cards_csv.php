@@ -566,7 +566,7 @@ function import_main(array $argv, string $projectRoot): int
         return 1;
     }
 
-    /* ---- the owner ---- */
+    /* ---- das Konto ---- */
 
     $ownerStatement = $pdo->prepare('SELECT id, name FROM users WHERE id = :id');
     $ownerStatement->bindValue(':id', $options['owner'], PDO::PARAM_INT);
@@ -581,12 +581,12 @@ function import_main(array $argv, string $projectRoot): int
 
     echo 'User  : ' . $ownerRow['name'] . "\n\n";
 
-    /* ---- the area ---- */
+    /* ---- der Lernbereich ---- */
 
     /*
-     * The area is looked for by name, name_de and name_en, and only among the
-     * areas of this owner: two accounts may each have an area of the same name,
-     * and the cards must land in the right one.
+     * Der Bereich wird über name, name_de und name_en gesucht, und nur unter den
+     * Bereichen dieses Kontos: zwei Konten dürfen jeder einen Bereich desselben Namens
+     * haben, und die Karten müssen im richtigen landen.
      */
     $areaStatement = $pdo->prepare(
         'SELECT id, name FROM categories
@@ -627,7 +627,7 @@ function import_main(array $argv, string $projectRoot): int
         echo 'AREA  : id ' . $area['id'] . ' (' . $area['name'] . ")\n";
     }
 
-    /* ---- the files ---- */
+    /* ---- die Dateien ---- */
 
     $files = [];
 
@@ -646,7 +646,7 @@ function import_main(array $argv, string $projectRoot): int
         import_print_file($file);
     }
 
-    /* Which of the planned subcategories are already under this area? */
+    /* Welche der geplanten Unterkategorien schon unter diesem Bereich hängen? */
     $existing = [];
     $blockers = $grouping['problems'];
 
@@ -703,7 +703,7 @@ function import_main(array $argv, string $projectRoot): int
         return 0;
     }
 
-    /* ---- writing, all of it or none of it ---- */
+    /* ---- schreiben, alles oder nichts ---- */
 
     $pdo->beginTransaction();
 
@@ -733,7 +733,7 @@ function import_main(array $argv, string $projectRoot): int
             throw new RuntimeException('not every card was written (' . $written['cards'] . ' of ' . $cards . ')');
         }
 
-        /* The proof, read before the commit: the rows are really there. */
+        /* Der Beweis, gelesen vor dem Festschreiben: die Zeilen sind wirklich da. */
         $countStatement = $pdo->prepare(
             'SELECT COUNT(*) FROM cards k JOIN categories c ON c.id = k.category_id
               WHERE c.parent_id = :parent_id AND c.owner_user_id = :owner_user_id'
