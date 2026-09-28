@@ -4667,9 +4667,9 @@
     }
 
     /*
-     * The two steps live in the SAME window: only the content is exchanged, the
-     * frame stays where it is. Nothing opens on top of anything, so nobody ever
-     * faces two questions at once.
+     * Die beiden Schritte liegen im SELBEN Fenster: getauscht wird nur der Inhalt, der Rahmen
+     * bleibt, wo er ist. Nichts öffnet sich über etwas anderem, niemand steht also je vor zwei
+     * Fragen auf einmal.
      */
     function showAccountStep(step) {
         if (elements.accountViewData === null || elements.accountViewConfirm === null
@@ -4690,7 +4690,7 @@
         }
     }
 
-    /* The quiet list: muted labels, values in the text colour, roomy lines. */
+    /* Die leise Liste: gedämpfte Beschriftungen, Werte in der Textfarbe, großzügige Zeilen. */
     function buildAccountList() {
         var list = elements.accountList;
         var user = authState.user;
@@ -4717,7 +4717,7 @@
         list.appendChild(el('dd', 'account-dialog__value', value));
     }
 
-    /* "2026-09-20 14:03:11" becomes "September 2026" in the chosen language. */
+    /* Aus "2026-09-20 14:03:11" wird "September 2026" in der gewählten Sprache. */
     function formatMemberSince(value) {
         var parsed = new Date(String(value).replace(' ', 'T'));
 
@@ -4732,10 +4732,10 @@
     }
 
     /*
-     * The last step: the password. The browser only asks whether something was
-     * typed at all - the answer that counts comes from user_password_matches() on
-     * the other side, so a hand written request without the right password cannot
-     * delete anything.
+     * Der letzte Schritt: das Passwort. Der Browser fragt nur, ob überhaupt etwas getippt wurde
+     * - die Antwort, auf die es ankommt, kommt von user_password_matches() auf der anderen
+     * Seite, eine von Hand geschriebene Anfrage ohne das richtige Passwort kann also nichts
+     * löschen.
      */
     function submitAccountDelete() {
         var password = elements.accountPassword.value;
@@ -4766,9 +4766,9 @@
             }
 
             /*
-             * The account is gone. Nothing on the screen may go on pretending, so
-             * the header is built again and the page goes back to its start with the
-             * line that says what happened.
+             * Das Konto ist weg. Nichts auf dem Bildschirm darf weiter so tun, als wäre es da,
+             * der Kopf wird also neu gebaut und die Seite geht mit der Zeile, die sagt, was
+             * passiert ist, zu ihrem Anfang zurück.
              */
             authState.user = null;
             closeAccountDialog();
@@ -4783,7 +4783,7 @@
         elements.accountPassword.classList.add('is-invalid');
     }
 
-    /* One label while it works, one while it waits - and nothing clicks twice. */
+    /* Eine Beschriftung, solange gearbeitet wird, eine, solange gewartet wird - und nichts klickt zweimal. */
     function setAccountBusy(busy) {
         elements.accountConfirm.disabled = busy;
         elements.accountCancel.disabled = busy;
@@ -4791,9 +4791,8 @@
     }
 
     /*
-     * The quiet line above the content. It says what just happened and takes itself
-     * away again after a few seconds - no button, nothing to click, nothing to
-     * answer.
+     * Die leise Zeile über dem Inhalt. Sie sagt, was gerade passiert ist, und nimmt sich nach
+     * ein paar Sekunden wieder weg - kein Knopf, nichts zum Klicken, nichts zu beantworten.
      */
     function showPageNote(message, duration) {
         var note = elements.pageNote;
@@ -4810,7 +4809,7 @@
         note.textContent = message;
         note.hidden = false;
 
-        /* Reading a layout value restarts the fade when the same line appears twice. */
+        /* Das Lesen eines Layoutwerts startet das Einblenden neu, wenn dieselbe Zeile zweimal erscheint. */
         void note.offsetWidth;
         note.classList.add('is-visible');
 
