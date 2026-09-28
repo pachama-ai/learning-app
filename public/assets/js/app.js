@@ -3140,9 +3140,9 @@
             : trackWidth;
 
         /*
-         * The width only changes when the row is resized, the offset on every
-         * scroll. Writing a value that is already there would still invalidate
-         * the style of the element, so both are only written when they differ.
+         * Die Breite ändert sich nur, wenn die Reihe ihre Größe ändert, der Versatz bei jedem
+         * Scrollen. Ein Wert zu schreiben, der schon dasteht, würde trotzdem den Stil des
+         * Elements ungültig machen, beide werden also nur geschrieben, wenn sie abweichen.
          */
         var widthValue = thumbWidth + 'px';
 
@@ -3173,8 +3173,8 @@
     }
 
     /*
-     * Jumps to an offset at once. "scroll-behavior: smooth" is meant for the two
-     * buttons; while a pointer drags, smooth scrolling would lag behind.
+     * Springt auf einmal zu einem Versatz. "scroll-behavior: smooth" ist für die beiden Knöpfe
+     * gedacht; während ein Zeiger zieht, würde weiches Scrollen hinterherhinken.
      */
     function setTilesScroll(left) {
         var previous = elements.grid.style.scrollBehavior;
@@ -3185,9 +3185,9 @@
     }
 
     /*
-     * Snapping is switched off for the duration of a drag, so the row follows the
-     * pointer instead of jumping from tile to tile; on release it comes back and
-     * the row lands on the nearest whole tile, which is what "tile by tile" means.
+     * Das Einrasten wird für die Dauer eines Zugs abgeschaltet, damit die Reihe dem Zeiger
+     * folgt statt von Kachel zu Kachel zu springen; beim Loslassen kommt es zurück, und die
+     * Reihe landet auf der nächsten ganzen Kachel, was "Kachel für Kachel" eben heißt.
      */
     function beginTileDrag() {
         elements.grid.style.scrollSnapType = 'none';
@@ -3203,7 +3203,7 @@
         }
     }
 
-    /* Where a click or a drag on the track lands, expressed as a scroll offset. */
+    /* Wo ein Klick oder ein Zug auf der Spur landet, ausgedrückt als Scrollversatz. */
     function scrollTilesToPointer(clientX) {
         var rect = elements.tilesTrack.getBoundingClientRect();
         var thumbWidth = elements.tilesThumb.getBoundingClientRect().width;
@@ -3229,11 +3229,11 @@
             scrollTilesBy(1);
         });
 
-        /* Click and drag on the track, and dragging the thumb itself. */
+        /* Klicken und Ziehen auf der Spur, und das Ziehen am Griff selbst. */
         elements.tilesTrack.addEventListener('pointerdown', function (event) {
             event.preventDefault();
             elements.tilesTrack.setPointerCapture(event.pointerId);
-            /* The thumb grows to 3px while it is being dragged. */
+            /* Der Griff wird auf 3 px dick, solange er gezogen wird. */
             elements.tilesTrack.classList.add('is-dragging');
             beginTileDrag();
             scrollTilesToPointer(event.clientX);
@@ -3258,8 +3258,8 @@
         });
 
         /*
-         * Dragging a tile must not open it. A pointer that travelled more than a
-         * few pixels counts as a drag, and the click that follows is swallowed.
+         * Das Ziehen einer Kachel darf sie nicht öffnen. Ein Zeiger, der mehr als ein paar
+         * Pixel gewandert ist, zählt als Zug, und der Klick danach wird geschluckt.
          */
         elements.grid.addEventListener('pointerdown', function (event) {
             tilePointerStart = { x: event.clientX, y: event.clientY, scrollLeft: elements.grid.scrollLeft };
@@ -3282,9 +3282,9 @@
             }
 
             /*
-             * A mouse or a pen drags the row, exactly like touch and a trackpad.
-             * Touch itself is left to the browser: cancelling its default action
-             * would switch the native panning off.
+             * Eine Maus oder ein Stift zieht die Reihe, genau wie ein Finger und ein
+             * Trackpad. Den Finger selbst überlässt das dem Browser: seine Standardaktion
+             * abzubrechen würde das native Schieben abschalten.
              */
             if (tilePointerMoved && event.pointerType === 'mouse') {
                 event.preventDefault();
