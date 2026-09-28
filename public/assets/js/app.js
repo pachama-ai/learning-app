@@ -2442,16 +2442,16 @@
         stack.className = 'row__stack';
 
         /*
-         * An exercise card shows the task that was rolled for this page: new
-         * numbers on every load. The first line carries the title - or the name of
-         * the kind of task when the card has none - and the second one the task
-         * with its answer, the same way a fixed card shows both of its sides.
+         * Eine Übungskarte zeigt die Aufgabe, die für diese Seite gewürfelt wurde: bei jedem
+         * Aufruf neue Zahlen. Die erste Zeile trägt den Titel - oder den Namen der Aufgabenart,
+         * wenn die Karte keinen hat - und die zweite die Aufgabe mit ihrer Antwort, genauso wie
+         * eine feste Karte beide Seiten zeigt.
          */
         var task = exerciseTask(card);
 
         var front = document.createElement('span');
         front.className = 'row__name';
-        /* textContent, never innerHTML: both sides come from the database. */
+        /* textContent, niemals innerHTML: beide Seiten kommen aus der Datenbank. */
         front.textContent = task === null
             ? card.front
             : (card.front !== '' ? card.front : t(task.label));
@@ -2460,8 +2460,8 @@
         back.className = 'row__back';
         back.textContent = task === null ? card.back : task.question + ' → ' + task.answer;
 
-        /* A card with a map region shows the map above its text: the question
-           stays the first thing that is read. */
+        /* Eine Karte mit Landkarte zeigt die Karte über ihrem Text: die Frage bleibt
+           das Erste, was gelesen wird. */
         var map = el('span', 'card-map card-map--row');
         map.hidden = true;
         stack.appendChild(map);
@@ -2476,9 +2476,9 @@
         badge.hidden = card.is_bidirectional !== true;
 
         /*
-         * A card that only exists in one language says so, instead of looking
-         * empty in the other one. The marker only appears once the table really
-         * has a second language.
+         * Eine Karte, die es nur in einer Sprache gibt, sagt das, statt in der anderen leer
+         * auszusehen. Der Hinweis erscheint erst, wenn die Tabelle wirklich eine zweite
+         * Sprache hat.
          */
         var languageBadge = document.createElement('span');
         languageBadge.className = 'row__badge row__badge--language';
@@ -2486,10 +2486,10 @@
         languageBadge.hidden = card.missing_language !== true;
 
         /*
-         * A generated exercise says so: its numbers are new on every display, so
-         * the answer cannot be learned by heart from this line. The badge follows
-         * the task and not the type, so a kind of task without a builder is still
-         * shown as the fixed card it really is.
+         * Eine erzeugte Übung sagt das selbst: ihre Zahlen sind bei jeder Anzeige neu, die
+         * Antwort lässt sich aus dieser Zeile also nicht auswendig lernen. Das Abzeichen folgt
+         * der Aufgabe und nicht dem Typ, eine Aufgabenart ohne Erzeuger wird deshalb weiter als
+         * die feste Karte gezeigt, die sie in Wahrheit ist.
          */
         var exerciseBadge = null;
 
@@ -2500,9 +2500,9 @@
         }
 
         /*
-         * The status: a dot and the word for it, always both. The colour alone
-         * would say nothing to a person who cannot tell the three colours apart,
-         * and the title carries the longer sentence.
+         * Der Status: ein Punkt und das Wort dafür, immer beides. Die Farbe allein würde
+         * jemandem nichts sagen, der die drei Farben nicht unterscheiden kann, und der Titel
+         * trägt den längeren Satz.
          */
         var status = document.createElement('span');
         status.className = 'row__status ' + meta.className;
@@ -2527,7 +2527,7 @@
          *
          * Vorher waren Merker und Status eigene Zellen des Zeilenrasters. Bei
          * einer Karte mit Merker ("Beide Richtungen") waren es damit vier
-         * Zellen fuer drei Spalten, und der Status rutschte in eine zweite
+         * Zellen für drei Spalten, und der Status rutschte in eine zweite
          * Rasterzeile - in der Geografie, wo Landkarte und Merker zusammen
          * vorkommen, ist genau das passiert.
          */
