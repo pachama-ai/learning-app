@@ -63,8 +63,8 @@ sonst gibt es einen Fehler.
 | `src/config/` | Die Datenbankverbindung. Zugangsdaten stehen in `.env`, nicht hier. |
 | `src/helpers/` | Kleine, zustandslose Funktionen (Umgebungsvariablen, Antworten, Übersetzungen, Sitzung). |
 | `src/services/` | Die Fachlogik und **alle** SQL-Abfragen. |
-| `database/` | `schema.sql` und `import/` mit den CSV-Quelldateien. |
-| `bin/` | Drei Skripte fürs Terminal, die die CSV-Dateien einmal eingelesen haben. |
+| `database/` | `schema.sql` – der Aufbau der Datenbank. |
+| `bin/` | Drei Skripte fürs Terminal, die die CSV-Dateien einmal eingelesen haben (die Dateien sind gelöscht, ihr Inhalt steht in der Datenbank). |
 | `docs/` | Diese Datei. |
 
 Nur `public/` ist über den Webserver erreichbar. `src/` liegt daneben, damit
