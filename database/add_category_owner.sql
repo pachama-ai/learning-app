@@ -1,89 +1,94 @@
 -- ==========================================================================
--- Migration: a category belongs to an account
+-- Migration: eine Kategorie gehört einem Konto
 -- ==========================================================================
 --
--- REVIEW THIS FIRST, THEN RUN IT BY HAND (phpMyAdmin or the mysql client).
--- Nothing in the application runs this file, and Copilot never executes a
--- structural change on its own.
+-- ERST DURCHLESEN, DANN VON HAND AUSFÜHREN (phpMyAdmin oder der mysql-Client).
+-- Nichts in der Anwendung führt diese Datei aus, und Copilot führt eine
+-- strukturelle Änderung nie von selbst aus.
 --
--- Command line:
---   mysql -u <user> -p learning_app < database/add_category_owner.sql
+-- Auf der Kommandozeile:
+--   mysql -u <Benutzer> -p learning_app < database/add_category_owner.sql
 --
--- Why
---   Until now a category belonged to nobody: `categories` had no column that
---   said whose it is, so every visitor saw the same learning areas. The next
---   step is a second account, and from then on a person must only ever see
---   their own areas, subcategories and cards.
+-- Warum
+--   Bis jetzt gehörte eine Kategorie niemandem: `categories` hatte keine Spalte,
+--   die sagte, wessen sie ist, jeder Besucher sah also dieselben Lernbereiche.
+--   Der nächste Schritt ist ein zweites Konto, und von da an darf eine Person
+--   immer nur ihre eigenen Bereiche, Unterkategorien und Karten sehen.
 --
---   This file adds the column and nothing else. It does NOT assign it and it
---   does NOT touch a single existing row: after this file the column is NULL
---   everywhere, the application ignores it completely and keeps working exactly
---   as it does today. Filling it is a separate file
---   (database/assign_category_owner.sql), so the value can be checked before it
---   is written.
+--   Diese Datei fügt die Spalte hinzu und sonst nichts. Sie FÜLLT sie nicht und
+--   fasst keine einzige vorhandene Zeile an: nach dieser Datei ist die Spalte
+--   überall NULL, die Anwendung ignoriert sie vollständig und arbeitet genau wie
+--   heute weiter. Das Füllen ist eine eigene Datei
+--   (database/assign_category_owner.sql), damit der Wert geprüft werden kann,
+--   bevor er geschrieben wird.
 --
--- The column
+-- Die Spalte
 --
---   owner_user_id  The account a category belongs to. Same type as `users.id`
---                  (`INT UNSIGNED`) and NULL-able, so this file can run before
---                  anybody has been assigned.
+--   owner_user_id  Das Konto, dem eine Kategorie gehört. Derselbe Typ wie
+--                  `users.id` (`INT UNSIGNED`) und NULL-fähig, diese Datei kann
+--                  also laufen, bevor jemand zugeordnet wurde.
 --
---                  It belongs on `categories` and NOT on `cards`: a card always
---                  sits in exactly one category, so the owner of the category is
---                  already the owner of the card. A second column on `cards`
---                  would be a second truth that can drift away from the first.
+--                  Sie gehört an `categories` und NICHT an `cards`: eine Karte
+--                  liegt immer in genau einer Kategorie, der Besitzer der
+--                  Kategorie ist also schon der Besitzer der Karte. Eine zweite
+--                  Spalte an `cards` wäre eine zweite Wahrheit, die von der
+--                  ersten wegdriften kann.
 --
--- Why the foreign key is RESTRICT and not CASCADE
---   CASCADE looks like the friendly choice ("delete the account, its categories
---   go with it"), but on this schema it can never actually fire: `cards`
---   references `categories` with ON DELETE RESTRICT, and `categories.parent_id`
---   references itself with RESTRICT as well. MySQL would try to delete the
---   category rows while their cards and subcategories are still there and stop
---   with error 1451 (Cannot delete or update a parent row). A rule that is
---   blocked by another rule only pretends to be a safety net.
+-- Warum der Fremdschlüssel RESTRICT ist und nicht CASCADE
+--   CASCADE sieht wie die freundliche Wahl aus ("Konto löschen, seine Kategorien
+--   gehen mit"), aber in diesem Schema kann es nie wirklich greifen: `cards`
+--   zeigt mit ON DELETE RESTRICT auf `categories`, und `categories.parent_id`
+--   zeigt mit RESTRICT auf sich selbst. MySQL würde versuchen, die
+--   Kategoriezeilen zu löschen, während ihre Karten und Unterkategorien noch da
+--   sind, und mit Fehler 1451 abbrechen (Cannot delete or update a parent row).
+--   Eine Regel, die von einer anderen Regel blockiert wird, tut nur so, als wäre
+--   sie ein Sicherheitsnetz.
 --
---   With RESTRICT the behaviour is honest and visible: deleting an account with
---   categories fails loudly, and the application removes the tree itself, in the
---   order the foreign keys demand - which it already does today in
---   `delete_category_tree()`.
+--   Mit RESTRICT ist das Verhalten ehrlich und sichtbar: das Löschen eines
+--   Kontos mit Kategorien scheitert laut, und die Anwendung entfernt den Baum
+--   selbst, in der Reihenfolge, die die Fremdschlüssel verlangen - was sie heute
+--   schon in `delete_category_tree()` tut.
 --
--- What it does
---   One ALTER TABLE: adds the column, its index and the foreign key.
+-- Was sie tut
+--   Ein ALTER TABLE: fügt die Spalte, ihren Index und den Fremdschlüssel hinzu.
 --
--- What it does NOT do
---   * no DROP, no RENAME, no TRUNCATE, no DELETE, no UPDATE - no existing value
---     is read or written
---   * no other table is touched: `users`, `cards`, `user_card_progress`,
---     `card_exercises` and `study_sessions` keep their columns and their rows
---   * the column is NOT made NOT NULL here. That is a separate, later file, once
---     every row carries an owner and the application always sets it.
+-- Was sie NICHT tut
+--   * kein DROP, kein RENAME, kein TRUNCATE, kein DELETE, kein UPDATE - kein
+--     vorhandener Wert wird gelesen oder geschrieben
+--   * keine andere Tabelle wird angefasst: `users`, `cards`,
+--     `user_card_progress`, `card_exercises` und `study_sessions` behalten ihre
+--     Spalten und ihre Zeilen
+--   * die Spalte wird hier NICHT auf NOT NULL gesetzt. Das ist eine eigene,
+--     spätere Datei, sobald jede Zeile einen Besitzer trägt und die Anwendung
+--     ihn immer setzt.
 --
--- Safety
---   The column is NULL-able, which is what makes this step harmless: the
---   application does not know the column yet, so it runs unchanged.
+-- Sicherheit
+--   Die Spalte darf NULL sein, und genau das macht diesen Schritt harmlos: die
+--   Anwendung kennt die Spalte noch nicht, sie läuft also unverändert.
 --
---   This server is MySQL 8.4, which does NOT support "ADD COLUMN IF NOT
---   EXISTS" (that is MariaDB syntax; on MySQL it is a syntax error). Running
---   this file a second time therefore stops with
+--   Dieser Server ist MySQL 8.4, und das unterstützt "ADD COLUMN IF NOT EXISTS"
+--   NICHT (das ist MariaDB-Syntax; auf MySQL ist es ein Syntaxfehler). Ein
+--   zweiter Lauf dieser Datei hält deshalb mit
 --
 --     ERROR 1060 (42S21): Duplicate column name 'owner_user_id'
 --
---   and changes nothing. That error is the expected second-run answer, not a
---   problem - it only means the step is already done.
+--   an und ändert nichts. Dieser Fehler ist die erwartete Antwort auf den
+--   zweiten Lauf und kein Problem - er heißt nur, dass der Schritt schon getan
+--   ist.
 --
--- Check before running
+-- Vor dem Lauf prüfen
 --   SELECT COLUMN_NAME FROM information_schema.COLUMNS
 --    WHERE TABLE_SCHEMA = 'learning_app' AND TABLE_NAME = 'categories'
 --      AND COLUMN_NAME = 'owner_user_id';
---   Expected before: no row.   Expected after: one row.
+--   Erwartet davor: keine Zeile.   Erwartet danach: eine Zeile.
 --
--- Check after running
+-- Nach dem Lauf prüfen
 --   SHOW CREATE TABLE categories;
---   Expected: the column `owner_user_id` int unsigned DEFAULT NULL, the key
---   `idx_categories_owner` and the constraint `fk_categories_owner` with
+--   Erwartet: die Spalte `owner_user_id` int unsigned DEFAULT NULL, der
+--   Schlüssel `idx_categories_owner` und die Bedingung `fk_categories_owner` mit
 --   ON DELETE RESTRICT.
 --
--- Rollback (only if you ever want the old state back)
+-- Zurücknehmen (nur falls du den alten Zustand je zurückhaben willst)
 --   ALTER TABLE `categories`
 --       DROP FOREIGN KEY `fk_categories_owner`,
 --       DROP KEY `idx_categories_owner`,
