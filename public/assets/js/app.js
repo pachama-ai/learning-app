@@ -5744,7 +5744,7 @@
             }
 
             field.control.addEventListener('input', function () {
-                /* What is typed belongs to the language that is open. */
+                /* Was getippt wird, gehört zu der Sprache, die offen ist. */
                 if (cardDraft !== null) {
                     cardDraft[cardTab].front = dialogFields.front.control.value;
                     cardDraft[cardTab].back = dialogFields.back.control.value;
@@ -5764,34 +5764,34 @@
     }
 
     /* ----------------------------------------------------------------------
-       The study session
+       Die Lerneinheit
        ---------------------------------------------------------------------- */
 
     /*
-     * One session, held in memory only:
+     * Eine Einheit, nur im Arbeitsspeicher gehalten:
      *
-     *   queue     the turns to work through, as the API ordered them
-     *   index     the turn that is on screen
-     *   flipped   whether the answer is showing
-     *   results   card id -> the status the API stored for it
-     *   ratings   every answer given, in order (for the summary)
-     *   undo      the last answer, with everything needed to take it back
+     *   queue     die Aufgaben, die durchzuarbeiten sind, in der Reihenfolge der API
+     *   index     die Aufgabe, die auf dem Bildschirm steht
+     *   flipped   ob die Antwort zu sehen ist
+     *   results   Kartenkennung -> der Zustand, den die API dafür gespeichert hat
+     *   ratings   jede gegebene Antwort, der Reihe nach (für die Zusammenfassung)
+     *   undo      die letzte Antwort, mit allem, was zum Zurücknehmen nötig ist
      *
-     * Nothing about the schedule is calculated here. The queue order, the status
-     * and the interval all come from the API; this side only shows them and
-     * counts what it was told.
+     * Vom Zeitplan wird hier nichts gerechnet. Die Reihenfolge der Aufgaben, der Zustand und
+     * der Abstand kommen alle von der API; diese Seite zeigt sie nur und zählt, was ihr gesagt
+     * wurde.
      */
     var learnSession = null;
 
     var learnTimer = null;
 
 
-    /* Opens the session for the open subcategory. */
+    /* Öffnet die Einheit für die offene Unterkategorie. */
     function startLearning(mode, targetCategoryId, label) {
         /*
-         * The session belongs to the entry that was clicked: the one that is
-         * open, the subcategory behind a row of the list, or the whole learning
-         * area behind "Study all". The server decides what belongs to it.
+         * Die Einheit gehört zu dem Eintrag, der angeklickt wurde: dem offenen, der
+         * Unterkategorie hinter einer Zeile der Liste oder dem ganzen Lernbereich hinter
+         * "Alles lernen". Was dazugehört, entscheidet der Server.
          */
         var categoryId = typeof targetCategoryId === 'number'
             ? targetCategoryId
@@ -5822,18 +5822,17 @@
             }
 
             /*
-             * Signed in, the session asks first how many new cards it should
-             * introduce. Forty new cards in one session is a promise nobody can
-             * keep, and how many of them to take on is a decision that belongs to
-             * the person learning and not to the queue.
+             * Angemeldet fragt die Einheit zuerst, wie viele neue Karten sie vorstellen soll.
+             * Vierzig neue Karten in einer Einheit sind ein Versprechen, das niemand halten
+             * kann, und wie viele davon jemand auf sich nimmt, ist eine Entscheidung der lernenden
+             * Person und nicht der Aufgabenliste.
              *
-             * Without an account there is nothing to remember and nothing to
-             * limit; the "difficult" mode repeats cards that are already in the
-             * learning state. Neither of them has anything to choose.
+             * Ohne Konto gibt es nichts zu merken und nichts zu begrenzen; der Modus
+             * "schwierig" wiederholt Karten, die schon im Lernzustand sind. Beide haben nichts
+             * zu wählen.
              *
-             * The question is asked here and not when the button was pressed,
-             * because how many new cards are really there is known only after the
-             * session was asked for its queue.
+             * Die Frage wird hier gestellt und nicht beim Druck auf den Knopf, weil erst nach
+             * dem Abruf der Aufgabenliste bekannt ist, wie viele neue Karten es wirklich gibt.
              */
             var queue = result.data.queue.slice();
             var counts = result.data.counts !== null && typeof result.data.counts === 'object' ?
@@ -5853,11 +5852,11 @@
     }
 
     /*
-     * Opens the session with the queue that was fetched - and, when somebody is
-     * signed in, narrowed down to the number of new cards they asked for.
+     * Öffnet die Einheit mit der geholten Aufgabenliste - und, wenn jemand angemeldet ist, auf
+     * die Zahl der neuen Karten eingegrenzt, die gewünscht wurde.
      */
     function beginLearnSession(categoryId, data, label, queue) {
-        /* Nothing left to show: everything was filtered away. */
+        /* Nichts mehr zu zeigen: alles wurde weggefiltert. */
         if (queue.length === 0) {
             showFeedback(t('learn.noCards'));
             return;
@@ -5870,10 +5869,10 @@
             queue: queue,
             hasUser: data.has_user === true,
             /*
-             * The learning run in the database. It is still null here: the row is
-             * created with the FIRST answer of this run, so a run that is opened
-             * and closed again without answering anything leaves nothing behind.
-             * The id comes back with that first answer (see rateLearnCard).
+             * Der Lernlauf in der Datenbank. Er ist hier noch null: die Zeile entsteht mit der
+             * ERSTEN Antwort dieses Laufs, ein Lauf, der geöffnet und ohne Antwort wieder
+             * geschlossen wird, lässt also nichts zurück. Die Kennung kommt mit dieser ersten
+             * Antwort zurück (siehe rateLearnCard).
              */
             sessionId: null,
             index: 0,
@@ -5891,13 +5890,13 @@
     }
 
     /*
-     * Keeps every card that is due and only so many of the new ones.
+     * Behält jede fällige Karte und nur so viele neue, wie gewünscht wurden.
      *
-     * Counted per CARD and not per entry: a card that is practised in both
-     * directions stands in the queue twice, and both of its turns have to stay or
-     * go together - otherwise a session would show the same card twice and count
-     * it as two. The due cards keep their place at the front, the chosen new ones
-     * follow, and the order of the queue stays as the server built it.
+     * Gezählt wird pro KARTE und nicht pro Aufgabe: eine Karte, die in beide Richtungen geübt
+     * wird, steht zweimal in der Liste, und beide ihrer Aufgaben müssen zusammen bleiben oder
+     * zusammen gehen - sonst würde eine Einheit dieselbe Karte zweimal zeigen und sie als zwei
+     * zählen. Die fälligen Karten behalten ihren Platz vorne, die gewählten neuen folgen, und
+     * die Reihenfolge der Liste bleibt so, wie der Server sie gebaut hat.
      */
     function limitNewCards(queue, limit) {
         var kept = [];
