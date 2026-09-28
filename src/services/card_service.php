@@ -609,13 +609,18 @@ function card_exercise_from_request(array $body): array
 
 /*
  * Eine Karte trägt ihren deutschen Text in den beiden ursprünglichen Spalten (`front`,
- * `back`) und, sobald die Migration in database/add_card_english_columns.sql gelaufen
- * ist, ihren englischen Text in `front_en` und `back_en`.
+ * `back`) und ihren englischen Text in `front_en` und `back_en`, sobald es diese Spalten
+ * gibt.
+ *
+ * Zu den englischen Spalten und zu `map_region` gibt es bewusst keine SQL-Datei in
+ * database/: sie wurden von Hand in phpMyAdmin angelegt, mit demselben Handgriff wie die
+ * drei ältesten Tabellen. In docs/migrations.md steht das als eigener Eintrag, damit die
+ * Schemahistorie trotzdem vollständig ist.
  *
  * Welche dieser Spalten es wirklich gibt, wird einmal je Anfrage gefragt und dann
  * gemerkt - genau wie die freiwilligen Spalten von `categories`. Alles hier unten
- * arbeitet mit einer Sprache genauso wie mit zweien, die Anwendung ist also vor und nach
- * der Migration richtig.
+ * arbeitet mit einer Sprache genauso wie mit zweien, die Anwendung ist also mit und ohne
+ * diese Spalten richtig.
  */
 
 /**
