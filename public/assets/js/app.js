@@ -521,6 +521,11 @@
         accountCancel: document.getElementById('account-cancel'),
         accountConfirm: document.getElementById('account-confirm'),
         accountPassword: document.getElementById('account-password'),
+        /* Der Admin-Bereich im Kontofenster: er erscheint nur fuer ein Konto mit der
+           Rolle "admin" (siehe renderAdminBlock). */
+        accountAdmin: document.getElementById('account-admin'),
+        accountBackup: document.getElementById('account-backup'),
+        accountBackupNote: document.getElementById('account-backup-note'),
         /* Die Frage vor dem Start einer Einheit. */
         newCardsDialog: document.getElementById('new-cards-dialog'),
         newCardsHint: document.getElementById('new-cards-dialog-hint'),
@@ -4662,6 +4667,7 @@
         }
 
         buildAccountList();
+        renderAdminBlock();
         showAccountStep('data');
 
         if (typeof dialog.showModal === 'function') {
@@ -4818,6 +4824,113 @@
     }
 
     /*
+     * Der Admin-Bereich erscheint nur fuer ein Konto mit der Rolle "admin".
+     *
+     * Die Rolle kommt aus der Spalte users.role und NICHT aus der E-Mail-Adresse: eine
+     * Adresse kann sich aendern oder von jemand anderem registriert werden, die Rolle in
+     * der Datenbank nicht. Das Ausblenden hier ist trotzdem nur Bequemlichkeit - ob etwas
+     * passieren darf, entscheidet api/admin_backup.php und fragt dabei die Datenbank.
+     */
+    function renderAdminBlock() {
+        var block = elements.accountAdmin;
+
+        if (block === null) {
+            return;
+        }
+
+        var isAdmin = authState.user !== null && authState.user.role === 'admin';
+
+        block.hidden = !isAdmin;
+
+        /* Kein Rest vom letzten Mal: die Meldung verschwindet mit ihrem Block. */
+        if (!isAdmin) {
+            hideBackupNote();
+        }
+    }
+
+    /*
+     * Der Knopf legt eine Sicherung an. Was dabei herauskommt, steht als leise Zeile unter
+     * ihm: der Dateiname bei Erfolg, ein Satz bei einem Fehler.
+     *
+     * Ein Serverpfad kommt absichtlich nie in diese Zeile - der Browser bekommt nur den
+     * Dateinamen zu sehen und keinen Ort, an dem die Datei liegt.
+     */
+    function submitAccountBackup() {
+        var button = elements.accountBackup;
+
+        if (button === null || button.disabled) {
+            return;
+        }
+
+        setBackupBusy(true);
+        showBackupNote(t('account.backupRunning'), '');
+
+        window.fetch(config.endpoints.adminBackup, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ csrf_token: authState.csrfToken })
+        }).then(function (response) {
+            return response.json().then(function (body) {
+                return {
+                    ok: response.ok === true && body && body.success === true,
+                    data: body && body.data ? body.data : null
+                };
+            }).catch(function () {
+                return { ok: false, data: null };
+            });
+        }).catch(function () {
+            /* Die Anfrage hat den Server nie erreicht. */
+            return { ok: false, data: null };
+        }).then(function (result) {
+            setBackupBusy(false);
+
+            if (result.ok !== true) {
+                showBackupNote(t('account.backupFailed'), 'is-error');
+
+                return;
+            }
+
+            showBackupNote(t('account.backupDone', { file: String(result.data.file || '') }), 'is-success');
+        });
+    }
+
+    /* Solange gearbeitet wird, heisst der Knopf anders und laesst sich nicht zweimal druecken. */
+    function setBackupBusy(busy) {
+        var button = elements.accountBackup;
+
+        if (button === null) {
+            return;
+        }
+
+        button.disabled = busy;
+        button.textContent = busy ? t('account.backupRunning') : t('account.backupSubmit');
+    }
+
+    function showBackupNote(message, modifier) {
+        var note = elements.accountBackupNote;
+
+        if (note === null) {
+            return;
+        }
+
+        note.textContent = message;
+        note.className = 'account-dialog__note' + (modifier ? ' ' + modifier : '');
+        note.hidden = false;
+    }
+
+    function hideBackupNote() {
+        var note = elements.accountBackupNote;
+
+        if (note === null) {
+            return;
+        }
+
+        note.hidden = true;
+        note.textContent = '';
+        note.className = 'account-dialog__note';
+    }
+
+    /*
      * Die leise Zeile über dem Inhalt. Sie sagt, was gerade passiert ist, und nimmt sich nach
      * ein paar Sekunden wieder weg - kein Knopf, nichts zum Klicken, nichts zu beantworten.
      */
@@ -4919,6 +5032,12 @@
         });
 
         elements.accountConfirm.addEventListener('click', submitAccountDelete);
+
+        /* Den Admin-Bereich gibt es nicht in jeder Fassung der Seite; fehlt er, wird
+           hier einfach nichts verdrahtet. */
+        if (elements.accountBackup !== null) {
+            elements.accountBackup.addEventListener('click', submitAccountBackup);
+        }
 
         elements.accountPassword.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {

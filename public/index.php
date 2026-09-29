@@ -58,6 +58,10 @@ $appConfig = [
         'auth' => 'api/auth.php',
         /* Das Konto selbst: die Form seines Symbols und sein Ende. */
         'account' => 'api/account.php',
+        /* Die Sicherung der Datenbank. Dieser Endpunkt antwortet nur einem Konto
+           mit der Rolle "admin"; das Ausblenden des Knopfes im Fenster ist
+           Bequemlichkeit und kein Schutz. */
+        'adminBackup' => 'api/admin_backup.php',
         /* Das eine Beispiel, das der Kartendialog zeigt, während eine Aufgabenart
            gewählt wird. Es entsteht auf dem Server, damit Dialog und Karte ihre
            Zahlen nie aus zwei verschiedenen Erzeugern ziehen. */
@@ -946,6 +950,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     -->
     <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
         <div class="account-dialog__panel">
+            <!--
+                Das X oben rechts ist der Weg aus diesem Fenster heraus, und Escape
+                tut dasselbe. Den Titel darunter haelt app.css beim Scrollen oben
+                stehen (denselben Kniff benutzt der Dialog fuer die Anzahl), damit
+                man immer weiss, worin man gerade ist.
+            -->
             <button type="button" class="account-dialog__close" id="account-dialog-close"
                     aria-label="<?= $text('account.close') ?>" data-i18n-label="account.close">&#215;</button>
 
@@ -956,12 +966,31 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <div class="account-dialog__view" id="account-view-data">
                 <dl class="account-dialog__list" id="account-list"></dl>
 
-                <div class="account-dialog__danger">
+                <!--
+                    Der gefaehrliche Teil: eigene Ueberschrift, ein ruhiger
+                    Erklaersatz und darunter der Weg zum Loeschen. Die Linie darueber
+                    trennt ihn sichtbar vom Datenblock.
+                -->
+                <section class="account-dialog__block account-dialog__danger">
                     <h3 class="account-dialog__subtitle" data-i18n="account.deleteTitle"><?= $text('account.deleteTitle') ?></h3>
                     <p class="account-dialog__hint" data-i18n="account.deleteHint"><?= $text('account.deleteHint') ?></p>
                     <button type="button" class="account-dialog__text-button" id="account-delete-open"
                             data-i18n="account.deleteSubmit"><?= $text('account.deleteSubmit') ?></button>
-                </div>
+                </section>
+
+                <!--
+                    Nur fuer ein Konto mit der Rolle "admin". Das Markup steht
+                    immer im Dokument, sichtbar wird der Block aber erst, wenn app.js
+                    die Rolle kennt. Wer die Rolle faelscht, gewinnt damit nichts:
+                    api/admin_backup.php prueft sie noch einmal fuer sich.
+                -->
+                <section class="account-dialog__block account-dialog__admin" id="account-admin" hidden>
+                    <h3 class="account-dialog__subtitle" data-i18n="account.adminTitle"><?= $text('account.adminTitle') ?></h3>
+                    <p class="account-dialog__hint" data-i18n="account.adminHint"><?= $text('account.adminHint') ?></p>
+                    <button type="button" class="account-dialog__button-primary" id="account-backup"
+                            data-i18n="account.backupSubmit"><?= $text('account.backupSubmit') ?></button>
+                    <p class="account-dialog__note" id="account-backup-note" role="status" hidden></p>
+                </section>
             </div>
 
             <!-- Schritt zwei: das Passwort und die letzte Frage. -->

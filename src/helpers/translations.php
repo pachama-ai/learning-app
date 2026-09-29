@@ -143,6 +143,15 @@ function learning_app_translations(): array
             'account.passwordRequired' => 'Please enter your password.',
             'account.signedOut' => 'You have been signed out.',
 
+            // Nur fuer ein Konto mit der Rolle "admin" - dieser Block wird allen
+            // anderen gar nicht erst gezeigt.
+            'account.adminTitle' => 'Administration',
+            'account.adminHint' => 'Creates a copy of the whole database as a file. The file stays on the server and is never reachable through the browser.',
+            'account.backupSubmit' => 'Create database backup',
+            'account.backupRunning' => 'Creating backup ...',
+            'account.backupDone' => 'Backup created (local, not pushed): {file}',
+            'account.backupFailed' => 'The backup could not be created.',
+
             /*
              * Der Ladebildschirm: was die Zoomfahrt erzählt, während die erste
              * Ansicht entsteht. Ein Schlüssel pro Station, damit sich ein Satz
@@ -681,6 +690,15 @@ function learning_app_translations(): array
             'account.wrongPassword' => 'Dieses Passwort gehört nicht zu diesem Konto.',
             'account.passwordRequired' => 'Bitte gib dein Passwort ein.',
             'account.signedOut' => 'Du wurdest abgemeldet.',
+
+            // Nur fuer ein Konto mit der Rolle "admin" - dieser Block wird allen
+            // anderen gar nicht erst gezeigt.
+            'account.adminTitle' => 'Administration',
+            'account.adminHint' => 'Erstellt eine Kopie der ganzen Datenbank als Datei. Die Datei bleibt auf dem Server und ist über den Browser nicht erreichbar.',
+            'account.backupSubmit' => 'Datenbank-Backup erstellen',
+            'account.backupRunning' => 'Backup wird erstellt ...',
+            'account.backupDone' => 'Backup erstellt (lokal, nicht gepusht): {file}',
+            'account.backupFailed' => 'Das Backup konnte nicht erstellt werden.',
 
             'dialog.delete.subcategories.one' => '1 Unterkategorie',
             'dialog.delete.subcategories.other' => '{count} Unterkategorien',

@@ -63,3 +63,10 @@ deploy/apache/logs/
 
 # Zurueckgeholte alte Doku-Datei: der Inhalt steht in docs/dokumentation.md
 docs/migrations.md
+
+# --- Laufzeitdaten ---
+# Sicherungen der Datenbank. Sie enthalten E-Mail-Adressen und Passwort-Hashes
+# und gehoeren unter keinen Umstaenden ins Repository - auch nicht in ein
+# privates. Der Ordner entsteht beim ersten Backup selbst.
+storage/backups/
+/storage/

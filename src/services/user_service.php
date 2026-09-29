@@ -49,6 +49,15 @@ const USER_PASSWORD_MAX_LENGTH = 200;
 const USER_DEFAULT_ROLE = 'learner';
 
 /**
+ * Die eine Rolle mit erweiterten Rechten.
+ *
+ * Sie wird NICHT ueber die E-Mail-Adresse entschieden: eine Adresse kann sich
+ * aendern oder von jemand anderem registriert werden. Die Rolle steht in der
+ * Spalte users.role, und sie ist die einzige Quelle fuer so eine Entscheidung.
+ */
+const USER_ADMIN_ROLE = 'admin';
+
+/**
  * Wie lange eine gescheiterte Anmeldung wartet, bevor sie antwortet, in Mikrosekunden.
  *
  * Das ist keine Sperre: es verhindert nur, dass die Antwort ein schnelles "diese Adresse
@@ -493,7 +502,7 @@ function user_sign_out_session(): void
 /**
  * Das Wenige, was der Browser über eine angemeldete Person wissen darf.
  *
- * @return array{id: int, name: string, initials: string}|null
+ * @return array{id: int, name: string, initials: string, role?: string}|null
  */
 function user_public_data(PDO $pdo, int $userId): ?array
 {
@@ -534,7 +543,56 @@ function user_public_data(PDO $pdo, int $userId): ?array
         $data['created_at'] = (string) $row['created_at'];
     }
 
+    /*
+     * Die Rolle. Sie entscheidet, ob das Kontofenster den Admin-Bereich zeigt.
+     * Das ist Bequemlichkeit und kein Schutz: wer das Markup von Hand aendert,
+     * sieht den Knopf, aber api/admin_backup.php prueft die Rolle noch einmal
+     * fuer sich, bevor es etwas tut.
+     */
+    if (user_column_available($columns, 'role') && ($row['role'] ?? null) !== null
+        && (string) $row['role'] !== '') {
+        $data['role'] = (string) $row['role'];
+    }
+
     return $data;
+}
+
+/**
+ * Die Rolle eines Kontos, genau so, wie sie in der Tabelle steht.
+ *
+ * Eine Tabelle ohne die Spalte "role" antwortet mit null. null heisst
+ * ausdruecklich "keine Rolle" und ist damit kein Admin.
+ *
+ * @return string|null null bedeutet "es ist keine Rolle hinterlegt"
+ */
+function user_role(PDO $pdo, int $userId): ?string
+{
+    if (!user_column_available(user_columns($pdo), 'role')) {
+        return null;
+    }
+
+    $statement = $pdo->prepare('SELECT role FROM users WHERE id = :id');
+    $statement->bindValue(':id', $userId, PDO::PARAM_INT);
+    $statement->execute();
+    $role = $statement->fetchColumn();
+
+    if ($role === false || $role === null || (string) $role === '') {
+        return null;
+    }
+
+    return (string) $role;
+}
+
+/**
+ * Ob dieses Konto ein Admin ist.
+ *
+ * Der Vergleich ist streng: "Admin" mit grossem A ist ein anderer Wert als
+ * "admin" und oeffnet hier nichts. Genau so ist es gemeint - nur der Wert, den
+ * diese Anwendung selbst setzt, gibt die erweiterten Rechte.
+ */
+function user_is_admin(PDO $pdo, int $userId): bool
+{
+    return user_role($pdo, $userId) === USER_ADMIN_ROLE;
 }
 
 /**
