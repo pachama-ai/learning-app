@@ -45,6 +45,7 @@ sess_*
 *.dump
 *_backup/
 backups/
+backup/
 dumps/
 *.orig
 *.rej
