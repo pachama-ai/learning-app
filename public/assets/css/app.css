@@ -3985,6 +3985,11 @@ body.is-learning {
     --account-danger-strong: #85362E;
     /* Ein ruhiges Gruen fuer die Erfolgszeile - gedeckt genug, dass es nicht leuchtet. */
     --account-success: #3F6B52;
+    /* Der Wartungsknopf ist im Ruhezustand nur ein Rahmen; beim Zeigerkontakt
+       bekommt er eine Flaeche und einen kraeftigeren Rahmen. Beides je Thema,
+       weil dieselbe Farbe in beiden Themen nicht gleich gut zu sehen ist. */
+    --account-button-hover-bg: var(--surface-soft);
+    --account-button-hover-border: var(--text-faint);
     width: min(460px, calc(100vw - 32px));
     padding: 0;
     border: 0;
@@ -4002,6 +4007,10 @@ body.is-learning {
     --account-danger: #C0655A;
     --account-danger-strong: #D67C6F;
     --account-success: #8FC7A4;
+    /* Im dunklen Thema liegt surface-soft zu nah am Panel - ein zarter heller
+       Schleier zeigt denselben Effekt deutlicher. */
+    --account-button-hover-bg: rgba(255, 255, 255, 0.06);
+    --account-button-hover-border: rgba(255, 255, 255, 0.5);
 }
 /* geöffnet · Konto-Dialog · offen */
 .account-dialog[open].is-open {
@@ -4056,36 +4065,39 @@ body.is-learning {
     outline: 2px solid var(--line-strong);
     outline-offset: 2px;
 }
-/* Konto-Dialog-Titel: Groesse, Schrift und Abstaende kommen aus dem gemeinsamen
-   Dialog-Stil weiter unten, damit Konto- und Anzahl-Dialog gleich aussehen. */
-.account-dialog__title {
+/* Konto-Dialog-Titel: kleiner und etwas kraeftiger als in den anderen Dialogen.
+   Der etwas laengere Selektor ist Absicht: der gemeinsame Dialog-Stil weiter
+   unten setzt fuer alle Dialoge 24px und 500, hier soll es ruhiger sein. */
+.account-dialog .account-dialog__title {
     margin: 0;
+    font-size: 20px;
+    font-weight: 600;
 }
 /* Konto-Dialog-Liste: feste Beschriftungsspalte, damit alle Werte auf einer Linie beginnen */
 .account-dialog__list {
     display: grid;
     grid-template-columns: 128px 1fr;
     align-items: baseline;
-    gap: 14px 22px;
+    gap: 12px 22px;
     margin: 26px 0 0;
 }
-/* Konto-Dialog-Begriff: derselbe kleine Label-Stil wie ueberall sonst in der App,
-   ausdruecklich NICHT in Monospace. */
+/* Konto-Dialog-Begriff: der kleine Label-Stil der App, ausdruecklich NICHT in
+   Monospace. Eine Stufe kleiner als sonst, weil nur drei kurze Woerter dastehen. */
 .account-dialog__term {
     margin: 0;
     color: var(--text-faint);
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     line-height: 1.6;
 }
 /* Konto-Dialog-Wert */
 .account-dialog__value {
     margin: 0;
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
     overflow-wrap: anywhere;
 }
@@ -4095,11 +4107,17 @@ body.is-learning {
     padding-top: 20px;
     border-top: 1px solid var(--border);
 }
+/* Konto-Dialog-Administration: der Block schliesst das Fenster unten ab. Das
+   view-Padding betraegt nur 8px (dort steht sonst der Loesch-Block), deshalb
+   braucht der Knopf hier eigenen Abstand zur Fensterkante. */
+.account-dialog__admin {
+    padding-bottom: 24px;
+}
 /* Konto-Dialog-Untertitel: eine Ueberschrift, kein Fliesstext */
 .account-dialog__subtitle {
     margin: 0;
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: -0.005em;
 }
@@ -4121,7 +4139,7 @@ body.is-learning {
     background: transparent;
     color: var(--account-danger);
     font-family: var(--font-sans);
-    font-size: 0.95rem;
+    font-size: 13px;
     cursor: pointer;
     transition: color 200ms var(--ease);
 }
@@ -4137,42 +4155,39 @@ body.is-learning {
     outline: 2px solid var(--line-strong);
     outline-offset: 3px;
 }
-/* Konto-Dialog-Knopf: Hauptaktion des Admin-Bereichs */
-.account-dialog__button-primary {
+/* Konto-Dialog-Knopf: eine seltene Wartungsaktion, kein Hauptknopf des Fensters.
+   Deshalb zurueckhaltend: nur ein Rahmen, keine gefuellte Flaeche, und nur so
+   breit wie ihr Text. Ruhezustand und Zeigerkontakt kommen aus Variablen, damit
+   beide Themen ohne eigene Regel stimmen. */
+.account-dialog__button-secondary {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-height: 38px;
+    min-height: 34px;
     margin-top: 16px;
-    padding: 8px 22px;
-    border: 1px solid transparent;
+    padding: 0 16px;
+    border: 1px solid var(--border-strong);
     border-radius: 999px;
-    background-color: var(--accent);
-    color: var(--accent-ink);
+    background-color: transparent;
+    color: var(--text);
     font-family: var(--font-sans);
-    font-size: 0.92rem;
+    font-size: 13px;
     cursor: pointer;
-    transition: background-color 200ms var(--ease), opacity 200ms var(--ease);
+    transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
 }
-/* Konto-Dialog-Knopf: Hauptaktion · bei Zeigerkontakt · nicht */
-.account-dialog__button-primary:hover:not([disabled]) {
-    background-color: color-mix(in srgb, var(--accent) 86%, var(--text));
+/* Konto-Dialog-Knopf: Sekundaerstil · bei Zeigerkontakt · nicht */
+.account-dialog__button-secondary:hover:not([disabled]) {
+    background-color: var(--account-button-hover-bg);
+    border-color: var(--account-button-hover-border);
 }
-/* gesperrt · Konto-Dialog-Knopf: Hauptaktion */
-.account-dialog__button-primary[disabled] {
+/* Konto-Dialog-Knopf: Sekundaerstil · im Tastaturfokus */
+.account-dialog__button-secondary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+/* gesperrt · Konto-Dialog-Knopf: Sekundaerstil */
+.account-dialog__button-secondary[disabled] {
     opacity: .55;
     cursor: default;
-}
-/* Konto-Dialog-Knopf: Hauptaktion im hellen Thema - schwarz, wie in den anderen Dialogen.
-   Im dunklen Thema bleibt die Akzentfarbe: ein schwarzer Knopf auf dunklem Grund
-   waere dort unsichtbar. */
-[data-theme="light"] .account-dialog__button-primary {
-    background-color: var(--text);
-    color: #FFFFFF;
-}
-/* Konto-Dialog-Knopf: Hauptaktion im hellen Thema bei Zeigerkontakt */
-[data-theme="light"] .account-dialog__button-primary:hover:not([disabled]) {
-    background-color: #33322F;
 }
 /* Konto-Dialog-Meldung: eine leise Zeile, kein Kasten */
 .account-dialog__note {

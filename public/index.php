@@ -987,7 +987,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                 <section class="account-dialog__block account-dialog__admin" id="account-admin" hidden>
                     <h3 class="account-dialog__subtitle" data-i18n="account.adminTitle"><?= $text('account.adminTitle') ?></h3>
                     <p class="account-dialog__hint" data-i18n="account.adminHint"><?= $text('account.adminHint') ?></p>
-                    <button type="button" class="account-dialog__button-primary" id="account-backup"
+                    <button type="button" class="account-dialog__button-secondary" id="account-backup"
                             data-i18n="account.backupSubmit"><?= $text('account.backupSubmit') ?></button>
                     <p class="account-dialog__note" id="account-backup-note" role="status" hidden></p>
                 </section>
