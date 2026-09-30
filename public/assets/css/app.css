@@ -623,6 +623,10 @@ img {
     transition: transform 200ms var(--ease), box-shadow 200ms var(--ease),
         background-color 200ms var(--ease);
 }
+.area-card[data-area-id="193"] {
+    opacity: 0.38;
+    filter: grayscale(1);
+}
 /* Bereichskachel · bei Zeigerkontakt · und Varianten */
 .area-card:hover,
 .area-card:focus-visible {
