@@ -2780,13 +2780,15 @@ body.is-learning {
 }
 /* Lernen-Zusammenfassung */
 .learn__summary {
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 22px;
-    padding: 30px 22px 50px;
+    gap: 16px;
+    width: min(640px, 100%);
+    margin: 0 auto;
+    padding: 24px 22px 36px;
     text-align: center;
 }
 /* Lernen-Titel der Zusammenfassung */
@@ -2802,13 +2804,15 @@ body.is-learning {
 .learn__summary-number {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: clamp(30px, 4vw, 52px);
+    font-size: 42px;
     font-weight: 300;
+    line-height: 1.1;
 }
 /* Lernen-linker Teil der Zusammenfassung */
 .learn__summary-left {
     margin: 0;
     font-size: 14px;
+    line-height: 1.4;
     color: var(--muted);
 }
 /* Lernen-Balken */
@@ -2824,9 +2828,10 @@ body.is-learning {
 /* Lernen-Balken */
 .learn__bar {
     display: grid;
-    grid-template-columns: 90px 1fr 40px;
+    grid-template-columns: 90px minmax(0, 1fr) 40px;
     align-items: center;
     gap: 12px;
+    min-height: 28px;
     font-size: 14px;
 }
 /* Lernen-Beschriftung des Balkens */
@@ -2836,7 +2841,7 @@ body.is-learning {
 }
 /* Lernen-Spur des Balkens */
 .learn__bar-track {
-    height: 8px;
+    height: 6px;
     border-radius: 999px;
     background-color: var(--line, rgba(0, 0, 0, 0.08));
     overflow: hidden;
@@ -2845,7 +2850,8 @@ body.is-learning {
 .learn__bar-fill {
     display: block;
     height: 100%;
-    width: var(--share, 0%);
+    width: 0;
+    max-width: 100%;
     border-radius: 999px;
     background-color: var(--text);
     transition: width 320ms var(--ease);
@@ -2854,10 +2860,16 @@ body.is-learning {
 .learn__bar--again .learn__bar-fill {
     background-color: var(--status-unsure);
 }
-/* Lernen-gefüllter Teil des Balkens · und Varianten */
-.learn__bar--good .learn__bar-fill,
-.learn__bar--easy .learn__bar-fill {
+.learn__bar--hard .learn__bar-fill {
+    background-color: color-mix(in srgb, var(--status-unsure) 68%, var(--panel));
+}
+/* Lernen-gefüllter Teil des Balkens: Gut */
+.learn__bar--good .learn__bar-fill {
     background-color: var(--status-known);
+}
+/* Lernen-gefüllter Teil des Balkens: Leicht */
+.learn__bar--easy .learn__bar-fill {
+    background-color: color-mix(in srgb, var(--status-known) 68%, var(--text));
 }
 /* Lernen-Zahl am Balken */
 .learn__bar-value {
@@ -2870,8 +2882,8 @@ body.is-learning {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
-    margin-top: 8px;
+    gap: 16px;
+    margin-top: 4px;
 }
 /* Lernen-Aktion */
 .learn__action {

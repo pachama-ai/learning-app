@@ -6375,6 +6375,7 @@
             position: learnSession.index + 1,
             total: learnSession.queue.length
         });
+        elements.learnCounter.hidden = false;
 
         var percent = Math.min(100, Math.round((learnSession.index / learnSession.queue.length) * 100));
         elements.learnProgressFill.style.width = percent + '%';
@@ -6765,7 +6766,8 @@
 
         elements.learnStage.hidden = true;
         elements.learnSummary.hidden = false;
-        elements.learnSummaryNumber.textContent = t('learn.done.known', { known: known, total: total });
+        elements.learnCounter.hidden = true;
+        elements.learnSummaryNumber.textContent = t('learn.done.practiced', { total: total });
 
         elements.learnSummaryBars.textContent = '';
 
@@ -6777,7 +6779,7 @@
             label.setAttribute('data-i18n', rating.labelKey);
             var track = el('span', 'learn__bar-track');
             var fill = el('span', 'learn__bar-fill');
-            fill.style.setProperty('--share', (counts[rating.name] / highest) * 100 + '%');
+            fill.style.width = (counts[rating.name] / highest) * 100 + '%';
             track.appendChild(fill);
             var value = el('span', 'learn__bar-value', String(counts[rating.name]));
             item.appendChild(label);
@@ -6792,8 +6794,10 @@
         }).length;
 
         elements.learnRepeat.hidden = difficult === 0;
-        elements.learnSummaryLeft.textContent = t('learn.done.left', { count: counts.again });
-        elements.learnSummaryLeft.hidden = counts.again === 0 && difficult === 0;
+        elements.learnSummaryLeft.textContent = known === 0
+            ? t('learn.done.left', { count: Math.max(0, total - known) })
+            : t('learn.done.known', { known: known });
+        elements.learnSummaryLeft.hidden = false;
 
         elements.learnFinish.focus();
     }

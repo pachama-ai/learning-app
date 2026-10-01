@@ -318,10 +318,11 @@ function learning_app_translations(): array
 
             // --- Das Ende einer Sitzung ---
             'learn.done.title' => 'Session finished',
-            'learn.done.known' => '{known} of {total} known',
+            'learn.done.practiced' => '{total} cards practiced',
+            'learn.done.known' => 'Of these, {known} felt secure.',
             'learn.done.repeat' => 'Repeat the difficult cards',
             'learn.done.finish' => 'Done',
-            'learn.done.left' => '{count} cards are still in the learning phase.',
+            'learn.done.left' => 'Keep going: {count} cards are still in the learning phase.',
 
             'language.en' => 'EN',
             'language.de' => 'DE',
@@ -864,10 +865,11 @@ function learning_app_translations(): array
 
             // --- Das Ende einer Sitzung ---
             'learn.done.title' => 'Sitzung beendet',
-            'learn.done.known' => '{known} von {total} gewusst',
+            'learn.done.practiced' => '{total} Karten geübt',
+            'learn.done.known' => 'Davon {known} sicher gewusst.',
             'learn.done.repeat' => 'Schwierige Karten wiederholen',
             'learn.done.finish' => 'Fertig',
-            'learn.done.left' => '{count} Karten sind noch in der Lernphase.',
+            'learn.done.left' => 'Weiter dran bleiben: {count} Karten sind noch in der Lernphase.',
 
             'language.de' => 'DE',
 
