@@ -823,10 +823,9 @@ function review_row_matches(array $row, array $expected): bool
  *   2. dann Karten, die nie gelernt wurden,
  *   3. und erst wenn diese beiden leer sind, die Karten, die noch nicht fällig sind.
  *
- * Eine Karte, die in beide Richtungen geübt werden soll, erscheint zweimal - einmal
- * vorn -> hinten und einmal hinten -> vorn. Die Richtung ist eine Eigenschaft der
- * Einheit und nicht der Karte: für sie wird nichts in die Datenbank geschrieben, und der
- * Fortschritt beider Durchgänge gehört zu derselben Karten-Id.
+ * Eine bidirektionale Karte erscheint pro Einheit genau einmal. Ihre Richtung wird beim
+ * Aufbau der Schlange zufällig gezogen und nicht gespeichert; ein neuer Sitzungsstart
+ * kann daher die andere Richtung wählen. Die Karten-Zählung bleibt davon unberührt.
  *
  * @param list<array<string, mixed>> $cards die Karten der Unterkategorie, wie die API sie auflistet
  * @param array<string, string> $statuses Karten-Id => "new" | "unsure" | "known"
@@ -868,6 +867,10 @@ function review_build_queue(array $cards, array $statuses, array $isDue, string 
         }
 
         $entries = review_directions_of($card, $status, $isDue[$cardId] ?? false);
+
+        if (($card['is_bidirectional'] ?? false) === true && count($entries) > 1) {
+            $entries = [$entries[random_int(0, count($entries) - 1)]];
+        }
 
         foreach ($entries as $entry) {
             if ($mode === 'difficult') {
