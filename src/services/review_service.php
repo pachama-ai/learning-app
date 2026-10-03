@@ -239,6 +239,36 @@ function review_branch_category_ids(PDO $pdo, int $categoryId, int $ownerUserId)
 }
 
 /**
+ * Die B1- bis C2-Vokabellisten, deren neue Karten pro Sitzung gemischt werden.
+ *
+ * @param list<int> $categoryIds Kategorien im aktuellen Lernzweig
+ * @return list<int>
+ */
+function review_randomized_new_category_ids(PDO $pdo, array $categoryIds, int $ownerUserId): array
+{
+    $ids = array_values(array_unique(array_filter(
+        array_map(static fn ($id): int => (int) $id, $categoryIds),
+        static fn (int $id): bool => $id > 0
+    )));
+
+    if ($ids === []) {
+        return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $statement = $pdo->prepare(
+        "SELECT id
+           FROM categories
+          WHERE owner_user_id = ?
+            AND id IN ($placeholders)
+            AND name IN ('B1 Vokabelliste', 'B2 Vokabelliste', 'C1 Vokabelliste', 'C2 Vokabelliste')"
+    );
+    $statement->execute(array_merge([$ownerUserId], $ids));
+
+    return array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/**
  * Die Karten einer oder mehrerer Kategorien, mit dem Fortschritt eines Kontos und dem
  * Text in der Sprache, die gezeigt werden soll.
  *
@@ -831,12 +861,21 @@ function review_row_matches(array $row, array $expected): bool
  * @param array<string, string> $statuses Karten-Id => "new" | "unsure" | "known"
  * @param array<int, bool> $isDue Karten-Id => ist die Karte gerade fällig
  * @param string $mode "all" oder "difficult"
+ * @param list<int> $randomizeNewCategoryIds Vokabelkategorien, deren neue Karten gemischt werden
  * @return array{queue: list<array<string, mixed>>, counts: array<string, int>}
  */
-function review_build_queue(array $cards, array $statuses, array $isDue, string $mode = 'all'): array
+function review_build_queue(
+    array $cards,
+    array $statuses,
+    array $isDue,
+    string $mode = 'all',
+    array $randomizeNewCategoryIds = []
+): array
 {
     $due = [];
     $fresh = [];
+    $randomizedFreshPositions = [];
+    $randomizedFreshEntries = [];
     $later = [];
     $counts = ['due' => 0, 'new' => 0, 'unsure' => 0, 'known' => 0, 'cards' => 0];
 
@@ -867,6 +906,8 @@ function review_build_queue(array $cards, array $statuses, array $isDue, string 
         }
 
         $entries = review_directions_of($card, $status, $isDue[$cardId] ?? false);
+        $randomizeNewCard = $status === 'new'
+            && in_array((int) ($card['category_id'] ?? 0), $randomizeNewCategoryIds, true);
 
         if (($card['is_bidirectional'] ?? false) === true && count($entries) > 1) {
             $entries = [$entries[random_int(0, count($entries) - 1)]];
@@ -879,12 +920,24 @@ function review_build_queue(array $cards, array $statuses, array $isDue, string 
             }
 
             if ($status === 'new') {
+                if ($randomizeNewCard) {
+                    $randomizedFreshPositions[] = count($fresh);
+                    $randomizedFreshEntries[] = $entry;
+                }
                 $fresh[] = $entry;
             } elseif (($isDue[$cardId] ?? false)) {
                 $due[] = $entry;
             } else {
                 $later[] = $entry;
             }
+        }
+    }
+
+    if (count($randomizedFreshEntries) > 1) {
+        shuffle($randomizedFreshEntries);
+
+        foreach ($randomizedFreshPositions as $index => $position) {
+            $fresh[$position] = $randomizedFreshEntries[$index];
         }
     }
 

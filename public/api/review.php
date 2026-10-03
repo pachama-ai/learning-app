@@ -217,6 +217,7 @@ try {
      * wie vorher.
      */
     $branchIds = review_branch_category_ids($pdo, $categoryId, $userId);
+    $randomizeNewCategoryIds = review_randomized_new_category_ids($pdo, $branchIds, $userId);
     $cards = review_cards_in_categories($pdo, $branchIds, $userId, optional_query_language());
     $summary = review_summarise_cards($cards);
 
@@ -231,7 +232,7 @@ try {
         $cardsForQueue[] = $card;
     }
 
-    $built = review_build_queue($cardsForQueue, $statuses, $isDue, $mode);
+    $built = review_build_queue($cardsForQueue, $statuses, $isDue, $mode, $randomizeNewCategoryIds);
 
     /*
      * Jeder Eintrag der Schlange trägt mit, was jede der vier Antworten mit seiner
