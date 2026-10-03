@@ -484,11 +484,17 @@
         dashDue: document.getElementById('dash-due-value'),
         dashKnown: document.getElementById('dash-known-value'),
         dashKnownFill: document.getElementById('dash-known-fill'),
+        dashKnownCount: document.getElementById('dash-known-count'),
         dashUnsure: document.getElementById('dash-unsure-value'),
         dashStreak: document.getElementById('dash-streak-value'),
         dashStreakNote: document.getElementById('dash-streak-note'),
         detailFigureCount: document.getElementById('detail-figure-count'),
         detailFigureCards: document.getElementById('detail-figure-cards'),
+        detailFigureKnown: document.getElementById('detail-figure-known'),
+        detailKnownCount: document.getElementById('detail-known-count'),
+        detailKnownLabel: document.getElementById('detail-known-label'),
+        detailSeparatorCards: document.getElementById('detail-separator-cards'),
+        detailSeparatorKnown: document.getElementById('detail-separator-known'),
         detailCardCount: document.getElementById('detail-card-count'),
         detailCardLabel: document.getElementById('detail-card-label'),
         statLabel: document.getElementById('detail-stat-label'),
@@ -2599,13 +2605,20 @@
      * Das Hauptwort richtet sich nach der Zahl, deshalb steht das Wort hier und nicht im
      * HTML-Teil.
      */
-    function renderFigures(count, oneKey, otherKey, cardCount) {
+    function renderFigures(count, oneKey, otherKey, cardCount, overallProgress) {
         var showMain = count > 0;
         var showCards = typeof cardCount === 'number' && cardCount > 0;
+        var showKnown = overallProgress !== null
+            && typeof overallProgress === 'object'
+            && overallProgress.total > 0
+            && overallProgress.hasProgress === true;
 
-        elements.detailStats.hidden = !showMain && !showCards;
+        elements.detailStats.hidden = !showMain && !showCards && !showKnown;
         elements.detailFigureCount.hidden = !showMain;
         elements.detailFigureCards.hidden = !showCards;
+        elements.detailFigureKnown.hidden = !showKnown;
+        elements.detailSeparatorCards.hidden = !(showMain && showCards);
+        elements.detailSeparatorKnown.hidden = !(showKnown && (showMain || showCards));
 
         if (showMain) {
             animateCount(elements.detailCount, count);
@@ -2616,6 +2629,53 @@
             elements.detailCardCount.textContent = String(cardCount);
             elements.detailCardLabel.textContent = t(cardCount === 1 ? 'tile.cards.one' : 'tile.cards.other');
         }
+
+        if (showKnown) {
+            elements.detailKnownCount.textContent = String(overallProgress.known);
+            elements.detailKnownLabel.textContent = t('dash.overallKnown');
+        }
+    }
+
+    function overallProgressForArea(areaId, areaChildren) {
+        var fallbackTotal = areaChildren.reduce(function (sum, child) {
+            return sum + (typeof child.card_count === 'number' ? child.card_count : 0);
+        }, 0);
+
+        if (bootstrapCache.hasUser !== true) {
+            return { total: fallbackTotal, known: 0, hasProgress: false };
+        }
+
+        var total = 0;
+        var known = 0;
+        var progress = 0;
+        var visited = {};
+
+        function includeCategory(categoryId) {
+            var key = String(categoryId);
+
+            if (visited[key] === true) {
+                return;
+            }
+
+            visited[key] = true;
+            var summary = bootstrapCache.summaries[key];
+
+            if (summary && typeof summary.total === 'number') {
+                total += summary.total;
+                known += summary.known || 0;
+                progress += (summary.known || 0) + (summary.unsure || 0);
+            }
+
+            (bootstrapCache.children[key] || []).forEach(function (child) {
+                includeCategory(child.id);
+            });
+        }
+
+        (bootstrapCache.children[String(areaId)] || []).forEach(function (child) {
+            includeCategory(child.id);
+        });
+
+        return { total: total > 0 ? total : fallbackTotal, known: known, hasProgress: progress > 0 };
     }
 
     /*
@@ -2645,8 +2705,11 @@
         var due = hasSummary ? (summary.due || 0) : 0;
 
         elements.dashDue.textContent = String(due);
-        elements.dashKnown.textContent = String(hasSummary ? (summary.known || 0) : 0);
+        var known = hasSummary ? (summary.known || 0) : 0;
+        elements.dashKnown.textContent = (total > 0 ? Math.round((known / total) * 100) : 0) + '%';
         elements.dashUnsure.textContent = String(hasSummary ? (summary.unsure || 0) : 0);
+        elements.dashKnownCount.textContent = String(known) + ' / ' + String(total);
+        elements.dashKnownCount.hidden = !hasSummary || total === 0;
 
         /*
          * Etwas zu tun oder nichts zu tun: solange Karten fällig sind, trägt die Zahl der
@@ -2659,7 +2722,7 @@
            Streifen unter der Zahl: "1 von 34" liest sich als Länge leichter. */
         elements.dashKnownFill.style.setProperty(
             '--share',
-            (total > 0 ? Math.round(((summary.known || 0) / total) * 100) : 0) + '%'
+            (total > 0 ? Math.round((known / total) * 100) : 0) + '%'
         );
 
         if (hasStreak && streak.available === true) {
@@ -2927,7 +2990,14 @@
                 children.length > 0
             );
 
-            renderFigures(children.length, 'tile.subcategories.one', 'tile.subcategories.other', currentEntryCards.length);
+            var overallProgress = overallProgressForArea(current.id, children);
+            renderFigures(
+                children.length,
+                'tile.subcategories.one',
+                'tile.subcategories.other',
+                overallProgress.total,
+                overallProgress
+            );
 
             elements.entryList.textContent = '';
 

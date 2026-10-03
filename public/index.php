@@ -681,6 +681,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             <div class="dash__track">
                                 <span class="dash__track-fill" id="dash-known-fill"></span>
                             </div>
+                            <p class="dash__note dash__known-count" id="dash-known-count" hidden></p>
                         </div>
 
                         <div class="dash__tile dash__tile--unsure">
@@ -702,7 +703,10 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     -->
                     <p class="detail__figures" id="detail-stats" hidden>
                         <span class="detail__figure" id="detail-figure-count"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
+                        <span class="detail__figure-separator" id="detail-separator-cards" aria-hidden="true" hidden>&#183;</span>
                         <span class="detail__figure" id="detail-figure-cards" hidden><span id="detail-card-count">0</span> <span id="detail-card-label"></span></span>
+                        <span class="detail__figure-separator" id="detail-separator-known" aria-hidden="true" hidden>&#183;</span>
+                        <span class="detail__figure" id="detail-figure-known" hidden><span id="detail-known-count">0</span> <span id="detail-known-label"></span></span>
                     </p>
 
                     <!--

@@ -971,6 +971,9 @@ img {
     font-size: 10.5px;
     line-height: 1.25;
 }
+.dash__known-count {
+    font-variant-numeric: tabular-nums;
+}
 /* Übersichtszahlen-Spur */
 .dash__track {
     height: 3px;
@@ -2187,12 +2190,26 @@ html.is-theme-switching::view-transition-old(root),
 /* Detailansicht-Zahlen */
 .detail__figures {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
+    flex-wrap: nowrap;
+    gap: 0 4px;
     margin-top: 20px;
     color: var(--muted);
     font-family: var(--font-sans);
-    font-size: 0.95rem;
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+}
+.detail__figures .detail__figure {
+    gap: 4px;
+    min-height: 24px;
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.detail__figure-separator {
+    color: var(--muted);
+    font-size: 0.9em;
 }
 /* Detailansicht-Zahl */
 .detail__figure {

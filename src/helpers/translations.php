@@ -55,6 +55,7 @@ function learning_app_translations(): array
                über sich selbst sagt. */
             'dash.due' => 'Ready to repeat',
             'dash.known' => 'Already sits',
+            'dash.overallKnown' => 'known',
             'dash.unsure' => 'Still unsure',
             'dash.streak' => 'Learned in a row (days)',
             'dash.streakNone' => 'Nothing counted yet',
@@ -609,6 +610,7 @@ function learning_app_translations(): array
                wird, über sich selbst sagt. */
             'dash.due' => 'Bereit zum Wiederholen',
             'dash.known' => 'Sitzt schon',
+            'dash.overallKnown' => 'gewusst',
             'dash.unsure' => 'Unsicher',
             'dash.streak' => 'In Folge gelernt (Tage)',
             'dash.streakNone' => 'Noch nichts gezählt',
