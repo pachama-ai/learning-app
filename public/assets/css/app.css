@@ -3785,24 +3785,67 @@ body.is-learning {
 .password-eye.is-on .password-eye__slash {
     opacity: 1;
 }
-/* Detailseite · Dialog-Feld · enthält · und Varianten */
+/*
+ * Der Anmeldedialog.
+ *
+ * Es ist derselbe Dialog wie für jede Karte und jede Kategorie; die Regeln hier greifen
+ * nur, solange seine beiden Felder darin stehen. Ein zweiter Dialog im Markup hieße,
+ * jeden Knopf und jede Prüfung doppelt zu pflegen - das :has() ist der billigere
+ * Unterschied.
+ *
+ * Die zwei Eingaben sind gleich breit: das Auge liegt ÜBER dem Passwortfeld und nimmt
+ * ihm deshalb keinen Platz weg. Vorher stand es daneben, und das Passwortfeld endete
+ * sichtbar früher als das Feld darüber.
+ */
 .dialog__field:has(#dialog-field-identifier),
 .dialog__field:has(#dialog-field-password) {
-    gap: 14px;
+    gap: 8px;
+    /* Der Abstand zwischen den Blöcken kommt aus der Liste, nicht aus jedem Feld. */
+    margin-bottom: 0;
 }
-/* Detailseite · Dialog-Eingabefeld · und Varianten */
+/* Beschriftung und Feld gehören zusammen: die Luft dazwischen steht am Feld. */
+.dialog__field:has(#dialog-field-identifier) .dialog__label,
+.dialog__field:has(#dialog-field-password) .dialog__label {
+    margin-bottom: 0;
+}
+/* Dialog-Eingabefeld · und Varianten */
 .dialog__field:has(#dialog-field-identifier) .dialog__input,
 .dialog__field:has(#dialog-field-password) .dialog__input {
     padding: 10px 0 15px;
 }
-/* Detailseite · Dialog-Felder · enthält */
+/* Die Zeile trägt das Feld; das Auge liegt darüber, deshalb braucht sie kein Raster. */
+.dialog__field:has(#dialog-field-password) .password-row {
+    position: relative;
+    align-items: stretch;
+    gap: 0;
+}
+/* Platz für das Auge, damit der eingetippte Text nicht darunter läuft. */
+.dialog__field:has(#dialog-field-password) .dialog__input {
+    padding-right: 44px;
+}
+/* Das Auge am rechten Rand des Feldes, auf derselben Höhe wie der Text. */
+.dialog__field:has(#dialog-field-password) .password-eye {
+    position: absolute;
+    right: 0;
+    bottom: 6px;
+    margin-bottom: 0;
+}
+/* Gleichmäßige Abstände: E-Mail, Passwort und der Verweis darunter. */
 .dialog__fields:has(#dialog-field-identifier) {
-    gap: 26px;
+    gap: 24px;
 }
 /* Wechsel zwischen Anmelden und Registrieren */
 .auth-switch {
     margin-top: 0;
     text-align: center;
+}
+/* Der Knopf schließt den Dialog ab: über die volle Breite der Felder, mit Luft darüber. */
+.dialog__form:has(#dialog-field-identifier) .dialog__actions {
+    padding-top: 22px;
+}
+.dialog__form:has(#dialog-field-identifier) .dialog__button--primary {
+    flex: 1 1 auto;
+    width: 100%;
 }
 /* wenn Bewegung unerwünscht ist */
 @media (prefers-reduced-motion: reduce) {
