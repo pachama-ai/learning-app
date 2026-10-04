@@ -8982,6 +8982,69 @@
 
     wireHeadActions();
 
+    /* ----------------------------------------------------------------------
+       Von selbst nachladen
+       ---------------------------------------------------------------------- */
+
+    /*
+     * Am Anfang holt die Seite ihre Daten in einer einzigen Antwort. Wer sie lange offen
+     * stehen lässt, sähe sonst für immer den Stand von damals. Deshalb wird nachgeladen,
+     * sobald die Daten älter als 15 Minuten sind.
+     *
+     * Der Weg ist derselbe wie beim Anmelden: Speicher fallenlassen, einmal neu erfragen,
+     * die offene Ansicht daraus zeichnen. Die Seite wird also NICHT neu geladen - ein
+     * laufender Ton, die Schriftrolle und die Einstellungen bleiben, wo sie sind.
+     */
+    var AUTO_REFRESH_MS = 15 * 60 * 1000;
+
+    /*
+     * Wann die Daten zu alt sind. Der Zeitpunkt wandert nur bei einem wirklich
+     * ausgeführten Nachladen weiter, ein übersprungener Versuch holt sich also gleich
+     * danach nach.
+     */
+    var autoRefreshDueAt = Date.now() + AUTO_REFRESH_MS;
+
+    /*
+     * Drei Gründe, in denen nicht nachgeladen wird:
+     *
+     * - Eine Lerneinheit: ihre Schlange entstand aus dem Zustand davor, und die Antworten
+     *   dieser Einheit gehören zu diesem Zustand. Während sie läuft, darf sich darunter
+     *   nichts ändern - die Einheit soll nie unterbrochen werden.
+     * - Ein offenes Formular: es gehört der Person, die gerade tippt, und hinter ihr darf
+     *   sich die Ansicht nicht neu aufbauen.
+     * - Ein Hintergrund-Tab: dort schaut niemand hin, die Anfrage wäre umsonst.
+     *
+     * In allen drei Fällen bleibt das Nachladen fällig und passiert danach - beim nächsten
+     * Takt oder sobald der Tab wieder sichtbar ist.
+     */
+    function autoRefreshNow() {
+        if (learnSession !== null || dialogKind !== null || document.hidden) {
+            return;
+        }
+
+        autoRefreshDueAt = Date.now() + AUTO_REFRESH_MS;
+
+        bootstrapDropAll();
+        loadBootstrap();
+        render();
+    }
+
+    /*
+     * Ein Takt von 30 Sekunden statt eines Weckers auf genau 15 Minuten: so bemerkt die
+     * Seite auch, dass der Tab im Hintergrund lag und die Zeit trotzdem vergangen ist. Die
+     * Prüfung selbst ist nur ein Zahlenvergleich.
+     */
+    function autoRefreshCheck() {
+        if (Date.now() >= autoRefreshDueAt) {
+            autoRefreshNow();
+        }
+    }
+
+    function wireAutoRefresh() {
+        window.setInterval(autoRefreshCheck, 30 * 1000);
+        document.addEventListener('visibilitychange', autoRefreshCheck);
+    }
+
     /*
      * Erst die gewählte Sprache, dann die erste Antwort - und beides, bevor die erste
      * Ansicht gebaut wird. Die Ansicht findet die Daten dann im Speicher, statt dasselbe
@@ -8993,6 +9056,7 @@
 
     init();
     wireNavigation();
+    wireAutoRefresh();
 
     /*
      * Sagt dem Ladebildschirm in index.php, dass die erste Antwort da ist und die
