@@ -30,8 +30,24 @@ declare(strict_types=1);
  *     php bin/import_cards_csv.php --owner=6 --area=English \
  *         --file=b1_vokabelliste.csv --file=b2_vokabelliste.csv --dry-run
  *
+ *     php bin/import_cards_csv.php --owner=6 --area=English \
+ *         --file=b2_vokabelliste_mit_beispielsaetzen.csv --expect=500 --replace --execute
+ *
  * Ein Lernbereich, den es noch nicht gibt, wird mit --create-area angelegt; seine
  * Zeichnung kommt aus --icon=<Pfad zu einer svg>.
+ *
+ * Zwei Trennzeichen: die Kopfzeile einer Datei entscheidet, ob sie mit Semikolon oder mit
+ * Komma getrennt ist. Die Dateien aus der Tabellenkalkulation kommen mit Semikolon, die
+ * älteren mit Komma - umgeschrieben werden muss deshalb keine.
+ *
+ * Eine Unterkategorie, die es unter diesem Bereich schon gibt, ist ein Hindernis: sie
+ * würde sonst ein zweites Mal angelegt, und dieselben Karten stünden doppelt da. Mit
+ * --replace wird stattdessen ihre vorhandene Zeile geleert und neu gefüllt.
+ *
+ * Der Lernfortschritt geht dabei nicht verloren: er wird vor dem Löschen gelesen und auf
+ * die neue Karte mit derselben deutschen Vorderseite wieder eingesetzt - dieselbe Karte,
+ * neuer Wortlaut. Passt eine Vorderseite nicht eindeutig, wird sie nicht übertragen, und
+ * der Lauf sagt am Ende, welche Zeile das betrifft.
  *
  * Mit --only-german werden die beiden englischen Spalten NICHT geschrieben: die Karten
  * sind dann reine deutsche Karten, und front_en/back_en bleiben NULL. Das ist für Dateien
@@ -66,11 +82,12 @@ const CARD_CSV_SAMPLES = 2;
    -------------------------------------------------------------------------- */
 
 /**
- * Liest --owner, --area, --file, --create-area, --icon, --expect, --dry-run und
+ * Liest --owner, --area, --file, --create-area, --icon, --expect, --replace, --dry-run und
  * --execute.
  *
  * @return array{owner: int, area: string, files: list<string>, createArea: bool,
- *     icon: string|null, expect: int|null, execute: bool}|null
+ *     icon: string|null, expect: int|null, execute: bool, onlyGerman: bool,
+ *     replace: bool}|null
  */
 function import_arguments(array $argv, string $projectRoot): ?array
 {
@@ -82,6 +99,7 @@ function import_arguments(array $argv, string $projectRoot): ?array
     $expect = null;
     $execute = false;
     $onlyGerman = false;
+    $replace = false;
     $modeGiven = false;
 
     foreach (array_slice($argv, 1) as $argument) {
@@ -125,6 +143,11 @@ function import_arguments(array $argv, string $projectRoot): ?array
 
         if ($argument === '--only-german') {
             $onlyGerman = true;
+            continue;
+        }
+
+        if ($argument === '--replace') {
+            $replace = true;
             continue;
         }
 
@@ -187,6 +210,7 @@ function import_arguments(array $argv, string $projectRoot): ?array
         'expect' => $expect,
         'execute' => $execute,
         'onlyGerman' => $onlyGerman,
+        'replace' => $replace,
     ];
 }
 
@@ -218,6 +242,7 @@ function import_print_usage(): void
     echo "Usage:\n";
     echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> --file=<path> [--file=<path> ...] --dry-run\n";
     echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> [--create-area --icon=<svg>] --file=<path> --execute\n";
+    echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> --file=<path> --replace --execute\n";
     echo "\n";
     echo "  --owner=<id>       the user the new subcategories belong to, required\n";
     echo "  --area=<name>      the learning area the cards go into, required\n";
@@ -225,6 +250,7 @@ function import_print_usage(): void
     echo "  --icon=<path>      the drawing of a new area (svg file)\n";
     echo "  --file=<path>      one CSV file, may be given several times\n";
     echo "  --only-german      write only the German columns; front_en/back_en stay empty\n";
+    echo "  --replace          clear a subcategory that already exists, then fill it again\n";
     echo "  --dry-run          read and report, write nothing (default)\n";
     echo "  --execute          really import, all of it or none of it\n";
     echo "\n";
@@ -248,12 +274,41 @@ function import_strip_bom(string $value): string
  * darf einen Zeilenumbruch enthalten, und zeitformen.csv tut das. Die Datei von Hand
  * aufzuteilen würde so eine Zeile in zwei reißen und die zweite Hälfte zu einer eigenen
  * Zeile machen - genau das ist beim ersten Lauf dieses Werkzeugs passiert.
+ *
+ * Das Trennzeichen kommt von außen, weil es je Datei verschieden ist.
+ *
+ * @param resource $handle
  */
-function import_read_record($handle): array|false
+function import_read_record($handle, string $delimiter): array|false
 {
-    $cells = fgetcsv($handle, 0, ',', '"', '');
+    $cells = fgetcsv($handle, 0, $delimiter, '"', '');
 
     return $cells === false ? false : array_map(static fn ($cell): string => (string) $cell, $cells);
+}
+
+/**
+ * Das Trennzeichen einer Datei, gelesen aus ihrer ersten Zeile.
+ *
+ * Ein Semikolon in der Kopfzeile kann nur das Trennzeichen sein: die acht Spaltennamen
+ * von CARD_CSV_COLUMNS tragen keines. Alles andere ist Komma, wie es die älteren Dateien
+ * haben.
+ */
+function import_delimiter(string $firstLine): string
+{
+    return strpos($firstLine, ';') !== false ? ';' : ',';
+}
+
+/**
+ * Der Schlüssel, über den eine Karte beim Ersetzen wiedererkannt wird.
+ *
+ * Es ist die deutsche Vorderseite: dieselbe Karte kann neu formuliert sein, das Wort, nach
+ * dem gefragt wird, bleibt aber dasselbe. Gross- und Kleinschreibung und Leerzeichen am
+ * Rand sollen dabei nicht zählen - ein neuer Satz am englischen Wort ändert die Vorderseite
+ * nicht.
+ */
+function import_progress_key(string $front): string
+{
+    return mb_strtolower(trim($front));
 }
 
 /**
@@ -273,7 +328,10 @@ function import_read_csv(string $path): array
         return $result;
     }
 
-    $header = import_read_record($handle);
+    $delimiter = import_delimiter((string) fgets($handle));
+    rewind($handle);
+
+    $header = import_read_record($handle, $delimiter);
 
     if ($header === false) {
         fclose($handle);
@@ -307,7 +365,7 @@ function import_read_csv(string $path): array
 
     $record = 0;
 
-    while (($cells = import_read_record($handle)) !== false) {
+    while (($cells = import_read_record($handle, $delimiter)) !== false) {
         $record++;
 
         /*
@@ -431,10 +489,14 @@ function import_print_file(array $file): void
 /**
  * Gibt eine geplante Unterkategorie aus: die Zahlen und ein paar Beispielzeilen.
  *
+ * $existingCards ist null, wenn die Unterkategorie noch nicht da ist; steht dort eine
+ * Zahl, wird sie mit --replace geleert. $existingProgress sagt, wie viele ihrer Karten
+ * dabei einen Fortschritt verlieren - die Zeilen hängen an den Karten und gehen mit.
+ *
  * Mit $onlyGerman werden die englischen Spalten als "-" gezeigt, weil sie auch nicht
  * geschrieben werden - der Plan zeigt, was die Datenbank bekommt.
  */
-function import_print_group(string $name, array $group, bool $exists, bool $onlyGerman = false): void
+function import_print_group(string $name, array $group, ?int $existingCards, ?int $existingProgress, bool $onlyGerman = false): void
 {
     $both = 0;
 
@@ -444,13 +506,20 @@ function import_print_group(string $name, array $group, bool $exists, bool $only
         }
     }
 
+    if ($existingCards === null) {
+        $state = 'new';
+    } else {
+        $state = 'EXISTING - ' . $existingCards . ' cards would be cleared, ' . $existingProgress
+            . ' of them with progress (carried over, a blocker without --replace)';
+    }
+
     printf(
         "  %-42s %5d cards  both directions: %-5d one direction: %-5d  %s\n",
         $name,
         count($group['rows']),
         $both,
         count($group['rows']) - $both,
-        $exists ? 'ALREADY THERE - a blocker' : 'new'
+        $state
     );
 
     foreach (array_slice($group['rows'], 0, CARD_CSV_SAMPLES) as $row) {
@@ -480,13 +549,49 @@ function import_print_group(string $name, array $group, bool $exists, bool $only
  * Die Transaktion hat der Aufrufer geöffnet. Alles, was schiefgehen kann, wirft, der
  * Aufrufer kann den ganzen Lauf also zurückrollen und die Datenbank bleibt, wie sie war.
  *
- * @return array{categories: int, cards: int}
+ * Steht ein Name in $existingIds, wird diese Zeile mit $replace geleert und wieder
+ * gefüllt, statt eine zweite Unterkategorie desselben Namens anzulegen. Ohne $replace
+ * wäre das ein Fehler, der Aufrufer hat ihn aber schon im Plan gemeldet.
+ *
+ * Der Fortschritt der alten Karten überlebt das Ersetzen: er wird vor dem Löschen gelesen
+ * und auf die neue Karte mit derselben deutschen Vorderseite wieder eingesetzt.
+ *
+ * @param array<string, int> $existingIds Unterkategorie-Name -> Id, unter diesem Bereich
+ * @return array{categories: int, cards: int, cleared: int, clearedCards: int,
+ *     carried: int, notCarried: list<string>}
  */
-function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bool $onlyGerman = false): array
+function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bool $onlyGerman = false, array $existingIds = [], bool $replace = false): array
 {
     $insertCategory = $pdo->prepare(
         'INSERT INTO categories (parent_id, name, name_en, name_de, owner_user_id)
          VALUES (:parent_id, :name, :name_en, :name_de, :owner_user_id)'
+    );
+
+    /* Die Karten einer Unterkategorie, die ersetzt wird. Ihre Fortschrittszeilen hängen an
+       ihnen (ON DELETE CASCADE) und verschwinden also mit - deshalb werden sie vorher
+       gelesen. */
+    $clearCards = $pdo->prepare('DELETE FROM cards WHERE category_id = :category_id');
+
+    /* Vor dem Löschen gezählt, damit der Lauf berichten kann, was er weggenommen hat. */
+    $countCards = $pdo->prepare('SELECT COUNT(*) FROM cards WHERE category_id = :category_id');
+
+    /* Die alten Karten mit ihrer deutschen Vorderseite: über sie wird der Fortschritt
+       nachher wiedererkannt. */
+    $readOldCards = $pdo->prepare('SELECT id, front FROM cards WHERE category_id = :category_id ORDER BY id');
+
+    $readOldProgress = $pdo->prepare(
+        'SELECT p.user_id, p.card_id, p.state, p.due_at, p.last_reviewed_at,
+                p.repetitions, p.lapses, p.stability, p.difficulty
+           FROM user_card_progress p JOIN cards k ON k.id = p.card_id
+          WHERE k.category_id = :category_id'
+    );
+
+    /* Und hier wieder eingesetzt, auf der neuen Karte: dieselben Werte, neue Karten-Id. */
+    $insertProgress = $pdo->prepare(
+        'INSERT INTO user_card_progress
+            (user_id, card_id, state, due_at, last_reviewed_at, repetitions, lapses, stability, difficulty)
+         VALUES
+            (:user_id, :card_id, :state, :due_at, :last_reviewed_at, :repetitions, :lapses, :stability, :difficulty)'
     );
 
     /*
@@ -503,22 +608,76 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
     );
 
     $categories = 0;
+    $cleared = 0;
+    $clearedCards = 0;
     $cards = 0;
+    $carried = 0;
+    $notCarried = [];
 
     foreach ($groups as $name => $group) {
-        /* name_de und name_en tragen denselben Namen: die Unterkategorie heißt in beiden
-           Sprachen gleich, und das tun die anderen Importe auch. */
-        $insertCategory->bindValue(':parent_id', $areaId, PDO::PARAM_INT);
-        $insertCategory->bindValue(':name', $name, PDO::PARAM_STR);
-        $insertCategory->bindValue(':name_en', $name, PDO::PARAM_STR);
-        $insertCategory->bindValue(':name_de', $name, PDO::PARAM_STR);
-        $insertCategory->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
-        $insertCategory->execute();
+        $existingId = $existingIds[$name] ?? null;
 
-        $categoryId = (int) $pdo->lastInsertId();
-        $categories++;
+        if ($existingId !== null && !$replace) {
+            throw new RuntimeException('"' . $name . '" already exists and --replace was not given');
+        }
+
+        /* Was beim Ersetzen mitwandert: je Fortschrittszeile die alte Vorderseite und die
+           Werte, die dazu gehören. Für eine neue Unterkategorie bleibt beides leer. */
+        $savedProgress = [];
+        $oldFrontCounts = [];
+        $newFrontCounts = [];
+        $newIdsByFront = [];
+
+        if ($existingId !== null) {
+            $countCards->bindValue(':category_id', $existingId, PDO::PARAM_INT);
+            $countCards->execute();
+            $clearedCards += (int) $countCards->fetchColumn();
+
+            /*
+             * Erst lesen, dann löschen: die Fortschrittszeilen hängen an den Karten und
+             * wären nach dem Löschen nicht mehr zu finden.
+             */
+            $readOldCards->bindValue(':category_id', $existingId, PDO::PARAM_INT);
+            $readOldCards->execute();
+            $oldCards = $readOldCards->fetchAll();
+
+            $frontOfCard = [];
+
+            foreach ($oldCards as $oldCard) {
+                $frontOfCard[(int) $oldCard['id']] = (string) $oldCard['front'];
+                $key = import_progress_key((string) $oldCard['front']);
+                $oldFrontCounts[$key] = ($oldFrontCounts[$key] ?? 0) + 1;
+            }
+
+            $readOldProgress->bindValue(':category_id', $existingId, PDO::PARAM_INT);
+            $readOldProgress->execute();
+
+            foreach ($readOldProgress->fetchAll() as $row) {
+                $savedProgress[] = ['front' => $frontOfCard[(int) $row['card_id']] ?? '', 'row' => $row];
+            }
+
+            $clearCards->bindValue(':category_id', $existingId, PDO::PARAM_INT);
+            $clearCards->execute();
+
+            $categoryId = $existingId;
+            $cleared++;
+        } else {
+            /* name_de und name_en tragen denselben Namen: die Unterkategorie heißt in beiden
+               Sprachen gleich, und das tun die anderen Importe auch. */
+            $insertCategory->bindValue(':parent_id', $areaId, PDO::PARAM_INT);
+            $insertCategory->bindValue(':name', $name, PDO::PARAM_STR);
+            $insertCategory->bindValue(':name_en', $name, PDO::PARAM_STR);
+            $insertCategory->bindValue(':name_de', $name, PDO::PARAM_STR);
+            $insertCategory->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+            $insertCategory->execute();
+
+            $categoryId = (int) $pdo->lastInsertId();
+            $categories++;
+        }
 
         foreach ($group['rows'] as $row) {
+            $key = import_progress_key($row['front']);
+            $newFrontCounts[$key] = ($newFrontCounts[$key] ?? 0) + 1;
             $insertCard->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
             $insertCard->bindValue(':front', $row['front'], PDO::PARAM_STR);
             $insertCard->bindValue(':back', $row['back'], PDO::PARAM_STR);
@@ -532,11 +691,49 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
             $insertCard->bindValue(':is_bidirectional', (int) $row['is_bidirectional'], PDO::PARAM_INT);
             $insertCard->execute();
 
+            $newIdsByFront[$key] = (int) $pdo->lastInsertId();
             $cards++;
+        }
+
+        /*
+         * Der Fortschritt auf die neuen Karten. Erkannt wird die Karte an ihrer deutschen
+         * Vorderseite. Kommt sie mehrfach vor (zwei Karten mit demselben Wort und
+         * verschiedener Übersetzung), wird lieber nichts übertragen als das Falsche - und
+         * der Lauf sagt, welche Zeile das betrifft.
+         */
+        foreach ($savedProgress as $saved) {
+            $key = import_progress_key($saved['front']);
+            $row = $saved['row'];
+
+            if (($oldFrontCounts[$key] ?? 0) !== 1 || ($newFrontCounts[$key] ?? 0) !== 1) {
+                $notCarried[] = $name . ': "' . $saved['front'] . '" kommt '
+                    . (($newFrontCounts[$key] ?? 0) === 0 ? 'in der neuen Liste nicht vor' : 'mehrfach vor');
+                continue;
+            }
+
+            $insertProgress->bindValue(':user_id', (int) $row['user_id'], PDO::PARAM_INT);
+            $insertProgress->bindValue(':card_id', $newIdsByFront[$key], PDO::PARAM_INT);
+            $insertProgress->bindValue(':state', (int) $row['state'], PDO::PARAM_INT);
+            $insertProgress->bindValue(':due_at', $row['due_at'], $row['due_at'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $insertProgress->bindValue(':last_reviewed_at', $row['last_reviewed_at'], $row['last_reviewed_at'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $insertProgress->bindValue(':repetitions', (int) $row['repetitions'], PDO::PARAM_INT);
+            $insertProgress->bindValue(':lapses', (int) $row['lapses'], PDO::PARAM_INT);
+            $insertProgress->bindValue(':stability', $row['stability'], $row['stability'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $insertProgress->bindValue(':difficulty', $row['difficulty'], $row['difficulty'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $insertProgress->execute();
+
+            $carried++;
         }
     }
 
-    return ['categories' => $categories, 'cards' => $cards];
+    return [
+        'categories' => $categories,
+        'cards' => $cards,
+        'cleared' => $cleared,
+        'clearedCards' => $clearedCards,
+        'carried' => $carried,
+        'notCarried' => $notCarried,
+    ];
 }
 
 /* --------------------------------------------------------------------------
@@ -646,25 +843,68 @@ function import_main(array $argv, string $projectRoot): int
         import_print_file($file);
     }
 
-    /* Welche der geplanten Unterkategorien schon unter diesem Bereich hängen? */
-    $existing = [];
+    /*
+     * Welche der geplanten Unterkategorien hängen schon unter diesem Bereich? Ihre Id
+     * wird gebraucht: mit --replace wird genau diese Zeile geleert und wieder gefüllt.
+     */
+    $existingIds = [];
+    $existingCards = [];
+    $existingProgress = [];
     $blockers = $grouping['problems'];
 
     if ($area !== null && $groups !== []) {
-        $check = $pdo->prepare('SELECT name FROM categories WHERE parent_id = :parent_id AND owner_user_id = :owner_user_id');
+        $check = $pdo->prepare('SELECT id, name FROM categories WHERE parent_id = :parent_id AND owner_user_id = :owner_user_id');
         $check->bindValue(':parent_id', (int) $area['id'], PDO::PARAM_INT);
         $check->bindValue(':owner_user_id', $options['owner'], PDO::PARAM_INT);
         $check->execute();
 
         foreach ($check as $row) {
-            $existing[(string) $row['name']] = true;
+            $existingIds[(string) $row['name']] = (int) $row['id'];
+        }
+
+        /*
+         * Was ein Ersetzen kostet, steht vorher im Plan: wie viele Karten gehen, und wie
+         * viele davon schon einen Fortschritt tragen. Diese Zeilen hängen an den Karten,
+         * sie verschwinden also mit ihnen - das soll niemand erst hinterher merken.
+         */
+        foreach (array_intersect_key($existingIds, $groups) as $name => $categoryId) {
+            /*
+             * Beide Zahlen als eigene Unterabfrage in einer Abfrage ohne FROM. Ein
+             * COUNT(*) mit einer korrelierten Unterabfrage daneben wäre falsch: MySQL
+             * nimmt dann für die zweite Spalte die Werte EINER beliebigen Zeile, und der
+             * Plan würde 38 Karten mit Fortschritt als "1" melden.
+             */
+            $costStatement = $pdo->prepare(
+                'SELECT (SELECT COUNT(*) FROM cards k WHERE k.category_id = :cards_id) AS cards,
+                        (SELECT COUNT(*) FROM user_card_progress p
+                           JOIN cards k ON k.id = p.card_id
+                          WHERE k.category_id = :progress_id) AS progress'
+            );
+            $costStatement->bindValue(':cards_id', $categoryId, PDO::PARAM_INT);
+            $costStatement->bindValue(':progress_id', $categoryId, PDO::PARAM_INT);
+            $costStatement->execute();
+            $cost = $costStatement->fetch();
+
+            $existingCards[$name] = (int) $cost['cards'];
+            $existingProgress[$name] = (int) $cost['progress'];
+
+            if (!$options['replace']) {
+                $blockers[] = 'the subcategory "' . $name . '" already exists (' . $existingCards[$name]
+                    . ' cards); use --replace to clear and refill it';
+            }
         }
     }
 
     echo "SUBCATEGORIES\n";
 
     foreach ($groups as $name => $group) {
-        import_print_group($name, $group, isset($existing[$name]), $options['onlyGerman']);
+        import_print_group(
+            $name,
+            $group,
+            $existingCards[$name] ?? null,
+            $existingProgress[$name] ?? null,
+            $options['onlyGerman']
+        );
     }
 
     $cards = 0;
@@ -674,7 +914,8 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     echo "\nTOTAL\n";
-    echo '  subcategories to create : ' . count($groups) . "\n";
+    echo '  subcategories to create : ' . (count($groups) - count(array_intersect_key($existingIds, $groups))) . "\n";
+    echo '  subcategories to refill : ' . count(array_intersect_key($existingIds, $groups)) . "\n";
     echo '  cards to create         : ' . $cards . "\n";
 
     foreach ($files as $file) {
@@ -727,7 +968,7 @@ function import_main(array $argv, string $projectRoot): int
             $areaId = (int) $area['id'];
         }
 
-        $written = import_write($pdo, $groups, $areaId, $options['owner'], $options['onlyGerman']);
+        $written = import_write($pdo, $groups, $areaId, $options['owner'], $options['onlyGerman'], $existingIds, $options['replace']);
 
         if ($written['cards'] !== $cards) {
             throw new RuntimeException('not every card was written (' . $written['cards'] . ' of ' . $cards . ')');
@@ -759,8 +1000,19 @@ function import_main(array $argv, string $projectRoot): int
     echo "\nIMPORT FINISHED\n";
     echo '  area created            : ' . ($area === null ? 'yes' : 'no, it was there') . "\n";
     echo '  subcategories created   : ' . $written['categories'] . "\n";
+    echo '  subcategories refilled  : ' . $written['cleared'] . "\n";
+    echo '  cards removed           : ' . $written['clearedCards'] . "\n";
     echo '  cards created           : ' . $written['cards'] . "\n";
+    echo '  progress carried over   : ' . $written['carried'] . "\n";
     echo '  cards in the area now   : ' . $inArea . "\n";
+
+    if ($written['notCarried'] !== []) {
+        echo "\nProgress that could not be carried over:\n";
+
+        foreach ($written['notCarried'] as $note) {
+            echo '  - ' . $note . "\n";
+        }
+    }
 
     return 0;
 }
