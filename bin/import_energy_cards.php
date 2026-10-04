@@ -5,16 +5,17 @@ declare(strict_types=1);
 /**
  * Import von Lernkarten aus einer CSV-Datei auf der Kommandozeile.
  *
- *   php bin/import_energy_cards.php --file=<Pfad> --dry-run
- *   php bin/import_energy_cards.php --file=<Pfad> \
- *        --execute --wipe-subcategories --expect=209
+ *   php bin/import_energy_cards.php --file=<Pfad> --owner=<id> --dry-run
+ *   php bin/import_energy_cards.php --file=<Pfad> --owner=<id> --area-id=<id> \
+ *        --execute --wipe-subcategories --expect=648
  *
  * Die Datei muss mit --file= benannt werden: eine Vorgabedatei gibt es nicht mehr,
  * weil die CSV-Dateien, die einmal in database/import/ lagen, weg sind (ihr Inhalt steht
  * in der Datenbank).
  *
- * Die Datei ist UTF-8 und mit Semikolon getrennt. Zwei Kopfzeilen werden angenommen, und
- * den nötigen Spalten dürfen zwei freiwillige folgen:
+ * Die Datei ist UTF-8 und mit Semikolon getrennt. Drei Kopfzeilen werden angenommen:
+ * die beiden mit parent_category und die Master-Form ohne diese Spalte, deren Ziel mit
+ * --area-id ausgewählt wird. Den nötigen Spalten dürfen zwei freiwillige folgen:
  *
  *   ...;is_bidirectional[;map_region][;exercise]
  *
@@ -39,6 +40,7 @@ declare(strict_types=1);
  * src/services/exercise_service.php.
  *
  *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional
+ *   subcategory;front_de;back_de;front_en;back_en;is_bidirectional
  *   parent_category;subcategory;front_de;back_de;front_en;back_en;is_bidirectional;map_region
  *
  * Eine Zeile muss mindestens eine vollständige Sprache tragen (Vorder- und Rückseite);
@@ -46,8 +48,8 @@ declare(strict_types=1);
  * leer oder "AREA:REGION", wobei AREA eines von DE, EU, WORLD ist - siehe das Muster
  * weiter unten.
  *
- * Den Lernbereich, den die Datei nennt, muss es schon geben: dieses Werkzeug legt keinen
- * an. Es legt die Unterkategorien der Datei unter diesem Bereich an.
+ * Den Lernbereich, den die Datei nennt oder dessen Id über --area-id kommt, muss es schon
+ * geben: dieses Werkzeug legt keinen an. Es legt die Unterkategorien der Datei darunter an.
  *
  * Was dieses Skript tut
  *
@@ -109,6 +111,9 @@ require_once $projectRoot . '/src/services/card_service.php';
 
 /** Die Kopfzeile ohne Karte, in genau dieser Reihenfolge. */
 const CSV_HEADER = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
+
+/** Die Kopfzeile einer Datei, deren Zielbereich mit --area-id angegeben wird. */
+const CSV_HEADER_WITHOUT_PARENT = ['subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
 /** Die Kopfzeile einer Datei, die zusätzlich eine Kartenregion trägt. */
 const CSV_HEADER_WITH_REGION = ['parent_category', 'subcategory', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional', 'map_region'];
@@ -174,10 +179,16 @@ function import_main(array $argv, string $projectRoot): int
         return 1;
     }
 
+    if (($csv['areas'] === []) !== ($options['areaId'] !== null)) {
+        echo "FILE ERROR: use --area-id only with a file that has no parent_category column.\n";
+
+        return 1;
+    }
+
     $problems = $csv['errors'];
 
     /* Die Zahl, die die bedienende Person für die Datei angibt. */
-    foreach (import_expectation_problems($csv, $options['expect']) as $problem) {
+    foreach (import_expectation_problems($csv, $options['expect'], $options['areaId'] !== null) as $problem) {
         $problems[] = ['line' => 0, 'message' => $problem];
     }
 
@@ -215,7 +226,7 @@ function import_main(array $argv, string $projectRoot): int
     echo 'Owner: id ' . $options['owner'] . "\n";
 
     try {
-        $state = import_read_state($pdo, $csv['areas'], $options['owner']);
+        $state = import_read_state($pdo, $csv['areas'], $options['owner'], $options['areaId']);
     } catch (Throwable $error) {
         echo 'DATABASE ERROR while reading: ' . $error->getMessage() . "\n";
 
@@ -224,7 +235,7 @@ function import_main(array $argv, string $projectRoot): int
 
     /* Genau ein Bereich muss zu dem Namen in der Datei passen. */
     $matches = $state['area_matches'];
-    $wantedArea = $csv['areas'] === [] ? '(none)' : $csv['areas'][0];
+    $wantedArea = $csv['areas'] === [] ? 'id ' . $options['areaId'] : $csv['areas'][0];
 
     if (count($matches) !== 1) {
         echo "STOP: the learning area \"$wantedArea\" from the file is "
@@ -350,12 +361,12 @@ function import_main(array $argv, string $projectRoot): int
    -------------------------------------------------------------------------- */
 
 /**
- * Liest --file, --owner, --dry-run, --execute, --wipe-subcategories,
+ * Liest --file, --owner, --area-id, --dry-run, --execute, --wipe-subcategories,
  * --allow-existing-subcategories und --expect.
  *
  * Ohne Modus liest das Werkzeug nur. Das Konto ist in jedem Modus nötig.
  *
- * @return array{file: string, owner: int, execute: bool, wipe: bool, reuse: bool, expect: int|null}|null
+ * @return array{file: string, owner: int, areaId: int|null, execute: bool, wipe: bool, reuse: bool, expect: int|null}|null
  */
 function import_read_arguments(array $argv, string $projectRoot): ?array
 {
@@ -365,6 +376,7 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
        gibt. */
     $file = null;
     $owner = null;
+    $areaId = null;
     $execute = false;
     $wipe = false;
     $reuse = false;
@@ -393,6 +405,18 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
             }
 
             echo "The value of --expect must be a positive whole number.\n";
+
+            return null;
+        }
+        if (strpos($argument, '--area-id=') === 0) {
+            $value = substr($argument, 10);
+
+            if (ctype_digit($value) && (int) $value > 0) {
+                $areaId = (int) $value;
+                continue;
+            }
+
+            echo "The value of --area-id must be a positive whole number.\n";
 
             return null;
         }
@@ -479,7 +503,7 @@ function import_read_arguments(array $argv, string $projectRoot): ?array
         return null;
     }
 
-    return ['file' => $real, 'owner' => $owner, 'execute' => $execute, 'wipe' => $wipe, 'reuse' => $reuse, 'expect' => $expect];
+    return ['file' => $real, 'owner' => $owner, 'areaId' => $areaId, 'execute' => $execute, 'wipe' => $wipe, 'reuse' => $reuse, 'expect' => $expect];
 }
 
 function import_print_usage(): void
@@ -487,9 +511,11 @@ function import_print_usage(): void
     echo "Usage:\n";
     echo "  php bin/import_energy_cards.php --file=<path> --owner=<id> --dry-run\n";
     echo "  php bin/import_energy_cards.php --file=<path> --owner=<id> --execute --expect=209 --wipe-subcategories\n";
+    echo "  php bin/import_energy_cards.php --file=<path> --owner=<id> --area-id=<id> --execute --expect=648 --wipe-subcategories\n";
     echo "\n";
     echo "  --file=...              the CSV file, required (there is no default file)\n";
     echo "  --owner=<id>            the user the new subcategories belong to, required\n";
+    echo "  --area-id=<id>          select the root category by id for files without parent_category\n";
     echo "  --dry-run               read and report, write nothing (default)\n";
     echo "  --execute               really import, all of it or none of it\n";
     echo "  --wipe-subcategories    delete the subcategories of the area in the file first\n";
@@ -570,14 +596,16 @@ function import_read_csv(string $path): array
 
     $header = array_map(static fn ($name): string => trim((string) $name), $header);
 
-    /*
-     * Vier Formen werden angenommen: mit und ohne die Spalte für die Kartenregion, und
-     * mit und ohne die Aufgaben-Spalte. Beide freiwilligen Spalten stehen am Ende.
-     */
+    /* Die Master-Datei hat keinen parent_category-Eintrag; ihr Ziel kommt über --area-id. */
+    $masterHeader = $header === CSV_HEADER_WITHOUT_PARENT;
     $hasRegion = in_array('map_region', $header, true);
     $hasExercise = in_array('exercise', $header, true);
 
-    if ($hasRegion && $hasExercise) {
+    if ($masterHeader) {
+        $expected = CSV_HEADER_WITHOUT_PARENT;
+        $hasRegion = false;
+        $hasExercise = false;
+    } elseif ($hasRegion && $hasExercise) {
         $expected = CSV_HEADER_WITH_REGION_AND_EXERCISE;
     } elseif ($hasRegion) {
         $expected = CSV_HEADER_WITH_REGION;
@@ -625,14 +653,15 @@ function import_read_csv(string $path): array
             continue;
         }
 
-        $parent = trim((string) $cells[0]);
-        $subcategory = (string) $cells[1];
-        $frontDe = (string) $cells[2];
-        $backDe = (string) $cells[3];
-        $frontEn = (string) $cells[4];
-        $backEn = (string) $cells[5];
-        $flag = trim((string) $cells[6]);
-        $region = $hasRegion ? trim((string) $cells[7]) : '';
+        $offset = $masterHeader ? 0 : 1;
+        $parent = $masterHeader ? '' : trim((string) $cells[0]);
+        $subcategory = (string) $cells[$offset];
+        $frontDe = (string) $cells[$offset + 1];
+        $backDe = (string) $cells[$offset + 2];
+        $frontEn = (string) $cells[$offset + 3];
+        $backEn = (string) $cells[$offset + 4];
+        $flag = trim((string) $cells[$offset + 5]);
+        $region = $hasRegion ? trim((string) $cells[$offset + 6]) : '';
 
         /* Die Aufgaben-Spalte, wo auch immer sie steht. */
         $exerciseCell = '';
@@ -648,10 +677,12 @@ function import_read_csv(string $path): array
             $errors[] = ['line' => $lineNumber, 'message' => $parsedExercise['error']];
         }
 
-        if ($parent === '') {
-            $errors[] = ['line' => $lineNumber, 'message' => 'parent_category is empty'];
-        } elseif (!isset($areas[mb_strtolower($parent)])) {
-            $areas[mb_strtolower($parent)] = $parent;
+        if (!$masterHeader) {
+            if ($parent === '') {
+                $errors[] = ['line' => $lineNumber, 'message' => 'parent_category is empty'];
+            } elseif (!isset($areas[mb_strtolower($parent)])) {
+                $areas[mb_strtolower($parent)] = $parent;
+            }
         }
 
         if (trim($subcategory) === '') {
@@ -806,7 +837,7 @@ function import_row_is_empty(array $cells): bool
  * @param array<string, mixed> $csv
  * @return list<string>
  */
-function import_expectation_problems(array $csv, ?int $expected): array
+function import_expectation_problems(array $csv, ?int $expected, bool $areaIdGiven = false): array
 {
     $problems = [];
     $total = count($csv['rows']);
@@ -819,7 +850,7 @@ function import_expectation_problems(array $csv, ?int $expected): array
         $problems[] = 'the file has ' . $total . ' cards, --expect says ' . $expected;
     }
 
-    if (count($csv['areas']) !== 1) {
+    if (!$areaIdGiven && count($csv['areas']) !== 1) {
         $problems[] = 'the file names ' . count($csv['areas']) . ' learning areas, this import needs exactly one';
     }
 
@@ -836,7 +867,7 @@ function import_expectation_problems(array $csv, ?int $expected): array
  * @param list<string> $wantedAreas Die Namen, die die Datei in parent_category benutzt.
  * @return array<string, mixed>
  */
-function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): array
+function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId, ?int $areaId = null): array
 {
     /*
      * Gelesen werden nur die Bereiche dieses Kontos. Zwei Konten dürfen jeder einen
@@ -852,20 +883,30 @@ function import_read_state(PDO $pdo, array $wantedAreas, int $ownerUserId): arra
     $areasStatement->execute();
     $areas = $areasStatement->fetchAll(PDO::FETCH_ASSOC);
 
-    /* Der Bereich, den die Datei nennt: name, name_de oder name_en, ohne Groß- und
-       Kleinschreibung. */
-    $wanted = array_map(static fn ($name): string => mb_strtolower(trim((string) $name)), $wantedAreas);
     $matches = [];
 
-    foreach ($areas as $area) {
-        foreach (['name', 'name_de', 'name_en'] as $column) {
-            if (!isset($area[$column]) || !is_string($area[$column])) {
-                continue;
-            }
-
-            if (in_array(mb_strtolower(trim($area[$column])), $wanted, true)) {
+    if ($areaId !== null) {
+        foreach ($areas as $area) {
+            if ((int) $area['id'] === $areaId) {
                 $matches[] = $area;
                 break;
+            }
+        }
+    } else {
+        /* Der Bereich, den die Datei nennt: name, name_de oder name_en, ohne Groß- und
+           Kleinschreibung. */
+        $wanted = array_map(static fn ($name): string => mb_strtolower(trim((string) $name)), $wantedAreas);
+
+        foreach ($areas as $area) {
+            foreach (['name', 'name_de', 'name_en'] as $column) {
+                if (!isset($area[$column]) || !is_string($area[$column])) {
+                    continue;
+                }
+
+                if (in_array(mb_strtolower(trim($area[$column])), $wanted, true)) {
+                    $matches[] = $area;
+                    break;
+                }
             }
         }
     }
@@ -1030,7 +1071,8 @@ function import_print_step_a(array $state, array $subcategories, array $area): v
 function import_print_step_b(array $area, array $csv, array $subcategories, array $state): void
 {
     echo "STEP B - import the file\n";
-    echo '  target area : "' . $area['name'] . '" (id ' . $area['id'] . ', found through the name in the file)' . "\n";
+    $selection = $csv['areas'] === [] ? 'selected by --area-id' : 'found through name in file';
+    echo '  target area : "' . $area['name'] . '" (id ' . $area['id'] . ', ' . $selection . ')' . "\n";
     echo '  cards in file: ' . count($csv['rows']) . "\n\n";
 
     echo "  subcategories, in the order of the file:\n";
