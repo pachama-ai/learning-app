@@ -11,7 +11,7 @@
 -- categories.icon_svg, die MEDIUMTEXT ist und nicht TEXT. Eine Datei, die nur
 -- die alten Migrationen zusammenfasst, waere beim Neuaufbau kaputt.
 --
--- Stand: 28. September 2026.
+-- Stand: 5. Oktober 2026.
 --
 -- NUR DIE STRUKTUR, KEINE INHALTE
 --
@@ -243,6 +243,40 @@ CREATE TABLE IF NOT EXISTS `card_exercises` (
   `range_max` int NOT NULL DEFAULT '20' COMMENT 'Highest number the task may be built from',
   PRIMARY KEY (`card_id`),
   CONSTRAINT `fk_exercises_card` FOREIGN KEY (`card_id`) REFERENCES `cards` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================================
+-- 7. card_variants - die Satzvarianten einer Karte
+--
+-- Manche Karten zeigen dieselbe Regel in mehreren Beispielsaetzen (Grammatik:
+-- eine Regel, fuenf Wege sie zu fragen). Eine Variante steht hier als eigene
+-- Zeile; eine Karte mit null Zeilen ist eine gewoehnliche Karte und wird genau
+-- wie vorher angezeigt.
+--
+-- Der Fortschritt haengt NICHT hier, sondern weiterhin an user_card_progress
+-- (user_id, card_id): gelernt wird die Karte, nicht der Satz.
+--
+-- Eindeutig ist (card_id, variant_number) und nicht variant_key, weil derselbe
+-- Schluessel bei jedem Konto wieder vorkommt, das eine eigene Kopie desselben
+-- Baums hat. Der eindeutige Schluessel faengt mit card_id an und ist damit
+-- gleichzeitig der Index des Fremdschluessels.
+--
+-- Angelegt wird sie mit database/card_variants.sql.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS `card_variants` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `card_id` int unsigned NOT NULL COMMENT 'Die Karte, deren Variante das ist',
+  `variant_number` tinyint unsigned NOT NULL COMMENT 'Die Nummer der Variante innerhalb der Karte, 1 bis n',
+  `variant_key` varchar(32) NOT NULL COMMENT 'Der Schluessel aus der Importdatei, etwa G001-V1',
+  `front_de` text DEFAULT NULL,
+  `back_de` text DEFAULT NULL,
+  `front_en` text DEFAULT NULL,
+  `back_en` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_card_variants_number` (`card_id`,`variant_number`),
+  CONSTRAINT `fk_variants_card` FOREIGN KEY (`card_id`) REFERENCES `cards` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
