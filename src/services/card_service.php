@@ -32,6 +32,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/exercise_service.php';
 require_once __DIR__ . '/category_service.php';
 require_once __DIR__ . '/../helpers/request_input.php';
+require_once __DIR__ . '/../helpers/session_variant.php';
 
 /** Längster Text, der für die Vorderseite oder die Rückseite einer Karte angenommen wird. */
 const CARD_MAX_TEXT_LENGTH = 2000;
@@ -1059,4 +1060,182 @@ function delete_cards_of_categories(PDO $pdo, array $categoryIds, int $ownerUser
     $statement->execute();
 
     return $statement->rowCount();
+}
+
+/* -------------------------------------------------------------------------
+   Die Varianten einer Karte
+   ------------------------------------------------------------------------- */
+
+/*
+ * Manche Karten zeigen dieselbe Regel als einen von mehreren Beispielsätzen (Grammatik).
+ * Die Sätze stehen in `card_variants`, null bis n Zeilen je Karte; eine Karte ohne solche
+ * Zeilen ist eine gewöhnliche Karte und wird genau wie vorher angezeigt.
+ *
+ * Der Lernfortschritt hängt weiterhin an der Karte (`user_card_progress.card_id`): gezeigt
+ * wird ein Satz, gelernt wird die Karte.
+ *
+ * Die Tabelle ist freiwillig, wie `card_exercises`: eine Installation ohne sie arbeitet
+ * genau wie vorher, es wird einmal je Anfrage nachgesehen.
+ */
+
+/** Die Spalten einer Variante. card_localized_text() braucht genau diese vier. */
+const CARD_VARIANT_COLUMNS = ['front_de', 'back_de', 'front_en', 'back_en'];
+
+/**
+ * Ob die Tabelle `card_variants` in dieser Datenbank existiert.
+ *
+ * Einmal je Anfrage gefragt und dann gemerkt, wie bei `card_exercises`.
+ */
+function card_variant_table_available(PDO $pdo): bool
+{
+    static $available = null;
+
+    if ($available === null) {
+        $statement = $pdo->prepare(
+            'SELECT COUNT(*) FROM information_schema.TABLES
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table'
+        );
+        $statement->bindValue(':table', 'card_variants', PDO::PARAM_STR);
+        $statement->execute();
+
+        $available = (int) $statement->fetchColumn() > 0;
+    }
+
+    return $available;
+}
+
+/**
+ * Die Varianten dieser Karten, nach Karten-Id gruppiert.
+ *
+ * EINE Abfrage für alle Karten und nicht eine je Karte: die Schlange einer Einheit kann
+ * hunderte Karten enthalten. Gelesen wird nur für die Karten, um die es gerade geht - die
+ * Tabelle wächst mit jeder Variante, die je importiert wurde, und die wird hier nicht
+ * mitgeschleppt.
+ *
+ * @param list<int> $cardIds
+ * @return array<int, list<array<string, mixed>>> Karten-Id -> Varianten in Nummernfolge
+ */
+function card_variants_of_cards(PDO $pdo, array $cardIds): array
+{
+    $ids = array_values(array_unique(array_filter($cardIds, static fn ($id) => (int) $id > 0)));
+
+    if ($ids === [] || !card_variant_table_available($pdo)) {
+        return [];
+    }
+
+    /* Jeder Platzhalter bekommt seinen eigenen Namen: eine Anweisung darf denselben Namen
+       nicht zweimal tragen. */
+    $placeholders = [];
+
+    foreach ($ids as $index => $id) {
+        $placeholders[] = ':variant_card_' . $index;
+    }
+
+    $statement = $pdo->prepare(
+        'SELECT id, card_id, variant_number, variant_key, front_de, back_de, front_en, back_en
+           FROM card_variants
+          WHERE card_id IN (' . implode(', ', $placeholders) . ')
+          ORDER BY card_id ASC, variant_number ASC'
+    );
+
+    foreach ($ids as $index => $id) {
+        $statement->bindValue(':variant_card_' . $index, $id, PDO::PARAM_INT);
+    }
+
+    $statement->execute();
+
+    $variants = [];
+
+    foreach ($statement->fetchAll() as $row) {
+        $variants[(int) $row['card_id']][] = $row;
+    }
+
+    return $variants;
+}
+
+/**
+ * Wählt eine Variante aus und merkt sie sich.
+ *
+ * Zufällig, aber nicht die, die zuletzt für diese Karte gezeigt wurde - sonst stünde
+ * zweimal hintereinander derselbe Satz da. Gemerkt wird in der Sitzung
+ * (src/helpers/session_variant.php), nicht im Fortschritt.
+ *
+ * @param list<array<string, mixed>> $variants
+ * @return array<string, mixed>|null null, wenn die Liste leer ist
+ */
+function card_pick_variant(array $variants, int $cardId): ?array
+{
+    if ($variants === []) {
+        return null;
+    }
+
+    $lastId = session_variant_last($cardId);
+    $candidates = [];
+
+    foreach ($variants as $variant) {
+        if ((int) $variant['id'] !== $lastId) {
+            $candidates[] = $variant;
+        }
+    }
+
+    /* Hat die Karte nur eine Variante, war sie die letzte und es bleibt nichts übrig. Dann
+       wird sie gezeigt, statt gar nichts zu zeigen. */
+    if ($candidates === []) {
+        $candidates = $variants;
+    }
+
+    /* shuffle() wie in review_build_queue(): dieselbe Art zu wählen, an beiden Stellen. */
+    shuffle($candidates);
+    $picked = $candidates[0];
+
+    session_variant_remember($cardId, (int) $picked['id']);
+
+    return $picked;
+}
+
+/**
+ * Ersetzt den Text der Karten durch den einer ihrer Varianten.
+ *
+ * Karten ohne Varianten bleiben, wie sie sind: das Variantensystem kommt nur dazu. Welche
+ * Sprache der Variante gezeigt wird, entscheidet dieselbe Regel wie bei einer Karte
+ * (card_localized_text) - es gibt also keine zweite Sprachverwaltung.
+ *
+ * @param list<array<string, mixed>> $cards Karten, wie normalize_card_row() sie liefert
+ * @return list<array<string, mixed>>
+ */
+function card_apply_variants(PDO $pdo, array $cards, string $language): array
+{
+    if ($cards === [] || !card_variant_table_available($pdo)) {
+        return $cards;
+    }
+
+    $variants = card_variants_of_cards($pdo, array_map(static fn (array $card): int => (int) $card['id'], $cards));
+
+    foreach ($cards as $index => $card) {
+        $list = $variants[(int) $card['id']] ?? [];
+        $picked = card_pick_variant($list, (int) $card['id']);
+
+        if ($picked === null) {
+            continue;
+        }
+
+        $localized = card_localized_text($picked, CARD_VARIANT_COLUMNS, $language);
+
+        $cards[$index]['front'] = $localized['front'];
+        $cards[$index]['back'] = $localized['back'];
+        $cards[$index]['language'] = $localized['language'];
+        $cards[$index]['missing_language'] = $localized['missing_language'];
+        /*
+         * Die Kennung der gezeigten Variante reist mit. Die Oberfläche muss sie nicht
+         * zeigen; sie macht "Variante 2 von 5" möglich, ohne dass das Lernen davon abhängt.
+         */
+        $cards[$index]['variant'] = [
+            'id' => (int) $picked['id'],
+            'number' => (int) $picked['variant_number'],
+            'count' => count($list),
+            'key' => (string) $picked['variant_key'],
+        ];
+    }
+
+    return $cards;
 }

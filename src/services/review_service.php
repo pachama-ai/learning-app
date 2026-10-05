@@ -372,7 +372,12 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
         $entries[] = $card;
     }
 
-    return $entries;
+    /*
+     * Eine Karte mit Varianten zeigt einen ihrer Beispielsätze statt ihres eigenen Textes -
+     * beim nächsten Mal einen anderen. Karten ohne Varianten bleiben unverändert, und welche
+     * Variante zufällig gewählt wurde, entscheidet card_service.php.
+     */
+    return card_apply_variants($pdo, $entries, $language);
 }
 
 /**
