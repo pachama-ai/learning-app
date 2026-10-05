@@ -54,6 +54,19 @@ declare(strict_types=1);
  * gedacht, deren "englische" Spalten noch einmal den deutschen Text tragen - ohne diese
  * Option sähen solche Karten in der Oberfläche wie englische Karten aus, während sie
  * Deutsch zeigen, und das ist schlimmer als eine leere Spalte.
+ *
+ * EINE DATEI MIT VARIANTEN
+ *
+ * Trägt eine Datei die drei Spalten source_card_number, variant und variant_key
+ * (CARD_CSV_VARIANT_COLUMNS), dann ist jede Zeile NICHT eine Karte, sondern eine
+ * Satzvariant derselben Karte. Alle Zeilen mit derselben source_card_number werden zu
+ * einer Karte zusammengefasst; die Varianten landen in `card_variants`, und der
+ * Lernfortschritt hängt weiter an der Karte. Die Karte selbst trägt den Text ihrer ersten
+ * Variante - sie ist damit auch dann eine gültige Karte, wenn die Varianten niemand liest.
+ *
+ * In einer solchen Datei entscheidet --category=<name> über die Unterkategorie. Die Spalte
+ * category der Datei wird dort nicht gelesen: eine Datei darf mehrere Regelgruppen
+ * enthalten, und die Karten sollen trotzdem zusammen in einer Kategorie liegen.
  */
 
 $projectRoot = dirname(__DIR__);
@@ -74,6 +87,14 @@ if (PHP_SAPI !== 'cli') {
 /** Die acht Spalten, die dieses Format hat, in der Reihenfolge, in der der Plan sie ausgibt. */
 const CARD_CSV_COLUMNS = ['category', 'front', 'back', 'front_de', 'back_de', 'front_en', 'back_en', 'is_bidirectional'];
 
+/**
+ * Die drei Spalten, die eine Datei mit Varianten zusätzlich trägt.
+ *
+ * Fehlen sie, ist jede Zeile eine eigene Karte wie bisher. Stehen sie da, gehören alle
+ * Zeilen mit derselben source_card_number zu EINER Karte: sie sind ihre Varianten.
+ */
+const CARD_CSV_VARIANT_COLUMNS = ['source_card_number', 'variant', 'variant_key'];
+
 /** Wie viele Beispielkarten der Plan je Unterkategorie zeigt. */
 const CARD_CSV_SAMPLES = 2;
 
@@ -82,17 +103,18 @@ const CARD_CSV_SAMPLES = 2;
    -------------------------------------------------------------------------- */
 
 /**
- * Liest --owner, --area, --file, --create-area, --icon, --expect, --replace, --dry-run und
- * --execute.
+ * Liest --owner, --area, --category, --file, --create-area, --icon, --expect, --replace,
+ * --dry-run und --execute.
  *
- * @return array{owner: int, area: string, files: list<string>, createArea: bool,
- *     icon: string|null, expect: int|null, execute: bool, onlyGerman: bool,
- *     replace: bool}|null
+ * @return array{owner: int, area: string, category: string|null, files: list<string>,
+ *     createArea: bool, icon: string|null, expect: int|null, execute: bool,
+ *     onlyGerman: bool, replace: bool}|null
  */
 function import_arguments(array $argv, string $projectRoot): ?array
 {
     $owner = null;
     $area = null;
+    $category = null;
     $files = [];
     $createArea = false;
     $icon = null;
@@ -116,6 +138,18 @@ function import_arguments(array $argv, string $projectRoot): ?array
 
             if ($area === '') {
                 echo "The value of --area must be a name.\n";
+
+                return null;
+            }
+
+            continue;
+        }
+
+        if (strpos($argument, '--category=') === 0) {
+            $category = trim(substr($argument, 11));
+
+            if ($category === '') {
+                echo "The value of --category must be a name.\n";
 
                 return null;
             }
@@ -204,6 +238,7 @@ function import_arguments(array $argv, string $projectRoot): ?array
     return [
         'owner' => $owner,
         'area' => $area,
+        'category' => $category,
         'files' => $files,
         'createArea' => $createArea,
         'icon' => $icon,
@@ -243,9 +278,11 @@ function import_print_usage(): void
     echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> --file=<path> [--file=<path> ...] --dry-run\n";
     echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> [--create-area --icon=<svg>] --file=<path> --execute\n";
     echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> --file=<path> --replace --execute\n";
+    echo "  php bin/import_cards_csv.php --owner=<id> --area=<name> --category=<name> --file=<path> --dry-run\n";
     echo "\n";
     echo "  --owner=<id>       the user the new subcategories belong to, required\n";
     echo "  --area=<name>      the learning area the cards go into, required\n";
+    echo "  --category=<name>  the one subcategory a file with variants goes into\n";
     echo "  --create-area      create that area when it does not exist yet\n";
     echo "  --icon=<path>      the drawing of a new area (svg file)\n";
     echo "  --file=<path>      one CSV file, may be given several times\n";
@@ -255,6 +292,8 @@ function import_print_usage(): void
     echo "  --execute          really import, all of it or none of it\n";
     echo "\n";
     echo "The format of every file is: " . implode(',', CARD_CSV_COLUMNS) . "\n";
+    echo "A file with variants carries " . implode(',', CARD_CSV_VARIANT_COLUMNS)
+        . " as well; then --category=<name> says where its cards go.\n";
 }
 
 /* --------------------------------------------------------------------------
@@ -312,13 +351,31 @@ function import_progress_key(string $front): string
 }
 
 /**
+ * Ob die Tabelle card_variants schon da ist.
+ *
+ * Gefragt wird über SHOW TABLES und nicht über einen Versuch: ein Schreibversuch auf eine
+ * fehlende Tabelle wäre ein Fehler mitten in der Transaktion, und der Plan soll ihn vorher
+ * nennen können.
+ */
+function import_variant_table_exists(PDO $pdo): bool
+{
+    $statement = $pdo->query("SHOW TABLES LIKE 'card_variants'");
+
+    return $statement !== false && $statement->fetchColumn() !== false;
+}
+
+/**
  * Liest eine Datei und prüft jede Zeile.
  *
- * @return array{name: string, rows: list<array<string, string>>, problems: list<string>, fatal: string|null}
+ * variantMode sagt, ob jede Zeile eine eigene Karte ist oder ob die Zeilen mit derselben
+ * source_card_number die Varianten einer Karte sind.
+ *
+ * @return array{name: string, rows: list<array<string, string>>, problems: list<string>,
+ *     fatal: string|null, variantMode: bool}
  */
 function import_read_csv(string $path): array
 {
-    $result = ['name' => basename($path), 'rows' => [], 'problems' => [], 'fatal' => null];
+    $result = ['name' => basename($path), 'rows' => [], 'problems' => [], 'fatal' => null, 'variantMode' => false];
 
     $handle = @fopen($path, 'rb');
 
@@ -363,6 +420,29 @@ function import_read_csv(string $path): array
         return $result;
     }
 
+    /*
+     * Trägt die Datei die drei Spalten einer Variantendatei, ist jede Zeile eine Variante
+     * und nicht eine Karte. Entweder alle drei oder keine: eine halbe Variantendatei wäre
+     * nicht zu deuten, denn ohne die Nummer wüsste niemand, was zu welcher Karte gehört.
+     */
+    $variantColumns = [];
+
+    foreach (CARD_CSV_VARIANT_COLUMNS as $column) {
+        if (isset($indexOf[$column])) {
+            $variantColumns[] = $column;
+        }
+    }
+
+    if ($variantColumns !== [] && count($variantColumns) !== count(CARD_CSV_VARIANT_COLUMNS)) {
+        fclose($handle);
+        $result['fatal'] = 'the file carries ' . implode(', ', $variantColumns)
+            . ', but a file with variants needs all of ' . implode(', ', CARD_CSV_VARIANT_COLUMNS);
+
+        return $result;
+    }
+
+    $result['variantMode'] = $variantColumns !== [];
+
     $record = 0;
 
     while (($cells = import_read_record($handle, $delimiter)) !== false) {
@@ -390,6 +470,12 @@ function import_read_csv(string $path): array
             $row['is_bidirectional'] = '0';
         }
 
+        if ($result['variantMode']) {
+            foreach (CARD_CSV_VARIANT_COLUMNS as $column) {
+                $row[$column] = trim((string) ($cells[$indexOf[$column]] ?? ''));
+            }
+        }
+
         if ($row['category'] === '') {
             $result['problems'][] = 'row ' . $number . ': the category is empty';
             continue;
@@ -403,6 +489,27 @@ function import_read_csv(string $path): array
         if ($row['is_bidirectional'] !== '0' && $row['is_bidirectional'] !== '1') {
             $result['problems'][] = 'row ' . $number . ': is_bidirectional is "' . $row['is_bidirectional'] . '", expected 0 or 1';
             continue;
+        }
+
+        if ($result['variantMode']) {
+            /* Ohne Kartennummer und Nummer wüsste niemand, wohin die Zeile gehört, und
+               eine leere Kennung würde zwei Zeilen unbemerkt zu einer machen. */
+            if (!ctype_digit($row['source_card_number']) || (int) $row['source_card_number'] < 1) {
+                $result['problems'][] = 'row ' . $number . ': source_card_number is "' . $row['source_card_number']
+                    . '", expected a positive whole number';
+                continue;
+            }
+
+            if (!ctype_digit($row['variant']) || (int) $row['variant'] < 1) {
+                $result['problems'][] = 'row ' . $number . ': variant is "' . $row['variant']
+                    . '", expected a positive whole number';
+                continue;
+            }
+
+            if ($row['variant_key'] === '') {
+                $result['problems'][] = 'row ' . $number . ': the variant_key is empty';
+                continue;
+            }
         }
 
         $result['rows'][] = $row;
@@ -462,6 +569,106 @@ function import_group_rows(array $files): array
     return ['groups' => $groups, 'problems' => $problems];
 }
 
+/**
+ * Fasst die Zeilen einer Variantendatei zu Karten zusammen.
+ *
+ * Alle Zeilen mit derselben source_card_number gehören zu EINER Karte. Die Karte bekommt
+ * den Text ihrer ersten Variante - damit steht sie auch dann für sich, wenn niemand die
+ * Varianten liest -, und ihre Varianten reisen als Liste mit, damit der Plan und das
+ * Schreiben sie sehen.
+ *
+ * Gemeldet wird, was sonst zwei gleiche Zeilen gäbe: ein variant_key, der zweimal
+ * vorkommt, eine Variantennummer, die innerhalb einer Karte zweimal vorkommt, und eine
+ * Nummerierung, die nicht bei 1 anfängt oder eine Lücke hat.
+ *
+ * @param list<array{name: string, rows: list<array<string, string>>, problems: list<string>, fatal: string|null}> $files
+ * @return array{groups: array<string, array{rows: list<array<string, mixed>>, files: list<string>}>, problems: list<string>}
+ */
+function import_group_variant_rows(array $files, string $categoryName): array
+{
+    $byNumber = [];
+    $problems = [];
+    $fileNames = [];
+    $keyLines = [];
+
+    foreach ($files as $file) {
+        foreach ($file['rows'] as $row) {
+            if (!in_array($file['name'], $fileNames, true)) {
+                $fileNames[] = $file['name'];
+            }
+
+            if (isset($keyLines[$row['variant_key']])) {
+                $problems[] = 'row ' . $row['line'] . ': the variant_key "' . $row['variant_key']
+                    . '" is already used in row ' . $keyLines[$row['variant_key']];
+                continue;
+            }
+
+            $keyLines[$row['variant_key']] = $row['line'];
+            $byNumber[(int) $row['source_card_number']][] = $row;
+        }
+    }
+
+    ksort($byNumber);
+
+    $cards = [];
+
+    foreach ($byNumber as $number => $rows) {
+        $byVariant = [];
+
+        foreach ($rows as $row) {
+            $variant = (int) $row['variant'];
+
+            if (isset($byVariant[$variant])) {
+                $problems[] = 'source_card_number ' . $number . ': the variant ' . $variant . ' comes twice (rows '
+                    . $byVariant[$variant]['line'] . ' and ' . $row['line'] . ')';
+                continue;
+            }
+
+            $byVariant[$variant] = $row;
+        }
+
+        ksort($byVariant);
+
+        if (array_keys($byVariant) !== range(1, count($byVariant))) {
+            $problems[] = 'source_card_number ' . $number . ': the variants are ' . implode(',', array_keys($byVariant))
+                . ', expected 1 up to n without a gap';
+            continue;
+        }
+
+        $first = $byVariant[1];
+        $variants = [];
+
+        foreach ($byVariant as $row) {
+            $variants[] = [
+                'variant_number' => (int) $row['variant'],
+                'variant_key' => $row['variant_key'],
+                'front_de' => $row['front_de'],
+                'back_de' => $row['back_de'],
+                'front_en' => $row['front_en'],
+                'back_en' => $row['back_en'],
+            ];
+        }
+
+        $cards[] = [
+            'line' => $first['line'],
+            'category' => $categoryName,
+            'front' => $first['front_de'],
+            'back' => $first['back_de'],
+            'front_de' => $first['front_de'],
+            'back_de' => $first['back_de'],
+            'front_en' => $first['front_en'],
+            'back_en' => $first['back_en'],
+            'is_bidirectional' => $first['is_bidirectional'],
+            'variants' => $variants,
+        ];
+    }
+
+    return [
+        'groups' => [$categoryName => ['rows' => $cards, 'files' => $fileNames]],
+        'problems' => $problems,
+    ];
+}
+
 /* --------------------------------------------------------------------------
    Der Plan
    -------------------------------------------------------------------------- */
@@ -487,11 +694,24 @@ function import_print_file(array $file): void
 }
 
 /**
- * Gibt eine geplante Unterkategorie aus: die Zahlen und ein paar Beispielzeilen.
+ * Wie eine geplante Unterkategorie im Plan dasteht.
  *
- * $existingCards ist null, wenn die Unterkategorie noch nicht da ist; steht dort eine
- * Zahl, wird sie mit --replace geleert. $existingProgress sagt, wie viele ihrer Karten
- * dabei einen Fortschritt verlieren - die Zeilen hängen an den Karten und gehen mit.
+ * $existingCards ist null, wenn sie noch nicht da ist; steht dort eine Zahl, würde sie mit
+ * --replace geleert. $existingProgress sagt, wie vielen ihrer Karten dabei der Fortschritt
+ * mitwandert - die Zeilen hängen an den Karten und gehen mit.
+ */
+function import_group_state(?int $existingCards, ?int $existingProgress): string
+{
+    if ($existingCards === null) {
+        return 'new';
+    }
+
+    return 'EXISTING - ' . $existingCards . ' cards would be cleared, ' . $existingProgress
+        . ' of them with progress (carried over, a blocker without --replace)';
+}
+
+/**
+ * Gibt eine geplante Unterkategorie aus: die Zahlen und ein paar Beispielzeilen.
  *
  * Mit $onlyGerman werden die englischen Spalten als "-" gezeigt, weil sie auch nicht
  * geschrieben werden - der Plan zeigt, was die Datenbank bekommt.
@@ -506,12 +726,7 @@ function import_print_group(string $name, array $group, ?int $existingCards, ?in
         }
     }
 
-    if ($existingCards === null) {
-        $state = 'new';
-    } else {
-        $state = 'EXISTING - ' . $existingCards . ' cards would be cleared, ' . $existingProgress
-            . ' of them with progress (carried over, a blocker without --replace)';
-    }
+    $state = import_group_state($existingCards, $existingProgress);
 
     printf(
         "  %-42s %5d cards  both directions: %-5d one direction: %-5d  %s\n",
@@ -539,6 +754,57 @@ function import_print_group(string $name, array $group, ?int $existingCards, ?in
     }
 }
 
+/**
+ * Gibt eine geplante Unterkategorie einer Variantendatei aus.
+ *
+ * Gezeigt wird die erste Variante von zwei Karten - die Sätze, um die es geht. Die Regel
+ * dahinter steht in keiner Spalte der Datei, sie lässt sich hier also nicht zeigen.
+ */
+function import_print_variant_group(string $name, array $group, ?int $existingCards, ?int $existingProgress): void
+{
+    $variants = 0;
+    $perCard = [];
+
+    foreach ($group['rows'] as $row) {
+        $count = count($row['variants'] ?? []);
+        $variants += $count;
+        $perCard[$count] = ($perCard[$count] ?? 0) + 1;
+    }
+
+    printf(
+        "  %-42s %5d cards  %5d variants  %s\n",
+        $name,
+        count($group['rows']),
+        $variants,
+        import_group_state($existingCards, $existingProgress)
+    );
+
+    foreach (array_slice($group['rows'], 0, CARD_CSV_SAMPLES) as $row) {
+        $first = $row['variants'][0] ?? null;
+
+        printf(
+            "      %-10s %s\n",
+            $first === null ? '-' : $first['variant_key'],
+            mb_substr($row['front'], 0, 58)
+        );
+    }
+
+    if (count($perCard) > 1) {
+        /* Nicht jede Karte hat gleich viele Varianten. Das ist erlaubt, soll aber auffallen. */
+        $parts = [];
+
+        foreach ($perCard as $count => $cards) {
+            $parts[] = $cards . ' cards with ' . $count;
+        }
+
+        echo '      variants per card: ' . implode(', ', $parts) . "\n";
+    }
+
+    if (count($group['rows']) > CARD_CSV_SAMPLES) {
+        echo '      ... and ' . (count($group['rows']) - CARD_CSV_SAMPLES) . " more\n";
+    }
+}
+
 /* --------------------------------------------------------------------------
    Schreiben
    -------------------------------------------------------------------------- */
@@ -556,9 +822,12 @@ function import_print_group(string $name, array $group, ?int $existingCards, ?in
  * Der Fortschritt der alten Karten überlebt das Ersetzen: er wird vor dem Löschen gelesen
  * und auf die neue Karte mit derselben deutschen Vorderseite wieder eingesetzt.
  *
+ * Trägt eine Zeile den Schlüssel "variants", werden diese Varianten gleich nach ihrer Karte
+ * geschrieben - in derselben Transaktion, also entweder alle oder keine.
+ *
  * @param array<string, int> $existingIds Unterkategorie-Name -> Id, unter diesem Bereich
  * @return array{categories: int, cards: int, cleared: int, clearedCards: int,
- *     carried: int, notCarried: list<string>}
+ *     carried: int, notCarried: list<string>, variants: int}
  */
 function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bool $onlyGerman = false, array $existingIds = [], bool $replace = false): array
 {
@@ -593,6 +862,27 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
          VALUES
             (:user_id, :card_id, :state, :due_at, :last_reviewed_at, :repetitions, :lapses, :stability, :difficulty)'
     );
+
+    /*
+     * Die Varianten. Die Anweisung wird nur vorbereitet, wenn wirklich welche zu schreiben
+     * sind: prepare() schickt den Satz zum Server, und fehlt die Tabelle, wäre schon das
+     * ein Fehler - eine Datei ohne Varianten braucht sie aber gar nicht.
+     */
+    $insertVariant = null;
+
+    foreach ($groups as $group) {
+        foreach ($group['rows'] as $row) {
+            if (($row['variants'] ?? []) !== []) {
+                $insertVariant = $pdo->prepare(
+                    'INSERT INTO card_variants (card_id, variant_number, variant_key, front_de, back_de, front_en, back_en)
+                     VALUES (:card_id, :variant_number, :variant_key, :front_de, :back_de, :front_en, :back_en)'
+                );
+                break 2;
+            }
+        }
+    }
+
+    $variantsWritten = 0;
 
     /*
      * Die acht Spalten der Datei, eine nach der anderen geschrieben. front/back sind das
@@ -691,8 +981,23 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
             $insertCard->bindValue(':is_bidirectional', (int) $row['is_bidirectional'], PDO::PARAM_INT);
             $insertCard->execute();
 
-            $newIdsByFront[$key] = (int) $pdo->lastInsertId();
+            $newCardId = (int) $pdo->lastInsertId();
+            $newIdsByFront[$key] = $newCardId;
             $cards++;
+
+            foreach ($row['variants'] ?? [] as $variant) {
+                $insertVariant->bindValue(':card_id', $newCardId, PDO::PARAM_INT);
+                $insertVariant->bindValue(':variant_number', $variant['variant_number'], PDO::PARAM_INT);
+                $insertVariant->bindValue(':variant_key', $variant['variant_key'], PDO::PARAM_STR);
+                $insertVariant->bindValue(':front_de', $variant['front_de'], PDO::PARAM_STR);
+                $insertVariant->bindValue(':back_de', $variant['back_de'], PDO::PARAM_STR);
+                /* Wie bei der Karte: mit --only-german bleiben die englischen Spalten leer. */
+                $insertVariant->bindValue(':front_en', $onlyGerman ? null : $variant['front_en'], $onlyGerman ? PDO::PARAM_NULL : PDO::PARAM_STR);
+                $insertVariant->bindValue(':back_en', $onlyGerman ? null : $variant['back_en'], $onlyGerman ? PDO::PARAM_NULL : PDO::PARAM_STR);
+                $insertVariant->execute();
+
+                $variantsWritten++;
+            }
         }
 
         /*
@@ -733,6 +1038,7 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
         'clearedCards' => $clearedCards,
         'carried' => $carried,
         'notCarried' => $notCarried,
+        'variants' => $variantsWritten,
     ];
 }
 
@@ -832,7 +1138,28 @@ function import_main(array $argv, string $projectRoot): int
         $files[] = import_read_csv($path);
     }
 
-    $grouping = import_group_rows($files);
+    /*
+     * Eine Variantendatei und eine gewöhnliche Datei im selben Lauf wären zwei Regeln in
+     * einem Befehl: die eine füllt eine genannte Unterkategorie, die andere bringt ihre
+     * Namen selbst mit. Das wird abgelehnt, statt es zu erraten.
+     */
+    $variantFiles = 0;
+
+    foreach ($files as $file) {
+        if ($file['variantMode']) {
+            $variantFiles++;
+        }
+    }
+
+    $variantMode = $variantFiles > 0;
+
+    echo "\nKind  : " . ($variantMode
+        ? 'cards with variants (every source_card_number is one card)'
+        : 'one card per row') . "\n";
+
+    $grouping = $variantMode
+        ? import_group_variant_rows($files, (string) $options['category'])
+        : import_group_rows($files);
     $groups = $grouping['groups'];
 
     echo "\n" . str_repeat('-', 78) . "\n";
@@ -898,25 +1225,37 @@ function import_main(array $argv, string $projectRoot): int
     echo "SUBCATEGORIES\n";
 
     foreach ($groups as $name => $group) {
-        import_print_group(
-            $name,
-            $group,
-            $existingCards[$name] ?? null,
-            $existingProgress[$name] ?? null,
-            $options['onlyGerman']
-        );
+        if ($variantMode) {
+            import_print_variant_group($name, $group, $existingCards[$name] ?? null, $existingProgress[$name] ?? null);
+            continue;
+        }
+
+        import_print_group($name, $group, $existingCards[$name] ?? null, $existingProgress[$name] ?? null, $options['onlyGerman']);
+    }
+
+    if ($variantMode) {
+        echo "\nNOTE: the category column of the file is not read here; --category decides.\n";
     }
 
     $cards = 0;
+    $variants = 0;
 
     foreach ($groups as $group) {
         $cards += count($group['rows']);
+
+        foreach ($group['rows'] as $row) {
+            $variants += count($row['variants'] ?? []);
+        }
     }
 
     echo "\nTOTAL\n";
     echo '  subcategories to create : ' . (count($groups) - count(array_intersect_key($existingIds, $groups))) . "\n";
     echo '  subcategories to refill : ' . count(array_intersect_key($existingIds, $groups)) . "\n";
     echo '  cards to create         : ' . $cards . "\n";
+
+    if ($variantMode) {
+        echo '  variants to create      : ' . $variants . "\n";
+    }
 
     foreach ($files as $file) {
         if ($file['fatal'] !== null) {
@@ -925,7 +1264,25 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     if ($options['expect'] !== null && $cards !== $options['expect']) {
-        $blockers[] = 'the files hold ' . $cards . ' cards, but --expect says ' . $options['expect'];
+        $blockers[] = 'the files hold ' . $cards . ' cards'
+            . ($variantMode ? ' (from ' . $variants . ' variant rows)' : '')
+            . ', but --expect says ' . $options['expect'];
+    }
+
+    if ($variantMode && $variantFiles !== count($files)) {
+        $blockers[] = 'some files carry variants and some do not; one run is one kind of file';
+    }
+
+    if ($variantMode && $options['category'] === null) {
+        $blockers[] = 'a file with variants needs --category=<name>: the one subcategory its cards go into';
+    }
+
+    if (!$variantMode && $options['category'] !== null) {
+        $blockers[] = '--category is only read for a file with variants; an ordinary file names its subcategories itself';
+    }
+
+    if ($variantMode && !import_variant_table_exists($pdo)) {
+        $blockers[] = 'the table card_variants does not exist; run database/card_variants.sql first';
     }
 
     if ($blockers !== []) {
@@ -974,6 +1331,10 @@ function import_main(array $argv, string $projectRoot): int
             throw new RuntimeException('not every card was written (' . $written['cards'] . ' of ' . $cards . ')');
         }
 
+        if ($written['variants'] !== $variants) {
+            throw new RuntimeException('not every variant was written (' . $written['variants'] . ' of ' . $variants . ')');
+        }
+
         /* Der Beweis, gelesen vor dem Festschreiben: die Zeilen sind wirklich da. */
         $countStatement = $pdo->prepare(
             'SELECT COUNT(*) FROM cards k JOIN categories c ON c.id = k.category_id
@@ -1003,14 +1364,23 @@ function import_main(array $argv, string $projectRoot): int
     echo '  subcategories refilled  : ' . $written['cleared'] . "\n";
     echo '  cards removed           : ' . $written['clearedCards'] . "\n";
     echo '  cards created           : ' . $written['cards'] . "\n";
+
+    if ($variantMode) {
+        echo '  variants created        : ' . $written['variants'] . "\n";
+    }
+
     echo '  progress carried over   : ' . $written['carried'] . "\n";
     echo '  cards in the area now   : ' . $inArea . "\n";
 
     if ($written['notCarried'] !== []) {
-        echo "\nProgress that could not be carried over:\n";
+        echo "\nProgress that could not be carried over (" . count($written['notCarried']) . "):\n";
 
-        foreach ($written['notCarried'] as $note) {
+        foreach (array_slice($written['notCarried'], 0, 10) as $note) {
             echo '  - ' . $note . "\n";
+        }
+
+        if (count($written['notCarried']) > 10) {
+            echo '  ... and ' . (count($written['notCarried']) - 10) . " more\n";
         }
     }
 
