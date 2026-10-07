@@ -220,8 +220,11 @@ Für diese Importe lagen die CSVs wieder im Projektstamm; gelesen hat sie
 `bin/import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen) oder
 `bin/import_energy_cards.php` (Karten unter einen Lernbereich). Nach dem Import sind
 sie – wie die alten – wieder **gelöscht** worden (Stand 7.10.2026): ihr Inhalt steht in
-der Datenbank, ihr Wortlaut in der Git-Historie. Wer eine Liste erneut einlesen will,
-legt die Datei einfach wieder daneben; beide Werkzeuge nehmen jeden Pfad.
+der Datenbank. Die Dateien zu B1–C2 und zur Grammatik liegen zusätzlich in der
+Git-Historie; die Datei mit den Karten „Atome, Teilchen & Elektrizität" wurde vor dem
+Löschen nie committet und steht nur noch in der Datenbank. Wer eine Liste erneut
+einlesen will, legt die Datei einfach wieder daneben; beide Werkzeuge nehmen jeden
+Pfad.
 
 | Datum | Was | Karten | Wohin |
 | --- | --- | ---: | --- |
