@@ -31,6 +31,10 @@ zwei Tabellen.
 - **Lernstand ansehen.** Neu, unsicher, gewusst, fällig und die Serie an Tagen.
 - **Suchen und filtern.** In der Kartenliste nach Text und nach Status.
 - **Hell und dunkel, Deutsch und Englisch.** Beides bleibt im Browser gespeichert.
+- **Satzbeispiele als Varianten.** Eine Karte kann mehrere Formulierungen derselben
+  Regel tragen (Grammatik: fünf Beispielsätze). Beim Lernen wird zufällig eine
+  gezeigt – möglichst nicht zweimal hintereinander dieselbe. Der Lernstand bleibt an
+  der Karte, nicht am Satz.
 - **Übungsaufgaben als Sonderfall.** Eine Karte kann statt einer festen Frage eine
   erzeugte Aufgabe sein (z. B. Einmaleins) – die Zahlen sind bei jeder Anzeige neu.
 
@@ -63,8 +67,8 @@ sonst gibt es einen Fehler.
 | `src/config/` | Die Datenbankverbindung. Zugangsdaten stehen in `.env`, nicht hier. |
 | `src/helpers/` | Kleine, zustandslose Funktionen (Umgebungsvariablen, Antworten, Übersetzungen, Sitzung). |
 | `src/services/` | Die Fachlogik und **alle** SQL-Abfragen. |
-| `database/` | `schema.sql` – der Aufbau der Datenbank. |
-| `bin/` | Drei Skripte fürs Terminal, die die CSV-Dateien einmal eingelesen haben (die Dateien sind gelöscht, ihr Inhalt steht in der Datenbank). |
+| `database/` | `schema.sql` – der Aufbau der Datenbank. Dazu Skripte, die von Hand ausgeführt werden: `card_variants.sql` (die Tabelle der Satzbeispiele) und Änderungen an Inhalten, etwa die englischen Kategorienamen. |
+| `bin/` | Drei Skripte fürs Terminal, die CSV-Dateien einlesen: `import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen), `import_energy_cards.php` (Karten unter einen Lernbereich), `import_english_csv.php` (der English-Baum). |
 | `docs/` | Diese Datei. |
 
 Nur `public/` ist über den Webserver erreichbar. `src/` liegt daneben, damit
@@ -74,18 +78,19 @@ Endpunkten.
 
 ## 5. Die Datenbank
 
-Sechs Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
+Sieben Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 
 | Tabelle | Zeilen | Inhalt |
 | --- | ---: | --- |
-| `users` | 1 | die Konten |
-| `categories` | 61 | 5 Lernbereiche und 56 Unterkategorien, alle mit Besitzer |
-| `cards` | 3772 | die Karten; 100 mit Landkarte, 84 nur auf Deutsch |
-| `user_card_progress` | 55 | eine Zeile je Nutzer und Karte – der Lernstand |
-| `study_sessions` | 7 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
+| `users` | 2 | die Konten |
+| `categories` | 88 | 8 Lernbereiche und 80 Unterkategorien, alle mit Besitzer |
+| `cards` | 7859 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
+| `card_variants` | 1500 | die Satzbeispiele einer Karte, 0 bis n je Karte |
+| `user_card_progress` | 115 | eine Zeile je Nutzer und Karte – der Lernstand |
+| `study_sessions` | 21 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
 | `card_exercises` | 39 | die Übungsaufgabe einer Karte, höchstens eine pro Karte |
 
-(Zahlen vom 28.09.2026.)
+(Zahlen vom 7.10.2026.)
 
 Ein paar Eigenheiten, die man wissen sollte:
 
@@ -102,6 +107,14 @@ Ein paar Eigenheiten, die man wissen sollte:
   Konto oder eine Karte gelöscht, geht der Lernstand mit – das ist gewollt.
 - `study_sessions.category_id` ist `ON DELETE SET NULL`: wird die Unterkategorie
   gelöscht, bleibt die Runde für die Serie erhalten.
+- `card_variants.card_id` ist `ON DELETE CASCADE`: wird eine Karte gelöscht (etwa
+  beim Ersetzen einer Liste), verschwinden ihre Satzbeispiele mit.
+- In `card_variants` ist `(card_id, variant_number)` eindeutig und **nicht**
+  `variant_key`: derselbe Schlüssel („G001-V1") kommt bei jedem Konto wieder vor, das
+  eine eigene Kopie derselben Liste hat.
+- Der Lernfortschritt hängt **nicht** an einer Variante. Es gibt in
+  `user_card_progress` bewusst keine Spalte dafür: gelernt wird die Karte, nicht der
+  Satz. Gezeigt wird ein Beispielsatz, gezählt wird die Karte.
 
 Bis zum 28.09.2026 lag neben `schema.sql` eine SQL-Datei je Schritt: Kategorien
 anlegen, Inhalts- und Sprachspalten, Konten, Besitzer, Lernsitzungen, Aufgaben,
@@ -176,8 +189,8 @@ sind es ganz normale Karten, die sich wie jede andere bearbeiten lassen.
 
 Damit die Löschung keine Lücke ist, wurde nachgezählt: die 500 Vokabeln je Niveau
 (B1 bis C2), 400 Energie-Fachbegriffe, 200 Redewendungen, 162 unregelmäßige Verben
-und 54 Zeitformen füllen genau die acht Unterkategorien des Bereichs „English"
-(2816 Karten), und die sieben Informatik-Listen bilden genau die sieben
+und 54 Zeitformen füllten damals genau die acht Unterkategorien des Bereichs
+„English" (2816 Karten), und die sieben Informatik-Listen bildeten genau die sieben
 Unterkategorien von „Informatik" (172 Karten).
 
 Wie die Dateien hießen, steht hier, weil es zeigt, woher die Themen kommen. Acht
@@ -195,13 +208,31 @@ also nicht zwei Versionen desselben Inhalts, sondern zwei Schritte eines Weges:
 Dazu kamen sieben Dateien, die schon im Importformat waren: Betriebssysteme, SQL,
 Excel, Datenbanken, Git, Linux und Hardware/Netzwerke.
 
-Gelesen hat sie damals `bin/`. Diese Skripte können ohne die Dateien nicht mehr
-laufen – das ist in Ordnung, sie waren einmalige Werkzeuge. Neue Karten kommen über
-den Import-Dialog in der Anwendung; der nimmt jede CSV mit der Kopfzeile
+Gelesen hat sie damals `bin/`. Später sind diese Werkzeuge wieder in Gebrauch
+gekommen – siehe unten. Neue Karten kommen außerdem über den Import-Dialog in der
+Anwendung; der nimmt jede CSV mit der Kopfzeile
 `front_de;back_de;front_en;back_en;is_bidirectional`. Eine Beispieldatei dafür
 liegt weiterhin unter `public/assets/samples/`.
 
-Nicht alles ist zweisprachig: 31 der 61 Kategorien haben kein `name_en`, und 84
+### Was ab dem 3.10.2026 dazukam
+
+Für diese Importe lagen die CSVs wieder im Projektstamm; gelesen hat sie
+`bin/import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen) oder
+`bin/import_energy_cards.php` (Karten unter einen Lernbereich). Nach dem Import sind
+sie – wie die alten – wieder **gelöscht** worden (Stand 7.10.2026): ihr Inhalt steht in
+der Datenbank, ihr Wortlaut in der Git-Historie. Wer eine Liste erneut einlesen will,
+legt die Datei einfach wieder daneben; beide Werkzeuge nehmen jeden Pfad.
+
+| Datum | Was | Karten | Wohin |
+| --- | --- | ---: | --- |
+| 3.10. | Energie-Ergänzungen: Elektrik, Transformatoren | 8 | `Energiegrundlagen & Energiewende` |
+| 4.10. | B1–C2 mit Beispielsätzen (ersetzt die alten Listen, beide Konten) | 4000 | `English` |
+| 5.10. | Grammatik mit je fünf Satzvarianten (beide Konten) | 300 | `English Grammar` (neu) |
+| 5.10. | Elektrotechnik-Grundlagen: Blindleistung, Skin-Effekt, Transformator, Konverter, Generator | 5 | `Energiegrundlagen & Energiewende` |
+| 5.10. | Antwort zur Leistungselektronik umgeschrieben | 1 geändert | `Energiegrundlagen & Energiewende` |
+| 6.10. | Atome, Teilchen & Elektrizität | 39 | neue Unterkategorie in `Energy` |
+
+Nicht alles ist zweisprachig: 9 der 88 Kategorien haben kein `name_en`, und 284
 Karten haben keinen englischen Text. Die App fällt dann auf den deutschen Text
 zurück (`NULL` heißt „nimm `name`") und markiert solche Karten mit „nur Deutsch".
 Das ist so gewollt, es fehlt einfach noch die Übersetzung.
@@ -210,6 +241,23 @@ Das ist so gewollt, es fehlt einfach noch die Übersetzung.
 
 Nichts davon ist kaputt, und nichts davon wird ohne Rückfrage geändert. Es steht
 hier, damit sich niemand wundert.
+
+**Zwei Bäume namens „Energy"**
+
+Nutzer 6 hat zwei Lernbereiche „Energy": den aktiven (id 3, fünf Unterkategorien) und
+eine ältere Kopie (id 193, 15 Unterkategorien, 436 Karten). Die Kachel der Kopie ist
+über `.area-card[data-area-id="193"]` in `app.css` ausgegraut (`opacity: 0.38`,
+`filter: grayscale(1)`). Die Kopie wurde bewusst behalten und nicht gelöscht – in ihr
+wird nicht gelernt.
+
+**Irreführende Ausgabe im Energie-Import**
+
+`bin/import_energy_cards.php` zeigt in seinem Plan immer einen Block „STEP A – delete
+the subcategories of the target area" samt der Zahl der Karten, die dabei verschwänden.
+Gelöscht wird aber ausschließlich mit `--wipe-subcategories`: die einzigen
+`DELETE`-Anweisungen des Skripts stehen hinter `if ($wipe)`. Ohne den Schalter ist der
+Block eine Auskunft und keine Ankündigung – der Lauf selbst meldet dann
+„cards deleted: 0". Wer den Text schärfen will, findet ihn in `import_print_step_a()`.
 
 **Spalten, die niemand liest**
 
