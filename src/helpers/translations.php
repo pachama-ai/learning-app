@@ -43,6 +43,16 @@ function learning_app_translations(): array
             'tile.subcategories.other' => 'subcategories',
             'tile.cards.one' => 'card',
             'tile.cards.other' => 'cards',
+            /*
+             * Die Zahlenzeile einer offenen Kartenliste. Zwei Zahlen darin zählen Karten:
+             * die eine die Liste dieser Seite, die andere das ganze Themengebiet, zu dem sie
+             * gehört. Beide heißen ohne Zusatz "cards" ("316 cards · 685 cards"), und
+             * niemand weiß dann, welche welche ist. Darum die beiden Zusätze.
+             */
+            'detail.cardsThisDeck.one' => 'card in this deck',
+            'detail.cardsThisDeck.other' => 'cards in this deck',
+            'detail.cardsWholeDeck.one' => 'card in the whole learning area',
+            'detail.cardsWholeDeck.other' => 'cards in the whole learning area',
             /* Steht in einer Kachel, solange noch nichts in der Kategorie liegt. */
             'tile.subcategories.none' => 'No subcategories yet',
 
@@ -90,6 +100,9 @@ function learning_app_translations(): array
             'action.edit' => 'Edit',
             'action.delete' => 'Delete',
             'action.more' => 'More actions for {name}',
+            'action.select' => 'Select',
+            'action.selectAll' => 'Select all',
+            'action.selectItem' => 'Select {name}',
 
             // --- Formular für eine Kategorie (Themengebiet oder Unterkategorie) ---
             'dialog.category.createArea' => 'Add learning area',
@@ -117,6 +130,14 @@ function learning_app_translations(): array
             // --- Löschbestätigung ---
             'dialog.delete.title' => 'Delete "{name}"?',
             'dialog.delete.consequence' => 'This also deletes {parts} - permanently.',
+            'dialog.deleteMany.titleOne' => 'Delete this subcategory?',
+            'dialog.deleteMany.titleOther' => 'Delete {count} subcategories?',
+            'dialog.deleteMany.message' => 'You are about to delete {categories} with {cards} in total. The related learning progress will be removed as well.',
+            'dialog.deleteMany.submit' => 'Delete permanently',
+            'dialog.deleteMany.categoryOne' => '1 subcategory',
+            'dialog.deleteMany.categoryOther' => '{count} subcategories',
+            'dialog.deleteMany.cardOne' => '1 flashcard',
+            'dialog.deleteMany.cardOther' => '{count} flashcards',
             'dialog.delete.nothingBelow' => 'Nothing sits below it, so only this entry is removed.',
             'dialog.delete.subcategories.one' => '1 subcategory',
             'dialog.delete.subcategories.other' => '{count} subcategories',
@@ -169,6 +190,7 @@ function learning_app_translations(): array
             'home.welcome.title' => 'Your card box is waiting for you',
             'home.welcome.hint' => 'Create your own learning areas and cards, and learn them with repetition.',
             'feedback.deleted' => '{name} was deleted.',
+            'feedback.deletedMany' => '{count} subcategories were deleted.',
             'dialog.errorDelete' => 'The entry could not be deleted.',
 
             'state.loading' => 'Loading learning areas …',            'state.error' => 'The learning areas could not be loaded. Please try again later.',
@@ -295,6 +317,9 @@ function learning_app_translations(): array
             'learn.question' => 'Question',
             'learn.answer' => 'Answer',
             'learn.flipHint' => 'Tap to flip, or press the space bar',
+            'learn.cardLanguageLabel' => 'Card language',
+            'learn.cardLanguageDe' => 'Show this card in German',
+            'learn.cardLanguageEn' => 'Show this card in English',
             'learn.ratingLabel' => 'How well did you know it?',
             'learn.again' => 'Again',
             'learn.hard' => 'Hard',
@@ -597,6 +622,16 @@ function learning_app_translations(): array
             'tile.subcategories.other' => 'Unterkategorien',
             'tile.cards.one' => 'Karte',
             'tile.cards.other' => 'Karten',
+            /*
+             * Die Zahlenzeile einer offenen Kartenliste. Zwei Zahlen darin zählen Karten:
+             * die eine die Liste dieser Seite, die andere das ganze Themengebiet, zu dem sie
+             * gehört. Beide heißen ohne Zusatz "Karten" ("316 Karten · 685 Karten"), und
+             * niemand weiß dann, welche welche ist. Darum die beiden Zusätze.
+             */
+            'detail.cardsThisDeck.one' => 'Karte in diesem Deck',
+            'detail.cardsThisDeck.other' => 'Karten in diesem Deck',
+            'detail.cardsWholeDeck.one' => 'Karte im ganzen Themengebiet',
+            'detail.cardsWholeDeck.other' => 'Karten im ganzen Themengebiet',
 /* Steht in einer Kachel, solange noch nichts in der Kategorie
                        liegt. */
             'tile.subcategories.none' => 'Noch keine Unterkategorien',
@@ -645,6 +680,9 @@ function learning_app_translations(): array
             'action.edit' => 'Bearbeiten',
             'action.delete' => 'Löschen',
             'action.more' => 'Weitere Aktionen für {name}',
+            'action.select' => 'Auswählen',
+            'action.selectAll' => 'Alle auswählen',
+            'action.selectItem' => '{name} auswählen',
 
             // --- Formular für eine Kategorie (Themengebiet oder Unterkategorie) ---
             'dialog.category.createArea' => 'Themengebiet hinzufügen',
@@ -672,6 +710,14 @@ function learning_app_translations(): array
             // --- Löschbestätigung ---
             'dialog.delete.title' => '„{name}“ löschen?',
             'dialog.delete.consequence' => 'Dabei werden auch {parts} endgültig gelöscht.',
+            'dialog.deleteMany.titleOne' => 'Unterkategorie löschen?',
+            'dialog.deleteMany.titleOther' => '{count} Unterkategorien löschen?',
+            'dialog.deleteMany.message' => 'Du bist dabei, {categories} mit insgesamt {cards} zu löschen. Dabei werden auch die zugehörigen Lernfortschritte entfernt.',
+            'dialog.deleteMany.submit' => 'Endgültig löschen',
+            'dialog.deleteMany.categoryOne' => '1 Unterkategorie',
+            'dialog.deleteMany.categoryOther' => '{count} Unterkategorien',
+            'dialog.deleteMany.cardOne' => '1 Lernkarte',
+            'dialog.deleteMany.cardOther' => '{count} Lernkarten',
             'dialog.delete.nothingBelow' => 'Darunter befindet sich nichts, es wird nur dieser Eintrag entfernt.',
 
             /*
@@ -716,6 +762,7 @@ function learning_app_translations(): array
             'home.welcome.title' => 'Deine Lernkartei wartet auf dich',
             'home.welcome.hint' => 'Lege eigene Themengebiete und Karten an und lerne sie mit Wiederholung.',
             'feedback.deleted' => '„{name}“ wurde gelöscht.',
+            'feedback.deletedMany' => '{count} Unterkategorien wurden gelöscht.',
             'dialog.errorDelete' => 'Der Eintrag konnte nicht gelöscht werden.',
 
             'state.loading' => 'Themengebiete werden geladen …',            'state.error' => 'Die Themengebiete konnten nicht geladen werden. Bitte später erneut versuchen.',
@@ -843,6 +890,9 @@ function learning_app_translations(): array
             'learn.question' => 'Frage',
             'learn.answer' => 'Antwort',
             'learn.flipHint' => 'Zum Umdrehen tippen oder Leertaste',
+            'learn.cardLanguageLabel' => 'Kartensprache',
+            'learn.cardLanguageDe' => 'Diese Karte auf Deutsch zeigen',
+            'learn.cardLanguageEn' => 'Diese Karte auf Englisch zeigen',
             'learn.ratingLabel' => 'Wie gut wusstest du es?',
             'learn.again' => 'Nochmal',
             'learn.hard' => 'Schwer',

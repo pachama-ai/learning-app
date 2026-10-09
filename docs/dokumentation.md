@@ -83,14 +83,14 @@ Sieben Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 | Tabelle | Zeilen | Inhalt |
 | --- | ---: | --- |
 | `users` | 2 | die Konten |
-| `categories` | 88 | 8 Lernbereiche und 80 Unterkategorien, alle mit Besitzer |
-| `cards` | 7859 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
+| `categories` | 92 | 8 Lernbereiche und 84 Unterkategorien, alle mit Besitzer |
+| `cards` | 8310 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
 | `card_variants` | 1500 | die Satzbeispiele einer Karte, 0 bis n je Karte |
-| `user_card_progress` | 115 | eine Zeile je Nutzer und Karte – der Lernstand |
-| `study_sessions` | 21 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
+| `user_card_progress` | 198 | eine Zeile je Nutzer und Karte – der Lernstand |
+| `study_sessions` | 37 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
 | `card_exercises` | 39 | die Übungsaufgabe einer Karte, höchstens eine pro Karte |
 
-(Zahlen vom 7.10.2026.)
+(Zahlen vom 9.10.2026.)
 
 Ein paar Eigenheiten, die man wissen sollte:
 
@@ -234,8 +234,11 @@ Pfad.
 | 5.10. | Elektrotechnik-Grundlagen: Blindleistung, Skin-Effekt, Transformator, Konverter, Generator | 5 | `Energiegrundlagen & Energiewende` |
 | 5.10. | Antwort zur Leistungselektronik umgeschrieben | 1 geändert | `Energiegrundlagen & Energiewende` |
 | 6.10. | Atome, Teilchen & Elektrizität | 39 | neue Unterkategorie in `Energy` |
+| 9.10. | Grund- und Aufbauwortschatz / Basic and Intermediate Vocabulary | 353 | neue Unterkategorie in `English` (Konto 6), beidseitig |
+| 9.10. | Stromnetze / Power Grids | 130 | neue Unterkategorie in `English` (Konto 6), nur deutsche Richtung |
+| 9.10. | Grund- und Aufbauwortschatz durch Wörterbuch-Karten ersetzt (statt „Was bedeutet …?“) | 353 ersetzt | `English` (Konto 6) |
 
-Nicht alles ist zweisprachig: 9 der 88 Kategorien haben kein `name_en`, und 284
+Nicht alles ist zweisprachig: 11 der 92 Kategorien haben kein `name_en`, und 284
 Karten haben keinen englischen Text. Die App fällt dann auf den deutschen Text
 zurück (`NULL` heißt „nimm `name`") und markiert solche Karten mit „nur Deutsch".
 Das ist so gewollt, es fehlt einfach noch die Übersetzung.

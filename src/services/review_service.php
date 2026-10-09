@@ -958,6 +958,38 @@ function review_build_queue(
 }
 
 /**
+ * Beide Sprachfassungen einer Karte als Paar aus Frage und Antwort.
+ *
+ * normalize_card_row() und card_localized_text() haben die vier Sprachspalten längst in
+ * die Karte gelegt; hier werden sie nur zu einem Objekt je Sprache gebündelt. Der Browser
+ * kann damit ohne neuen Aufruf und ohne Neuladen zwischen Deutsch und Englisch wechseln.
+ * Deutsch fällt auf front/back zurück, falls die Tabelle die Spalte front_de gar nicht hat.
+ *
+ * @param array<string, mixed> $card
+ * @return array<string, array{front: string, back: string}>
+ */
+function review_card_language_texts(array $card): array
+{
+    $texts = [
+        'de' => [
+            'front' => (string) ($card['front_de'] ?? $card['front'] ?? ''),
+            'back' => (string) ($card['back_de'] ?? $card['back'] ?? ''),
+        ],
+    ];
+
+    /* Englisch gibt es nur, wenn die Tabelle die beiden Spalten hat - genau dann trägt
+       die Karte sie auch. */
+    if (array_key_exists('front_en', $card) && array_key_exists('back_en', $card)) {
+        $texts['en'] = [
+            'front' => (string) $card['front_en'],
+            'back' => (string) $card['back_en'],
+        ];
+    }
+
+    return $texts;
+}
+
+/**
  * Die eine oder die zwei Runden, die eine Karte in einer Einheit hat.
  *
  * @param array<string, mixed> $card
@@ -965,11 +997,21 @@ function review_build_queue(
  */
 function review_directions_of(array $card, string $status, bool $isDue): array
 {
+    $texts = review_card_language_texts($card);
+
     $forward = [
         'card_id' => (int) $card['id'],
         'direction' => 'forward',
         'front' => (string) $card['front'],
         'back' => (string) $card['back'],
+        /*
+         * Beide Sprachen reisen mit jeder Aufgabe mit, damit der Umschalter auf der Karte
+         * ohne neuen Aufruf arbeitet. language_toggle sagt, ob der Umschalter überhaupt
+         * angeboten wird - der Endpunkt entscheidet das (englischer Lernbereich, fehlende
+         * Übersetzung).
+         */
+        'texts' => $texts,
+        'language_toggle' => ($card['language_toggle'] ?? false) === true,
         'status' => $status,
         'is_due' => $isDue,
         'is_bidirectional' => (bool) $card['is_bidirectional'],
@@ -995,6 +1037,16 @@ function review_directions_of(array $card, string $status, bool $isDue): array
     $reverse['direction'] = 'reverse';
     $reverse['front'] = (string) $card['back'];
     $reverse['back'] = (string) $card['front'];
+
+    /*
+     * Andersherum tauschen Frage und Antwort die Plätze - in jeder Sprache, damit der
+     * Umschalter auch in der umgedrehten Richtung dasselbe Paar zeigt.
+     */
+    $reverse['texts'] = [];
+
+    foreach ($texts as $code => $pair) {
+        $reverse['texts'][$code] = ['front' => $pair['back'], 'back' => $pair['front']];
+    }
 
     /*
      * Andersherum wird nach der Antwort gefragt und die Aufgabe gezeigt: Frage und Antwort

@@ -582,6 +582,16 @@
         /* Die zwei Seiten der Lernkarte können ein Kartenbild tragen. */
         learnMapFront: document.getElementById('learn-map-front'),
         learnMapBack: document.getElementById('learn-map-back'),
+        /* Der Sprachumschalter steht auf beiden Seiten der Lernkarte. */
+        learnLangToggles: document.querySelectorAll('[data-card-language-toggle]'),
+
+        /* Die Auswahl auf der Übersicht eines Lernbereichs. */
+        bulk: document.getElementById('bulk'),
+        bulkStart: document.getElementById('bulk-start'),
+        bulkCount: document.getElementById('bulk-count'),
+        bulkAll: document.getElementById('bulk-all'),
+        bulkDelete: document.getElementById('bulk-delete'),
+        bulkCancel: document.getElementById('bulk-cancel'),
 
         /* Der zweite Knopf des Kartendialogs. */
         dialogSaveNext: document.getElementById('app-dialog-save-next')
@@ -2321,6 +2331,139 @@
     }
 
     /*
+     * Die Auswahl einer oder mehrerer Unterkategorien auf der Übersicht eines Lernbereichs.
+     *
+     * Im normalen Ansichtsmodus ist selectionMode false: die Kästchen links neben den
+     * Zeilen sind ausgeblendet und ein Klick auf eine Zeile öffnet sie wie immer. Erst
+     * "Auswählen" schaltet den Modus ein; dann hält die Zeile die Navigation an und
+     * schaltet stattdessen die Auswahl um.
+     *
+     * selectedIds ist ein Objekt und keine Liste, damit dieselbe Id nicht zweimal darin
+     * steht (ein doppelter Klick kann dasselbe Kästchen zweimal umschalten).
+     */
+    var selectionMode = false;
+    var selectedIds = {};
+
+    /* Setzt den Auswahlmodus zurück und versteckt die Steuerzeile. Vor jedem Neuaufbau der
+       Detailansicht, damit eine alte Auswahl nie in eine neue Seite hineinragt. Der
+       "Auswählen"-Knopf bleibt dabei versteckt; renderDetail zeigt ihn nur auf der
+       Übersicht eines Lernbereichs mit Unterkategorien. */
+    function resetSelection() {
+        selectionMode = false;
+        selectedIds = {};
+        elements.entryList.classList.remove('is-selecting');
+
+        if (elements.bulk !== null) {
+            elements.bulk.hidden = true;
+            elements.bulkStart.hidden = true;
+            elements.bulkDelete.disabled = true;
+            elements.bulkCount.textContent = '0';
+        }
+    }
+
+    /* Beginnt die Auswahl: Kästchen an, Steuerzeile sichtbar, nichts ausgewählt. */
+    function startSelection() {
+        selectionMode = true;
+        selectedIds = {};
+        elements.entryList.classList.add('is-selecting');
+        elements.bulkStart.hidden = true;
+        elements.bulk.hidden = false;
+        updateSelectionUi();
+
+        var first = elements.entryList.querySelector('.row__check-input');
+
+        if (first !== null) {
+            first.focus();
+        }
+    }
+
+    /* Bricht die Auswahl ab und lässt die Seite wieder ihre normale Form zeigen. */
+    function cancelSelection() {
+        selectionMode = false;
+        selectedIds = {};
+        elements.entryList.classList.remove('is-selecting');
+        elements.bulk.hidden = true;
+        elements.bulkStart.hidden = false;
+        uncheckAll();
+        updateSelectionUi();
+        elements.bulkStart.focus();
+    }
+
+    function uncheckAll() {
+        Array.prototype.forEach.call(elements.entryList.querySelectorAll('.row__check-input'), function (box) {
+            box.checked = false;
+        });
+    }
+
+    function setSelected(id, on) {
+        var key = String(id);
+
+        if (on) {
+            selectedIds[key] = true;
+        } else {
+            delete selectedIds[key];
+        }
+
+        updateSelectionUi();
+    }
+
+    /*
+     * Die Zahl im Löschknopf und der gesperrte Zustand bei leerer Auswahl. Der Knopf
+     * verschwindet nicht, er steht ausgegraut da: die Steuerzeile behält ihre Form, und es
+     * ist sichtbar, dass es noch nichts zu löschen gibt.
+     */
+    function updateSelectionUi() {
+        if (elements.bulk === null) {
+            return;
+        }
+
+        var count = Object.keys(selectedIds).length;
+
+        elements.bulkCount.textContent = String(count);
+        elements.bulkDelete.disabled = count === 0;
+    }
+
+    /* "Alle auswählen" und "Auswahl aufheben" in einem: je nachdem, wie die Liste steht. */
+    function toggleAllSelected() {
+        var boxes = elements.entryList.querySelectorAll('.row__check-input');
+        var allOn = boxes.length > 0;
+
+        Array.prototype.forEach.call(boxes, function (box) {
+            if (!box.checked) {
+                allOn = false;
+            }
+        });
+
+        var target = !allOn;
+        selectedIds = {};
+
+        Array.prototype.forEach.call(boxes, function (box) {
+            box.checked = target;
+
+            if (target) {
+                selectedIds[String(box.value)] = true;
+            }
+        });
+
+        updateSelectionUi();
+    }
+
+    /*
+     * Die Knöpfe der Auswahlleiste. Der Zustand liegt in selectionMode und selectedIds,
+     * die Knöpfe selbst tun also nichts weiter als die passende Funktion zu rufen.
+     */
+    function wireBulk() {
+        if (elements.bulk === null) {
+            return;
+        }
+
+        elements.bulkStart.addEventListener('click', startSelection);
+        elements.bulkAll.addEventListener('click', toggleAllSelected);
+        elements.bulkCancel.addEventListener('click', cancelSelection);
+        elements.bulkDelete.addEventListener('click', openBulkDeleteDialog);
+    }
+
+    /*
      * Eine Unterkategorie-Zeile: der Name als Weg zu ihrer Seite, und ein Knopf, der die
      * Einheit dieser Unterkategorie sofort startet.
      *
@@ -2341,16 +2484,48 @@
 
         var title = displayName(entry);
 
+        /*
+         * Das Kästchen der Auswahl. Es steht immer im Markup und wird nur sichtbar,
+         * solange der Auswahlmodus an ist (siehe das Stylesheet). Es ist ein eigenes
+         * Element neben dem Verweis, ein Klick darauf kann also nicht navigieren - und
+         * im Auswahlmodus startet auch der Lernknopf keine Einheit mehr, weil er dann
+         * ausgeblendet ist.
+         */
+        var check = el('label', 'row__check');
+        var box = document.createElement('input');
+        box.type = 'checkbox';
+        box.className = 'row__check-input';
+        box.value = String(entry.id);
+        box.setAttribute('aria-label', t('action.selectItem', { name: title }));
+        box.addEventListener('change', function () {
+            setSelected(entry.id, box.checked);
+        });
+        check.appendChild(box);
+
         var link = document.createElement('a');
         link.className = 'row__link';
         link.href = 'index.php?category=' + encodeURIComponent(entry.id);
         link.setAttribute('aria-label', t('cards.open', { name: title }));
+
+        /* Im Auswahlmodus öffnet die Zeile nicht die Unterseite, sondern schaltet die
+           Auswahl um. Deshalb hält dieser Modus die Navigation wirklich an und stellt
+           nicht bloß ein Kästchen daneben. */
+        link.addEventListener('click', function (event) {
+            if (!selectionMode) {
+                return;
+            }
+
+            event.preventDefault();
+            box.checked = !box.checked;
+            setSelected(entry.id, box.checked);
+        });
 
         var name = document.createElement('span');
         name.className = 'row__name';
         name.textContent = title;
 
         link.appendChild(name);
+        item.appendChild(check);
         item.appendChild(link);
         item.appendChild(buildLearnButton(entry, title));
 
@@ -2603,37 +2778,64 @@
      * Zeile weg: eine Reihe von Nullen sagt niemandem etwas.
      *
      * Das Hauptwort richtet sich nach der Zahl, deshalb steht das Wort hier und nicht im
-     * HTML-Teil.
+     * HTML-Teil. Die beiden Zahlen rechts davon (Lernkarten und gewusste im ganzen
+     * Themengebiet) füllt renderDeckFigures(): sie sind auf beiden Seiten dieselben.
      */
     function renderFigures(count, oneKey, otherKey, cardCount, overallProgress) {
         var showMain = count > 0;
-        var showCards = typeof cardCount === 'number' && cardCount > 0;
-        var showKnown = overallProgress !== null
-            && typeof overallProgress === 'object'
-            && overallProgress.total > 0
-            && overallProgress.hasProgress === true;
 
-        elements.detailStats.hidden = !showMain && !showCards && !showKnown;
         elements.detailFigureCount.hidden = !showMain;
-        elements.detailFigureCards.hidden = !showCards;
-        elements.detailFigureKnown.hidden = !showKnown;
-        elements.detailSeparatorCards.hidden = !(showMain && showCards);
-        elements.detailSeparatorKnown.hidden = !(showKnown && (showMain || showCards));
 
         if (showMain) {
             animateCount(elements.detailCount, count);
             elements.statLabel.textContent = t(count === 1 ? oneKey : otherKey);
         }
 
+        var deck = renderDeckFigures(showMain, cardCount, overallProgress);
+
+        elements.detailStats.hidden = !showMain && !deck.showCards && !deck.showKnown;
+    }
+
+    /*
+     * Die Zahlen des ganzen Themengebiets: seine Lernkarten und die davon gewussten.
+     *
+     * Sie stehen auf einer Unterkategorieseite neben der Zahl dieser Liste. Zwei Zahlen, die
+     * beide "Karten" heißen ("316 Karten · 685 Karten"), lassen offen, welche das Deck
+     * dieser Seite ist und welche alles darunter - deshalb bekommt jede ihr Wort. Das Wort
+     * steht hier und nicht im HTML-Teil, weil es sich nach der Zahl richtet.
+     *
+     * hasMain sagt, ob links schon eine Zahl steht: der Trennungspunkt gehört zwischen zwei
+     * Zahlen und nicht an den Anfang der Zeile.
+     *
+     * cardCount kommt von der Seite, die die Zahlen kennt (siehe overallProgressForArea),
+     * overallProgress ist die Zählung dahinter. Ohne angemeldete Person fehlt sie, dann
+     * bleibt "gewusst" weg.
+     */
+    function renderDeckFigures(hasMain, cardCount, overallProgress) {
+        var showCards = typeof cardCount === 'number' && cardCount > 0;
+        var showKnown = overallProgress !== null
+            && typeof overallProgress === 'object'
+            && overallProgress.total > 0
+            && overallProgress.hasProgress === true;
+
+        elements.detailFigureCards.hidden = !showCards;
+        elements.detailFigureKnown.hidden = !showKnown;
+        elements.detailSeparatorCards.hidden = !(hasMain && showCards);
+        elements.detailSeparatorKnown.hidden = !(showKnown && (hasMain || showCards));
+
         if (showCards) {
             elements.detailCardCount.textContent = String(cardCount);
-            elements.detailCardLabel.textContent = t(cardCount === 1 ? 'tile.cards.one' : 'tile.cards.other');
+            elements.detailCardLabel.textContent = cardCount === 1
+                ? t('detail.cardsWholeDeck.one')
+                : t('detail.cardsWholeDeck.other');
         }
 
         if (showKnown) {
             elements.detailKnownCount.textContent = String(overallProgress.known);
             elements.detailKnownLabel.textContent = t('dash.overallKnown');
         }
+
+        return { showCards: showCards, showKnown: showKnown };
     }
 
     function overallProgressForArea(areaId, areaChildren) {
@@ -2802,6 +3004,10 @@
         elements.detailStats.hidden = true;
         elements.dashboard.hidden = true;
 
+        /* Kein Rest der vorigen Seite: der Auswahlmodus gehört zur Liste, die jetzt
+           neu aufgebaut wird, und startet darum immer aus. */
+        resetSelection();
+
         Promise.all([
             fetchCategories(''),
             fetchCategoryOne(categoryId),
@@ -2904,23 +3110,29 @@
             fillIconCircle(elements.detailBlob, categoryMeta(areaRow));
 
             /*
-             * Ein Menü statt zwei beschrifteter Knöpfe: dieselbe Bedienung, die jede Zeile
-             * und jede Kachel trägt, mit denselben zwei Einträgen.
+             * Das Menü der Detailseite. Eine Unterkategorie zeigt nur "Bearbeiten":
+             * gelöscht wird sie ausschließlich über die Auswahl auf der Übersicht ihres
+             * Lernbereichs. Ein Lernbereich behält sein Löschen im Menü.
              */
-            elements.detailActions.textContent = '';
-            elements.detailActions.appendChild(buildMenu([
+            var detailMenuActions = [
                 {
                     label: t('action.edit'),
                     run: openEditForCurrentEntry
-                },
-                {
+                }
+            ];
+
+            if (!isSubcategory) {
+                detailMenuActions.push({
                     label: t('action.delete'),
                     danger: true,
                     run: function () {
                         requestDelete('category', currentEntry, null);
                     }
-                }
-            ], pageTitle, 'detail__menu'));
+                });
+            }
+
+            elements.detailActions.textContent = '';
+            elements.detailActions.appendChild(buildMenu(detailMenuActions, pageTitle, 'detail__menu'));
 
             var crumbParts = [];
 
@@ -2968,6 +3180,20 @@
                     /* Eine frisch geöffnete Liste zeigt immer alle Karten. */
                     setCardFilter('all');
                     renderCardList(current.id);
+
+                    /*
+                     * Die Zahlen des ganzen Themengebiets, zu dem diese Unterkategorie
+                     * gehört. Sie werden hier gerechnet und nicht stehen gelassen: die Zeile
+                     * würde sonst weiter die Zahlen des Themengebiets zeigen, das zuletzt
+                     * offen war, und nach einem Wechsel über die Seitenleiste stünden dort
+                     * die eines fremden Zweigs.
+                     */
+                    var branchProgress = overallProgressForArea(
+                        current.parent_id,
+                        bootstrapCache.children[String(current.parent_id)] || []
+                    );
+
+                    renderDeckFigures(true, branchProgress.total, branchProgress);
                 }
 
                 /* Der Lernkarten-Abschnitt gehört zur Ebene darüber. */
@@ -3011,6 +3237,9 @@
                 });
 
                 elements.entryList.hidden = false;
+
+                /* Erst mit Unterkategorien gibt es etwas auszuwählen. */
+                elements.bulkStart.hidden = false;
             }
 
             renderAreaCards(currentEntryCards);
@@ -3433,7 +3662,7 @@
      * Öffnen, Prüfen, Speichern und Schließen passieren also an genau einer Stelle - egal,
      * welches Formular gerade auf dem Bildschirm ist.
      */
-    var dialogKind = null;      // 'category' | 'card' | 'delete'
+    var dialogKind = null;      // 'category' | 'card' | 'delete' | 'delete-many'
     var dialogEntry = null;     // die Zeile, die gerade bearbeitet oder gelöscht wird
     var dialogParentId = null;  // wohin ein neuer Eintrag gehört
     var dialogOpener = null;    // das Element, das geöffnet hat (dorthin geht der Fokus zurück)
@@ -5196,6 +5425,110 @@
         elements.dialogClose.focus();
     }
 
+    /*
+     * Die eine Frage vor dem gemeinsamen Löschen mehrerer Unterkategorien.
+     *
+     * Sie nennt die Zahl der Unterkategorien und die Gesamtzahl ihrer Lernkarten. Die
+     * Kartenzahl kommt aus dem Aufbau, den die Seite schon geladen hat - dieselbe Quelle,
+     * aus der die Zeilen ihre Zahlen haben. Der rote Knopf trägt "Endgültig löschen",
+     * und der Fokus steht zu Beginn auf dem Schließen, der sicheren Antwort.
+     */
+    function openBulkDeleteDialog() {
+        var ids = Object.keys(selectedIds).map(Number);
+
+        if (ids.length === 0 || currentEntry === null || currentEntry.parent_id !== null) {
+            return;
+        }
+
+        var cards = selectedBulkCardCount(ids);
+
+        dialogKind = 'delete-many';
+        dialogEntry = { parentId: currentEntry.id, ids: ids };
+        dialogParentId = null;
+        dialogIcon = null;
+        dialogUsed = false;
+        dialogOpener = document.activeElement;
+        dialogFields = {};
+
+        elements.dialogFields.textContent = '';
+        clearDialogErrors();
+        elements.dialogClose.setAttribute('aria-label', t('dialog.close'));
+        elements.dialogShortcuts.hidden = true;
+        elements.dialogSubmit.disabled = false;
+        elements.dialogClose.disabled = false;
+        elements.dialogSubmit.dataset.idleLabel = t('dialog.deleteMany.submit');
+        elements.dialogSubmit.textContent = t('dialog.deleteMany.submit');
+        elements.dialogSubmit.classList.add('dialog__button--danger-pill');
+
+        elements.dialogTitle.textContent = ids.length === 1
+            ? t('dialog.deleteMany.titleOne')
+            : t('dialog.deleteMany.titleOther', { count: ids.length });
+        elements.dialogMessage.textContent = t('dialog.deleteMany.message', {
+            categories: ids.length === 1
+                ? t('dialog.deleteMany.categoryOne')
+                : t('dialog.deleteMany.categoryOther', { count: ids.length }),
+            cards: cards === 1
+                ? t('dialog.deleteMany.cardOne')
+                : t('dialog.deleteMany.cardOther', { count: cards })
+        });
+        elements.dialogMessage.hidden = false;
+
+        openDialog();
+        elements.dialogClose.focus();
+    }
+
+    /* Wie viele Karten in den ausgewählten Unterkategorien liegen - aus dem geladenen Aufbau. */
+    function selectedBulkCardCount(ids) {
+        var total = 0;
+
+        ids.forEach(function (id) {
+            var list = bootstrapCache.cards[String(id)];
+
+            if (Array.isArray(list)) {
+                total += list.length;
+            }
+        });
+
+        return total;
+    }
+
+    /*
+     * Schickt die Auswahl an den Server. Der Server prüft Besitz und Zugehörigkeit noch
+     * einmal selbst; gelingt es, wird die Seite aus der API neu aufgebaut, damit die
+     * gelöschten Zeilen und die Zahlen des Bereichs verschwinden.
+     */
+    function runBulkDelete() {
+        var entry = dialogEntry;
+
+        if (entry === null || dialogKind !== 'delete-many') {
+            return;
+        }
+
+        setBusy(true);
+
+        apiRequest(config.endpoints.categoriesDelete, 'POST', {
+            parent_id: entry.parentId,
+            ids: entry.ids
+        }).then(function (result) {
+            setBusy(false);
+
+            if (!result.ok) {
+                setDialogError(errorMessage(result.code));
+                return;
+            }
+
+            var count = result.data !== null && typeof result.data === 'object'
+                && typeof result.data.deleted_categories === 'number'
+                ? result.data.deleted_categories
+                : entry.ids.length;
+
+            closeDialog();
+            bootstrapDropAll();
+            render();
+            showFeedback(t('feedback.deletedMany', { count: count }));
+        });
+    }
+
     /* ----------------------------------------------------------------------
        Speichern und Löschen über den einen Absende-Handler
        ---------------------------------------------------------------------- */
@@ -5270,6 +5603,12 @@
         /* Anmelden ist auch kein Formular für eine Zeile: es hat seine eigene Anfrage. */
         if (dialogKind === 'auth') {
             runAuthSubmit();
+            return;
+        }
+
+        /* Mehrere Unterkategorien auf einmal: die Auswahl liegt in dialogEntry. */
+        if (dialogKind === 'delete-many') {
+            runBulkDelete();
             return;
         }
 
@@ -5854,12 +6193,15 @@
     }
 
     /*
-     * Die Zahlenzeile über einer Kartenliste ("40 Karten").
+     * Die Zahlenzeile über einer Kartenliste ("40 Karten in diesem Deck").
      *
      * Sie wird hier gefüllt und nicht von renderFigures(), weil nur diese Stelle weiß, wie
      * viele Karten nach Filter und Suche wirklich zu sehen sind. Steht weniger da, als es
      * gibt, nennt die Zeile zusätzlich die Gesamtzahl ("12 von 40 Karten"): eine kleiner
      * gewordene Zahl allein würde verschweigen, dass noch mehr da ist.
+     *
+     * "in diesem Deck" grenzt die Zahl gegen die des ganzen Themengebiets ab, die rechts
+     * daneben steht (siehe renderDeckFigures).
      */
     function renderCardFigures(shown, total) {
         elements.detailStats.hidden = false;
@@ -5867,7 +6209,7 @@
 
         animateCount(elements.detailCount, shown);
         elements.statLabel.textContent = shown === total
-            ? t(shown === 1 ? 'tile.cards.one' : 'tile.cards.other')
+            ? t(shown === 1 ? 'detail.cardsThisDeck.one' : 'detail.cardsThisDeck.other')
             : t(total === 1 ? 'cards.figureOfOne' : 'cards.figureOf', { total: total });
     }
 
@@ -6074,6 +6416,13 @@
      */
     var learnSession = null;
 
+    /*
+     * Die Sprache, die die Lernkarte gerade zeigt. Sie beginnt in der Oberflächensprache
+     * (Vorgabe Deutsch) und bleibt beim Wechsel zur nächsten Karte erhalten. Sie ist
+     * unabhängig von der Sprache der Oberfläche.
+     */
+    var learnCardLanguage = 'de';
+
     var learnTimer = null;
 
     /*
@@ -6189,6 +6538,9 @@
             undo: null,
             saved: 0
         };
+
+        /* Die Karte startet in der Sprache der Oberfläche; danach bleibt die Wahl erhalten. */
+        learnCardLanguage = locale === 'en' ? 'en' : 'de';
 
         openLearnView();
         renderLearnCard();
@@ -6458,9 +6810,10 @@
          * und die nächste Einheit würfelt neue.
          */
         var task = exerciseTask(entry);
+        var texts = activeLearnTexts(entry);
 
-        elements.learnFrontText.textContent = task === null ? entry.front : task.question;
-        elements.learnBackText.textContent = task === null ? entry.back : task.answer;
+        elements.learnFrontText.textContent = task === null ? texts.front : task.question;
+        elements.learnBackText.textContent = task === null ? texts.back : task.answer;
 
         /*
          * Beide Seiten der Karte tragen die Landkarte, nur die Markierung macht den Unterschied:
@@ -6476,7 +6829,7 @@
         showMap(elements.learnMapFront, entry.map_region, 'card-map card-map--learn', false);
         showMap(elements.learnMapBack, entry.map_region, 'card-map card-map--learn');
         elements.learnCard.setAttribute('aria-label', task === null
-            ? (learnSession.flipped ? entry.back : entry.front)
+            ? (learnSession.flipped ? texts.back : texts.front)
             : (learnSession.flipped ? task.answer : task.question));
 
         /* Beide Seiten werden geschrieben; welche zu sehen ist, entscheidet das Umdrehen. */
@@ -6495,7 +6848,81 @@
         }
         elements.learnHint.hidden = learnSession.flipped;
 
+        updateLearnLanguageToggle(entry);
         buildLearnButtons(entry);
+    }
+
+    /*
+     * Die Sprache, die für die offene Karte gilt.
+     *
+     * Die Aufgabe trägt beide Sprachen (entry.texts). Umgeschaltet wird aber nur, wenn die
+     * Karte das überhaupt anbietet (language_toggle): eine einsprachige Karte und eine
+     * Karte aus dem englischen Lernbereich zeigen weiter genau den Text, den der Server
+     * ausgewählt hat. Dort die gemerkte Sprache zu erzwingen würde die Richtung der Karte
+     * verdrehen - bei einer englischen Vokabelkarte wäre "vorn" dann plötzlich die
+     * englische Seite statt der gefragten.
+     */
+    function activeLearnTexts(entry) {
+        var texts = entry.texts && typeof entry.texts === 'object' ? entry.texts : null;
+
+        if (texts === null || entry.language_toggle !== true) {
+            return { front: String(entry.front || ''), back: String(entry.back || '') };
+        }
+
+        var code = texts[learnCardLanguage] ? learnCardLanguage : 'de';
+
+        if (!texts[code]) {
+            code = Object.keys(texts)[0];
+        }
+
+        return texts[code] || { front: String(entry.front || ''), back: String(entry.back || '') };
+    }
+
+    /*
+     * Zeigt den Umschalter nur, wenn diese Karte beide Sprachen trägt (der Server setzt
+     * language_toggle) und markiert die gerade gewählte Sprache.
+     */
+    function updateLearnLanguageToggle(entry) {
+        var codes = entry.texts && typeof entry.texts === 'object' ? Object.keys(entry.texts) : [];
+        var visible = entry.language_toggle === true && codes.length > 1;
+
+        Array.prototype.forEach.call(elements.learnLangToggles, function (group) {
+            group.hidden = !visible;
+
+            Array.prototype.forEach.call(group.querySelectorAll('[data-card-language]'), function (button) {
+                var chosen = button.getAttribute('data-card-language') === learnCardLanguage;
+                button.setAttribute('aria-pressed', chosen ? 'true' : 'false');
+            });
+        });
+    }
+
+    /*
+     * Wechselt die Sprache der offenen Karte. Frage und Antwort werden sofort neu
+     * geschrieben, die Karte bleibt dabei auf ihrer Seite stehen.
+     */
+    function switchLearnCardLanguage(code) {
+        if (learnSession === null || (code !== 'de' && code !== 'en')) {
+            return;
+        }
+
+        var entry = learnSession.queue[learnSession.index];
+
+        if (entry === undefined || !entry.texts || !entry.texts[code]) {
+            return;
+        }
+
+        learnCardLanguage = code;
+
+        var task = exerciseTask(entry);
+        var texts = activeLearnTexts(entry);
+
+        elements.learnFrontText.textContent = task === null ? texts.front : task.question;
+        elements.learnBackText.textContent = task === null ? texts.back : task.answer;
+        elements.learnCard.setAttribute('aria-label', task === null
+            ? (learnSession.flipped ? texts.back : texts.front)
+            : (learnSession.flipped ? task.answer : task.question));
+
+        updateLearnLanguageToggle(entry);
     }
 
     /*
@@ -6594,7 +7021,8 @@
         var entry = learnSession.queue[learnSession.index];
 
         if (entry !== undefined) {
-            elements.learnCard.setAttribute('aria-label', learnSession.flipped ? entry.back : entry.front);
+            var texts = activeLearnTexts(entry);
+            elements.learnCard.setAttribute('aria-label', learnSession.flipped ? texts.back : texts.front);
         }
 
         /* Die Antworten behalten ihren Platz: vor dem Umdrehen sind sie da, aber unerreichbar. */
@@ -7081,6 +7509,22 @@
             }
         });
 
+        /*
+         * Der Sprachumschalter liegt auf der Karte. Ein Klick darauf schaltet die Sprache
+         * um und darf die Karte NICHT umdrehen - deshalb wird das Ereignis hier angehalten.
+         */
+        Array.prototype.forEach.call(elements.learnLangToggles, function (group) {
+            group.addEventListener('click', function (event) {
+                event.stopPropagation();
+
+                var button = event.target.closest('[data-card-language]');
+
+                if (button !== null) {
+                    switchLearnCardLanguage(button.getAttribute('data-card-language'));
+                }
+            });
+        });
+
         wireLearnKeyboard();
         wireLearnSwipe();
     }
@@ -7182,6 +7626,7 @@
     }
 
     wireLearning();
+    wireBulk();
 
     /*
      * Die Filter-Chips der Kartenliste.

@@ -11,7 +11,7 @@
 -- categories.icon_svg, die MEDIUMTEXT ist und nicht TEXT. Eine Datei, die nur
 -- die alten Migrationen zusammenfasst, waere beim Neuaufbau kaputt.
 --
--- Stand: 5. Oktober 2026.
+-- Stand: 9. Oktober 2026.
 --
 -- NUR DIE STRUKTUR, KEINE INHALTE
 --
@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `name_de` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'German display name; NULL means name is shown',
   `description_en` text COLLATE utf8mb4_unicode_ci COMMENT 'English description; NULL means no description is shown',
   `description_de` text COLLATE utf8mb4_unicode_ci COMMENT 'German description; NULL means no description is shown',
+  `sort_order` int NOT NULL DEFAULT 1000 COMMENT 'Order among siblings, smaller first; 1000 = normal order by id (see database/add_category_sort_order.sql)',
   PRIMARY KEY (`id`),
   KEY `parent_id` (`parent_id`),
   KEY `idx_categories_owner` (`owner_user_id`),

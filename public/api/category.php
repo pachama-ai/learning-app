@@ -83,6 +83,24 @@ try {
 
     if ($method === 'DELETE') {
         /*
+         * Eine Unterkategorie wird hier NICHT gelöscht. Sie verschwindet ausschließlich
+         * über die Auswahl auf der Übersichtsseite ihres Lernbereichs
+         * (api/categories_delete.php). Eine direkte Anfrage auf eine Unterkategorie wird
+         * deshalb abgewiesen, bevor irgendetwas gezählt oder gelöscht wird - das ist die
+         * zweite Hälfte davon, den alten Menüpunkt von der Detailseite zu entfernen: ohne
+         * ihn im Menü bleibt die Anfrage, die er einmal geschickt hat, trotzdem verboten.
+         *
+         * Ein Lernbereich (parent_id NULL) lässt sich weiterhin hier löschen.
+         */
+        if ($current['parent_id'] !== null) {
+            send_json_error(
+                'subcategory_delete_not_allowed',
+                'A subcategory is deleted from the overview of its learning area.',
+                403
+            );
+        }
+
+        /*
          * Wie viel an dieser Kategorie hängt, entscheidet, ob die Anfrage bestätigt
          * werden muss. Gezählt wird HIER, aus der Datenbank - eine von Hand gebaute
          * Anfrage kann die Bestätigung nicht überspringen, indem sie die Zustimmung

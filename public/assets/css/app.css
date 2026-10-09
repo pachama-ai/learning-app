@@ -933,6 +933,167 @@ img {
 .row--category:last-child::after {
     border-bottom: 0;
 }
+/* Kartenzeile-Auswahlkästchen */
+.row__check {
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+/* Kartenzeile-Auswahlkästchen · im Auswahlmodus */
+.rows.is-selecting .row__check {
+    display: inline-flex;
+}
+/* Kartenzeile-Auswahlkästchen · das Kästchen selbst: weich und rund */
+.row__check-input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 6px;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 14px 14px;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+/* das Kästchen · bei Zeigerkontakt */
+.row__check-input:hover {
+    border-color: var(--detail-palette, var(--line-strong));
+}
+/* das Kästchen · angehakt: Akzentfarbe des Themengebiets, weißes Häkchen.
+   Der Ton wird wie die Kennzeichen der Lernknöpfe mit der dunklen Grundfarbe
+   gemischt, damit das weiße Häkchen auch bei hellen Akzenten (z. B. Gelb) gut
+   lesbar bleibt. */
+.row__check-input:checked {
+    border-color: transparent;
+    background-color: color-mix(in oklch, var(--detail-palette, var(--accent)) 58%, var(--badge-base));
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 12.5l4 4L18.5 8'/%3E%3C/svg%3E");
+}
+/* das Kästchen · im Tastaturfokus */
+.row__check-input:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+/* Kartenzeile: Lernbereich · im Auswahlmodus: Kästchen, Name, mit Innenabstand */
+.rows.is-selecting .row--category {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-inline: 14px;
+    cursor: pointer;
+}
+/* Im Auswahlmodus startet die Zeile keine Einheit: der Lernknopf verschwindet. */
+.rows.is-selecting .row__learn {
+    display: none;
+}
+/* Angehakte Zeile: leichter Schleier in der Akzentfarbe des Themengebiets */
+.rows.is-selecting .row--category:has(.row__check-input:checked) {
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 16%, transparent);
+}
+/* dunkles Thema · Angehakte Zeile: etwas kräftiger, damit sie auf dunklem Grund sichtbar bleibt */
+[data-theme="dark"] .rows.is-selecting .row--category:has(.row__check-input:checked) {
+    background-color: color-mix(in srgb, var(--detail-palette, var(--accent)) 26%, transparent);
+}
+/* Die Steuerzeile des Auswahlmodus, direkt über der Liste */
+.bulk {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: clamp(18px, 2.4vw, 26px);
+    margin-bottom: 6px;
+}
+/* Die drei Aktionen als eine Gruppe */
+.bulk__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+/* Eine Aktion der Steuerzeile */
+.bulk__button {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease),
+        color 160ms var(--ease), opacity 160ms var(--ease);
+}
+/* Eine Aktion · bei Zeigerkontakt · nicht · gesperrt */
+.bulk__button:hover:not(:disabled) {
+    background-color: var(--panel);
+    border-color: var(--line-strong);
+}
+/* Eine Aktion · im Tastaturfokus */
+.bulk__button:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
+/* "Abbrechen": der sichere Rückweg, bewusst unauffällig */
+.bulk__button--ghost {
+    border-color: transparent;
+    color: var(--muted);
+}
+/* "Abbrechen" · bei Zeigerkontakt · nicht · gesperrt */
+.bulk__button--ghost:hover:not(:disabled) {
+    background-color: var(--tile-bg-hover);
+    border-color: transparent;
+    color: var(--text);
+}
+/* "Löschen": die eine destruktive Aktion, gedämpftes Rot */
+.bulk__button--danger {
+    border-color: transparent;
+    background-color: #A8443A;
+    color: #FFFFFF;
+}
+/* "Löschen" · bei Zeigerkontakt · nicht · gesperrt */
+.bulk__button--danger:hover:not(:disabled) {
+    background-color: #963A31;
+}
+/* dunkles Thema · "Löschen" */
+[data-theme="dark"] .bulk__button--danger {
+    background-color: #B34D40;
+}
+/* dunkles Thema · "Löschen" · bei Zeigerkontakt · nicht · gesperrt */
+[data-theme="dark"] .bulk__button--danger:hover:not(:disabled) {
+    background-color: #C4574B;
+}
+/* "Löschen" · nichts ausgewählt: gesperrt und grau statt rot */
+.bulk__button--danger:disabled {
+    border-color: var(--line);
+    background-color: transparent;
+    color: var(--muted);
+    cursor: not-allowed;
+}
+/* Die Zahl der ausgewählten Zeilen, als kleines Kennzeichen wie am Lernknopf */
+.bulk__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.18);
+    color: #FFFFFF;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+/* "Löschen" gesperrt · das Kennzeichen wird neutral und nimmt die Textfarbe an */
+.bulk__button--danger:disabled .bulk__count {
+    background-color: color-mix(in srgb, var(--text) 12%, transparent);
+    color: inherit;
+}
 /* Übersichtszahlen */
 .dash {
     display: grid;
@@ -2190,8 +2351,12 @@ html.is-theme-switching::view-transition-old(root),
 /* Detailansicht-Zahlen */
 .detail__figures {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 0 4px;
+    /* Die Zeile darf umbrechen: auf einem schmalen Fenster sind die ausgeschriebenen
+       Beschriftungen ("Karten im ganzen Themengebiet") breiter als der Kopf, und ein
+       Umbruch ist besser als eine Zahl, die aus dem Kasten läuft. Die 4px oben sind
+       der Abstand zwischen zwei Zeilen. */
+    flex-wrap: wrap;
+    gap: 4px 4px;
     margin-top: 20px;
     color: var(--muted);
     font-family: var(--font-sans);
@@ -2690,6 +2855,54 @@ body.is-learning {
     text-transform: uppercase;
     opacity: 0.6;
 }
+/* Lernen-Kopfzeile: Beschriftung links, Sprachumschalter rechts */
+.learn__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 26px;
+}
+/* Lernen-Sprachumschalter */
+.learn__lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.04);
+}
+/* dunkles Thema · Lernen-Sprachumschalter */
+[data-theme="dark"] .learn__lang {
+    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.06);
+}
+/* Lernen-Sprachumschalter · eine Sprache */
+.learn__lang-option {
+    appearance: none;
+    border: 0;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: transparent;
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    cursor: pointer;
+}
+/* Lernen-Sprachumschalter · die gewählte Sprache */
+.learn__lang-option[aria-pressed="true"] {
+    background-color: color-mix(in srgb, currentColor 16%, transparent);
+    opacity: 1;
+}
+/* Lernen-Sprachumschalter · im Tastaturfokus */
+.learn__lang-option:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+}
 /* Lernen-Text */
 .learn__text {
     margin: 0;
@@ -3166,6 +3379,20 @@ body.is-learning {
 .add-entry-button:focus-visible {
     outline: 2px solid var(--line-strong);
     outline-offset: 3px;
+}
+/* "Auswählen": gebaut wie "+ Unterkategorie", nur mit kleinem Symbol davor */
+.select-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+/* "Auswählen" · das Symbol: das Kästchen mit dem Haken */
+.select-button__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
 }
 /* Fußzeile-Navigation */
 .site-footer__nav {

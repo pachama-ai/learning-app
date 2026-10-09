@@ -176,6 +176,26 @@ function category_select_sql(array $columns): string
 }
 
 /**
+ * Die ORDER-BY-Klausel für eine Kategorieliste.
+ *
+ * Gibt es die Spalte `sort_order` (siehe database/add_category_sort_order.sql), entscheidet
+ * sie zuerst: eine kleinere Zahl steht weiter oben, und bei gleichem Wert bleibt es bei der
+ * id. Ohne die Spalte - eine Installation, in der die Migration noch nicht gelaufen ist -
+ * wird genau wie vorher nur nach id sortiert. Die Anwendung verhält sich also mit und ohne
+ * die Spalte richtig, und keine Zeile der Liste hängt davon ab, dass sie da ist.
+ *
+ * @param list<string> $columns
+ */
+function category_order_sql(array $columns, string $alias = 'c'): string
+{
+    if (category_column_available($columns, 'sort_order')) {
+        return 'ORDER BY ' . $alias . '.sort_order ASC, ' . $alias . '.id ASC';
+    }
+
+    return 'ORDER BY ' . $alias . '.id ASC';
+}
+
+/**
  * Gibt alle Themengebiete (oberste Ebene) EINES Kontos zurück.
  *
  * Jede Leseabfrage in dieser Datei verlangt den Eigentümer als Pflichtargument. Es
@@ -185,11 +205,13 @@ function category_select_sql(array $columns): string
  */
 function find_main_categories(PDO $pdo, int $ownerUserId): array
 {
+    $columns = category_columns($pdo);
+
     $statement = $pdo->prepare(
-        category_select_sql(category_columns($pdo)) . '
+        category_select_sql($columns) . '
          WHERE c.parent_id IS NULL
            AND c.owner_user_id = :owner_user_id
-         ORDER BY c.id ASC'
+         ' . category_order_sql($columns)
     );
     $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
@@ -198,17 +220,20 @@ function find_main_categories(PDO $pdo, int $ownerUserId): array
 }
 
 /**
- * Gibt die Unterkategorien einer Kategorie zurück, nach id sortiert.
+ * Gibt die Unterkategorien einer Kategorie zurück, zuerst nach sort_order und dann
+ * nach id.
  */
 function find_subcategories(PDO $pdo, int $parentId, int $ownerUserId): array
 {
+    $columns = category_columns($pdo);
+
     // Der Wert wird als Ganzzahl gebunden. Er erreicht die Datenbank getrennt vom
     // SQL-Text und kann deshalb nie als Teil der Abfrage gelesen werden.
     $statement = $pdo->prepare(
-        category_select_sql(category_columns($pdo)) . '
+        category_select_sql($columns) . '
          WHERE c.parent_id = :parent_id
            AND c.owner_user_id = :owner_user_id
-         ORDER BY c.id ASC'
+         ' . category_order_sql($columns)
     );
     $statement->bindValue(':parent_id', $parentId, PDO::PARAM_INT);
     $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
@@ -501,6 +526,74 @@ function category_subtree_ids(PDO $pdo, int $categoryId, int $ownerUserId): arra
 }
 
 /**
+ * Die Kategorien, die unter einem englischen Lernbereich liegen.
+ *
+ * Für eine solche Karte ergibt der DE/EN-Umschalter keinen Sinn: gelernt wird Englisch,
+ * die Karte ist selbst der englische Inhalt. Gemeint ist der ganze Zweig - der Bereich
+ * selbst und alles darunter -, weil die Karten in den Unterkategorien liegen und nicht
+ * im Bereich.
+ *
+ * Gelesen wird die kleine Tabelle einmal und in PHP durchlaufen, wie in
+ * category_subtree_ids(). Englisch heißt eine Wurzel, deren name oder name_en "English"
+ * (oder "Englisch") ist. Die Prüfung hängt absichtlich nicht an der Oberflächensprache,
+ * der Umschalter soll sich nicht mit dem Sprachwechsel der Oberfläche ändern.
+ *
+ * @return list<int>
+ */
+function category_ids_in_english_areas(PDO $pdo, int $ownerUserId): array
+{
+    $statement = $pdo->prepare('SELECT id, parent_id, name, name_en FROM categories WHERE owner_user_id = :owner_user_id');
+    $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+    $statement->execute();
+
+    $children = [];
+    $roots = [];
+
+    foreach ($statement->fetchAll() as $row) {
+        $id = (int) $row['id'];
+
+        // Ein NULL-parent_id wird zum Schlüssel 0, und 0 ist nie eine echte id.
+        $parentKey = $row['parent_id'] === null ? 0 : (int) $row['parent_id'];
+        $children[$parentKey][] = $id;
+
+        if ($parentKey === 0
+            && (category_name_is_english((string) $row['name']) || category_name_is_english((string) ($row['name_en'] ?? '')))
+        ) {
+            $roots[] = $id;
+        }
+    }
+
+    $ids = $roots;
+    $frontier = $roots;
+    $depth = 0;
+
+    while ($frontier !== [] && $depth < CATEGORY_MAX_DEPTH) {
+        $next = [];
+
+        foreach ($frontier as $id) {
+            foreach ($children[$id] ?? [] as $childId) {
+                $ids[] = $childId;
+                $next[] = $childId;
+            }
+        }
+
+        $frontier = $next;
+        $depth++;
+    }
+
+    return array_values(array_unique($ids));
+}
+
+/**
+ * Ob dieser Kategoriename den englischen Lernbereich bezeichnet.
+ */
+function category_name_is_english(string $name): bool
+{
+    return strcasecmp(trim($name), 'English') === 0
+        || strcasecmp(trim($name), 'Englisch') === 0;
+}
+
+/**
  * Zählt eine Kategorie, alles darunter und alle Karten in diesem Teilbaum.
  *
  * @return array{categories: int, cards: int}
@@ -661,6 +754,103 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
     } catch (Throwable $error) {
         // Ein Rollback setzt die Datenbank genau dorthin zurück, wo sie vor dem
         // Versuch war - auch die Karten, die schon gelöscht wurden.
+        if ($ownsTransaction) {
+            $pdo->rollBack();
+        }
+
+        throw $error;
+    }
+}
+
+/**
+ * Löscht mehrere direkte Unterkategorien eines Lernbereichs in EINER Transaktion.
+ *
+ * Gedacht für die Auswahl auf der Übersichtsseite eines Lernbereichs: der Browser schickt
+ * die Id des Bereichs und die Ids der angekreuzten Unterkategorien. Erlaubt ist nur, was
+ * wirklich dazugehört:
+ *
+ *   - der Bereich muss diesem Konto gehören und ein Lernbereich sein (parent_id NULL),
+ *   - jede Id muss eine DIREKTE Unterkategorie dieses Bereichs sein.
+ *
+ * Eine Id, die nicht dazugehört, bricht den ganzen Lauf ab, bevor etwas gelöscht wird. Ein
+ * von Hand gebauter Aufruf kann also nicht die Unterkategorie eines anderen Bereichs oder
+ * eines anderen Kontos erwischen. Der Lernbereich selbst lässt sich über diesen Weg nicht
+ * löschen: seine Id steht nie in der Liste seiner Kinder.
+ *
+ * Gelöscht wird je Id der ganze Teilbaum - delete_category_tree() nimmt Fortschritt,
+ * Karten und Kategorien mit. Läuft schon eine Transaktion, benutzt diese Funktion sie,
+ * statt eine eigene aufzumachen; sonst gehört ihr die Transaktion und sie schreibt am Ende
+ * fest. Ein Fehler rollt ALLES zurück, es bleibt also nie eine halbe Auswahl stehen.
+ *
+ * @param list<int> $categoryIds
+ * @return array{ok: bool, code: string|null, data: array{categories: int, cards: int, progress: int}|null}
+ */
+function delete_subcategories(PDO $pdo, int $parentId, array $categoryIds, int $ownerUserId): array
+{
+    require_once __DIR__ . '/card_service.php';
+
+    /* Der Bereich muss existieren, diesem Konto gehören und ein Bereich sein. Eine
+       Unterkategorie als "Bereich" würde sonst erlauben, ihre Kinder mitzunehmen. */
+    $area = find_category($pdo, $parentId, $ownerUserId);
+
+    if ($area === null || $area['parent_id'] !== null) {
+        return ['ok' => false, 'code' => 'parent_not_found', 'data' => null];
+    }
+
+    /* Die erlaubten Ids: die direkten Kinder dieses Bereichs. Nur sie dürfen gelöscht
+       werden, alles andere fällt unten durch. */
+    $children = $pdo->prepare(
+        'SELECT id FROM categories WHERE parent_id = :parent_id AND owner_user_id = :owner_user_id'
+    );
+    $children->bindValue(':parent_id', $parentId, PDO::PARAM_INT);
+    $children->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
+    $children->execute();
+
+    $allowed = [];
+
+    foreach ($children->fetchAll(PDO::FETCH_COLUMN) as $id) {
+        $allowed[(int) $id] = true;
+    }
+
+    $wanted = [];
+
+    foreach ($categoryIds as $id) {
+        $id = (int) $id;
+
+        if (!isset($allowed[$id])) {
+            return ['ok' => false, 'code' => 'invalid_selection', 'data' => null];
+        }
+
+        $wanted[$id] = true;
+    }
+
+    if ($wanted === []) {
+        return ['ok' => false, 'code' => 'nothing_to_delete', 'data' => null];
+    }
+
+    $totals = ['categories' => 0, 'cards' => 0, 'progress' => 0];
+
+    $ownsTransaction = !$pdo->inTransaction();
+
+    if ($ownsTransaction) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        foreach (array_keys($wanted) as $id) {
+            $deleted = delete_category_tree($pdo, $id, $ownerUserId);
+
+            $totals['categories'] += $deleted['categories'];
+            $totals['cards'] += $deleted['cards'];
+            $totals['progress'] += $deleted['progress'];
+        }
+
+        if ($ownsTransaction) {
+            $pdo->commit();
+        }
+
+        return ['ok' => true, 'code' => null, 'data' => $totals];
+    } catch (Throwable $error) {
         if ($ownsTransaction) {
             $pdo->rollBack();
         }

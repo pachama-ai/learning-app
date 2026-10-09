@@ -48,6 +48,8 @@ if (is_string($rawCategoryId) && ctype_digit($rawCategoryId) && (int) $rawCatego
 $appConfig = [
     'endpoints' => [
         'categories' => 'api/categories.php',
+        /* Die Auswahl mehrerer Unterkategorien auf der Übersicht eines Lernbereichs. */
+        'categoriesDelete' => 'api/categories_delete.php',
         /* Alles, was die erste Ansicht braucht, in einer Antwort. */
         'bootstrap' => 'api/bootstrap.php',
         'category' => 'api/category.php',
@@ -734,6 +736,18 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                         <button type="button" class="add-entry-button" id="add-entry-button" hidden></button>
 
+                        <!-- "Auswählen": gebaut wie "+ Unterkategorie", damit die beiden als Paar wirken. Das Symbol davor sagt, worum es geht: Mehrfachauswahl. app.js blendet ihn nur auf der Übersicht eines Lernbereichs ein. -->
+                        <button type="button" class="add-entry-button select-button" id="bulk-start" hidden>
+                            <span class="select-button__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                    <rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/>
+                                    <path d="M8.2 12.4l2.5 2.5 5.2-5.5"/>
+                                </svg>
+                            </span>
+                            <span data-i18n="action.select"><?= $text('action.select') ?></span>
+                        </button>
+
                         <button type="button" class="add-entry-button import-button" id="import-button" hidden></button>
                     </div>
 
@@ -795,6 +809,24 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </div>
 
                     <p class="state state--quiet" id="card-search-empty" hidden></p>
+
+                    <!--
+                        Die Steuerzeile des Auswahlmodus. Sie steht direkt über der Liste und
+                        erscheint erst, wenn "Auswählen" gedrückt wurde (siehe app.js). app.js
+                        blendet sie auf der Seite einer Unterkategorie wieder aus.
+                    -->
+                    <div class="bulk" id="bulk" hidden>
+                        <div class="bulk__controls">
+                            <button type="button" class="bulk__button" id="bulk-all"
+                                    data-i18n="action.selectAll"><?= $text('action.selectAll') ?></button>
+                            <button type="button" class="bulk__button bulk__button--danger" id="bulk-delete" disabled>
+                                <span data-i18n="action.delete"><?= $text('action.delete') ?></span>
+                                <span class="bulk__count" id="bulk-count">0</span>
+                            </button>
+                            <button type="button" class="bulk__button bulk__button--ghost" id="bulk-cancel"
+                                    data-i18n="dialog.cancel"><?= $text('dialog.cancel') ?></button>
+                        </div>
+                    </div>
 
                     <!-- Die Zeilen des offenen Eintrags: Unterkategorien oder Karteikarten. -->
                     <ul class="rows" id="entry-list"></ul>
@@ -1100,13 +1132,36 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     Seiten und lässt sie bei einer Karte ohne Region leer.
                 -->
                 <div class="learn__face learn__face--front">
-                    <p class="learn__label" id="learn-side-label"><?= $text('learn.question') ?></p>
+                    <div class="learn__head">
+                        <p class="learn__label" id="learn-side-label"><?= $text('learn.question') ?></p>
+                        <!--
+                            Der Umschalter Deutsch/Englisch. app.js blendet ihn ein und aus;
+                            er steht auf beiden Seiten, weil beide Seiten der Karte zu sehen
+                            sein können. Die Kürzel sind die bekannten Sprachcodes.
+                        -->
+                        <div class="learn__lang" data-card-language-toggle role="group"
+                             aria-label="<?= $text('learn.cardLanguageLabel') ?>" data-i18n-label="learn.cardLanguageLabel" hidden>
+                            <button type="button" class="learn__lang-option" data-card-language="de"
+                                    aria-label="<?= $text('learn.cardLanguageDe') ?>" data-i18n-label="learn.cardLanguageDe"><?= $text('language.de') ?></button>
+                            <button type="button" class="learn__lang-option" data-card-language="en"
+                                    aria-label="<?= $text('learn.cardLanguageEn') ?>" data-i18n-label="learn.cardLanguageEn"><?= $text('language.en') ?></button>
+                        </div>
+                    </div>
                     <p class="learn__text" id="learn-front-text"></p>
                     <div class="card-map card-map--learn" id="learn-map-front" hidden></div>
                 </div>
 
                 <div class="learn__face learn__face--back">
-                    <p class="learn__label" data-i18n="learn.answer"><?= $text('learn.answer') ?></p>
+                    <div class="learn__head">
+                        <p class="learn__label" data-i18n="learn.answer"><?= $text('learn.answer') ?></p>
+                        <div class="learn__lang" data-card-language-toggle role="group"
+                             aria-label="<?= $text('learn.cardLanguageLabel') ?>" data-i18n-label="learn.cardLanguageLabel" hidden>
+                            <button type="button" class="learn__lang-option" data-card-language="de"
+                                    aria-label="<?= $text('learn.cardLanguageDe') ?>" data-i18n-label="learn.cardLanguageDe"><?= $text('language.de') ?></button>
+                            <button type="button" class="learn__lang-option" data-card-language="en"
+                                    aria-label="<?= $text('learn.cardLanguageEn') ?>" data-i18n-label="learn.cardLanguageEn"><?= $text('language.en') ?></button>
+                        </div>
+                    </div>
                     <p class="learn__text" id="learn-back-text"></p>
                     <div class="card-map card-map--learn" id="learn-map-back" hidden></div>
                 </div>

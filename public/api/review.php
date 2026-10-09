@@ -219,6 +219,24 @@ try {
     $branchIds = review_branch_category_ids($pdo, $categoryId, $userId);
     $randomizeNewCategoryIds = review_randomized_new_category_ids($pdo, $branchIds, $userId);
     $cards = review_cards_in_categories($pdo, $branchIds, $userId, optional_query_language());
+
+    /*
+     * Der Umschalter Deutsch/Englisch auf einer Karte. Er wird nur angeboten, wenn die
+     * Karte BEIDE Sprachen vollständig trägt und nicht im englischen Lernbereich liegt:
+     * dort wird Englisch gelernt, die Karte ist selbst der englische Inhalt. Die Prüfung
+     * steht hier und nicht im Browser, weil nur der Server die Kategoriezugehörigkeit kennt.
+     */
+    $cardLanguageColumns = card_columns($pdo);
+    $englishCategoryIds = category_ids_in_english_areas($pdo, $userId);
+
+    foreach ($cards as $index => $card) {
+        $hasBothLanguages = card_language_is_complete($card, 'de', $cardLanguageColumns)
+            && card_language_is_complete($card, 'en', $cardLanguageColumns);
+
+        $cards[$index]['language_toggle'] = $hasBothLanguages
+            && !in_array((int) $card['category_id'], $englishCategoryIds, true);
+    }
+
     $summary = review_summarise_cards($cards);
 
     $cardsForQueue = [];
