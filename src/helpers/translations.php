@@ -607,6 +607,144 @@ function learning_app_translations(): array
             'map.state.st' => 'Saxony-Anhalt',
             'map.state.sh' => 'Schleswig-Holstein',
             'map.state.th' => 'Thuringia',
+
+            // --- Die Nachschlageseite "Energie verstehen" (public/energy.php) ---
+            'energy.title' => 'Understanding energy',
+            'energy.lead' => 'Terms, formulas and relationships to look up - while you are learning.',
+
+            // Such- und Filterleiste
+            'energy.filter.group' => 'Topic area',
+            'energy.filter.topic' => 'Specific topic',
+            'energy.filter.allGroups' => 'All topics',
+            'energy.filter.allTopics' => 'Show all',
+            'energy.filter.formulas' => 'Formulas only',
+            'energy.reset' => 'Reset',
+            'energy.results.one' => '1 module',
+            'energy.results.other' => '{count} modules',
+            'energy.empty.title' => 'Nothing found',
+            'energy.empty.hint' => 'Try a different word or reset the filters.',
+
+            // Die Themenbereiche, nach denen die Leiste filtert.
+            'energy.group.basics' => 'Electrical basics',
+            'energy.group.energy' => 'Forms of energy and energy conversion',
+            'energy.group.magnetism' => 'Magnetism and induction',
+            'energy.group.generation' => 'Generators and power generation',
+            'energy.group.transformer' => 'Transformers and power transmission',
+            'energy.group.grid' => 'Power grid and grid operation',
+            'energy.group.consumers' => 'Energy storage and consumers',
+
+            // Ein Wissensmodul
+            'energy.module.formulas' => 'Formulas',
+            'energy.module.related' => 'Related',
+            'energy.module.more' => 'More',
+            'energy.module.less' => 'Less',
+            'energy.module.moreFor' => 'Show more: {name}',
+            'energy.module.lessFor' => 'Show less: {name}',
+
+            // Eine Formel
+            'energy.formula.symbol' => 'Symbol',
+            'energy.formula.meaning' => 'Meaning',
+            'energy.formula.unit' => 'Unit',
+            'energy.formula.valid' => 'Applies when',
+            'energy.formula.example' => 'Example',
+
+            // Die Bedienelemente einer Visualisierung
+            'energy.visual.play' => 'Play',
+            'energy.visual.pause' => 'Pause',
+            'energy.visual.reset' => 'Reset',
+            'energy.visual.model' => 'Model',
+
+            // --- „Story Together": die Kachel auf der Startseite ---
+            /* Der Name ist ein Eigenname und heißt in beiden Sprachen gleich. */
+            'story.title' => 'Story Together',
+            /*
+             * Die Zeile auf der Kachel der Startseite ist keine Beschreibung mehr,
+             * sondern der Stand: wer gerade schreiben darf. "mine" heißt, dass die
+             * angemeldete Person selbst dran ist - der Name kommt dann nicht vor.
+             */
+            'story.tile.turn.mine' => 'Your turn',
+            'story.tile.turn.other' => '{name}’s turn',
+            'story.tile.open' => 'Open Story Together',
+
+            // --- Die Seite der gemeinsamen Geschichte ---
+            'story.label' => 'Collaborative writing',
+            /* Für den Wortzähler im Editor und den Hinweis, solange nichts geschrieben ist. */
+            'story.meta.words.one' => '1 word',
+            'story.meta.words.other' => '{count} words',
+            'story.meta.none' => 'No contribution yet',
+            'story.entry.latest' => 'Latest',
+
+            // Die beiden Namen im Text. Sie stehen hier und nicht im Code.
+            'story.author.xenia' => 'Xenia',
+            'story.author.selina' => 'Selina',
+            /* Nur zur Sicherheit: ein Beitrag eines Kontos, das nicht mehr in der Liste
+               steht, bekommt diesen Namen statt gar keines Namens. */
+            'story.author.unknown' => 'Unknown',
+
+            // Der Schreibbereich
+            'story.write.title' => 'Continue the story',
+            'story.write.placeholder' => 'What happens next?',
+            'story.write.publish' => 'Publish contribution',
+            'story.write.tooLong' => 'Too long by {count} characters.',
+
+            /* Einen veröffentlichten Beitrag ändern - möglich, solange die andere Person
+               noch nicht weitergeschrieben hat. */
+            'story.edit.button' => 'Edit',
+            'story.edit.open' => 'Edit your contribution',
+            'story.edit.title' => 'Change your contribution',
+            'story.edit.save' => 'Save the change',
+            'story.edit.cancel' => 'Cancel',
+            'story.edit.status' => 'You are changing your contribution of {day}.',
+
+            /*
+             * Die Grammar Challenge. In der Leiste steht nur die Beschriftung links und die
+             * Zeitform rechts; der Aufgabentext selbst (Anweisung, Beispiel, Eselsbrücke)
+             * wird nicht mehr gezeigt und deshalb auch nicht mehr übersetzt. Die Zeitform
+             * und das Niveau ("B1") sind Fachbegriffe und heißen in beiden Sprachen gleich -
+             * sie kommen aus src/data/grammar_tasks.php.
+             */
+            'story.challenge.label' => 'Today’s writing challenge',
+
+            // Wer an der Reihe ist
+            'story.turn.yours' => 'Your turn to write!',
+            'story.turn.other' => 'It’s {name}’s turn to continue the story.',
+            /*
+             * Während der Bearbeitungszeit (zwei Stunden nach dem Veröffentlichen) ist
+             * niemand am Schreiben - der Verfasser darf nur noch ändern. Deshalb braucht
+             * diese Zeile ihren eigenen Satz und nicht den von `other`: „Xenia ist dran"
+             * wäre in diesen zwei Stunden schlicht falsch.
+             */
+            'story.turn.editWindow' => 'You can still change your contribution until {time}.',
+
+            /*
+             * Die Benachrichtigung per E-Mail, wenn der Zug gewechselt hat. Sie ist reiner
+             * Text (kein HTML) und wird nur verschickt, wenn die Adresse in der Tabelle
+             * `users` steht und der Versand in .env eingerichtet ist.
+             */
+            'story.mail.subject' => 'Story Together: it’s your turn',
+            'story.mail.body' => "Hello {name},\n\n{author} has added a new contribution ({day}). Now it is your turn to continue the story.\n\n{url}\n",
+
+            /*
+             * Die Zahlen unter dem Kopf: eine Zeile, in der die drei Kennzahlen und der
+             * Anteil je Autor stehen. Die Wörter kommen aus story.meta.words (dieselben
+             * Wörter wie im Zähler beim Schreiben), die beiden anderen zählen hier.
+             */
+            'story.stats.contributions.one' => '1 contribution',
+            'story.stats.contributions.other' => '{count} contributions',
+            'story.stats.days.one' => '1 day',
+            'story.stats.days.other' => '{count} days',
+            'story.stats.since' => 'since {day}',
+
+            // Wenn etwas nicht geht
+            'story.forbidden.title' => 'Not available',
+            'story.forbidden.hint' => 'This story is written by two other accounts.',
+            'story.error.load' => 'The story could not be loaded.',
+            'story.error.turn' => 'It is not your turn right now.',
+            'story.error.empty' => 'Please write something first.',
+            'story.error.tooLong' => 'This text is too long.',
+            'story.error.token' => 'The page was open for too long. Please reload and try again.',
+            'story.error.notEditable' => 'This contribution can no longer be changed.',
+            'story.error.server' => 'The contribution could not be saved.',
         ],
 
         'de' => [
@@ -1167,6 +1305,123 @@ function learning_app_translations(): array
             'map.state.st' => 'Sachsen-Anhalt',
             'map.state.sh' => 'Schleswig-Holstein',
             'map.state.th' => 'Thüringen',
+
+            // --- Die Nachschlageseite "Energie verstehen" (public/energy.php) ---
+            'energy.title' => 'Energie verstehen',
+            'energy.lead' => 'Begriffe, Formeln und Zusammenhänge nachschlagen - während du lernst.',
+
+            // Such- und Filterleiste
+            'energy.filter.group' => 'Themenbereich',
+            'energy.filter.topic' => 'Konkretes Thema',
+            'energy.filter.allGroups' => 'Alle Themen',
+            'energy.filter.allTopics' => 'Alle anzeigen',
+            'energy.filter.formulas' => 'Nur Formeln',
+            'energy.reset' => 'Zurücksetzen',
+            'energy.results.one' => '1 Modul',
+            'energy.results.other' => '{count} Module',
+            'energy.empty.title' => 'Nichts gefunden',
+            'energy.empty.hint' => 'Anderes Wort probieren oder die Filter zurücksetzen.',
+
+            // Die Themenbereiche, nach denen die Leiste filtert.
+            'energy.group.basics' => 'Elektrische Grundlagen',
+            'energy.group.energy' => 'Energieformen und Energieumwandlung',
+            'energy.group.magnetism' => 'Magnetismus und Induktion',
+            'energy.group.generation' => 'Generatoren und Stromerzeugung',
+            'energy.group.transformer' => 'Transformatoren und Stromübertragung',
+            'energy.group.grid' => 'Stromnetz und Netzbetrieb',
+            'energy.group.consumers' => 'Energiespeicher und Verbraucher',
+
+            // Ein Wissensmodul
+            'energy.module.formulas' => 'Formeln',
+            'energy.module.related' => 'Verwandt',
+            'energy.module.more' => 'Mehr',
+            'energy.module.less' => 'Weniger',
+            'energy.module.moreFor' => 'Mehr anzeigen: {name}',
+            'energy.module.lessFor' => 'Weniger anzeigen: {name}',
+
+            // Eine Formel
+            'energy.formula.symbol' => 'Zeichen',
+            'energy.formula.meaning' => 'Bedeutung',
+            'energy.formula.unit' => 'Einheit',
+            'energy.formula.valid' => 'Gilt, wenn',
+            'energy.formula.example' => 'Beispiel',
+
+            // Die Bedienelemente einer Visualisierung
+            'energy.visual.play' => 'Abspielen',
+            'energy.visual.pause' => 'Pause',
+            'energy.visual.reset' => 'Zurücksetzen',
+            'energy.visual.model' => 'Modell',
+
+            // --- „Story Together": die Kachel auf der Startseite ---
+            /* Der Name ist ein Eigenname und heißt in beiden Sprachen gleich. */
+            'story.title' => 'Story Together',
+            /* Siehe die englische Fassung: der Stand, nicht die Beschreibung. */
+            'story.tile.turn.mine' => 'Du bist dran',
+            'story.tile.turn.other' => '{name} ist dran',
+            'story.tile.open' => 'Story Together öffnen',
+
+            // --- Die Seite der gemeinsamen Geschichte ---
+            'story.label' => 'Gemeinsames Schreiben',
+            'story.meta.words.one' => '1 Wort',
+            'story.meta.words.other' => '{count} Wörter',
+            'story.meta.none' => 'Noch kein Beitrag',
+            'story.entry.latest' => 'Neuester',
+
+            // Die beiden Namen im Text - siehe die englische Fassung.
+            'story.author.xenia' => 'Xenia',
+            'story.author.selina' => 'Selina',
+            'story.author.unknown' => 'Unbekannt',
+
+            // Der Schreibbereich
+            'story.write.title' => 'Setze die Geschichte fort',
+            'story.write.placeholder' => 'Wie geht es weiter?',
+            'story.write.publish' => 'Beitrag veröffentlichen',
+            'story.write.tooLong' => '{count} Zeichen zu lang.',
+
+            /* Einen veröffentlichten Beitrag ändern - siehe die englische Fassung. */
+            'story.edit.button' => 'Bearbeiten',
+            'story.edit.open' => 'Eigenen Beitrag bearbeiten',
+            'story.edit.title' => 'Deinen Beitrag ändern',
+            'story.edit.save' => 'Änderung speichern',
+            'story.edit.cancel' => 'Abbrechen',
+            'story.edit.status' => 'Du änderst deinen Beitrag vom {day}.',
+
+            /*
+             * Die Grammar Challenge: links die Beschriftung, rechts die Zeitform und das
+             * Niveau. Zeitform und Niveau sind Fachbegriffe und heißen in beiden Sprachen
+             * gleich - nur die Beschriftung wechselt.
+             */
+            'story.challenge.label' => 'Schreibaufgabe für heute',
+
+            // Wer an der Reihe ist
+            'story.turn.yours' => 'Du bist an der Reihe!',
+            'story.turn.other' => '{name} ist an der Reihe, die Geschichte fortzusetzen.',
+            /* Siehe die englische Fassung: zwei Stunden lang ist niemand am Schreiben,
+               der Verfasser darf nur noch ändern. */
+            'story.turn.editWindow' => 'Du kannst deinen Beitrag noch bis {time} Uhr ändern.',
+
+            /* Die Benachrichtigung per E-Mail - siehe die englische Fassung. Sie ist reiner
+               Text, und {day} ist der Tag des Beitrags in der Schreibweise der Sprache. */
+            'story.mail.subject' => 'Story Together: Du bist dran',
+            'story.mail.body' => "Hallo {name},\n\n{author} hat einen neuen Beitrag geschrieben ({day}). Jetzt bist du dran, die Geschichte fortzusetzen.\n\n{url}\n",
+
+            // Die Zahlen - siehe die englische Fassung.
+            'story.stats.contributions.one' => '1 Beitrag',
+            'story.stats.contributions.other' => '{count} Beiträge',
+            'story.stats.days.one' => '1 Tag',
+            'story.stats.days.other' => '{count} Tage',
+            'story.stats.since' => 'seit {day}',
+
+            // Wenn etwas nicht geht
+            'story.forbidden.title' => 'Nicht verfügbar',
+            'story.forbidden.hint' => 'Diese Geschichte wird von zwei anderen Konten geschrieben.',
+            'story.error.load' => 'Die Geschichte konnte nicht geladen werden.',
+            'story.error.turn' => 'Du bist gerade nicht an der Reihe.',
+            'story.error.empty' => 'Bitte erst etwas schreiben.',
+            'story.error.tooLong' => 'Dieser Text ist zu lang.',
+            'story.error.token' => 'Die Seite war zu lange offen. Bitte neu laden und noch einmal versuchen.',
+            'story.error.notEditable' => 'Dieser Beitrag lässt sich nicht mehr ändern.',
+            'story.error.server' => 'Der Beitrag konnte nicht gespeichert werden.',
         ],
     ];
 }

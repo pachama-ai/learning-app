@@ -79,6 +79,7 @@
         contentLanguages: [],
         streak: null,        // {"available":true,"days":3} - Tage in Folge, ganze Person
         streaks: null,       // "101" -> dasselbe je Unterkategorie (null, solange die Spalte fehlt)
+        story: null,         // {"available":true,"href":"story.php"} - siehe config.story
         hasUser: false
     };
 
@@ -105,6 +106,18 @@
                 bootstrapCache.streak = data.streak && typeof data.streak === 'object' ? data.streak : null;
                 bootstrapCache.streaks = data.streaks && typeof data.streaks === 'object' ? data.streaks : null;
                 bootstrapCache.hasUser = data.has_user === true;
+
+                /*
+                 * Darf diese Sitzung die gemeinsame Geschichte sehen? Beim Aufbau der Seite
+                 * entscheidet das PHP (config.story); nach dem An- oder Abmelden wird die
+                 * Seite NICHT neu geladen - die Antwort kommt also von hier. Ohne diese Zeile
+                 * erschiene die Kachel erst nach einem Neuladen.
+                 */
+                if (data.story && typeof data.story === 'object') {
+                    config.story = config.story || {};
+                    config.story.href = typeof data.story.href === 'string' ? data.story.href : config.story.href;
+                    config.story.available = data.story.available === true;
+                }
 
                 /*
                  * Welche Kategorien diese Antwort wirklich abdeckt - auch die ohne eigene
@@ -1217,6 +1230,8 @@
         bootstrapDropAll();
         loadBootstrap();
 
+        forgetStoryTurn();
+
         config.categoryId = null;
 
         try {
@@ -1256,6 +1271,18 @@
             return;
         }
 
+        /*
+         * Die Zeile der Story-Kachel gehörte zur alten Sitzung ("Du bist dran" von jemand
+         * anderem), also wird sie neu erfragt.
+         */
+        forgetStoryTurn();
+
+        /*
+         * Ein Neuladen ist nicht nötig: der Aufbau wird frisch geholt und weiß dann auch,
+         * ob DIESE Sitzung die Geschichte sehen darf (loadBootstrap schreibt es in
+         * config.story). Die Ansichten warten auf diese Antwort, bevor sie zeichnen -
+         * die Kachel erscheint also mit dem nächsten Aufbau und nicht erst nach Strg+R.
+         */
         bootstrapDropAll();
         loadBootstrap();
         render();
@@ -1812,6 +1839,9 @@
             updateLanguageButtons();
             updateThemeControl();
             render();
+            /* Die Zeile der Story-Kachel ist kein [data-i18n]-Element - sie wird aus dem
+               Stand gebaut, der schon im Speicher liegt. */
+            paintStoryTurn();
         }
 
         if (!changed || prefersReducedMotion()) {
@@ -1975,6 +2005,163 @@
             });
     }
 
+    /*
+     * Die Zeichnung der Kachel der gemeinsamen Geschichte. Sie liegt als Datei im
+     * Symboldordner (public/assets/icons/story_icon.svg) und wird wie jedes andere Symbol
+     * dieser Anwendung eingefärbt: .blob__icon in app.css macht aus den festen Farben der
+     * Datei die Farbe, die zum Erscheinungsbild passt.
+     */
+    var STORY_ICON_SRC = 'assets/icons/story_icon.svg';
+
+    /*
+     * Die Kachel der gemeinsamen Geschichte.
+     *
+     * Sie trägt dieselben Klassen wie eine Bereichskachel, ist aber kein Lernbereich: sie
+     * führt nicht in die Kartenliste, sondern auf die Seite der Geschichte. Deshalb entsteht
+     * sie hier und nicht aus der Antwort von api/categories.php, und deshalb kommt sie auch
+     * nicht in linkedTiles: dieser Liste hängt renderHome gleich danach die Zeichnung des
+     * Bereichs in den Kreis, und diese Kachel bringt ihre eigene schon mit.
+     *
+     * Ihre FARBE bekommt sie wie jede andere Kachel aus ihrem Platz in der Reihe (die
+     * Palette hängt an nth-child(8n+...)). Als erste Kachel ist das der erste Ton der
+     * Palette, das gedeckte Salbeigrün - deshalb steht hier keine eigene Farbregel.
+     */
+    function buildStoryTile(index) {
+        var slot = document.createElement('div');
+        slot.className = 'area-card-slot';
+        slot.style.setProperty('--reveal-index', String(2 + index));
+
+        var link = document.createElement('a');
+        link.className = 'area-card area-card--story';
+        link.href = config.story.href;
+        link.setAttribute('aria-label', t('story.tile.open'));
+
+        var head = document.createElement('span');
+        head.className = 'area-card__head';
+
+        var blob = document.createElement('span');
+        blob.className = 'blob';
+
+        var icon = document.createElement('img');
+        icon.className = 'blob__icon';
+        icon.src = STORY_ICON_SRC;
+        icon.alt = '';
+        icon.width = 34;
+        icon.height = 34;
+        blob.appendChild(icon);
+
+        head.appendChild(blob);
+
+        var name = document.createElement('span');
+        name.className = 'area-card__name';
+        name.textContent = t('story.title');
+
+        var foot = document.createElement('span');
+        foot.className = 'area-card__foot';
+
+        /*
+         * Dieselbe Zeile wie bei den anderen Kacheln ("16 Unterkategorien · 225 Karten"),
+         * nur mit dem Stand der Geschichte: wer gerade schreiben darf.
+         *
+         * Gefüllt wird sie gleich nach dem Zeichnen aus api/story.php
+         * (siehe loadStoryTurn) - die Zeile ist leer, bis die Antwort da ist. Lieber ein
+         * kurzer leerer Platz als ein Satz, der nicht mehr stimmt.
+         */
+        var stat = document.createElement('span');
+        stat.className = 'area-card__stat';
+        stat.setAttribute('data-story-turn', 'true');
+        /* Beim ersten Aufbau ist der Stand noch nicht da (er kommt gleich danach); beim
+           Sprachwechsel steht er schon im Speicher und die Kachel ist sofort beschriftet. */
+        stat.textContent = storyTurnText();
+
+        var arrow = document.createElement('span');
+        arrow.innerHTML = ARROW_SVG;
+
+        foot.appendChild(stat);
+        foot.appendChild(arrow);
+
+        var bottom = document.createElement('span');
+        bottom.className = 'area-card__bottom';
+        bottom.appendChild(name);
+        bottom.appendChild(foot);
+
+        link.appendChild(head);
+        link.appendChild(bottom);
+        slot.appendChild(link);
+
+        return slot;
+    }
+
+    /*
+     * Wer gerade schreiben darf - dieselbe Antwort, die die Seite der Geschichte selbst
+     * bekommt. Gefragt wird genau einmal je Aufruf der Startseite; die Rolle bleibt im
+     * Speicher, damit ein Sprachwechsel die Zeile neu beschriften kann, ohne erneut zu
+     * laden.
+     */
+    var storyTurn = { writer: null, viewer: null, asked: false };
+
+    /*
+     * Die Zeile gilt für die Sitzung, die sie erfragt hat. Wechselt die Sitzung - anmelden,
+     * abmelden, Konto gelöscht -, ist sie ungültig und wird neu erfragt; sonst stünde beim
+     * nächsten Betrachten noch der Name von vorher da. Ein Sprachwechsel zählt nicht: dort
+     * wird die Zeile nur neu beschriftet, mit derselben Antwort.
+     */
+    function forgetStoryTurn() {
+        storyTurn = { writer: null, viewer: null, asked: false };
+    }
+
+    function loadStoryTurn() {
+        if (config.story === undefined || config.story.available !== true || storyTurn.asked) {
+            return;
+        }
+
+        storyTurn.asked = true;
+
+        window.fetch(config.endpoints.story, { headers: { Accept: 'application/json' } })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (body) {
+                if (body && body.success === true && body.data) {
+                    storyTurn.writer = body.data.turn ? body.data.turn.writer : null;
+                    storyTurn.viewer = body.data.viewer ? body.data.viewer.key : null;
+                }
+
+                paintStoryTurn();
+            })
+            .catch(function () {
+                /* Ohne Antwort bleibt die Zeile leer. Die Kachel führt trotzdem zur
+                   Geschichte, und die Seite dort sagt, wer dran ist. */
+            });
+    }
+
+    /* Der Satz für die Kachel - oder ein leerer Text, solange nichts bekannt ist. */
+    function storyTurnText() {
+        if (storyTurn.writer === null) {
+            return '';
+        }
+
+        if (storyTurn.viewer !== null && storyTurn.writer === storyTurn.viewer) {
+            return t('story.tile.turn.mine');
+        }
+
+        /* Der Name kommt aus den Übersetzungen; eine unbekannte Rolle bekommt den
+           Ersatznamen statt eines rohen Schlüssels. */
+        var known = storyTurn.writer === 'xenia' || storyTurn.writer === 'selina';
+
+        return t('story.tile.turn.other', {
+            name: t(known ? 'story.author.' + storyTurn.writer : 'story.author.unknown')
+        });
+    }
+
+    function paintStoryTurn() {
+        var text = storyTurnText();
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-story-turn]'), function (element) {
+            element.textContent = text;
+        });
+    }
+
     function buildAreaTile(area, index) {
         var meta = categoryMeta(area);
 
@@ -2129,10 +2316,26 @@
                niemand angemeldet ist (siehe Begrüßungszustand). */
             elements.homeView.classList.remove('is-welcome');
 
+            /*
+             * Die gemeinsame Geschichte steht als erste Kachel in der Reihe. Ob diese
+             * Sitzung sie sehen darf, hat der Server entschieden (config.story.available);
+             * hier wird nur gezeichnet. Die Lernbereiche rutschen um diese eine Stelle nach
+             * hinten, damit die Kacheln weiterhin nacheinander erscheinen.
+             */
+            var storyTile = (config.story && config.story.available === true) ? 1 : 0;
+
+            if (storyTile === 1) {
+                elements.grid.appendChild(buildStoryTile(0));
+
+                /* Wer dran ist, steht nicht in dieser Antwort - dafür fragt die Seite den
+                   Endpunkt der Geschichte, und zwar genau einmal (siehe loadStoryTurn). */
+                loadStoryTurn();
+            }
+
             var highlighted = null;
 
             areas.forEach(function (area, index) {
-                var tile = buildAreaTile(area, index);
+                var tile = buildAreaTile(area, index + storyTile);
                 elements.grid.appendChild(tile);
 
                 /*
@@ -2236,6 +2439,31 @@
         name.textContent = displayName(area);
 
         link.appendChild(name);
+
+        return link;
+    }
+
+    /*
+     * "Story Together" in der Seitenleiste.
+     *
+     * Derselbe Eintrag wie ein Lernbereich - gleiche Klasse, gleiche Schrift, gleicher
+     * Punkt davor. Nur das Ziel ist fest statt einer Kennung aus der Datenbank, und es
+     * gibt keinen Zähler und kein Menü: an einer Geschichte lässt sich nichts umbenennen
+     * oder löschen.
+     *
+     * Er steht ganz oben, weil die Kachel auf der Startseite auch dort steht. Der Punkt
+     * bekommt seine Farbe deshalb aus derselben Reihe wie die anderen (siehe
+     * .sidebar__link:nth-child in app.css) - und das ist das Salbeigrün.
+     */
+    function buildStorySidebarLink() {
+        var link = document.createElement('a');
+        link.className = 'sidebar__link';
+        link.href = config.story.href;
+        link.textContent = t('story.title');
+        /* Dieselbe Farbquelle wie bei einem Lernbereich: die Palette. Im dunklen Modus
+           trägt sie den Punkt, im hellen kommt die Akzentfarbe aus der Position
+           (.sidebar__link:nth-child in app.css). */
+        link.style.setProperty('--link-color', 'var(--palette-1)');
 
         return link;
     }
@@ -3020,8 +3248,23 @@
             var cardsResult = results[3];
 
             elements.sidebarNav.textContent = '';
+
+            /*
+             * Die Geschichte steht oben, wie ihre Kachel auf der Startseite - und nur,
+             * wenn diese Sitzung sie sehen darf. Sie belegt den ersten Platz der
+             * Farbreihe, die Lernbereiche rücken deshalb um eine Stelle nach hinten.
+             * Dadurch tragen sie hier dieselben Farben wie ihre Kacheln auf der
+             * Startseite: Mathematik blau, Energie rosé, Geografie gelb.
+             */
+            var offset = 0;
+
+            if (config.story && config.story.available === true) {
+                elements.sidebarNav.appendChild(buildStorySidebarLink());
+                offset = 1;
+            }
+
             allAreas.forEach(function (area, index) {
-                elements.sidebarNav.appendChild(buildSidebarLink(area, index, area.id === categoryId));
+                elements.sidebarNav.appendChild(buildSidebarLink(area, index + offset, area.id === categoryId));
             });
 
             if (!single.ok) {

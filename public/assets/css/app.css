@@ -4804,7 +4804,10 @@ body.is-learning {
 @media (max-width: 620px) {
 /* Fenster höchstens 620px · Kopfzeile */
 .site-header {
-        flex-wrap: nowrap;
+        /* Umbrechen statt abschneiden: passt alles in eine Zeile, sieht es aus wie
+           vorher; passt es nicht, rutscht die Kopfzeile in eine zweite Zeile,
+           anstatt den Sprachumschalter hinter den Rand zu schieben. */
+        flex-wrap: wrap;
     }
 /* Fenster höchstens 620px · Kopfzeile-left */
 .site-header__left {

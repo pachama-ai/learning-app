@@ -13,6 +13,10 @@
 --
 -- Stand: 9. Oktober 2026.
 --
+-- NACHTRAG 11. Oktober 2026: die Tabellen 8 und 9 (stories,
+-- story_contributions) fuer "Story Together". Sie stehen hier am Ende und wurden
+-- mit database/story_together.sql angelegt; der Rest der Datei ist unveraendert.
+--
 -- NUR DIE STRUKTUR, KEINE INHALTE
 --
 -- Diese Datei legt leere Tabellen an. Die Kategorien und die Karten kommen
@@ -278,6 +282,83 @@ CREATE TABLE IF NOT EXISTS `card_variants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_card_variants_number` (`card_id`,`variant_number`),
   CONSTRAINT `fk_variants_card` FOREIGN KEY (`card_id`) REFERENCES `cards` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================================
+-- 8. stories - die gemeinsame Geschichte
+--
+-- Genau eine Zeile: id 1, Titel "The Unexpected Journey". Die Id steht als
+-- STORY_ID in src/services/story_service.php, und der Dienst legt die Zeile
+-- beim ersten Aufruf selbst an, falls sie fehlt. Damit braucht niemand einen
+-- Einfuege-Befehl von Hand.
+--
+-- created_at und updated_at werden in UTC geschrieben (UTC_TIMESTAMP()): ein
+-- Umzug des Servers verschiebt dann nichts. Der Kalendertag eines Beitrags
+-- steht dagegen in story_contributions.contribution_date und ist der Tag in
+-- Europe/Berlin - die Zeitzone, in der die beiden schreiben.
+--
+-- Steht vor story_contributions, weil dessen Fremdschluessel hierher zeigt.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS `stories` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================================
+-- 9. story_contributions - ein Beitrag der Geschichte
+--
+-- Ein Beitrag, dann zwei Stunden Bearbeitungszeit, dann ist die andere Person
+-- an der Reihe. Nur EINE der beiden Regeln steht zusaetzlich in der Datenbank:
+--
+--   * idx_story_contributions_order (story_id, contribution_date, id) deckt das
+--     Lesen ab: die Geschichte wird nach Tag sortiert angezeigt, die Id
+--     entscheidet innerhalb desselben Tages (und damit auch zwischen zwei
+--     Beitraegen, die am selben Tag entstanden sind - zeitlich aufsteigend, weil
+--     die Id das ist). Der Index bleibt so, wie er angelegt wurde: fuer ein paar
+--     Hundert Zeilen braucht es keinen zweiten.
+--   * Den eindeutigen Schluessel uniq_story_contributions_day auf
+--     (story_id, contribution_date) gab es einmal, als noch "hoechstens ein
+--     Beitrag je Kalendertag" galt. Mit der Bearbeitungszeit schreibt die
+--     andere Person unter Umstaenden noch am selben Tag, und der Schluessel
+--     haette das verboten: database/story_turn.sql entfernt ihn deshalb.
+--     contribution_date bleibt als Angabe fuer die Anzeige erhalten.
+--
+-- turn_notified_at ist der Merker der Benachrichtigung "du bist dran": NULL
+-- heisst "noch nicht verschickt". Die Spalte kommt ebenfalls mit
+-- database/story_turn.sql dazu (dort mit Begruendung).
+--
+-- word_count steht fertig gezaehlt in der Zeile, damit die Statistik nicht bei
+-- jedem Aufruf alle Texte durchzaehlen muss. Gezaehlt wird nach derselben Regel
+-- wie beim Tippen (public/assets/js/story.js); beide Stellen muessen
+-- uebereinstimmen.
+--
+-- Geaendert werden darf nur der eigene, zuletzt veroeffentlichte Beitrag, und
+-- nur innerhalb der zwei Stunden (story_edit() in src/services/story_service.php).
+-- Geloescht wird nie: es gibt keine Anweisung dafuer.
+--
+-- Angelegt wird sie mit database/story_together.sql.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS `story_contributions` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `story_id` int unsigned NOT NULL,
+  `user_id` int unsigned NOT NULL COMMENT 'Der Beitragende, aus der Sitzung und nie aus einer Anfrage',
+  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `word_count` int unsigned NOT NULL DEFAULT 0,
+  `contribution_date` date NOT NULL COMMENT 'Der Kalendertag in Europe/Berlin, nur noch fuer die Anzeige',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'UTC, wie bei stories; ab hier laeuft die Bearbeitungszeit',
+  `turn_notified_at` datetime DEFAULT NULL COMMENT 'Wann die Benachrichtigung an die andere Person rausging; NULL = noch nicht (siehe database/story_turn.sql)',
+  PRIMARY KEY (`id`),
+  KEY `idx_story_contributions_order` (`story_id`,`contribution_date`,`id`),
+  KEY `idx_story_contributions_user` (`user_id`),
+  CONSTRAINT `fk_story_contributions_story` FOREIGN KEY (`story_id`) REFERENCES `stories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_story_contributions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

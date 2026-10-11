@@ -33,15 +33,22 @@ declare(strict_types=1);
  *     "cards":       { "85": [ ... Karten von 85, jede mit "progress" ... ], ... },
  *     "summaries":   { "85": { "total": 15, "due": 15, ... }, ... },
  *     "has_user":    true|false,
+ *     "story":       { "href": "story.php", "available": true|false },
  *     "content_languages": ["de"],
  *     "language":    "de"
  *   }
+ *
+ * `story` steht mit dabei, weil sich der Browser nach dem An- oder Abmelden den Aufbau
+ * neu holt, statt die Seite zu laden: ob diese Sitzung die gemeinsame Geschichte sehen
+ * darf, entscheidet die Sitzung - und die hat sich gerade geändert. Ohne diese Angabe
+ * erschiene die Kachel erst nach dem nächsten Seitenaufbau.
  */
 
 require_once __DIR__ . '/../../src/config/database.php';
 require_once __DIR__ . '/../../src/helpers/json_response.php';
 require_once __DIR__ . '/../../src/helpers/request_input.php';
 require_once __DIR__ . '/../../src/helpers/session_user.php';
+require_once __DIR__ . '/../../src/helpers/story_writers.php';
 require_once __DIR__ . '/../../src/services/category_service.php';
 require_once __DIR__ . '/../../src/services/card_service.php';
 require_once __DIR__ . '/../../src/services/dashboard_service.php';
@@ -84,6 +91,8 @@ try {
             'cards' => [],
             'summaries' => [],
             'has_user' => false,
+            /* Ohne Sitzung schreibt hier niemand mit (siehe src/helpers/story_writers.php). */
+            'story' => ['href' => 'story.php', 'available' => false],
             'content_languages' => card_content_languages($columns),
             'language' => $language,
         ]);
@@ -154,6 +163,15 @@ try {
          */
         'streaks' => $userId === null ? null : dashboard_streaks_by_category($pdo, $userId),
         'has_user' => $userId !== null,
+        /*
+         * Darf diese Sitzung die gemeinsame Geschichte sehen? Dieselbe Liste wie auf der
+         * Startseite und im Endpunkt der Geschichte (src/helpers/story_writers.php) - hier
+         * nur als Auskunft für die Oberfläche.
+         */
+        'story' => [
+            'href' => 'story.php',
+            'available' => story_writer_key($userId) !== null,
+        ],
         'content_languages' => card_content_languages($columns),
         'language' => $language,
     ]);

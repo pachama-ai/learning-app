@@ -1,0 +1,798 @@
+/*
+    „Story Together" - die gemeinsame Geschichte.
+
+    Diese Datei fügt nur hinzu, was diese Seite allein braucht. Farben, Schriften,
+    Abstände und die Kopfzeile kommen aus app.css; hier stehen der Lesefluss, der
+    Schreibbereich und die kleinen Zahlen.
+
+    Die Idee dahinter: die Seite soll wie ein Onlineartikel aussehen, nicht wie ein
+    Chat. Deshalb gibt es keine Sprechblasen und keine Kästen, sondern EINE Lesespalte
+    mit viel Luft, eine dünne farbige Linie links am Text und kleine Überschriften über
+    jedem Beitrag.
+
+    Zwei Farben tragen die Autoren. Sie stehen hier an genau einer Stelle, damit
+    dieselbe Person im ganzen Dokument dieselbe Farbe hat: an den Namen, an der Linie
+    links, an den Zahlen und in der Zeitleiste.
+*/
+
+:root {
+    /* Salbeigrün für Xenia, gedecktes Terrakotta für Selina. Im hellen Modus etwas
+       dunkler als die Palette der Lernkartei, damit sie auf hellem Grund lesbar sind. */
+    --story-xenia: #5B8A6B;
+    --story-selina: #B26F58;
+    --story-rule: var(--line);
+    /*
+        Die Lesespalte: rund 700 Pixel sind die Breite, bei der ein längerer englischer
+        Text ermüdet, ohne unruhig zu werden. Kopf, Geschichte, Editor und Zahlen liegen
+        auf derselben Flucht.
+    */
+    --story-column: 44rem;
+    /*
+        EIN Abstand zwischen den Abschnitten der Seite (Kopf, Geschichte, Editor, Zahlen).
+        Vorher stand an jeder Stelle eine eigene Zahl; mit einer Variablen sitzt der
+        Rhythmus überall gleich, und wer ihn ändert, ändert ihn überall.
+    */
+    --story-gap: clamp(56px, 6vw, 64px);
+    /*
+        Eine Trennlinie bekommt oberhalb UND unterhalb denselben Abstand, nämlich die
+        Hälfte des Abschnittsabstands. Zusammen mit dem Abstand des nächsten Abschnitts
+        ergibt das wieder --story-gap - die Linie sitzt also mittig zwischen zwei
+        Abschnitten, statt an einem zu kleben.
+    */
+    --story-rule-gap: calc(var(--story-gap) / 2);
+    /*
+        Was INNERHALB eines Abschnitts zwischen zwei Teilen liegt (Schreibaufgabe,
+        Überschrift, Knöpfe, Zahlen). Kleiner als --story-gap: das gehört ja zusammen.
+    */
+    --story-inner: clamp(20px, 2.4vw, 24px);
+}
+
+[data-theme="dark"] {
+    /* Im dunklen Modus heller - dieselbe Farbe, nur mit genug Kontrast. */
+    --story-xenia: #9EC7AB;
+    --story-selina: #DE9B83;
+}
+
+/* ----------------------------------------------------------------------
+   Die Seite im Gerüst der Unterkategorien
+
+   Seitengrundriss, Seitenleiste und die farbige Kopfkarte kommen aus app.css
+   (.view--detail, .sidebar, .detail__head) - hier steht nur, welche Farbe diese Seite
+   in dieser Palette belegt und wo der Text darunter beginnt.
+   ---------------------------------------------------------------------- */
+#story-view {
+    /* Dieselbe Farbe wie die Kachel auf der Startseite und der Punkt in der Seitenleiste:
+       der erste Ton der Palette, das gedeckte Salbeigrün. */
+    --detail-palette: var(--palette-1);
+    /*
+        Die Farbe der Person, die gerade schreibt. Die Beiträge, der Balken und die Punkte
+        der Zeitleiste setzen ihre Farbe weiterhin selbst (jeder Beitrag trägt seinen
+        Autor); hier steht sie für alles, was zu DIESER Sitzung gehört: die Schreibfläche,
+        ihr Fokusring, der Veröffentlichen-Knopf und die Vorschau.
+
+        Der Wert kommt als data-writer aus der Vorlage - die Sitzung kennt die Rolle schon,
+        das Skript muss sie nicht nachtragen. Passt keine der beiden Rollen, bleibt es bei
+        der neutralen Textfarbe. */
+    --story-author: var(--text);
+}
+
+#story-view[data-writer="xenia"] {
+    --story-author: var(--story-xenia);
+}
+
+#story-view[data-writer="selina"] {
+    --story-author: var(--story-selina);
+}
+
+.detail__head .eyebrow {
+    margin-block-end: 4px;
+}
+
+/*
+    Die Seite steht still, die Inhaltsspalte scrollt.
+
+    Auf allen anderen Seiten scrollt die Seite als Ganzes. Hier standen aber vier Blöcke
+    übereinander (Zahlen, Aufgabe, Geschichte, Editor); die Seite wurde damit länger als
+    jedes Fenster, und beim Scrollen wanderte die Seitenleiste oben aus dem Bild - auf
+    einem hohen Fenster fiel das nicht auf, auf einem flachen wurde sie an der Unterkante
+    abgeschnitten.
+
+    Deshalb bekommt das Gerüst hier die Höhe des Fensters, und nur die Inhaltsspalte
+    scrollt. Die Seitenleiste ist ihre Schwester im Raster und liegt AUSSERHALB dieses
+    Scrollbereichs - sie kann also gar nicht mitwandern: links steht sie, auf schmalen
+    Fenstern bleibt die Reihe darüber stehen. Der innere Scroll der Geschichte
+    (.story-scroll) bleibt davon unberührt; er hat mit der Seitenleiste nichts zu tun.
+
+    `min-height: 0` in der Kette ist der eigentliche Kniff: ein Flex-Kind darf sonst nicht
+    kleiner werden als sein Inhalt, und dann gäbe es keine Kante, an der gescrollt wird.
+*/
+.page--story {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.page--story .main,
+#story-view {
+    min-height: 0;
+}
+
+#story-view {
+    /* Eine Zeile: Leiste und Inhaltsspalte nebeneinander. `minmax(0, 1fr)` und nicht
+       `auto` - sonst würde die Zeile so hoch wie ihr Inhalt und liefe aus dem Fenster. */
+    grid-template-rows: minmax(0, 1fr);
+    /* Statt `start` (app.css): die Zelle der Inhaltsspalte nimmt die volle Höhe an, erst
+       dadurch hat ihr Scrollbereich eine Kante. */
+    align-items: stretch;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+#story-view .detail {
+    overflow-y: auto;
+    /* Das Ende der Spalte ist das Ende: kein Weiterrollen der Seite dahinter. */
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 860px) {
+    /*
+        Auf einem schmalen Fenster steht die Leiste als Reihe ÜBER der Spalte (siehe
+        app.css). Sie bekommt ihre natürliche Höhe, die Spalte darunter den Rest - auch
+        hier bleibt die Leiste außerhalb des Scrollbereichs.
+    */
+    #story-view {
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+}
+
+/* ----------------------------------------------------------------------
+   Die Lesespalte
+
+   Alles steht in einer Spalte von rund 700 Pixeln: das ist die Breite, bei der ein
+   längerer englischer Text angenehm zu lesen ist. Die Spalte beginnt an derselben Flucht
+   wie die Kopfkarte darüber - sie wird also NICHT mehr in der Seite zentriert, sonst
+   stünde der Kopf bündig und der Text mittig.
+   ---------------------------------------------------------------------- */
+.story {
+    width: 100%;
+    max-width: var(--story-column);
+    margin-block-start: var(--story-gap);
+}
+
+/* ----------------------------------------------------------------------
+   Die Geschichte
+
+   Jeder Beitrag ist ein eigener Abschnitt: kleine Zeile mit Autor und Datum, darunter
+   der Text. Der schmale farbige Strich links gehört zum Text und nicht zur Zeile -
+   so liest man den Text als Block und die Angaben darüber als Fußnote.
+   ---------------------------------------------------------------------- */
+.story-body {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(26px, 3.4vw, 38px);
+}
+
+/*
+    Die Geschichte als Lesebereich.
+
+    Sie hat eine feste Höhe und scrollt in sich selbst, damit die Seite nicht endlos lang
+    wird: oben steht immer der ganze Text, darunter immer der Editor, egal wie viel schon
+    geschrieben wurde. Gelesen wird beim neuesten Beitrag begonnen - beim Öffnen scrollt
+    das Skript dorthin.
+
+    Der Fade an den Rändern ist eine Maske und kein Farbverlauf: eine Maske kennt keine
+    Hintergrundfarbe und funktioniert deshalb hell und dunkel gleich. Er erscheint nur
+    dort, wo wirklich noch etwas kommt - die beiden Zustandsklassen setzt das Skript.
+
+    `mask-origin` und `mask-clip` halten die Maske aus dem Balken heraus: sonst wäre der
+    Balken selbst halb durchsichtig.
+*/
+.story-scroll {
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    max-height: clamp(320px, 56vh, 640px);
+    overflow-y: auto;
+    padding-block-end: 6px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+    -webkit-mask-origin: content-box;
+    mask-origin: content-box;
+    -webkit-mask-clip: content-box;
+    mask-clip: content-box;
+}
+
+.story-scroll.is-fade-top {
+    --fade-top: 28px;
+}
+
+.story-scroll.is-fade-bottom {
+    --fade-bottom: 28px;
+}
+
+/* Mit der Tastatur erreichbar, also auch sichtbar fokussiert. */
+.story-scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}
+
+/* Die Farbe des Autors, einmal je Beitrag festgelegt. */
+.entry[data-writer="xenia"] {
+    --story-author: var(--story-xenia);
+}
+
+.entry[data-writer="selina"] {
+    --story-author: var(--story-selina);
+}
+
+.entry[data-writer="unknown"] {
+    --story-author: var(--text-faint);
+}
+
+.entry__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin-block-end: 8px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.entry__who {
+    color: var(--story-author);
+    font-weight: 500;
+}
+
+.entry__dot {
+    color: var(--line-strong);
+}
+
+/*
+    Der Text. `pre-line` behält die Zeilenumbrüche, die jemand getippt hat, und bricht
+    trotzdem um - genau das ist gemeint: der eingetippte Absatz bleibt ein Absatz, und
+    eine bewusste neue Zeile bleibt eine neue Zeile.
+
+    Der Abstand zur farbigen Linie ist knapp: die Linie ist eine Randnotiz, kein Rahmen.
+*/
+.entry__text {
+    padding-inline-start: clamp(12px, 1.6vw, 18px);
+    border-inline-start: 2px solid var(--story-author);
+    font-family: var(--font-serif);
+    font-size: clamp(17px, 1.2vw, 19px);
+    line-height: 1.72;
+    white-space: pre-line;
+    overflow-wrap: break-word;
+}
+
+.entry__text p + p {
+    margin-block-start: 0.9em;
+}
+
+/*
+    Die Initiale des allerersten Absatzes. Sie steht in der Serifenschrift des Textes
+    und ist nur wenig größer als zwei Zeilen - groß genug, um den Anfang zu markieren,
+    nicht so groß, dass sie die erste Zeile zerreißt.
+
+    Die erste Zeile rückt nicht ein: der Buchstabe selbst nimmt den Platz ein, sonst
+    entstünde vor ihm eine Lücke.
+*/
+.entry:first-child .entry__text p:first-child::first-letter {
+    float: inline-start;
+    margin-inline-end: 0.06em;
+    color: var(--story-author);
+    font-size: 3.1em;
+    line-height: 0.82;
+    font-weight: 600;
+}
+
+/*
+    Der neueste Beitrag wird nur durch das Wort "Neuester" in der Zeile darüber
+    hervorgehoben. Ein getönter Kasten um den Text stand hier einmal - er machte aus
+    einem Absatz ein Formularfeld.
+*/
+.entry__latest {
+    color: var(--story-author);
+}
+
+/* Solange noch niemand geschrieben hat: eine Zeile, kein Satz in Titelgröße. */
+.story-hint {
+    margin-block-start: var(--story-inner);
+    color: var(--text-faint);
+    font-size: 13.5px;
+}
+
+/* ----------------------------------------------------------------------
+   Der Schreibbereich
+
+   Er steht ganz unten, direkt unter dem Gelesenen: man liest oben und schreibt darunter
+   weiter. Eine Linie trennt ihn vom Text der Geschichte.
+
+   Er sieht im Ruhezustand aus wie Text auf der Seite - kein Kasten, kein Formular. Erst
+   wer hineinschreibt (oder einen Beitrag ändert), bekommt Fläche, Rahmen, Wortzähler und
+   Knöpfe. Wer heute nicht dran ist, sieht ihn ausgegraut: sichtbar, aber außer Betrieb.
+   ---------------------------------------------------------------------- */
+.story-write {
+    /* Dieselbe Breite wie der Text darüber: die Fläche soll mit dem Gelesenen auf einer
+       Flucht liegen. */
+    width: 100%;
+    max-width: var(--story-column);
+    margin-block-start: var(--story-rule-gap);
+    padding-block-start: var(--story-rule-gap);
+    border-block-start: 1px solid var(--story-rule);
+}
+
+.story-write__title {
+    margin-block-end: 14px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/*
+    Die Schreibfläche. Sie ist absichtlich größer als ein Formularfeld: hier entsteht ein
+    Absatz, und dafür braucht es Platz. Deshalb dieselbe Serifenschrift und fast dieselbe
+    Schriftgröße wie die Geschichte selbst - Schreiben soll sich anfühlen wie Lesen.
+
+    Im Ruhezustand hat sie KEINEN Rahmen und KEINE Fläche: sie sieht aus wie der Anfang
+    eines Absatzes auf der Seite, mit dem Hinweis als Platzhalter. Erst im aktiven Zustand
+    (Fokus oder Text, siehe .story-write__box.is-active) wird daraus ein Feld mit Fläche,
+    Rahmen und runden Ecken. Die Rundung stammt von --radius-tile: das ist im ganzen Blatt
+    die Rundung für eine große Fläche (Kachel, Dialog), während --radius-control den
+    kleinen Bedienelementen vorbehalten ist.
+*/
+.story-write__field {
+    display: block;
+    width: 100%;
+    min-height: clamp(240px, 32vh, 320px);
+    padding: clamp(20px, 2.2vw, 24px);
+    /*
+        Randlos, auch im Ruhezustand: die Fläche steht für sich, der Rahmen erscheint erst
+        im Fokus (siehe unten). Ein leeres Feld mit Kasten sähe aus wie ein Formular, und
+        geschrieben wird hier ein Absatz.
+    */
+    border: 1px solid transparent;
+    border-radius: var(--radius-tile);
+    background-color: var(--panel);
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: clamp(17px, 1.1vw, 18px);
+    line-height: 1.7;
+    resize: vertical;
+    transition: border-color 220ms var(--ease);
+}
+
+/*
+    Wer nicht dran ist: dieselbe Fläche, nur ausgegraut und ohne Schreibmarke. Gespeichert
+    wird ohnehin serverseitig geprüft - das hier ist nur die Anzeige.
+*/
+.story-write__box.is-disabled {
+    opacity: 0.55;
+}
+
+.story-write__box.is-disabled .story-write__field {
+    cursor: not-allowed;
+}
+
+/*
+    Der Wortzähler und die Knöpfe erscheinen erst mit der aktiven Fläche: im Ruhezustand
+    wäre eine Reihe von Bedienelementen unter einer leeren Seite nur Unruhe.
+*/
+.story-write__box:not(.is-active) .story-write__foot {
+    display: none;
+}
+
+.story-write__field::placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+/*
+    Der Fokus: ein sehr zarter, dünner Hinweis in der Farbe der Person, die gerade
+    schreibt - Terrakotta für Selina, Salbei für Xenia. Kein kräftiger Rahmen: die Fläche
+    bleibt ruhig, nur ihre Kante wird blass farbig.
+
+    Zwei Klassen im Selektor sind Absicht: app.css färbt den Fokusrahmen jedes Textfelds
+    grün ([data-theme="light"] textarea:focus), und das ist stärker als eine Regel mit
+    einer Klasse. Mit zwei - plus dem Kasten davor - gewinnt die Farbe des Autors.
+*/
+.story-write__box .story-write__field:focus {
+    border-color: color-mix(in srgb, var(--story-author) 55%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--story-author) 20%, transparent);
+    outline-offset: 1px;
+}
+
+.story-write__foot {
+    display: flex;
+    flex-wrap: wrap;
+    /* Zähler links, Knöpfe rechts - und beide auf derselben Grundlinie, auch wenn der
+       Zähler kleiner steht als die Knopftexte. Der Abstand zur Fläche ist größer als das
+       übrige Innenmaß: die Fußzeile gehört zum Feld, soll aber nicht daran kleben. */
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px 20px;
+    margin-block-start: clamp(24px, 3vw, 30px);
+}
+
+.story-write__count {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.story-write__limit {
+    margin-block-start: 8px;
+    color: var(--warn);
+    font-size: 12.5px;
+}
+
+/*
+    Die Zeile unter dem Editor. Sie sagt, wer an der Reihe ist oder dass gerade ein
+    Beitrag geändert wird - eine Auskunft, keine Überschrift. Deshalb klein, in der
+    Sans-Schrift der Oberfläche und gedämpft; sie war einmal ein Satz in Lesegröße.
+*/
+.story-write__status {
+    max-width: 52ch;
+    margin-block-start: var(--story-inner);
+    color: var(--text-faint);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Die Knöpfe des Editors: beiseite gestellt, "Abbrechen" links vom Speichern. */
+.story-write__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Ein Knopf, wie es ihn in der Anwendung sonst nicht gibt: die Hauptsache dieser Seite
+   ist das Veröffentlichen, deshalb darf sie gefüllt sein. Im dunklen Modus dreht sich
+   das Paar aus Text und Grund von selbst um. */
+/*
+    Der Hauptknopf trägt die Farbe des Schreibenden (Terrakotta oder Salbei). Die Schrift
+    darauf wechselt mit dem Modus wie bei jedem gefüllten Knopf dieser Anwendung: heller
+    Text im dunklen Modus, dunkler Text im hellen. */
+.story-button {
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background-color: var(--story-author);
+    color: var(--bg);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 150ms var(--ease);
+}
+
+.story-button:hover:not([disabled]) {
+    opacity: 0.85;
+}
+
+.story-button[disabled] {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.story-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/*
+    Der ruhige Knopf („Abbrechen", „Zurück zum Schreiben") ist ein Textlink: kein Rahmen,
+    keine Fläche, nur unterstrichene Schrift neben dem Hauptknopf. Er ist da, wenn man ihn
+    sucht, und nicht davor.
+*/
+.story-button--quiet {
+    /* Nur die Höhe bleibt als Klickfläche stehen, die Breite kommt vom Text. */
+    padding-inline: 0;
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 4px;
+}
+
+.story-button--quiet:hover:not([disabled]) {
+    color: var(--text);
+    text-decoration-color: currentColor;
+}
+
+/* ----------------------------------------------------------------------
+   Die Grammar Challenge
+
+   Eine schmale Leiste, keine Karte: links Symbol und Beschriftung, rechts die Zeitform.
+   Sie steht über dem Editor und ist nicht aufklappbar - es gibt nichts aufzuklappen.
+
+   Die Farben sind dieselben Variablen wie überall sonst in der Anwendung, also wechselt
+   die Leiste den Modus von selbst mit.
+   ---------------------------------------------------------------------- */
+/*
+    Die Leiste steht zwischen den Zahlen und der Geschichte; darunter beginnt der
+    Lesebereich mit seinem eigenen Abstand. Sie ist so breit wie die Lesespalte.
+*/
+.story-challenge {
+    max-width: var(--story-column);
+    margin-block-start: var(--story-gap);
+}
+
+.challenge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: clamp(12px, 1.6vw, 15px) clamp(14px, 1.8vw, 18px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background-color: var(--surface-soft);
+}
+
+/*
+    Das kleine Markenzeichen. Es ist dieselbe Zeichnung wie auf der Kachel der
+    Startseite und wird wie alle Symbole dieser Anwendung eingefärbt: der Filter macht
+    aus den festen Grautönen der Datei die Farbe, die zum Modus passt.
+*/
+.challenge__mark {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    filter: var(--icon-filter);
+    opacity: 0.75;
+}
+
+.challenge__label {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+/*
+    Die Zeitform der nächsten Tage, rechts in der Leiste (margin-inline-start: auto schiebt
+    sie an den Rand). Dieselbe Schrift wie die Beschriftung links, aber in der Textfarbe:
+    die Beschriftung sagt, worum es geht, die Zeitform ist die Auskunft selbst.
+*/
+.challenge__topic {
+    margin-inline-start: auto;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+/*
+    Das Niveau ("B1") direkt hinter der Zeitform, eine Stufe leiser. Der Punkt davor steht
+    als eigenes Element im Markup und nicht im Blatt: er ist ein Trennzeichen, kein Wort,
+    und wird Vorleseprogrammen verschwiegen.
+*/
+.challenge__level {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.challenge__dot {
+    margin-inline-end: 6px;
+    color: var(--line-strong);
+}
+
+/*
+    Der Beitrag, der gerade geändert wird, verschwindet aus der Geschichte. Er steht im
+    Editor - zweimal derselbe Text auf einer Seite wäre verwirrend.
+*/
+.entry.is-editing {
+    display: none;
+}
+
+/* ----------------------------------------------------------------------
+   Die Zahlen
+
+   EINE Zeile, direkt unter dem Kopf: Wörter, Beiträge, Tage, dahinter der Anteil jeder
+   Person und seit wann es die Geschichte gibt. Klein, in der Sans-Schrift der Oberfläche
+   und gedämpft - die Zahlen sind eine Fußnote zur Geschichte, kein eigener Abschnitt.
+   Breit wie die Lesespalte, damit sie mit ihr auf derselben Flucht liegt.
+   ---------------------------------------------------------------------- */
+.story-stats {
+    max-width: var(--story-column);
+    margin-block-start: var(--story-inner);
+}
+
+.story-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+/* Die drei Kennzahlen mit einem Punkt dazwischen: "408 Wörter · 1 Beitrag · 1 Tag". */
+.story-line__figures {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.story-line__dot {
+    color: var(--line-strong);
+}
+
+/* Balken und Legende nebeneinander. */
+.story-line__share {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/*
+    Der gestapelte Balken: schmal, mit runden Enden, links Xenia, rechts Selina. Er ist
+    für Vorleseprogramme ausgeblendet - die Legende daneben sagt dasselbe in Worten.
+*/
+.story-line__bar {
+    display: flex;
+    width: 140px;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background-color: var(--surface-soft);
+}
+
+.story-line__part {
+    display: block;
+    height: 100%;
+    background-color: var(--story-author);
+    transition: width 300ms var(--ease);
+}
+
+.story-line__part[data-writer="xenia"] {
+    --story-author: var(--story-xenia);
+}
+
+.story-line__part[data-writer="selina"] {
+    --story-author: var(--story-selina);
+}
+
+/* "● Xenia 0 % · ● Selina 100 %" - Punkt in der Autorenfarbe, Name, Wert. */
+.story-line__legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.story-line__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.story-line__swatch {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--story-author);
+}
+
+.story-line__item[data-writer="xenia"] {
+    --story-author: var(--story-xenia);
+}
+
+.story-line__item[data-writer="selina"] {
+    --story-author: var(--story-selina);
+}
+
+.story-line__name {
+    color: var(--text);
+}
+
+.story-line__value {
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+/* "seit 11.10.2026" - ganz am Ende der Zeile, leiser als alles andere. Auf einem schmalen
+   Fenster rutscht der Hinweis in die nächste Zeile und steht dann links. */
+.story-line__since {
+    margin-inline-start: auto;
+    color: var(--text-faint);
+}
+
+/*
+    Der eigene Beitrag lässt sich ändern, solange die andere Person nicht geschrieben
+    hat. Der Knopf steht in der Zeile des Beitrags und liest sich wie ein Verweis, nicht
+    wie eine Schaltfläche: er ist eine Möglichkeit, nicht die Hauptsache.
+*/
+.entry__edit {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 3px;
+    transition: color 200ms var(--ease);
+}
+
+.entry__edit:hover,
+.entry__edit:focus-visible {
+    color: var(--text);
+    text-decoration-color: currentColor;
+}
+
+.entry__edit:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------
+   Dieses Konto schreibt nicht mit
+   ---------------------------------------------------------------------- */
+.story-denied {
+    max-width: 34rem;
+    margin-inline: auto;
+    padding-block: clamp(48px, 12vh, 120px);
+    text-align: center;
+}
+
+.story-denied__title {
+    font-family: var(--font-serif);
+    font-size: clamp(22px, 3vw, 28px);
+    font-weight: 600;
+}
+
+.story-denied__hint {
+    margin-block-start: 8px;
+    color: var(--text-muted);
+    font-size: 15px;
+}
+
+/* ----------------------------------------------------------------------
+   Schmale Fenster
+
+   Die Lesespalte füllt dann die Breite, die Schrift wird einen Hauch kleiner. Sonst
+   ändert sich nichts: dieselbe Farbe, derselbe Aufbau.
+   ---------------------------------------------------------------------- */
+@media (max-width: 640px) {
+    .entry__text {
+        font-size: 17px;
+        line-height: 1.68;
+    }
+
+    /* Die Initiale wird kleiner, damit sie die erste Zeile nicht dominiert. */
+    .entry:first-child .entry__text p:first-child::first-letter {
+        font-size: 2.6em;
+    }
+
+    /* In der Kennzeile rutscht "seit ..." in eine eigene Zeile. Dort steht es links: ein
+       Hinweis, der allein am rechten Rand hängt, wäre nicht mehr zuzuordnen. */
+    .story-line__since {
+        margin-inline-start: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .story-button,
+    .story-line__part {
+        transition: none;
+    }
+}

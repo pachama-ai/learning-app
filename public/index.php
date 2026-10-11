@@ -17,10 +17,16 @@ declare(strict_types=1);
  * landen.
  *
  * Die API, die Services und die Datenbank werden von dieser Datei nicht angefasst.
+ * Gelesen wird nur die Sitzung: sie entscheidet, ob die Kachel der gemeinsamen
+ * Geschichte auf der Startseite steht (siehe $appConfig['story']).
  */
 
 require_once __DIR__ . '/../src/helpers/html.php';
 require_once __DIR__ . '/../src/helpers/translations.php';
+require_once __DIR__ . '/../src/helpers/site_header.php';
+require_once __DIR__ . '/../src/helpers/page_head.php';
+require_once __DIR__ . '/../src/helpers/session_user.php';
+require_once __DIR__ . '/../src/helpers/story_writers.php';
 require_once __DIR__ . '/../src/services/exercise_service.php';
 
 /*
@@ -68,10 +74,28 @@ $appConfig = [
            gewählt wird. Es entsteht auf dem Server, damit Dialog und Karte ihre
            Zahlen nie aus zwei verschiedenen Erzeugern ziehen. */
         'exercisePreview' => 'api/exercise_preview.php',
+        /* Die Startseite braucht nur EINE Auskunft aus der Geschichte: wer als Nächstes
+           schreibt. Deshalb fragt sie denselben Endpunkt wie die Seite selbst, statt
+           einen zweiten zu bauen - die Regel "wer zuletzt geschrieben hat, ist als
+           Nächster nicht dran" steht so an genau einer Stelle. */
+        'story' => 'api/story.php',
     ],
 
     // Die Beispieldatei, die der Importdialog anbietet, und sonst nichts.
     'sampleCsv' => 'assets/samples/cards-import-sample.csv',
+    /*
+     * Der Weg zur gemeinsamen Geschichte. Ob diese Sitzung die Kachel sehen darf,
+     * entscheidet die Sitzung selbst: die Id kommt aus $_SESSION, die beiden erlaubten
+     * Ids stehen in src/helpers/story_writers.php. Die Datenbank wird dafür nicht
+     * angefasst.
+     *
+     * Die Kachel ist reine Bequemlichkeit. Sie wegzulassen ersetzt keine Prüfung: die
+     * Seite und der Endpunkt der Geschichte prüfen beide noch einmal selbst.
+     */
+    'story' => [
+        'href' => 'story.php',
+        'available' => story_writer_key(session_user_id_from_php_session()) !== null,
+    ],
     'storageKeys' => [
         'theme' => 'lernkartei.theme',
         'language' => 'lernkartei.language',
@@ -150,11 +174,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 -->
 <html lang="<?= escape_html($defaultLocale) ?>" class="is-booting">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php render_head_basics(); ?>
     <title><?= $text('app.title') ?></title>
-    <!-- Das Symbol im Browserreiter. Das ist die Symboldatei des Browsers, kein Kategoriesymbol. -->
-    <link rel="icon" href="assets/icons/browser_icon.svg" type="image/svg+xml">
     <!--
         Beide Stylesheets und das Skript unten tragen den Zeitpunkt ihrer letzten Änderung
         als Version (asset_url), damit eine Änderung beim nächsten Laden im Browser ankommt
@@ -197,51 +218,9 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         </style>
     </noscript>
 
-    <!--
-        Vorab geladen, damit die Schrift der Überschrift schon da ist, wenn das erste
-        Zeichnen passiert. Sonst begänne das Einblenden der Überschrift in der
-        Ersatzschrift und würde sichtbar umspringen. Der Pfad ist relativ zu dieser
-        Datei in public/, und "crossorigin" ist nötig, weil Schriften immer im
-    -->
-    <link rel="preload" href="assets/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-
     <script type="application/json" id="app-config"><?= json_encode($appConfig, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 
-    <script>
-        /*
-         * Setzt das gespeicherte Erscheinungsbild, bevor die Seite gezeichnet wird,
-         * damit der Browser nie zuerst helle Farben zeigt und dann auf dunkle springt.
-         * Das muss inline im Kopf laufen, weil app.js zu spät geladen wird.
-         * Am Verhalten von localStorage ändert sich nichts.
-         */
-        (function () {
-            var storageKey = 'lernkartei.theme';
-
-            try {
-                storageKey = JSON.parse(document.getElementById('app-config').textContent).storageKeys.theme;
-            } catch (error) {
-                /* Den Schlüssel oben behalten, wenn sich der Konfigurationsblock
-                   nicht lesen lässt. */
-            }
-
-            var saved = null;
-
-            try {
-                saved = window.localStorage.getItem(storageKey);
-            } catch (error) {
-                /* Der private Modus kann localStorage sperren; dann gilt die
-                   Einstellung des Systems. */
-            }
-
-            if (saved !== 'light' && saved !== 'dark') {
-                saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-                    ? 'dark'
-                    : 'light';
-            }
-
-            document.documentElement.setAttribute('data-theme', saved);
-        })();
-    </script>
+    <?php render_theme_init($appConfig['storageKeys']['theme']); ?>
 </head>
 <body>
     <!--
@@ -487,60 +466,8 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     </script>
 
     <div class="page">
-        <header class="site-header">
-            <div class="site-header__left">
-                <!--
-                    Das Konto als reiner Text: "Anmelden", solange niemand angemeldet ist,
-                    sonst der Name der Person und "Abmelden". Es steht am linken Rand
-                    der Inhaltsspalte, in derselben Zeile wie der Mond und der
-                    Sprachumschalter, und app.js füllt es aus api/auth.php - diese
-                    Datei spricht nie mit der Datenbank.
-                -->
-                <div class="account" id="account-slot"></div>
-
-                <!--
-                    Startet in beiden Ansichten leer, und ein leeres ".crumb" braucht keinen
-                    Platz (siehe Stylesheet). Die Startseite zeigt hier mit Absicht
-                    keine Beschriftung; auf einer tieferen Seite füllt app.js den Pfad ein,
-                    und das ist Navigation.
-                -->
-                <p class="crumb" id="crumb"></p>
-            </div>
-
-            <div class="site-header__right">
-                <!--
-                    Das Symbol zeigt, was ein Klick bewirkt: der Mond im hellen Modus
-                    (Klick -> dunkel), die Sonne im dunklen Modus (Klick -> hell).
-                    Beide sind direkt mit viewBox und currentColor gezeichnet, der Wechsel
-                    hängt also an keiner Symboldatei und braucht keinen Farbfilter.
-                    Welches zu sehen ist, entscheidet [data-theme].
-                -->
-                <button type="button" class="theme-toggle" id="theme-toggle"
-                        aria-pressed="false"
-                        aria-label="<?= $text('theme.switch.toDark') ?>"
-                        data-i18n-label="theme.switch.toDark">
-                    <svg class="theme-toggle__icon theme-toggle__icon--light"
-                         viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M20.9 14.4A8.5 8.5 0 0 1 9.6 3.1 8.5 8.5 0 1 0 20.9 14.4Z"/>
-                    </svg>
-
-                    <svg class="theme-toggle__icon theme-toggle__icon--dark"
-                         viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <circle class="sun-core" cx="12" cy="12" r="4"/>
-                        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-                    </svg>
-                </button>
-
-                <!-- Ein reiner Textumschalter mit Unterstrich, kein gerahmtes Bedienelement. -->
-                <div class="lang-switch" role="group" aria-label="<?= $text('language.label') ?>" data-i18n-label="language.label">
-                    <button type="button" class="lang-switch__option" data-locale="en" data-i18n="language.en"><?= $text('language.en') ?></button>
-                    <span class="lang-switch__separator" aria-hidden="true">|</span>
-                    <button type="button" class="lang-switch__option" data-locale="de" data-i18n="language.de"><?= $text('language.de') ?></button>
-                    <span class="lang-switch__underline" id="lang-underline" aria-hidden="true"></span>
-                </div>
-
-            </div>
-        </header>
+        <?php /* Dieselbe Kopfzeile wie auf der Nachschlageseite, siehe src/helpers/site_header.php. */ ?>
+        <?php render_site_header($defaultLocale); ?>
 
         <noscript>
             <p class="state state--error"><?= $text('state.noscript') ?></p>

@@ -1,0 +1,657 @@
+/*
+    "Energie verstehen" - das interaktive Nachschlagewerk.
+
+    Diese Datei fügt nur hinzu, was diese Seite allein braucht. Farben, Schriften,
+    Abstände und die Kopfzeile kommen aus app.css, damit beide Seiten wie eine Anwendung
+    aussehen; hier stehen nur der Aufbau der Seite, die Such- und Filterleiste, ein
+    Wissensmodul und die gemeinsamen Teile einer Zeichnung.
+
+    Zwei Regeln bestimmen alles hier:
+      - Trennlinien statt Rahmen, Weißraum statt Füllung, keine Schatten
+      - jede Größe und jeder Abstand skaliert mit, damit die Seite in einem schmalen
+        Fenster neben der Lernkartei genauso benutzbar ist wie breit
+*/
+
+/* ----------------------------------------------------------------------
+   Die Farben der Größen.
+   Dieselbe Größe hat auf der ganzen Seite dieselbe Farbe - Spannung immer grün,
+   Strom immer bernstein, Feld immer violett, Leistung immer gold. Die Zeichnungen
+   malen mit diesen Namen und nicht mit festen Werten, deshalb stimmt die Farbe
+   auch im dunklen Modus.
+   ---------------------------------------------------------------------- */
+:root {
+    --viz-voltage: #2F6B4F;
+    --viz-current: #A8691C;
+    --viz-field: #6B5B9E;
+    --viz-power: #8A6A21;
+    --viz-neutral: #8C8880;
+    --viz-plane: rgba(43, 38, 34, 0.05);
+}
+
+[data-theme="dark"] {
+    --viz-voltage: #8FD3E6;
+    --viz-current: #D3A26A;
+    --viz-field: #A79AD6;
+    --viz-power: #D9B65C;
+    --viz-neutral: rgba(255, 255, 255, 0.55);
+    --viz-plane: rgba(255, 255, 255, 0.06);
+}
+
+/* ----------------------------------------------------------------------
+   Der Kopf der Seite
+   ---------------------------------------------------------------------- */
+.energy-head {
+    padding-block-end: clamp(20px, 3vw, 32px);
+}
+
+/*
+    Die Überschrift steht in der Serifenschrift - dieselbe, die die Lernkartei für
+    ruhige Fließtexte benutzt. Das ist der Unterschied zu den Bedienelementen daneben,
+    die alle in der Sans-Schrift stehen: die Seite soll wie ein Nachschlagewerk wirken
+    und nicht wie ein Formular.
+*/
+.energy-title {
+    font-family: var(--font-serif);
+    font-size: clamp(26px, 3.4vw, 40px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+.energy-lead {
+    margin-block-start: 8px;
+    max-width: 62ch;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* ----------------------------------------------------------------------
+   Such- und Filterleiste
+
+   Sie klebt beim Scrollen oben am Fenster. Das ist der einzige Teil der Seite, der
+   immer erreichbar bleibt, deshalb steht hier nichts, was Platz kostet: zwei Zeilen
+   mit fester Höhe, keine Schatten, keine Rundungen.
+   ---------------------------------------------------------------------- */
+.energy-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-block: 10px;
+    /* Deckend, damit der Inhalt beim Scrollen nicht durch die Leiste scheint. */
+    background-color: var(--bg);
+    border-block-end: 1px solid var(--line);
+}
+
+.energy-bar__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+/*
+    Ein Auswahlfeld mit seiner Beschriftung darüber. Die Beschriftung ist klein und
+    leise, damit die Leiste flach bleibt - aber sie ist da und nicht versteckt, weil
+    zwei Auswahlfelder nebeneinander sonst nicht zu unterscheiden wären.
+*/
+.energy-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+.energy-field__label {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/*
+    Das Auswahlfeld selbst. Die Farben kommen aus den Tokens, deshalb folgt auch die
+    aufklappende Liste dem hellen und dem dunklen Modus: [data-theme] setzt color-scheme,
+    und das ist es, was der Browser dafür liest.
+*/
+.energy-select {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    cursor: pointer;
+}
+
+.energy-select:focus-visible {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* Die Anzahl der passenden Module. Sie sagt, was der Filter gerade zeigt. */
+.energy-count {
+    flex: 0 0 auto;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* "Nur Formeln": derselbe leise Textknopf wie die Themenchips zuvor. */
+.energy-chip {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 150ms var(--ease), border-color 150ms var(--ease), background-color 150ms var(--ease);
+}
+
+.energy-chip:hover {
+    color: var(--text);
+}
+
+.energy-chip[aria-pressed="true"] {
+    border-color: var(--line-strong);
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+.energy-chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* "Nur Formeln" ist ein leiser Schalter, kein Knopf mit Gewicht. */
+.energy-chip--plain {
+    border-color: var(--line);
+}
+
+/* "Zurücksetzen" ist immer da und nie versteckt: ohne es käme man aus einem Filter
+   nur heraus, wenn man weiß, welcher Knopf ihn gesetzt hat. */
+.energy-reset {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
+}
+
+.energy-reset:hover {
+    background-color: var(--active-surface);
+}
+
+.energy-reset:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* ----------------------------------------------------------------------
+   Ein Wissensmodul
+   ---------------------------------------------------------------------- */
+.energy-modules {
+    display: flex;
+    flex-direction: column;
+}
+
+.mod {
+    padding-block: clamp(24px, 3.2vw, 40px);
+    border-block-start: 1px solid var(--line);
+    /*
+        Wird ein Modul über seine Adresse angesprungen (#ohms_law), dann soll seine
+        Überschrift unter der klebenden Filterleiste stehen und nicht dahinter. Der
+        Wert ist die Höhe der Leiste plus etwas Luft.
+    */
+    scroll-margin-top: 104px;
+}
+
+/* Das erste Modul braucht keine Linie darüber: der Kopf der Seite trennt schon. */
+.mod:first-child {
+    border-block-start: 0;
+    padding-block-start: clamp(16px, 2vw, 24px);
+}
+
+.mod__group {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mod__title {
+    margin-block: 6px 10px;
+    font-family: var(--font-serif);
+    font-size: clamp(20px, 2.1vw, 26px);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+}
+
+/* Die kurze Erklärung. Sie ist das Erste, was gelesen wird, deshalb bekommt sie
+   Lesebreite und Zeilenhöhe statt einer engen Spalte. */
+.mod__summary {
+    max-width: 68ch;
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--text);
+}
+
+/* Zeichnung und Formeln nebeneinander, solange Platz ist. Die Zeichnung ist wichtiger,
+   deshalb bekommt sie die breitere Spalte. */
+.mod__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: clamp(20px, 2.6vw, 36px);
+    align-items: start;
+    margin-block-start: clamp(16px, 2vw, 22px);
+}
+
+/* Die Spalte neben der Zeichnung: Formeln, Vertiefung, Verweise - untereinander. */
+.mod__side {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+}
+
+/* ----------------------------------------------------------------------
+   Die Zeichnung eines Moduls
+   ---------------------------------------------------------------------- */
+.energy-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    min-width: 0;
+}
+
+.energy-visual__frame {
+    /*
+        Die Fläche der Zeichnung liegt ganz leicht über dem Hintergrund. Das gibt der
+        Zeichnung einen Ort, ohne einen Rahmen zu brauchen - dieselbe Zurückhaltung wie
+        die Kacheln der Lernkartei.
+    */
+    padding: clamp(10px, 1.4vw, 16px);
+    background-color: var(--viz-plane);
+    border-radius: var(--radius-tile);
+}
+
+/*
+    Jede Zeichnung ist ein SVG mit viewBox und ohne feste Breite: sie füllt die
+    verfügbare Spalte und wird im schmalen Fenster kleiner, statt zu scrollen.
+*/
+.energy-visual__frame svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* Beschriftungen IN der Zeichnung sind Text des Moduls, nicht Zierde. */
+.energy-visual__frame text {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    fill: var(--text-muted);
+}
+
+.energy-visual__frame .viz-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    fill: var(--text);
+}
+
+.energy-visual__frame .viz-caption {
+    font-size: 11px;
+    fill: var(--text-faint);
+}
+
+.energy-visual__note {
+    color: var(--text-faint);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/*
+    Die Modellannahme. Sie steht bei JEDER Zeichnung, die ein Modell zeigt, und ist
+    deshalb sichtbar und nicht versteckt: "Modell:" davor sagt, woran man ist.
+*/
+.energy-visual__caution {
+    display: flex;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.energy-visual__caution::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 2px;
+    background-color: var(--line-strong);
+}
+
+/* Die Regler und die drei Knöpfe einer Zeichnung. */
+.energy-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 16px;
+}
+
+.energy-control {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.energy-control__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.energy-control__label {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.energy-control__value {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.energy-control input[type="range"] {
+    width: 100%;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.energy-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+/* Ein Knopf an einer Zeichnung: Text, eine dünne Linie, sonst nichts. */
+.energy-button {
+    padding: 5px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 150ms var(--ease);
+}
+
+.energy-button:hover:not([disabled]) {
+    background-color: var(--active-surface);
+}
+
+.energy-button[disabled] {
+    color: var(--text-faint);
+    cursor: default;
+}
+
+.energy-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* ----------------------------------------------------------------------
+   Formeln
+   ---------------------------------------------------------------------- */
+.energy-formulas {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 2vw, 22px);
+    min-width: 0;
+}
+
+.mod__side-title {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.energy-formula {
+    padding-block-start: 10px;
+    border-block-start: 1px solid var(--line);
+}
+
+/*
+    Der Formelsatz darf in einem schmalen Fenster NICHT abgeschnitten werden. Er läuft
+    waagerecht weiter und ist dann scrollbar - abschneiden würde die Formel falsch
+    aussehen lassen, und eine halbe Formel ist schlimmer als eine zum Schieben.
+*/
+.energy-formula__math {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 2px;
+}
+
+/* Die Formel steht etwas größer und in der Serifenschrift des Formelsatzes. */
+.energy-formula__math .katex {
+    font-size: 1.15em;
+    color: var(--text);
+}
+
+/* Die Tabelle der Formelzeichen: drei Spalten, ruhige Linien. */
+.energy-formula__vars {
+    margin-block-start: 10px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.energy-formula__symbol {
+    font-family: var(--font-mono);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.energy-formula__meaning {
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+.energy-formula__unit {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.energy-formula__note {
+    margin-block-start: 8px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.energy-formula__note-label {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ----------------------------------------------------------------------
+   Vertiefung und Verweise
+   ---------------------------------------------------------------------- */
+.mod__more {
+    align-self: start;
+    margin-block-start: 4px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 150ms var(--ease);
+}
+
+.mod__more:hover {
+    color: var(--text);
+}
+
+.mod__more:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.mod__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 72ch;
+    padding-block-start: 4px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/*
+    Ein Verweis auf ein anderes Modul. Ohne Unterstrich und in der Mono-Schrift der
+    übrigen kleinen Beschriftungen: er soll wie eine Wegbeschreibung wirken, nicht wie
+    ein Link in einem Text.
+*/
+.mod__related {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.mod__related-link {
+    border: 0;
+    padding: 2px 0;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border-block-end: 1px solid currentColor;
+}
+
+.mod__related-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------
+   Der leere Zustand: die Suche hat nichts gefunden
+   ---------------------------------------------------------------------- */
+.energy-empty {
+    padding-block: clamp(40px, 8vw, 90px);
+    text-align: center;
+}
+
+.energy-empty__title {
+    font-family: var(--font-serif);
+    font-size: 20px;
+}
+
+.energy-empty__hint {
+    margin-block-start: 6px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Ein Modul, das die Suche ausgeblendet hat, ist wirklich weg - nicht nur unsichtbar. */
+.mod[hidden] {
+    display: none;
+}
+
+/* ----------------------------------------------------------------------
+   Schmale Fenster
+
+   Der Hauptfall dieser Seite: sie steht in einem schmalen Fenster neben den
+   Karteikarten. Deshalb wird hier nicht nur "kleiner", sondern wirklich umgebaut:
+   nebeneinander liegende Spalten kommen untereinander.
+   ---------------------------------------------------------------------- */
+@media (max-width: 860px) {
+    .mod__body {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+    }
+
+    /* Die Vertiefung steht dann unter den Formeln und braucht ihre Breite nicht mehr
+       zu teilen. */
+    .mod__detail {
+        max-width: none;
+    }
+}
+
+@media (max-width: 720px) {
+    /*
+        Die Anzahl passt nicht mehr in die erste Zeile. Sie verschwindet - die Suche
+        sagt über den leeren Zustand ohnehin, wenn nichts passt.
+    */
+    .energy-count {
+        display: none;
+    }
+
+    .energy-lead {
+        font-size: 14px;
+    }
+}
+
+/* ----------------------------------------------------------------------
+   Wer keine Bewegung möchte
+
+   Die Zeichnungen dieser Seite laufen von selbst, sobald sie sichtbar werden. Bei
+   dieser Einstellung tut keine von ihnen das: sie zeigt ein Standbild, und Bewegung
+   gibt es nur auf einen ausdrücklichen Klick. Siehe energy.js.
+   ---------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .energy-search__input,
+    .energy-chip,
+    .energy-reset,
+    .energy-button,
+    .mod__more {
+        transition: none;
+    }
+}
