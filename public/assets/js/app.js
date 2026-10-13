@@ -501,16 +501,18 @@
         dashUnsure: document.getElementById('dash-unsure-value'),
         dashStreak: document.getElementById('dash-streak-value'),
         dashStreakNote: document.getElementById('dash-streak-note'),
-        detailFigureCount: document.getElementById('detail-figure-count'),
+        /* Die eine Überblickszeile unter dem Kopf: Karten, gewusste, unsichere. */
         detailFigureCards: document.getElementById('detail-figure-cards'),
+        detailCardCount: document.getElementById('detail-card-count'),
+        detailCardLabel: document.getElementById('detail-card-label'),
+        detailSeparatorKnown: document.getElementById('detail-separator-known'),
         detailFigureKnown: document.getElementById('detail-figure-known'),
         detailKnownCount: document.getElementById('detail-known-count'),
         detailKnownLabel: document.getElementById('detail-known-label'),
-        detailSeparatorCards: document.getElementById('detail-separator-cards'),
-        detailSeparatorKnown: document.getElementById('detail-separator-known'),
-        detailCardCount: document.getElementById('detail-card-count'),
-        detailCardLabel: document.getElementById('detail-card-label'),
-        statLabel: document.getElementById('detail-stat-label'),
+        detailSeparatorUnsure: document.getElementById('detail-separator-unsure'),
+        detailFigureUnsure: document.getElementById('detail-figure-unsure'),
+        detailUnsureCount: document.getElementById('detail-unsure-count'),
+        detailUnsureLabel: document.getElementById('detail-unsure-label'),
 
         /* Der eine Dialog. Seine Felder entstehen, während er sich öffnet. */
         dialog: document.getElementById('app-dialog'),
@@ -549,8 +551,6 @@
         newCardsDialog: document.getElementById('new-cards-dialog'),
         newCardsHint: document.getElementById('new-cards-dialog-hint'),
         newCardsQuick: document.getElementById('new-cards-dialog-quick'),
-        newCardsInput: document.getElementById('new-cards-dialog-input'),
-        newCardsError: document.getElementById('new-cards-dialog-error'),
         newCardsStart: document.getElementById('new-cards-dialog-start'),
         newCardsCancel: document.getElementById('new-cards-dialog-cancel'),
         newCardsClose: document.getElementById('new-cards-dialog-close'),
@@ -826,6 +826,19 @@
 
             mask.appendChild(inner);
             element.appendChild(mask);
+
+            /*
+             * Zwischen den Zeilen steht ein Leerzeichen.
+             *
+             * Am Rechner stehen sie untereinander (`.heading__mask` ist dann blockweise),
+             * dann sieht man es nicht - aber im Text der Überschrift heißt es
+             * „Wähle ein Themengebiet" und nicht „Wähle einThemengebiet". Auf dem Handy
+             * laufen die Zeilen in einer Zeile, und dort ist es genau der Abstand
+             * zwischen den beiden Wörtern.
+             */
+            if (index < lines.length - 1) {
+                element.appendChild(document.createTextNode(' '));
+            }
         });
     }
 
@@ -2999,113 +3012,33 @@
      */
 
     /*
-     * Die Zahlen des geöffneten Eintrags.
+     * Die Überblickszeile unter dem Kopf: Karten, gewusste, unsichere.
      *
-     * Eine Zahl erscheint nur, wenn es etwas zu zählen gibt ("1 Unterkategorie",
-     * "8 Unterkategorien", "32 Lernkarten"), und wenn es gar nichts gibt, bleibt die ganze
-     * Zeile weg: eine Reihe von Nullen sagt niemandem etwas.
+     * Sie ersetzt die vier großen Kacheln, die hier einmal standen (fällig, sitzt schon,
+     * unsicher, in Folge gelernt). Es sind dieselben Zahlen aus derselben Zusammenfassung -
+     * aber in EINER leisen Zeile statt in vier Kästen: diese Seite ist zum Durchsehen und
+     * Bearbeiten da, eine Sitzung beginnt im Lernmodus.
      *
-     * Das Hauptwort richtet sich nach der Zahl, deshalb steht das Wort hier und nicht im
-     * HTML-Teil. Die beiden Zahlen rechts davon (Lernkarten und gewusste im ganzen
-     * Themengebiet) füllt renderDeckFigures(): sie sind auf beiden Seiten dieselben.
+     * Die erste Zahl der Zeile (wie viele Karten die Liste zeigt) füllt renderCardFigures:
+     * nur dort sind Filter und Suche bekannt. Die beiden hier sind davon unberührt. Ohne
+     * Karten bleibt der ganze Rest weg - "0 gewusst" unter einer leeren Liste sagt niemandem
+     * etwas.
      */
-    function renderFigures(count, oneKey, otherKey, cardCount, overallProgress) {
-        var showMain = count > 0;
+    function renderCardSummary(summary) {
+        var hasSummary = summary !== null && typeof summary === 'object' && typeof summary.total === 'number';
+        var show = hasSummary && summary.total > 0;
 
-        elements.detailFigureCount.hidden = !showMain;
-
-        if (showMain) {
-            animateCount(elements.detailCount, count);
-            elements.statLabel.textContent = t(count === 1 ? oneKey : otherKey);
+        if (show) {
+            elements.detailKnownCount.textContent = String(summary.known || 0);
+            elements.detailKnownLabel.textContent = t('detail.line.known');
+            elements.detailUnsureCount.textContent = String(summary.unsure || 0);
+            elements.detailUnsureLabel.textContent = t('detail.line.unsure');
         }
 
-        var deck = renderDeckFigures(showMain, cardCount, overallProgress);
-
-        elements.detailStats.hidden = !showMain && !deck.showCards && !deck.showKnown;
-    }
-
-    /*
-     * Die Zahlen des ganzen Themengebiets: seine Lernkarten und die davon gewussten.
-     *
-     * Sie stehen auf einer Unterkategorieseite neben der Zahl dieser Liste. Zwei Zahlen, die
-     * beide "Karten" heißen ("316 Karten · 685 Karten"), lassen offen, welche das Deck
-     * dieser Seite ist und welche alles darunter - deshalb bekommt jede ihr Wort. Das Wort
-     * steht hier und nicht im HTML-Teil, weil es sich nach der Zahl richtet.
-     *
-     * hasMain sagt, ob links schon eine Zahl steht: der Trennungspunkt gehört zwischen zwei
-     * Zahlen und nicht an den Anfang der Zeile.
-     *
-     * cardCount kommt von der Seite, die die Zahlen kennt (siehe overallProgressForArea),
-     * overallProgress ist die Zählung dahinter. Ohne angemeldete Person fehlt sie, dann
-     * bleibt "gewusst" weg.
-     */
-    function renderDeckFigures(hasMain, cardCount, overallProgress) {
-        var showCards = typeof cardCount === 'number' && cardCount > 0;
-        var showKnown = overallProgress !== null
-            && typeof overallProgress === 'object'
-            && overallProgress.total > 0
-            && overallProgress.hasProgress === true;
-
-        elements.detailFigureCards.hidden = !showCards;
-        elements.detailFigureKnown.hidden = !showKnown;
-        elements.detailSeparatorCards.hidden = !(hasMain && showCards);
-        elements.detailSeparatorKnown.hidden = !(showKnown && (hasMain || showCards));
-
-        if (showCards) {
-            elements.detailCardCount.textContent = String(cardCount);
-            elements.detailCardLabel.textContent = cardCount === 1
-                ? t('detail.cardsWholeDeck.one')
-                : t('detail.cardsWholeDeck.other');
-        }
-
-        if (showKnown) {
-            elements.detailKnownCount.textContent = String(overallProgress.known);
-            elements.detailKnownLabel.textContent = t('dash.overallKnown');
-        }
-
-        return { showCards: showCards, showKnown: showKnown };
-    }
-
-    function overallProgressForArea(areaId, areaChildren) {
-        var fallbackTotal = areaChildren.reduce(function (sum, child) {
-            return sum + (typeof child.card_count === 'number' ? child.card_count : 0);
-        }, 0);
-
-        if (bootstrapCache.hasUser !== true) {
-            return { total: fallbackTotal, known: 0, hasProgress: false };
-        }
-
-        var total = 0;
-        var known = 0;
-        var progress = 0;
-        var visited = {};
-
-        function includeCategory(categoryId) {
-            var key = String(categoryId);
-
-            if (visited[key] === true) {
-                return;
-            }
-
-            visited[key] = true;
-            var summary = bootstrapCache.summaries[key];
-
-            if (summary && typeof summary.total === 'number') {
-                total += summary.total;
-                known += summary.known || 0;
-                progress += (summary.known || 0) + (summary.unsure || 0);
-            }
-
-            (bootstrapCache.children[key] || []).forEach(function (child) {
-                includeCategory(child.id);
-            });
-        }
-
-        (bootstrapCache.children[String(areaId)] || []).forEach(function (child) {
-            includeCategory(child.id);
-        });
-
-        return { total: total > 0 ? total : fallbackTotal, known: known, hasProgress: progress > 0 };
+        elements.detailFigureKnown.hidden = !show;
+        elements.detailSeparatorKnown.hidden = !show;
+        elements.detailFigureUnsure.hidden = !show;
+        elements.detailSeparatorUnsure.hidden = !show;
     }
 
     /*
@@ -3425,18 +3358,12 @@
                     renderCardList(current.id);
 
                     /*
-                     * Die Zahlen des ganzen Themengebiets, zu dem diese Unterkategorie
-                     * gehört. Sie werden hier gerechnet und nicht stehen gelassen: die Zeile
-                     * würde sonst weiter die Zahlen des Themengebiets zeigen, das zuletzt
-                     * offen war, und nach einem Wechsel über die Seitenleiste stünden dort
-                     * die eines fremden Zweigs.
+                     * Die Überblickszeile unter dem Kopf: Karten, gewusst, unsicher. Sie wird
+                     * hier gefüllt und nicht stehen gelassen - sonst zeigte sie nach einem
+                     * Wechsel über die Seitenleiste weiter die Zahlen des Eintrags, der
+                     * zuletzt offen war.
                      */
-                    var branchProgress = overallProgressForArea(
-                        current.parent_id,
-                        bootstrapCache.children[String(current.parent_id)] || []
-                    );
-
-                    renderDeckFigures(true, branchProgress.total, branchProgress);
+                    renderCardSummary(openCardSummary);
                 }
 
                 /* Der Lernkarten-Abschnitt gehört zur Ebene darüber. */
@@ -3459,14 +3386,12 @@
                 children.length > 0
             );
 
-            var overallProgress = overallProgressForArea(current.id, children);
-            renderFigures(
-                children.length,
-                'tile.subcategories.one',
-                'tile.subcategories.other',
-                overallProgress.total,
-                overallProgress
-            );
+            /*
+             * Keine Zahlenzeile auf dieser Ebene: sie zählte die Karten des ganzen Zweigs,
+             * die diese Seite gar nicht zeigt. Was hier steht, sind die Unterkategorien - und
+             * die Liste darunter ist die Antwort darauf.
+             */
+            elements.detailStats.hidden = true;
 
             elements.entryList.textContent = '';
 
@@ -6275,12 +6200,33 @@
         wireEvents();
         wireAccountDialog();
         wireNewCardsDialog();
+        initSidebarFold();
 
         applyLocale(locale, false);
 
         /* Eine Zeile, die für die gerade geladene Seite gedacht war: das Abmelden oder das
            Löschen, das direkt davor passiert ist. */
         showPendingNote();
+    }
+
+    /*
+     * Die Themenliste klappt auf einem schmalen Fenster zu.
+     *
+     * Sie steht über dem Inhalt, und aufgeklappt nimmt sie den halben Bildschirm ein,
+     * bevor überhaupt etwas zu lesen ist. Am Rechner bleibt sie offen - dort ist sie das
+     * Inhaltsverzeichnis der Seite und nicht wegzudenken. Das Auf- und Zuklappen selbst
+     * macht das `details`-Element im Markup; hier wird nur entschieden, wie es startet.
+     */
+    function initSidebarFold() {
+        var fold = document.getElementById('sidebar-fold');
+
+        if (fold === null) {
+            return;
+        }
+
+        if (window.matchMedia('(max-width: 639px)').matches) {
+            fold.open = false;
+        }
     }
 
     /* ----------------------------------------------------------------------
@@ -6436,23 +6382,21 @@
     }
 
     /*
-     * Die Zahlenzeile über einer Kartenliste ("40 Karten in diesem Deck").
+     * Die erste Zahl der Überblickszeile: wie viele Karten diese Liste zeigt.
      *
-     * Sie wird hier gefüllt und nicht von renderFigures(), weil nur diese Stelle weiß, wie
-     * viele Karten nach Filter und Suche wirklich zu sehen sind. Steht weniger da, als es
-     * gibt, nennt die Zeile zusätzlich die Gesamtzahl ("12 von 40 Karten"): eine kleiner
-     * gewordene Zahl allein würde verschweigen, dass noch mehr da ist.
-     *
-     * "in diesem Deck" grenzt die Zahl gegen die des ganzen Themengebiets ab, die rechts
-     * daneben steht (siehe renderDeckFigures).
+     * Sie wird hier gefüllt und nirgends sonst, weil nur diese Stelle weiß, wie viele Karten
+     * nach Filter und Suche wirklich zu sehen sind. Steht weniger da, als es gibt, nennt die
+     * Zeile zusätzlich die Gesamtzahl ("12 von 40 Karten"): eine kleiner gewordene Zahl
+     * allein würde verschweigen, dass noch mehr da ist. Die beiden Zahlen daneben (gewusst,
+     * unsicher) sind von Filter und Suche unberührt - siehe renderCardSummary.
      */
     function renderCardFigures(shown, total) {
         elements.detailStats.hidden = false;
-        elements.detailFigureCount.hidden = false;
+        elements.detailFigureCards.hidden = false;
 
-        animateCount(elements.detailCount, shown);
-        elements.statLabel.textContent = shown === total
-            ? t(shown === 1 ? 'detail.cardsThisDeck.one' : 'detail.cardsThisDeck.other')
+        animateCount(elements.detailCardCount, shown);
+        elements.detailCardLabel.textContent = shown === total
+            ? t(shown === 1 ? 'detail.line.cards.one' : 'detail.line.cards.other')
             : t(total === 1 ? 'cards.figureOfOne' : 'cards.figureOf', { total: total });
     }
 
@@ -6833,9 +6777,9 @@
     /* Die Größen, die als ein Tipp angeboten werden. */
     var NEW_CARDS_CHOICES = [5, 10, 20];
 
-    /* Was das Fenster tut, wenn es beantwortet wird, und wie viele Karten es gibt. */
+    /* Was das Fenster tut, wenn es beantwortet wird und welche Zahl gerade gewählt ist. */
     var newCardsHandler = null;
-    var newCardsAvailable = 0;
+    var newCardsChoice = 0;
 
     /*
      * Fragt, wie viele neue Karten diese Einheit vorstellen soll, und ruft den Handler mit der
@@ -6851,22 +6795,20 @@
         }
 
         newCardsHandler = handler;
-        newCardsAvailable = available;
 
         elements.newCardsHint.textContent = t(
             available === 1 ? 'learn.newCardsHintOne' : 'learn.newCardsHintOther',
             { count: available }
         );
-        elements.newCardsInput.setAttribute('max', String(available));
-        elements.newCardsError.hidden = true;
-        elements.newCardsError.textContent = '';
 
         buildNewCardsQuick(available);
 
-        /* Was zuerst angeboten wird: die üblichen zehn, oder alles, wenn es weniger gibt. */
-        var start = Math.min(10, available);
-        elements.newCardsInput.value = String(start);
-        markNewCardsQuick(start);
+        /*
+         * Was zuerst gewählt ist: die üblichen zehn, oder alles, wenn es weniger gibt.
+         * Eine der angebotenen Zahlen ist es immer - die Vorschläge kommen aus derselben
+         * Liste, und "alle" ist immer dabei.
+         */
+        markNewCardsQuick(Math.min(10, available));
 
         if (typeof dialog.showModal === 'function') {
             dialog.showModal();
@@ -6878,10 +6820,16 @@
             dialog.classList.add('is-open');
         });
 
-        /* Die Zahl ist hier das Einzige zu tun, der Fokus geht also dorthin. */
+        /*
+         * Der Fokus geht auf die gewählte Zahl - sie ist das Einzige, was hier zu tun ist.
+         * Enter wählt dabei nicht neu, sondern bestätigt (siehe wireNewCardsDialog).
+         */
         window.setTimeout(function () {
-            elements.newCardsInput.focus();
-            elements.newCardsInput.select();
+            var chosen = elements.newCardsQuick.querySelector('[aria-pressed="true"]');
+
+            if (chosen !== null) {
+                chosen.focus();
+            }
         }, prefersReducedMotion() ? 0 : 200);
     }
 
@@ -6903,7 +6851,7 @@
         }, prefersReducedMotion() ? 0 : 200);
     }
 
-    /* Die Kurzwege: die drei üblichen Größen und "alle" - und nur, was es wirklich gibt. */
+    /* Die Vorschläge: die drei üblichen Größen und "alle" - und nur, was es wirklich gibt. */
     function buildNewCardsQuick(available) {
         elements.newCardsQuick.textContent = '';
 
@@ -6925,16 +6873,16 @@
         button.setAttribute('aria-pressed', 'false');
         button.textContent = label;
         button.addEventListener('click', function () {
-            elements.newCardsInput.value = String(count);
-            elements.newCardsError.hidden = true;
             markNewCardsQuick(count);
         });
 
         return button;
     }
 
-    /* Welcher Kurzweg der gewählte ist: der, dessen Zahl im Feld steht. */
+    /* Die gewählte Zahl merken und den zugehörigen Vorschlag als gewählt markieren. */
     function markNewCardsQuick(count) {
+        newCardsChoice = count;
+
         Array.prototype.forEach.call(elements.newCardsQuick.children, function (button) {
             var chosen = Number(button.dataset.count) === count;
             button.setAttribute('aria-pressed', chosen ? 'true' : 'false');
@@ -6942,25 +6890,18 @@
     }
 
     /*
-     * Die Antwort: eine ganze Zahl zwischen 0 und dem, was da ist. Alles andere wird mit einer
-     * Zeile unter dem Feld beantwortet, und das Fenster bleibt offen.
+     * Die Antwort: die gewählte Zahl.
+     *
+     * Etwas Ungültiges kann hier nicht stehen: die vier Vorschläge sind die ganze Bedienung,
+     * und jeder von ihnen ist eine Zahl, die es wirklich gibt. Deshalb gibt es auch keine
+     * Fehlerzeile mehr - das Feld, in das man eine falsche Zahl tippen konnte, ist weg.
      */
     function confirmNewCards() {
-        var raw = elements.newCardsInput.value.trim();
-        var count = /^\d+$/.test(raw) ? parseInt(raw, 10) : NaN;
-
-        if (isNaN(count) || count > newCardsAvailable) {
-            elements.newCardsError.textContent = t('learn.newCardsError', { max: newCardsAvailable });
-            elements.newCardsError.hidden = false;
-            elements.newCardsInput.focus();
-            return;
-        }
-
         var handler = newCardsHandler;
+        var count = newCardsChoice;
         newCardsHandler = null;
         closeNewCardsDialog();
 
-        /* Null ist eine echte Antwort: nur die Karten, die fällig sind. */
         if (handler !== null) {
             handler(count);
         }
@@ -6974,17 +6915,18 @@
         }
 
         elements.newCardsStart.addEventListener('click', confirmNewCards);
-        elements.newCardsInput.addEventListener('keydown', function (event) {
+
+        /*
+         * Enter an der Reihe der Vorschläge bestätigt die Wahl.
+         *
+         * Der Zuhörer sitzt an der Reihe und nicht am ganzen Fenster, damit Enter auf
+         * "Abbrechen" weiterhin abbricht: dort gehört die Taste dem Knopf selbst.
+         */
+        elements.newCardsQuick.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 confirmNewCards();
             }
-        });
-
-        /* Tippen einer Zahl schiebt die Markierung auf den Kurzweg, zu dem sie gehört. */
-        elements.newCardsInput.addEventListener('input', function () {
-            elements.newCardsError.hidden = true;
-            markNewCardsQuick(Number(elements.newCardsInput.value));
         });
 
         /* Das Fenster verlassen: die Einheit startet nur, wenn sie beantwortet wurde. */
@@ -9608,6 +9550,12 @@
          * Lernen gehört zur Kartenebene: eine Sitzung läuft immer über die Karten einer
          * Unterkategorie. In einem Lernbereich gibt es nichts zu lernen, deshalb fehlt der
          * Knopf dort ganz.
+         *
+         * Am Rechner ist er zusätzlich ausgeblendet: dort ist diese Seite die Verwaltung
+         * (anlegen, importieren, öffnen), und der Weg zum Lernen führt über den Lernbereich
+         * darüber (siehe die Regel bis 640 Pixel in app.css). Auf dem Handy bleibt er
+         * stehen - dort sind die Verwaltungsknöpfe aus, und eine Seite ohne eine einzige
+         * Handlung wäre eine Sackgasse.
          *
          * Ohne Karte zum Lernen bleibt er an seinem Platz, ausgegraut, und ein Hinweistext
          * sagt, warum.

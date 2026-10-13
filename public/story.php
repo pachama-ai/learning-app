@@ -119,9 +119,27 @@ $appConfig = [
                 derselbe wie überall.
             -->
             <section class="view view--detail" id="story-view" data-writer="<?= escape_html((string) $viewerKey) ?>">
+                <!--
+                    Die Themenliste.
+
+                    Auf dem Rechner steht die Beschriftung einfach da. Auf dem Handy ist
+                    sie eine Zeile zum Auf- und Zuklappen - ein `details`-Element, das der
+                    Browser von sich aus kann, ohne Skript. app.js klappt sie dort beim
+                    Laden zu, und das Zeichen rechts erscheint nur auf dem Handy
+                    (siehe app.css).
+                -->
                 <aside class="sidebar">
-                    <p class="eyebrow" data-i18n="sidebar.label"><?= $text('sidebar.label') ?></p>
-                    <nav class="sidebar__nav" id="sidebar-nav"></nav>
+                    <details class="sidebar__fold" id="sidebar-fold" open>
+                        <summary class="sidebar__summary">
+                            <span class="eyebrow" data-i18n="sidebar.label"><?= $text('sidebar.label') ?></span>
+                            <svg class="sidebar__chevron" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                 stroke-linejoin="round" focusable="false" aria-hidden="true">
+                                <path d="M6 9.5 12 15.5 18 9.5"/>
+                            </svg>
+                        </summary>
+                        <nav class="sidebar__nav" id="sidebar-nav"></nav>
+                    </details>
                 </aside>
 
                 <div class="detail">

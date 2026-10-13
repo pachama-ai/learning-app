@@ -14,7 +14,7 @@ declare(strict_types=1);
  *   * * * * * cd /pfad/zum/projekt && /usr/bin/php bin/story_notify.php --execute >/dev/null 2>&1
  *
  * Warum jede Minute, obwohl nur alle paar Tage etwas ansteht: der Zug wechselt zu einem
- * beliebigen Zeitpunkt (zwei Stunden nach dem letzten Beitrag), und ein Cron, der nur
+ * beliebigen Zeitpunkt (30 Minuten nach dem letzten Beitrag), und ein Cron, der nur
  * stündlich läuft, würde die Mail bis zu einer Stunde später schicken.
  *
  * Was passiert
@@ -25,8 +25,9 @@ declare(strict_types=1);
  * Beiträge werden nicht geändert und nicht gelöscht.
  *
  * Ausgänge: 0 = alles in Ordnung (auch wenn nichts zu tun war), 1 = es stimmt etwas nicht
- * (Versand fehlgeschlagen, Merkspalte fehlt, Datenbank nicht erreichbar). Cron schickt bei
- * einem Ausgang ungleich 0 eine Mail an den Benutzer - und genau dann soll es das auch.
+ * (Versand fehlgeschlagen, Merkspalte fehlt, Datenbank nicht erreichbar). Der Cron-Aufruf
+ * oben wirft die Ausgabe weg - wer wissen will, was los ist, ruft das Skript von Hand auf:
+ * `--dry-run` zeigt den Stand, ohne etwas zu verschicken.
  */
 
 if (PHP_SAPI !== 'cli') {

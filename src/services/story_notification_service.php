@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Wann sie rausgeht
  * -----------------
  * Genau dann, wenn die Bearbeitungszeit des letzten Beitrags abgelaufen ist - also in dem
- * Moment, in dem der Zug wechselt. NICHT beim Veröffentlichen: zwei Stunden lang darf der
+ * Moment, in dem der Zug wechselt. NICHT beim Veröffentlichen: 30 Minuten lang darf der
  * Verfasser seinen Text noch ändern, und eine Mail „jetzt bist du dran" wäre in dieser Zeit
  * schlicht falsch.
  *
@@ -43,9 +43,10 @@ require_once __DIR__ . '/../helpers/translations.php';
  *
  * Die Sätze kommen aus src/helpers/translations.php wie jeder andere sichtbare Text, und
  * dort gibt es sie in beiden Sprachen. Welche für die Empfängerin gilt, weiß der Server
- * nicht: die Wahl liegt im localStorage des Browsers, und die Mail wird geschrieben, wenn
- * womöglich niemand einen Browser offen hat. Deshalb steht sie hier fest - Deutsch, weil die
- * beiden Schreiberinnen deutsch schreiben. Englisch wäre eine Zeile Änderung.
+ * nicht: die Wahl liegt im localStorage des Browsers und wird nirgends für ein Konto
+ * gespeichert - eine Spalte dafür gibt es in `users` nicht, und ohne sie kann auch der
+ * Cron sie nicht kennen. Deshalb steht sie hier fest: Deutsch. Die englische Fassung liegt
+ * in den Übersetzungen bereit und wird mit einer Zeile Änderung hier aktiv.
  */
 const STORY_MAIL_LANGUAGE = 'de';
 
@@ -87,10 +88,11 @@ function story_notification_ready(PDO $pdo): bool
 function story_notification_last_row(PDO $pdo): ?array
 {
     $statement = $pdo->prepare(
-        'SELECT id, user_id, created_at, turn_notified_at
-           FROM story_contributions
-          WHERE story_id = :story_id
-          ORDER BY created_at DESC, id DESC
+        'SELECT c.id, c.user_id, c.created_at, c.turn_notified_at, s.title
+           FROM story_contributions c
+           JOIN stories s ON s.id = c.story_id
+          WHERE c.story_id = :story_id
+          ORDER BY c.created_at DESC, c.id DESC
           LIMIT 1'
     );
 
@@ -149,21 +151,21 @@ function story_notification_status(PDO $pdo, ?DateTimeImmutable $now = null): ar
 {
     if (story_notification_ready($pdo) !== true) {
         return ['due' => false, 'reason' => 'column_missing', 'recipient' => null, 'writer' => null,
-            'contribution_id' => null, 'day' => null, 'email' => null];
+            'contribution_id' => null, 'day' => null, 'email' => null, 'title' => null];
     }
 
     $last = story_notification_last_row($pdo);
 
     if ($last === null) {
         return ['due' => false, 'reason' => 'no_contribution', 'recipient' => null, 'writer' => null,
-            'contribution_id' => null, 'day' => null, 'email' => null];
+            'contribution_id' => null, 'day' => null, 'email' => null, 'title' => null];
     }
 
     $contributionId = (int) $last['id'];
     $writerKey = story_writer_key((int) $last['user_id']);
     $day = story_local_day((string) $last['created_at']);
     $base = ['recipient' => null, 'writer' => $writerKey, 'contribution_id' => $contributionId,
-        'day' => $day, 'email' => null];
+        'day' => $day, 'email' => null, 'title' => (string) $last['title']];
 
     if ($writerKey === null) {
         /* Ein Beitrag eines Kontos, das nicht mehr in der Liste steht: dann weiß niemand,
@@ -176,7 +178,7 @@ function story_notification_status(PDO $pdo, ?DateTimeImmutable $now = null): ar
     }
 
     /* Dieselbe Frage wie überall: läuft die Bearbeitungszeit noch? Sie läuft, solange der
-       Beitrag jünger als STORY_EDIT_HOURS ist - dann ist niemand dran. */
+       Beitrag jünger als STORY_EDIT_MINUTES ist - dann ist niemand dran. */
     $contribution = ['at' => story_local_iso((string) $last['created_at'])];
 
     if (story_edit_window_open($contribution, $now) === true) {
@@ -199,6 +201,7 @@ function story_notification_status(PDO $pdo, ?DateTimeImmutable $now = null): ar
         'contribution_id' => $contributionId,
         'day' => $day,
         'email' => $email,
+        'title' => (string) $last['title'],
     ];
 }
 
@@ -206,7 +209,7 @@ function story_notification_status(PDO $pdo, ?DateTimeImmutable $now = null): ar
  * Die Benachrichtigung als Betreff und Text.
  *
  * Die Sätze stehen in src/helpers/translations.php; hier werden nur die Platzhalter gefüllt:
- * Name der Empfängerin, Name der Verfasserin, der Tag des Beitrags und der Link zur Seite.
+ * Name der Empfängerin, Name der Verfasserin, Titel der Geschichte und der Link zur Seite.
  *
  * @param array<string, mixed> $status der Stand aus story_notification_status()
  * @return array{subject: string, body: string}
@@ -223,20 +226,12 @@ function story_notification_message(array $status): array
         $url = $base . $url;
     }
 
-    $day = (string) $status['day'];
-
-    /* Ein Datum ist kein Satz, aber seine Schreibweise hängt an der Sprache: im Deutschen
-       Tag.Monat.Jahr, im Englischen die Reihenfolge Jahr-Monat-Tag. */
-    $formattedDay = $day === ''
-        ? ''
-        : (new DateTimeImmutable($day))->format($language === 'de' ? 'd.m.Y' : 'Y-m-d');
-
     return [
         'subject' => t($language, 'story.mail.subject'),
         'body' => t_fill($language, 'story.mail.body', [
             'name' => t($language, 'story.author.' . $recipient),
             'author' => t($language, 'story.author.' . (string) $status['writer']),
-            'day' => $formattedDay,
+            'title' => (string) $status['title'],
             'url' => $url,
         ]),
     ];

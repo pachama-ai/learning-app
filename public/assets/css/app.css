@@ -116,7 +116,19 @@
     --tile-bg: #2E3449;
     --tile-bg-hover: #353B52;
     --icon-circle: #3A415A;
-    --accent: #8FD3E6;
+    /*
+        Die Akzentfarbe ist die warme Farbe der App - in beiden Themen dieselbe Familie.
+
+        Hier stand ein helles Cyan (#8FD3E6). An der Akzentfarbe hängt fast jedes
+        Bedienelement: jeder Primärknopf, jeder Fokusring, jeder Unterstrich, jeder
+        Fortschrittsbalken. Im hellen Thema ist sie das gedeckte Grün #2F6B4F, im dunklen
+        war sie ein leuchtendes Blau - nebeneinander sah das aus wie zwei verschiedene
+        Anwendungen.
+
+        #8FC7A4 ist dasselbe ruhige Grün, das die Erfolgszeile des Kontodialogs schon
+        benutzt. Die dunkle Schrift darauf (--accent-ink) bleibt gut lesbar: 8,2 : 1.
+    */
+    --accent: #8FC7A4;
     --accent-ink: #1A2238;
     --plus-bg: var(--accent);
     --plus-fg: var(--accent-ink);
@@ -340,25 +352,54 @@ img {
 .crumb a:hover {
     color: var(--text);
 }
-/* Kopfzeile-rechter Teil */
+/* Kopfzeile-rechter Teil: Sonne/Mond, Trenner und Sprache als EINE kleine Gruppe */
 .site-header__right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    /*
+        8 Pixel statt 20: Sonne/Mond und der Sprachumschalter sind zwei Ansichten
+        derselben Frage ("wie soll es aussehen und in welcher Sprache"). Mit dem großen
+        Abstand sah der rechte Teil aus, als stünden dort zwei getrennte Dinge.
+    */
+    gap: 8px;
 }
+
+/*
+    Der feine Strich zwischen dem Themenwechsler und der Sprache.
+
+    Er ist das, was aus drei Elementen eine Gruppe macht: 1 Pixel breit, 16 Pixel hoch,
+    in der vorhandenen Linienfarbe. Er ist nicht lauter als der Strich zwischen EN und DE,
+    deshalb bleibt die Gruppe ruhig.
+*/
+.site-header__divider {
+    width: 1px;
+    height: 16px;
+    background-color: var(--line);
+}
+
 /* Themenwechsler */
 .theme-toggle {
-    border: 1px solid var(--line-strong);
+    /*
+        Kein dauerhafter Kreis mehr.
+
+        Mit 32 Pixel Durchmesser und 1 Pixel Rahmen war die Sonne das größte Element der
+        ganzen Kopfzeile - für einen Schalter, der nur umstellt, wie die Seite aussieht.
+        Jetzt steht dort nur das Zeichen, in derselben gedämpften Farbe wie das inaktive
+        Sprachkürzel daneben. Den Kreis gibt es nur noch beim Zeigen und im Tastaturfokus.
+    */
+    border: 0;
     border-radius: 50%;
     background: transparent;
-    color: var(--text);
+    color: var(--muted);
     opacity: 1;
     cursor: pointer;
-    transition: background 250ms var(--ease), border-color 250ms var(--ease), transform 250ms var(--ease);
+    transition: background 250ms var(--ease), color 250ms var(--ease), transform 250ms var(--ease);
 }
-/* Themenwechsler · bei Zeigerkontakt */
-.theme-toggle:hover {
+/* Themenwechsler · bei Zeigerkontakt · und Varianten */
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
     background: var(--active-surface);
+    color: var(--text);
 }
 /* Zeichnung */
 .theme-toggle svg {
@@ -374,15 +415,19 @@ img {
 }
 /* dunkles Thema · Themenwechsler */
 [data-theme="dark"] .theme-toggle {
-    color: var(--text);
+    /* Dieselbe gedämpfte Farbe wie im hellen Thema - das Zeichen ist eine Einstellung
+       und kein Knopf, der um Aufmerksamkeit bittet. */
+    color: var(--muted);
 }
 /* Sprachumschalter */
 .lang-switch {
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding-bottom: 4px;
+    gap: 6px;
+    /* Kein zusätzlicher Boden: der Unterstrich rechnet mit der Mitte des Kastens
+       (siehe `.lang-switch__underline`), nicht mit seinem unteren Rand. */
+    padding-bottom: 0;
 }
 /* Sprachumschalter-Möglichkeit */
 .lang-switch__option {
@@ -421,7 +466,15 @@ img {
 /* Sprachumschalter-Unterstrich */
 .lang-switch__underline {
     position: absolute;
-    bottom: 0;
+    /*
+        Der Abstand hängt an der Mitte des Kastens, nicht an seinem unteren Rand.
+
+        So sitzt der Strich in jedem Fall gut 3 Pixel unter den Buchstaben - auch dann,
+        wenn die Kästchen auf einem Fingergerät 44 Pixel hoch werden (siehe "Touchziele").
+        Mit `bottom: 0` wäre er dort 17 Pixel unter dem Text gelandet und hätte wie eine
+        eigene Linie gewirkt statt wie ein Unterstrich.
+    */
+    bottom: calc(50% - 10px);
     left: 0;
     width: 0;
     height: 1px;
@@ -471,9 +524,50 @@ img {
     flex-direction: column;
     flex: 0 0 auto;
     height: clamp(260px, 34vh, 340px);
-    margin-top: auto;
+    /*
+        Kein `margin-top: auto` mehr.
+
+        Damit wurde der ganze freie Platz der Ansicht ZWISCHEN die Überschrift und die
+        Kacheln geschoben: auf einem hohen Fenster standen die Kacheln am unteren Rand und
+        der Titel weit darüber, als gehörten sie nicht zusammen. Der freie Platz sammelt
+        sich jetzt hinter dem Kachelband (siehe .tiles-nav), die Kacheln folgen dem Titel
+        im normalen Abstand der Ansicht (24 Pixel, siehe .view--start).
+    */
+    margin-top: 0;
     --tiles-per-view: 4;
     --tile-gap: 16px;
+}
+
+/*
+    Ab 901 Pixel: die Kachelreihe wächst in den Platz der Ansicht hinein.
+
+    Hier steht die Reihe als Karussell, und nur hier füllt eine Kachel die Höhe ihres
+    Platzes wirklich aus (`align-items: stretch` am Raster). Vorher nahm die Reihe ihren
+    festen Anteil und ließ den Rest liegen - und der Rest sammelte sich als toter Leerraum
+    zwischen Kacheln und Leiste (bei 1280x900 gemessen 124 Pixel, bei 1280x1400 über 500).
+    Mit `flex-grow: 1` geht dieser Platz in die Kacheln hinein: sie werden höher und
+    gewinnen die Luft in der Mitte, weil die Kachel ihren Inhalt mit `justify-content:
+    space-between` verteilt - Zeichnung oben, Name und Zahl unten.
+
+    `height` bleibt als Grundmaß stehen: `flex-basis: auto` nimmt genau diesen Wert, die
+    Reihe kann also nur größer werden, nie kleiner (`flex-shrink: 0`).
+
+    Die Höchstgrenze von 440 Pixeln ist Absicht. Auf einem sehr hohen Fenster stünden sonst
+    vier schmale Türme von über 800 Pixeln Höhe. Was über der Grenze liegt, bleibt als
+    ruhiger Abstand über der Leiste stehen: die Leiste zieht sich mit `margin-top: auto`
+    weiterhin an ihren Platz direkt über der Fußzeile, und die Fußzeile bleibt am unteren
+    Rand des Fensters verankert - genau wie auf der Detailseite.
+
+    Unter 901 Pixeln gilt das absichtlich nicht. Dort steht die Reihe als zweispaltiges
+    Raster (bis 900 Pixel) oder als Liste (bis 480 Pixel), und in beiden Fällen bestimmt der
+    Inhalt die Höhe der einzelnen Kachel - eine gedehnte Reihe ließe unter der letzten
+    Kachel nur leeren Raum stehen.
+*/
+@media (min-width: 901px) {
+    .tiles {
+        flex: 1 0 auto;
+        max-height: 440px;
+    }
 }
 /* Kachelraster */
 .area-grid {
@@ -527,6 +621,19 @@ img {
     display: flex;
     align-items: center;
     flex: 0 0 auto;
+    /*
+        Hier sammelt sich der freie Platz der Ansicht, der nach den Kacheln übrig bleibt.
+
+        Vorher tat das `.tiles` mit `margin-top: auto` - der Platz lag damit zwischen
+        Überschrift und Kacheln. Jetzt liegt er zwischen Kacheln und Leiste, und das ist
+        genau die Stelle, an der er nichts auseinanderreißt: die Leiste ist zugleich die
+        feine Linie über der Fußzeile und bleibt dort, wo sie hingehört.
+
+        Seit die Kacheln ab 901 Pixel selbst wachsen (siehe .tiles) ist dieser Rest klein:
+        er entsteht nur noch, wenn die Kacheln ihre Höchstgrenze erreicht haben. Solange sie
+        noch wachsen können, steht hier nichts.
+    */
+    margin-top: auto;
     opacity: 1;
     transition: opacity 200ms var(--ease);
 }
@@ -790,7 +897,9 @@ img {
 .sidebar__nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    /* 4 Pixel zwischen zwei Zeilen: Punkte und Namen stehen damit in einem
+       gleichmäßigen Rhythmus, ohne dass die Liste lang wird. */
+    gap: 4px;
     margin-top: 12px;
 }
 /* Seitenleiste-Link */
@@ -2258,19 +2367,27 @@ html.is-theme-switching::view-transition-old(root),
 @media (max-width: 639px) {
 /* Fenster höchstens 639px · Dialog */
 .dialog {
+        /*
+            Mittig statt als Blatt von unten.
+
+            Hier kam der Dialog bisher von unten herein: volle Breite, nur oben
+            abgerundet, `inset: auto 0 0 0` und `transform: translateY(100%)`. Auf einem
+            hohen Bildschirm sitzt so eine Leiste am unteren Rand statt in der Mitte -
+            und der Dialog für die Anzahl neuer Karten stand daneben schon immer mittig.
+            Jetzt gilt für alle Dialoge dasselbe: 16 Pixel Rand rundum, mittig, nie höher
+            als das Fenster.
+
+            `inset: 0` mit `margin: auto` ist genau das, was der Browser für einen
+            Dialog von sich aus tut - die Zeile ist nötig, weil die Regel darüber es
+            überschreibt.
+        */
         position: fixed;
-        inset: auto 0 0 0;
-        width: 100%;
+        inset: 0;
+        margin: auto;
+        width: calc(100vw - 32px);
         max-width: none;
-        margin: 0;
         max-height: calc(100dvh - 32px);
-        border-radius: 16px 16px 0 0;
-        border-bottom: 0;
-        transform: translateY(100%);
-    }
-/* Fenster höchstens 639px · geöffnet · Dialog · offen */
-.dialog[open].is-open {
-        transform: translateY(0);
+        border-radius: 16px;
     }
 /* Fenster höchstens 639px · Dialog-Formular */
 .dialog__form {
@@ -2301,16 +2418,18 @@ html.is-theme-switching::view-transition-old(root),
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px 20px;
+    gap: 10px 16px;
     flex-wrap: wrap;
-    padding: 20px 24px;
-    border-radius: 12px;
+    /* Enge als vorher (20/24): der Kopf ist eine Zeile mit Zeichen und Name, keine
+       Kachel. Die Zahlen darunter bleiben die leise Zeile für sich. */
+    padding: 14px 18px;
+    border-radius: var(--radius-tile);
     background-color: var(--tile-bg);
 }
 /* Detailansicht-Titel */
 .detail__titles {
     display: flex;
-    gap: 18px;
+    gap: 14px;
 }
 /* Detailansicht-Text */
 .detail__text {
@@ -2319,8 +2438,8 @@ html.is-theme-switching::view-transition-old(root),
 /* Detailansicht-Farbfleck */
 .detail__blob {
     flex: 0 0 auto;
-    width: 54px;
-    height: 54px;
+    width: 44px;
+    height: 44px;
 }
 /* Detailansicht-Menü */
 .detail__menu {
@@ -2357,7 +2476,9 @@ html.is-theme-switching::view-transition-old(root),
        der Abstand zwischen zwei Zeilen. */
     flex-wrap: wrap;
     gap: 4px 4px;
-    margin-top: 20px;
+    /* 14 statt 20: die Zeile gehört zum Kopf darüber und soll nicht wie ein eigener
+       Abschnitt wirken. */
+    margin-top: 14px;
     color: var(--muted);
     font-family: var(--font-sans);
     font-size: 11px;
@@ -2365,6 +2486,17 @@ html.is-theme-switching::view-transition-old(root),
     text-transform: none;
     white-space: nowrap;
 }
+/*
+    Die Zahlenzeile unter dem Kopf zeigt jetzt die Übersicht EINER Unterkategorie
+    ("15 Karten · 0 gewusst · 0 unsicher").
+
+    Sie war zwischenzeitlich ganz ausgeblendet: damals stand dort die Zahl der
+    Unterkategorien, die Karten des ganzen Themengebiets und die davon gewussten - also
+    Zahlen eines Zweigs, den die offene Seite gar nicht zeigt. Jetzt füllt `app.js` sie mit
+    drei Zahlen, die zu dieser Seite gehören (renderCardFigures für die erste, die Filter
+    und Suche kennt, renderCardSummary für die beiden anderen). Sichtbar ist sie nur auf
+    einer Unterkategorieseite; ob sie da ist, entscheidet weiter das `hidden`-Merkmal.
+*/
 .detail__figures .detail__figure {
     gap: 4px;
     min-height: 24px;
@@ -2397,11 +2529,41 @@ html.is-theme-switching::view-transition-old(root),
     border-radius: var(--radius-tile);
     background-color: var(--surface);
 }
-/* Hinweiszeile-Symbol */
+/* Hinweiszeile-Symbol: das Symbol des Browserreiters */
 .notice__icon {
     display: block;
+    /*
+        44 Pixel am Rechner, 40 auf dem Handy.
+
+        Vorher stand hier ein gezeichneter Stapel aus zwei Karten in 30 Pixeln, und die
+        Datei dazu ist einfarbig grau (#333333 und #8c8c8c). Eine gefüllte Form liest
+        sich kleiner als eine dünne Linie, deshalb ein paar Pixel mehr als damals.
+        Zentriert und mit 18 Pixeln Abstand zur Überschrift wie vorher.
+    */
+    width: 44px;
+    height: 44px;
     margin: 0 auto 18px;
-    color: var(--accent);
+}
+
+@media (max-width: 639px) {
+    /* Auf dem Handy eine Spur kleiner. */
+    .notice__icon {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/*
+    Im dunklen Thema wird das Symbol umgedreht.
+
+    Die Datei ist einfarbig grau. Auf der weißen Karte des hellen Themas liest sie sich
+    gut; auf der dunklen Fläche (#2E3449) verschwindet der dunkle Teil fast, und übrig
+    bleibt ein halbes Zeichen - im Browser gemessen und gesehen. `invert(1)` dreht beide
+    Grautöne um, die Form bleibt und der Abstand zwischen den beiden Tönen auch: 0,31
+    wandert auf 0,69.
+*/
+[data-theme="dark"] .notice__icon {
+    filter: invert(1);
 }
 /* Hinweiszeile-Farbfleck */
 .notice__blob {
@@ -2508,8 +2670,12 @@ html.is-theme-switching::view-transition-old(root),
 .lang-switch__option {
     display: inline-flex;
     align-items: center;
-    min-height: 40px;
-    padding: 0 8px;
+    /*
+        24 Pixel hoch: die Zeile, in der EN und DE stehen - kein Knopf in Knopfgröße.
+        Auf Fingergeräten kommt weiter unten das 44-Pixel-Ziel dazu (siehe "Touchziele").
+    */
+    min-height: 24px;
+    padding: 0 6px;
 }
 /* Link */
 .crumb a {
@@ -3216,23 +3382,40 @@ body.is-learning {
 @media (max-width: 640px) {
 /* Fenster höchstens 640px · Lernen-Bühne */
 .learn__stage {
-        gap: 20px;
+        gap: 22px;
         padding: 0 8px 24px;
     }
 /* Fenster höchstens 640px · Lernen-Karte */
 .learn__card {
         width: 100%;
-        max-height: 62vh;
+        max-height: 58vh;
         border-radius: 20px;
     }
 /* Fenster höchstens 640px · Lernen-Seite der Karte */
 .learn__face {
-        padding: 22px 22px 38px;
+        /* Etwas weniger Innenabstand als am Rechner, dafür gleichmäßig: die Frage sitzt
+           mittig und bekommt Luft, ohne dass die Karte den Bildschirm füllt. */
+        padding: 24px 22px 30px;
         border-radius: 20px;
+        text-align: center;
     }
 /* Fenster höchstens 640px · Lernen-Knöpfe */
 .learn__buttons {
+        /* Vier Bewertungen sind auf einem schmalen Fenster kein Band, sondern ein
+           Raster aus zwei Reihen: jedes Feld groß genug für den Daumen, gleiche
+           Abstände, keine gedrängten Pillen. */
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+/* Fenster höchstens 640px · Lernen-Knopf */
+.learn__button {
+        min-height: 58px;
+        padding: 12px 10px;
+        border-radius: 16px;
+    }
+/* Fenster höchstens 640px · Lernen-Abstand am Knopf */
+.learn__button-interval {
+        font-size: 11px;
     }
 /* Fenster höchstens 640px · Lernen-Balken */
 .learn__bar {
@@ -3578,8 +3761,10 @@ body.is-learning {
 [data-theme="dark"] {
     --map-fill: #343C56;
     --map-line: #4C5578;
-    --map-active: #8FD3E6;
-    --map-active-line: #8FD3E6;
+    /* Der hervorgehobene Bereich einer Karte: dasselbe warme Grün wie der Akzent,
+       damit im dunklen Thema kein einzelner Rest der alten Cyanfarbe übrig bleibt. */
+    --map-active: #8FC7A4;
+    --map-active-line: #8FC7A4;
 }
 /* Landkarte einer Karte */
 .card-map {
@@ -4601,6 +4786,15 @@ body.is-learning {
 /* Dialog für die Anzahl */
 .count-dialog {
     width: min(400px, calc(100vw - 32px));
+    /*
+        Der Dialog darf nie höher werden als das Fenster. Ohne die beiden Zeilen stand er
+        bei einem kurzen Bildschirm über den Rand hinaus, und weil der Browser einen
+        Dialog mittig setzt, war er oben UND unten abgeschnitten - erreichbar war nur, was
+        zufällig in die Mitte fiel.
+    */
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0;
     border: 0;
     background: transparent;
@@ -4617,6 +4811,8 @@ body.is-learning {
 /* Dialog für die Anzahl · hinter dem Dialog */
 .count-dialog::backdrop {
     background-color: var(--backdrop);
+    /* Ein weicher Schleier statt eines harten Vorhangs - wie beim Kontodialog. */
+    backdrop-filter: blur(3px);
     opacity: 0;
     transition: opacity 200ms var(--ease);
 }
@@ -4663,7 +4859,8 @@ body.is-learning {
 .count-dialog__title {
     margin: 0;
     font-family: "Inter Tight", system-ui, sans-serif;
-    font-size: 1.15rem;
+    /* Eine Stufe kleiner als vorher: der Dialog ist eine kurze Rückfrage und keine Seite. */
+    font-size: 1.05rem;
     font-weight: 300;
     letter-spacing: -0.01em;
     line-height: 1.2;
@@ -4678,19 +4875,23 @@ body.is-learning {
 /* Dialog für die Anzahl-Schnellwahl */
 .count-dialog__quick {
     display: flex;
-    flex-wrap: wrap;
     gap: 8px;
-    margin-top: 18px;
+    margin-top: 16px;
 }
 /* Knopf */
 .count-dialog__quick button {
-    padding: 6px 14px;
+    /* Die vier Vorschläge teilen sich die Breite, statt je nach Textlänge
+       unterschiedlich groß zu sein: „5" und „Alle" sind gleich viel wert. */
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 6px;
     border: 1px solid var(--line);
     border-radius: 999px;
     background-color: transparent;
     color: var(--muted);
     font-family: var(--font-sans);
     font-size: 0.9rem;
+    text-align: center;
     cursor: pointer;
     transition: color 200ms var(--ease), border-color 200ms var(--ease),
         background-color 200ms var(--ease);
@@ -4712,49 +4913,21 @@ body.is-learning {
     background-color: var(--text);
     color: var(--panel);
 }
-/* Dialog für die Anzahl-Feld */
-.count-dialog__field {
-    margin-top: 22px;
-}
-/* Dialog für die Anzahl-Beschriftung */
-.count-dialog__label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-/* Dialog für die Anzahl-Eingabefeld */
-.count-dialog__input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-control);
-    background-color: transparent;
-    color: var(--text);
-    font-family: var(--font-sans);
-    font-size: 1rem;
-}
-/* Dialog für die Anzahl-Eingabefeld · im Fokus */
-.count-dialog__input:focus {
-    outline: none;
-    border-color: var(--text);
-}
-/* Dialog für die Anzahl-Fehler */
-.count-dialog__error {
-    margin: 10px 0 0;
-    color: var(--cat-reserve-rose);
-    font-size: 0.85rem;
-    line-height: 1.45;
-}
+/*
+    Feld, Beschriftung, Zahleneingabe und Fehlerzeile gibt es hier nicht mehr.
+
+    Der Dialog hatte einmal vier Vorschläge UND ein Feld für eine eigene Zahl. Seit dem
+    12.10.2026 sind die Vorschläge die ganze Bedienung; mit dem Markup sind auch ihre
+    Regeln weg. Was von beiden Dialogen gebraucht wird (Rahmen, Fokus, Beschriftung der
+    Kontoseite), steht in den gemeinsamen Listen weiter unten.
+*/
 /* Dialog für die Anzahl-Aktionen */
 .count-dialog__actions {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
-    gap: 22px;
-    margin-top: 26px;
+    gap: 18px;
+    margin-top: 22px;
 }
 /* Dialog für die Anzahl-Knopf */
 .count-dialog__button {
@@ -4777,11 +4950,14 @@ body.is-learning {
     outline: 2px solid var(--line-strong);
     outline-offset: 3px;
 }
-/* Dialog für die Anzahl-Knopf: Hauptknopf */
-.count-dialog__button--primary {
-    color: var(--text);
-    font-weight: 500;
-}
+/*
+    „Starten" und „Abbrechen" stehen im eigenen Abschnitt am Ende dieser Datei.
+
+    Hier stand der Akzentknopf zweimal, und die zweite Regel nahm der ersten die Farbe
+    weg: im hellen Thema war die Schrift auf dem dunklen Grün fast schwarz, im dunklen
+    Thema stand weiße Schrift auf dem hellen Cyan des Akzents. Beides war schlecht zu
+    lesen - dort unten ist es geradegerückt.
+*/
 /* Fußnote der Seite */
 .page-note {
     margin: 0 0 22px;
@@ -5052,8 +5228,9 @@ button,
     background-color: var(--surface-soft);
     color: var(--text);
 }
-/* helles Thema · Themenwechsler · und Varianten */
-[data-theme="light"] .theme-toggle,
+/* helles Thema · Blätterleiste · und Varianten.
+   Der Themenwechsler steht hier absichtlich NICHT mehr in der Liste: er trägt keinen
+   Rahmen mehr, und ein "color: var(--text)" würde seine gedämpfte Farbe wieder aufheben. */
 [data-theme="light"] .tiles-nav__button,
 [data-theme="light"] .learn__close {
     background-color: transparent;
@@ -5070,15 +5247,17 @@ button,
 .theme-toggle {
     display: inline-grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    /* 28 Pixel: das Zeichen sitzt mittig, die Gruppe bleibt kleiner als die Textzeile
+       der Kopfzeile. Auf Fingergeräten wird daraus ein 44-Pixel-Ziel (siehe "Touchziele"). */
+    width: 28px;
+    height: 28px;
     padding: 0;
     line-height: 0;
 }
 /* Zeichnung */
 .theme-toggle svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     margin: 0;
     vertical-align: 0;
 }
@@ -5132,8 +5311,11 @@ select:focus-visible,
 /* Farbfleck · und Varianten */
 .detail__head .blob,
 .detail__blob {
-    width: 48px;
-    height: 48px;
+    /* 44 Pixel: eine Spur kleiner als eine Kachel-Zeichnung (54), passend zum
+       kompakteren Kopf darüber. Diese Regel steht hinter der ersten Nennung von
+       `.detail__blob` weiter oben und gewinnt deshalb. */
+    width: 44px;
+    height: 44px;
 }
 /* helles Thema · Detailansicht-Farbfleck */
 [data-theme="light"] .detail__blob {
@@ -5276,14 +5458,22 @@ select {
 [data-theme="light"] .sidebar__link:hover {
     color: var(--text);
 }
-/* helles Thema · Seitenleiste-Link · aktiv · und Varianten */
+/*
+    Der offene Eintrag: eine leise Tönung und der farbige Punkt - kein Balken.
+
+    Vorher lagen dort drei Dinge übereinander: die graue Fläche `--surface-soft`, ein
+    2 Pixel breiter Streifen in der Farbe des Bereichs (`box-shadow: inset 2px 0 0`) und
+    der Punkt. Zusammen war das ein schwerer Block over die ganze Zeile. Die Fläche
+    bleibt, aber als Tönung von 5 % der Textfarbe - und der Punkt davor (siehe
+    `.sidebar__link::before`) sagt, welcher Eintrag offen ist.
+*/
 [data-theme="light"] .sidebar__link.is-active,
 [data-theme="light"] .sidebar__link[aria-current] {
-    background-color: var(--surface-soft);
-    border-radius: 6px;
+    background-color: color-mix(in srgb, var(--text) 5%, transparent);
+    border-radius: 8px;
     color: var(--text);
     font-weight: 500;
-    box-shadow: inset 2px 0 0 var(--sidebar-accent, var(--link-color, var(--accent)));
+    box-shadow: none;
 }
 /* helles Thema · Sprachumschalter-Möglichkeit */
 [data-theme="light"] .lang-switch__option {
@@ -5371,7 +5561,10 @@ select {
 }
 /* dunkles Thema · der aktuelle Eintrag · Seitenleiste-Link */
 [data-theme="dark"] .sidebar__link[aria-current="page"] {
-    background-color: var(--tile-bg-hover);
+    /* Dieselbe leise Tönung wie im hellen Thema. `--tile-bg-hover` war ein deutlich
+       hellerer Block, der die Zeile aus der Liste heraushob statt sie nur zu markieren. */
+    background-color: color-mix(in srgb, var(--text) 7%, transparent);
+    border-radius: 8px;
 }
 /* dunkles Thema · Übersichtszahlen-Kachel */
 [data-theme="dark"] .dash__tile {
@@ -5441,10 +5634,46 @@ select {
 .heading--detail.heading--long {
         font-size: 20px;
     }
-/* Fenster höchstens 639px · Überschrift · und Varianten */
+/*
+    Fenster höchstens 639px · Überschrift
+
+    Die Startseite schreibt „Wähle ein Themengebiet" absichtlich in zwei Zeilen
+    (home.heading): in der alten Größe (32 bis 40 Pixel) wurde daraus ein Block, der den
+    halben Bildschirm füllte. Bei 26 Pixel passt derselbe Satz in eine Zeile, und die
+    beiden Zeilen aus dem Markup stehen dann nebeneinander statt untereinander - mit einem
+    kleinen Abstand dazwischen, weil sie zwei Elemente ohne Leerzeichen sind.
+
+    Kein `white-space: nowrap`: bei einem sehr langen Namen wäre ein Umbruch immer noch
+    besser als ein Überlauf aus dem Fenster.
+*/
 .view--start .heading,
     .start-header__intro .heading {
-        font-size: clamp(32px, 9vw, 40px);
+        font-size: 26px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        /* 18ch sind bei 56 Pixel Schrift eine gute Zeile, bei 26 Pixel aber nur noch rund
+           230 Pixel - der Satz bräche damit wieder in zwei Zeilen um. */
+        max-width: none;
+    }
+
+    /*
+        Die Maske der Aufdeck-Animation ist ein blockweises Element, und die beiden Zeilen
+        aus dem Markup stehen dadurch untereinander. Auf dem Handy soll die Überschrift in
+        EINER Zeile stehen: also maskieren wir hier nicht, sondern lassen die Zeilen
+        nebeneinander laufen. Die Aufdeck-Animation verliert damit nur ihren Beschnitt, den
+        auf einem schmalen Fenster ohnehin niemand sieht.
+    */
+    .heading__mask {
+        display: inline;
+        overflow: visible;
+    }
+
+    .heading__line {
+        display: inline;
+    }
+
+    .heading__line + .heading__line {
+        margin-inline-start: 0.24em;
     }
 /* Fenster höchstens 639px · Bereichskachel-Name */
 .area-card__name {
@@ -5811,6 +6040,191 @@ select.count-dialog__input {
     padding: 10px 16px;
 }
 
+/* ---------------- Dialog „Wie viele neue Karten?" ---------------- */
+
+/*
+    Der Dialog in der Sprache der App.
+
+    Fläche, Rundung und Schatten teilt er mit dem Kontodialog - die stehen weiter oben
+    gemeinsam für beide. Hier steht, was ihn davon unterscheidet. Die Regeln stehen am
+    Ende der Datei, weil sie die älteren .count-dialog-Regeln weiter oben überschreiben
+    müssen: dort steht zum Beispiel noch die alte Schriftgröße der Überschrift.
+*/
+
+/* Fenster „Wie viele neue Karten?" */
+.count-dialog {
+    /*
+        Nur der Ton fürs Zeigen braucht eine eigene Variable.
+
+        Die Grundfarbe ist die Akzentfarbe der App (`--accent`) - und die ist in beiden
+        Themen dieselbe warme Farbe. Der Dialog muss sie also nicht mehr selbst
+        mitbringen. Beim Zeigen wird die Fläche eine Spur dunkler (helles Thema) bzw.
+        heller (dunkles Thema); dieselbe Farbe gilt für den Hauptknopf unten.
+    */
+    --count-hover: #285C43;
+
+    /*
+        Eigene Fläche mit Rahmen statt eines durchsichtigen Fensters: erst dadurch haben
+        Rundung und Schatten eine Form, und der Dialog hebt sich vom Hintergrund ab.
+    */
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background-color: var(--panel);
+    box-shadow: var(--dialog-shadow);
+    /* Nur das Panel scrollt; ein zweiter Balken am Fenster wäre einer zu viel. */
+    overflow: hidden;
+}
+
+/* dunkles Thema · Fenster „Wie viele neue Karten?" */
+[data-theme="dark"] .count-dialog {
+    --count-hover: #9ED3B2;
+}
+
+/*
+    Überschrift: eine Stufe kleiner als in den anderen Dialogen.
+
+    Der längere Selektor ist Absicht: der gemeinsame Dialogstil weiter oben gibt allen
+    Dialogen 24 Pixel, und ein einzelner Klassenname käme dagegen nicht an.
+*/
+.count-dialog .count-dialog__title {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/*
+    Der senkrechte Rhythmus: 10 - 20 - 30, und unten 24.
+
+    Überschrift, Hinweis, Vorschläge und Knöpfe sind vier Stufen, die immer weiter
+    auseinanderrücken - 10, 20, 30 Pixel. Was enger zusammengehört, steht enger
+    beieinander, und weil jede Stufe größer wird, liest sich der Dialog von oben nach
+    unten. Die 10 Pixel unter der Überschrift stecken in ihrem eigenen Innenabstand
+    (der gilt für beide Dialoge gemeinsam), deshalb braucht der Hinweis darunter keinen
+    eigenen Abstand mehr.
+*/
+.count-dialog__hint {
+    margin-top: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/*
+    Die vier Vorschläge: die eigentliche Bedienung des Fensters.
+
+    Vorher waren sie so groß wie Fließtext und wirkten neben dem Zahlenfeld wie eine
+    Nebensache. Jetzt sind sie der erste Weg, und die Wahl ist nicht nur am Rahmen,
+    sondern an der gefüllten Fläche zu erkennen.
+*/
+.count-dialog__quick {
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.count-dialog__quick button {
+    /* Alle vier gleich breit: „5" ist so viel wert wie „Alle". */
+    flex: 1 1 0;
+    min-width: 0;
+    /* 46 Pixel hoch: auf dem Handy mit dem Daumen zu treffen. */
+    min-height: 46px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    /* Gleiche Ziffernbreite: die Zahlen springen beim Wechseln nicht. */
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: color 200ms var(--ease), border-color 200ms var(--ease),
+        background-color 200ms var(--ease);
+}
+
+/* beim Zeigen und im Tastaturfokus: ein kräftigerer Rahmen, keine Fläche */
+.count-dialog__quick button:hover,
+.count-dialog__quick button:focus-visible {
+    border-color: var(--line-strong);
+    color: var(--text);
+}
+
+.count-dialog__quick button:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
+
+/* Die gewählte Zahl: gefüllt in der Akzentfarbe */
+.count-dialog__quick button[aria-pressed="true"] {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--accent-ink);
+}
+
+/* Auch beim Zeigen bleibt die Wahl eine Fläche, nur eine Spur dunkler. */
+.count-dialog__quick button[aria-pressed="true"]:hover,
+.count-dialog__quick button[aria-pressed="true"]:focus-visible {
+    border-color: var(--count-hover);
+    background-color: var(--count-hover);
+    color: var(--accent-ink);
+}
+
+/*
+    Kein Zahlenfeld mehr.
+
+    Bis hierher stand unter den Vorschlägen noch eine Zeile mit einem schmalen Feld für
+    eine eigene Zahl. Die vier Vorschläge decken das ab, was man beim Starten wirklich
+    braucht, und das zweite Bedienelement daneben ließ sie wie eine Abkürzung für
+    dasselbe aussehen - zwei Wege für eine Frage. Mit dem Markup sind auch seine Regeln
+    verschwunden (`__field`, `__label`, `__input`): sie hätten nichts mehr zu gestalten.
+*/
+
+/*
+    Die beiden Wege unten.
+
+    Ohne Trennlinie. Die gemeinsame Regel für beide Dialoge weiter oben legt einen
+    1 Pixel breiten Strich über diese Zeile, und in einem so kurzen Dialog schnitt der
+    ihn in zwei Hälften: oben die Frage, unten die Antwort, als wären es zwei Blöcke.
+    Abgesetzt wird die Zeile jetzt allein durch Luft - 30 Pixel über den Knöpfen statt
+    18 -, und der Abstand nach unten (24) entspricht ungefähr dem, den die Überschrift
+    nach oben hat (26).
+
+    „Starten" ist der einzige Knopf mit Fläche, „Abbrechen" ist ein Textlink links
+    daneben, der nur die Farbe wechselt. 48 Pixel hoch sind beide - so viel, dass auch
+    der Textlink mit dem Daumen sicher zu treffen ist. Sie stehen in einer Reihe und
+    damit auf derselben Grundlinie (`align-items: center`).
+*/
+.count-dialog__actions {
+    border-top: 0;
+    padding-top: 30px;
+    padding-bottom: 24px;
+    gap: 8px;
+}
+
+.count-dialog__actions .count-dialog__button {
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--muted);
+    font-size: 15px;
+}
+
+.count-dialog__actions .count-dialog__button:hover,
+.count-dialog__actions .count-dialog__button:focus-visible {
+    color: var(--text);
+}
+
+.count-dialog__actions .count-dialog__button--primary {
+    padding: 0 26px;
+    background-color: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+}
+
+.count-dialog__actions .count-dialog__button--primary:hover,
+.count-dialog__actions .count-dialog__button--primary:focus-visible {
+    background-color: var(--count-hover);
+    color: var(--accent-ink);
+}
+
 /* Beschriftung und Sprache in einer Zeile, Sprache rechts */
 .dialog__preview-head {
     display: flex;
@@ -5848,10 +6262,50 @@ select.count-dialog__input {
 
 /* Startseite: statt des Karussells eine Liste untereinander */
 @media (max-width: 480px) {
+    /*
+        Weniger Rand: auf einem 375 Pixel breiten Fenster sind 24 Pixel je Seite fast ein
+        Siebtel der ganzen Breite. Sechzehn reichen, und alles wird eine Spur breiter und
+        ruhiger.
+    */
+    :root {
+        --page-margin: 16px;
+    }
+
+    /*
+        Auf einer Deck-Ansicht gibt es hier nur Lernen: Neuanlegen, Importieren, die Menüs
+        an den Karten und die Kacheln der Übersicht sind weg (siehe die Regeln weiter unten
+        in diesem Block).
+    */
+
+    /*
+        Überschriften werden im Block bis 639 Pixel kleiner (dort stehen sie schon); hier
+        bleibt nur, was zur Listenansicht gehört.
+    */
+    /*
+        Die Liste darf so hoch werden, wie sie ist.
+
+        Hier stand vorher die feste Höhe des Karussells (260 bis 340 Pixel). Die Kacheln
+        standen darunter bereits als Liste, aber nicht sichtbar: die Reihe schnitt alles
+        unter der festen Höhe ab (overflow-y: hidden), und die Seite wuchs nicht mit, weil
+        .tiles nicht höher wurde. Ergebnis: die Startseite ließ sich nicht scrollen und
+        fünf von sieben Themengebieten waren unerreichbar.
+    */
+    .tiles {
+        height: auto;
+        margin-top: 0;
+    }
+
     .area-grid {
+        /* Senkrecht untereinander statt nebeneinander: das war die Umstellung des
+           Karussells zur Liste, und sie muss hier stehen bleiben. */
         display: flex;
         flex-direction: column;
         gap: 12px;
+        overflow: visible;
+        scroll-snap-type: none;
+        scroll-behavior: auto;
+        margin-inline: 0;
+        padding: 0;
     }
 
     .area-card-slot {
@@ -5865,15 +6319,76 @@ select.count-dialog__input {
         display: none;
     }
 
+    /*
+        Eine Kachel ist hier eine Zeile statt einer Fläche: Symbol links, Name und die
+        eine Zeile Zahlen rechts daneben. So passen mehrere Themengebiete auf einen Blick,
+        ohne dass man erst wischen muss.
+    */
+    .area-card {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        min-height: 72px;
+        padding: 12px 14px;
+    }
+
+    .area-card__head {
+        flex: 0 0 auto;
+        align-items: center;
+    }
+
+    .area-card__bottom {
+        gap: 2px;
+    }
+
+    .area-card__foot {
+        justify-content: flex-start;
+    }
+
+    /* Das Menue an der Kachel braucht es hier nicht: auf dem Handy wird gelesen und
+       gelernt. Umbenennen und Loeschen passiert am Rechner. */
+    .area-card .tile-menu {
+        display: none;
+    }
+
     /* Icon-Flaeche der Kachel kompakter */
     .area-card {
-        padding: 14px 16px;
+        padding: 12px 14px;
     }
 
     .area-card__icon,
     .area-card__circle {
         width: 36px;
         height: 36px;
+    }
+
+    .blob {
+        width: 44px;
+        height: 44px;
+    }
+
+    .blob__icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    /*
+        Auf dem Handy wird gelernt, nicht bearbeitet.
+
+        Weg sind deshalb die Knoepfe ueber der Liste (Karte anlegen, Importieren,
+        Vokabeln bearbeiten), das Menue an jeder Karte und die Kacheln der Uebersicht
+        (Zahlen, Serie). Was bleibt: Lernen, Durchsehen und Suchen - dafuer ist das
+        Geraet da. `!important`, weil app.js einzelne Bloecke selbst ein- und ausblendet
+        und die Regel hier staerker sein muss als ein spaeter gesetztes `hidden`.
+    */
+    #detail-actions,
+    .detail__actions,
+    .detail__menu,
+    .row__menu,
+    #detail-menu,
+    #detail-dashboard {
+        display: none !important;
     }
 }
 
@@ -5902,6 +6417,92 @@ select.count-dialog__input {
     .sidebar__link {
         flex: 0 0 auto;
         white-space: nowrap;
+    }
+}
+
+/*
+    Themengebiete auf dem Handy: eine zugeklappte Zeile, die man aufmachen kann.
+
+    Vorher war die Liste hier eine waagerecht scrollbare Leiste, und weil sie am rechten
+    Rand endete, sah „Mathematik" dort abgeschnitten aus. Jetzt steht nur die Beschriftung
+    da; wer sie antippt, bekommt die ganze Liste untereinander. app.js klappt sie beim
+    Laden auf einem schmalen Fenster zu (siehe sidebar_fold).
+
+    Am Rechner bleibt alles wie es war: app.css laesst `summary` dort nicht anklickbar
+    sein und versteckt das Zeichen, deshalb sieht die Beschriftung aus wie vorher.
+*/
+.sidebar__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0;
+    cursor: default;
+    list-style: none;
+    pointer-events: none;
+}
+
+.sidebar__summary::-webkit-details-marker {
+    display: none;
+}
+
+.sidebar__chevron {
+    display: none;
+    flex: 0 0 auto;
+    color: var(--muted);
+}
+
+.sidebar__fold:not([open]) > .sidebar__summary {
+    /* Zu heisst zu: die Liste darunter ist weg, nicht nur unsichtbar. */
+    margin-block-end: 0;
+}
+
+@media (max-width: 639px) {
+    .sidebar__summary {
+        cursor: pointer;
+        pointer-events: auto;
+        min-height: 44px;
+        padding-block: 6px;
+    }
+
+    .sidebar__chevron {
+        /*
+            Der Pfeil soll als Schalter zu erkennen sein.
+
+            Ein weicher Kreis in der Flächenfarbe der App, darin das Zeichen: ohne den
+            Kreis sah er aus wie ein Pfeil, der zufällig neben der Beschriftung steht.
+            Beim Zeigen wird der Kreis eine Spur kräftiger.
+        */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        padding: 5px;
+        border-radius: 50%;
+        background-color: var(--tile-bg);
+        color: var(--text-muted);
+        transition: transform 200ms var(--ease), background-color 200ms var(--ease);
+    }
+
+    .sidebar__summary:hover .sidebar__chevron {
+        background-color: var(--tile-bg-hover);
+        color: var(--text);
+    }
+
+    .sidebar__fold[open] > .sidebar__summary .sidebar__chevron {
+        transform: rotate(180deg);
+    }
+
+    .sidebar__nav {
+        flex-direction: column;
+        gap: 4px;
+        overflow-x: visible;
+        margin-block-start: 6px;
+    }
+
+    .sidebar__link {
+        white-space: normal;
     }
 }
 
@@ -5989,16 +6590,14 @@ select.count-dialog__input {
 
 /* Dialoge auf dem Handy: von unten, Felder und Knoepfe gut tippbar */
 @media (max-width: 480px) {
-    .dialog {
-        width: 100%;
-        max-width: 100%;
-        margin: auto 0 0;
-        border-radius: 16px 16px 0 0;
-        max-height: 92vh;
-    }
-
+    /*
+        Dialoge stehen auch auf dem kleinsten Bildschirm in der Mitte - die Regel dafür
+        steht im Block bis 639 Pixel (`inset: 0` mit `margin: auto`). Hier bleibt nur, was
+        auf einem schmalen Fenster enger sein muss: der Innenabstand der Felder und die
+        Höhe der Knöpfe.
+    */
     .dialog__fields {
-        padding: 18px 16px;
+        padding: 18px 20px;
     }
 
     .dialog__button,
@@ -6006,4 +6605,370 @@ select.count-dialog__input {
     .count-dialog__button {
         min-height: 48px;
     }
+}
+
+/* ----------------------------------------------------------------------
+   Handy: Kopfzeile, Überschrift und der Rückfrage-Dialog
+
+   Der Block steht am Ende des Blattes, und das ist Absicht: die Kopfzeile wird von
+   mehreren Blöcken berührt (860, 639 und 620 Pixel), und ein Versuch weiter oben ist
+   wirkungslos geblieben. Hier gewinnen die Regeln gegen alles, was vorher kommt.
+
+   Was hier passiert:
+     * Der Pfad (`START — STORY TOGETHER`) fällt weg: auf einem schmalen Fenster ist er die
+       halbe Kopfzeile für nichts. Links steht nur das Konto (Name und Abmelden), rechts die
+       beiden Bedienelemente. Am Rechner bleibt der Pfad.
+     * Konto links und Bedienelemente rechts stehen auf derselben Höhe.
+     * Sonne und Mond werden kleiner, damit sie die Kopfzeile nicht beherrschen.
+     * Auf einer Themengebiet-Seite gibt es hier nur noch die Liste und je Zeile den
+       Lernen-Knopf: die Zeilennamen führen nicht mehr auf die Unterseite, und alle
+       Verwaltungsknöpfe sind aus.
+     * Die Überschrift der Startseite passt in eine Zeile (26 statt 32 bis 40 Pixel) und
+       die zwei Zeilen aus dem Markup laufen nebeneinander. Das trennende Leerzeichen setzt
+       app.js (setHeading) - im Text heißt sie also „Wähle ein Themengebiet".
+     * Der Dialog „Wie viele neue Karten?" steht in seinem eigenen Abschnitt am Ende des
+       Blattes.
+   ---------------------------------------------------------------------- */
+@media (max-width: 639px) {
+    /*
+        Kein Pfad: links steht nur das Konto (Name und Abmelden), rechts die beiden
+        Bedienelemente. Alle Seiten tragen dieselbe Kopfzeile aus site_header.php.
+    */
+    .crumb {
+        display: none;
+    }
+
+    .site-header,
+    .site-header__left,
+    .site-header__right {
+        align-items: center;
+    }
+
+    /*
+        Auf dem Handy wird das Zeichen eine Spur kleiner.
+
+        Am Rechner stehen 28 Pixel im Kasten und 15 im Zeichen, hier 24 und 12. Die Gruppe
+        selbst - 8 Pixel Abstand, 6 Pixel zwischen den Kürzeln, der Unterstrich - steht im
+        gemeinsamen Teil weiter oben und gilt damit für beide Größen.
+    */
+    .theme-toggle {
+        width: 24px;
+        height: 24px;
+    }
+
+    .theme-toggle svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .site-header__left {
+        gap: 2px;
+    }
+
+    .account {
+        font-size: 13px;
+    }
+
+    /*
+        Auf einer Themengebiet-Seite wird auf dem Handy nur gelernt.
+
+        Weg sind deshalb die drei Knöpfe, die etwas anlegen oder auswählen -
+        `#add-entry-button` („+ Unterkategorie\" bzw. „+ Karte\"), `#bulk-start`
+        („Auswählen\") und `#import-button` („Importieren\") -, das Menü der Seite, das Menü
+        an jeder Zeile, die Auswahlkästchen und die Kacheln der Übersicht. Was bleibt: die
+        Liste mit ihren Namen und der Lernen-Knopf, der in derselben Reihe steht - deshalb
+        werden hier die Knöpfe einzeln genannt und nicht ihr Container ausgeblendet.
+
+        Das `!important` ist Absicht: `render()` in `app.js` blendet einzelne Blöcke selbst
+        ein und aus, und diese Regeln müssen stärker sein als ein spät gesetztes `hidden`.
+    */
+    #add-entry-button,
+    #bulk-start,
+    #import-button,
+    #detail-actions,
+    .detail__actions,
+    .detail__menu,
+    .row__menu,
+    .row__check,
+    #detail-menu,
+    #detail-dashboard {
+        display: none !important;
+    }
+
+    /*
+        Der Name einer Unterkategorie führt nicht mehr auf ihre Seite.
+
+        `pointer-events: none` lässt die Zeile stehen, wie sie ist - man liest den Namen
+        weiterhin -, nimmt ihr aber jeden Klick. Der Lernen-Knopf daneben ist ein eigenes
+        Element und bleibt bedienbar; das `href` bleibt im Markup, damit ein Rechtsklick
+        oder ein Lesezeichen am Rechner unverändert funktioniert.
+
+        Wichtig ist der Zusatz `:has(.row__learn)`: `.row__link` trägt auch die Zeile einer
+        KARTE in einer Unterkategorie, und die soll man weiterhin ansehen können. Nur die
+        Zeilen MIT Lern-Knopf sind Unterkategorien - und nur die werden hier angehalten.
+    */
+    .row:has(.row__learn) .row__link {
+        pointer-events: none;
+    }
+
+    .view--start .heading,
+    .start-header__intro .heading {
+        /* 18ch wären bei 26 Pixel nur rund 230 Pixel breit - der Satz bräuchte damit
+           wieder zwei Zeilen. */
+        font-size: 26px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        max-width: none;
+    }
+
+    .heading__mask,
+    .heading__line {
+        display: inline;
+    }
+}
+
+/* ----------------------------------------------------------------------
+   Der Dialog „Wie viele neue Karten?"
+
+   Er ist bereits zentriert und passt auf jeden Bildschirm: `.count-dialog` hat
+   `max-height: calc(100dvh - 32px)` und `overflow-y: auto`, das Panel darunter ebenfalls
+   `max-height` und einen eigenen Scroll (siehe weiter oben). Der Innenabstand steckt in
+   den Kindern - Titel, Felder, Aktionen -, nicht im Panel: ein Padding am Panel würde
+   sich zu ihren Abständen addieren und den Dialog doppelt einrücken.
+   ---------------------------------------------------------------------- */
+
+/* ---------------- Kartenverwaltung: die ruhige Ansicht ---------------- */
+
+/*
+    Die Seite einer Unterkategorie ist zum Durchsehen und Bearbeiten da: ansehen, ändern,
+    ergänzen, importieren. Nichts hier soll lauter sein als der Inhalt selbst - deshalb
+    steht alles, was diese Ansicht von den anderen unterscheidet, am Ende des Blattes. Die
+    Regeln überschreiben damit die älteren weiter oben, ohne sie anzufassen: aus einer
+    Tabelle aus dünnen Linien wird ein Stapel ruhiger Flächen.
+*/
+
+/*
+    Die vier Kacheln sind aus.
+
+    Sie zeigten fällig, sitzt schon, unsicher und die Serie - Lernstatistik, die hier den
+    Kopf beherrschte. An ihrer Stelle steht die eine Zeile unter dem Kopf
+    (`.detail__figures`, gefüllt von `app.js`). Markup, Zahlen und Skript bleiben: `display:
+    none` ist eine Zeile, die die Kacheln zurückholt, und keine Zahl geht verloren.
+*/
+#detail-dashboard {
+    display: none;
+}
+
+/* Etwas enger an den Kopf als vorher, damit die Zeile zum Kopf gehört. */
+.detail__figures {
+    margin-top: 12px;
+}
+
+/*
+    Am Rechner gibt es hier keinen Lernen-Knopf.
+
+    Die Seite einer Unterkategorie ist am Rechner die Verwaltung: anlegen, importieren,
+    öffnen. Gelernt wird im Lernmodus, und dorthin führt der Lernen-Knopf in der Zeile des
+    Lernbereichs darüber - dort trägt er auch die Zahl der fälligen Karten.
+
+    Warum nicht auch auf dem Handy: dort sind die Verwaltungsknöpfe ausgeblendet
+    (siehe den Block bis 639 Pixel weiter oben), der Lernen-Knopf ist also die einzige
+    Handlung dieser Seite. Eine Seite ganz ohne Handlung wäre eine Sackgasse.
+*/
+@media (min-width: 640px) {
+    #learn-button {
+        display: none;
+    }
+}
+
+/* --- Kartenliste: jede Karte eine eigene, ruhige Fläche --- */
+
+/*
+    Aus der Tabelle wird ein Stapel.
+
+    Vorher war jede Karte eine Zeile zwischen zwei gepunkteten Linien. Jetzt ist jede Karte
+    eine Fläche für sich: eigener Rahmen, weiche Rundung, Abstand zur nächsten. Die Liste
+    liest sich damit als das, was sie ist - ein Karteikasten zum Durchsehen.
+
+    `:has(.row--card)` grenzt das auf die Kartenliste ein: die Liste der Unterkategorien
+    (`.row--category`) behält ihre ruhige Tabelle, dort passt sie.
+*/
+.rows:has(.row--card) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Die gepunktete Linie über der Liste gehört zur Tabelle, nicht zum Stapel. */
+    border-top: 0;
+}
+
+/* Mehr Luft zwischen Werkzeugleiste und Stapel als vorher (22 Pixel). */
+#card-tools:not([hidden]) ~ .rows:has(.row--card) {
+    margin-top: 24px;
+}
+
+.rows .row--card {
+    padding: 13px 15px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-tile);
+    background-color: var(--surface);
+}
+
+/*
+    Beim Zeigen bleibt die Zeile an ihrem Platz.
+
+    Vorher rückte sie ein (`padding-inline: var(--row-hover-inset)`), damit die Fläche über
+    die Spalte hinauszuwachsen schien - bei einer eigenen Fläche würde das den Text unter
+    dem Zeiger verschieben. Hier wird nur die Fläche eine Spur kräftiger und der Rahmen
+    deutlicher.
+*/
+.rows .row--card:hover,
+.rows .row--card:focus-within {
+    padding-inline: 15px;
+    background-color: var(--tile-bg-hover);
+    border-color: var(--line-strong);
+}
+
+/*
+    Die Frage ist der Titel: kräftiger und in der Textfarbe. Die Antwort steht darunter,
+    kleiner und gedämpft; abgeschnitten wird sie mit `text-overflow: ellipsis` (siehe
+    `.row__back` weiter oben).
+*/
+.row--card .row__name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.row--card .row__back {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+/*
+    Das "..."-Menü steht rechts, nicht mehr vor der Frage.
+
+    Es trug `order: -1` und saß damit in einer eigenen Spalte am linken Rand: der Fragetext
+    begann erst danach und rückte je nach Zeile unterschiedlich weit ein. Jetzt ist es das
+    letzte Element der Zeile (`order: 0`), direkt hinter den Merkern - und im Ruhezustand
+    gedämpft, denn es soll da sein, nicht auffallen.
+*/
+.row--card .row__menu--leading {
+    order: 0;
+    align-self: center;
+    margin-top: 0;
+    opacity: 0.4;
+    transition: opacity 160ms var(--ease);
+}
+
+.row--card:hover .row__menu--leading,
+.row--card:focus-within .row__menu--leading {
+    opacity: 1;
+}
+
+/*
+    Der Status ist ein leiser Hinweis, kein Schild: kleiner, und ohne die reservierte Breite
+    von 84 Pixeln, die jede Zeile auseinanderzog.
+*/
+.row--card .row__status {
+    min-width: 0;
+    font-size: 10px;
+    gap: 6px;
+}
+
+.row--card .row__status-dot {
+    width: 6px;
+    height: 6px;
+}
+
+/* Die Merker ("Beide Richtungen", "Nur Englisch") eine Spur leiser. */
+.row--card .row__badge {
+    font-size: 9.5px;
+    padding: 2px 7px;
+}
+
+/* --- Werkzeugleiste: Chips und Suche --- */
+
+/*
+    Dieselbe Rundung wie die Karten, etwas kompakter.
+
+    Die Chips waren Pillen (999px); neben Flächen mit 12 Pixeln Rundung sahen sie wie ein
+    anderes Bauteil aus. Jetzt tragen sie die Rundung der Karten, die sie filtern.
+*/
+.card-filter__chip {
+    padding: 5px 12px;
+    border-radius: var(--radius-tile);
+    font-size: 13px;
+}
+
+.card-tools {
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.card-tools__search-input {
+    padding: 9px 12px;
+    font-size: 14px;
+}
+
+/*
+    Auf dem Handy bekommt der Text die ganze Breite.
+
+    Merker und Status stehen rechts und nehmen ihren Platz, egal wie schmal das Fenster ist:
+    bei 375 Pixeln blieben der Frage und der Antwort ganze 91 Pixel, und eine lange Antwort
+    lief in fünf Zeilen über die halbe Karte. Dort rutscht die Spalte jetzt unter den Text,
+    und die Antwort wird nach zwei Zeilen abgeschnitten - eine sehr lange Antwort zieht die
+    Karte sonst auf das Doppelte, und man sieht vor lauter Antwort die nächste Frage nicht
+    mehr.
+
+    Das "..."-Menü ist auf dieser Breite ohnehin ausgeblendet (siehe den Block bis 639 Pixel
+    weiter oben), hier sind also nur zwei Dinge in der Zeile.
+*/
+@media (max-width: 639px) {
+    .row--card .row__link {
+        flex-wrap: wrap;
+    }
+
+    .row--card .row__stack {
+        flex: 1 1 100%;
+    }
+
+    .row--card .row__meta {
+        margin-left: 0;
+        align-items: flex-start;
+    }
+
+    .row--card .row__back {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+}
+
+/*
+    ----------------------------------------------------------------------
+    Titelkopf: mehr Luft unter der Kopfzeile
+
+    Der Abstand kam bisher nur aus dem Abstand der Seite (`clamp(24px, 4vh, 56px)`, bei
+    900 Pixel Fensterhöhe also 36 Pixel). Das klingt nach viel, sieht aber nach wenig aus:
+    die Überschrift ist 60 Pixel groß und hat `line-height: 1`, sie trägt also so gut wie
+    kein Fleisch über den Buchstaben. Gemessen blieben zwischen der Unterkante der
+    Kopfzeile und der Oberkante der Buchstaben 29 Pixel - und weil die Buchstaben groß
+    sind, liest man das als "klebt".
+
+    Die Kopfzeile selbst bleibt, wo sie ist: sie ist Bedienung, und Bedienung gehört nach
+    oben. Der Zusatz sitzt deshalb am Titelkopf und wächst mit der Fensterhöhe mit. Er
+    steht als `margin-top` am Titelkopf und nicht als größerer Abstand der Seite, weil
+    sonst die Fußzeile und die Detailansicht denselben Zuschlag bekommen hätten.
+
+    Angehängt an `#view-home`, weil `.start-header` nur dort vorkommt: eine Detailansicht
+    hat ihren eigenen Kopf (`.detail__head`) und bleibt unberührt.
+
+    Der freie Platz darunter ist davon nicht betroffen: die Blätterleiste der Lernbereiche
+    zieht ihn mit `margin-top: auto` weiterhin an sich, der Abstand zwischen Titel und
+    Kacheln bleibt bei den 24 Pixeln der Ansicht.
+    ----------------------------------------------------------------------
+*/
+#view-home > .start-header {
+    margin-top: clamp(16px, 3vh, 32px);
 }

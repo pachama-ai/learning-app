@@ -313,7 +313,7 @@ CREATE TABLE IF NOT EXISTS `stories` (
 -- ============================================================================
 -- 9. story_contributions - ein Beitrag der Geschichte
 --
--- Ein Beitrag, dann zwei Stunden Bearbeitungszeit, dann ist die andere Person
+-- Ein Beitrag, dann 30 Minuten Bearbeitungszeit, dann ist die andere Person
 -- an der Reihe. Nur EINE der beiden Regeln steht zusaetzlich in der Datenbank:
 --
 --   * idx_story_contributions_order (story_id, contribution_date, id) deckt das
@@ -339,7 +339,7 @@ CREATE TABLE IF NOT EXISTS `stories` (
 -- uebereinstimmen.
 --
 -- Geaendert werden darf nur der eigene, zuletzt veroeffentlichte Beitrag, und
--- nur innerhalb der zwei Stunden (story_edit() in src/services/story_service.php).
+-- nur innerhalb der 30 Minuten (story_edit() in src/services/story_service.php).
 -- Geloescht wird nie: es gibt keine Anweisung dafuer.
 --
 -- Angelegt wird sie mit database/story_together.sql.

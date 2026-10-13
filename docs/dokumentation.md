@@ -42,8 +42,8 @@ zwei Tabellen.
   Energiewirtschaft. Sie berührt die Datenbank nicht und ändert keine Karte; sie ist
   dafür gedacht, in einem zweiten Fenster neben den Karten offen zu stehen.
 - **Gemeinsam schreiben: „Story Together".** Eine zweite Seite (`/story.php`), auf der
-  genau zwei Konten abwechselnd an einer Geschichte schreiben – ein Beitrag, danach zwei
-  Stunden Bearbeitungszeit, dann ist die andere Person an der Reihe.
+  genau zwei Konten abwechselnd an einer Geschichte schreiben – ein Beitrag, danach 30
+  Minuten Bearbeitungszeit, dann ist die andere Person an der Reihe.
   Über dem Editor steht eine freiwillige Schreibanregung (Grammar Challenge).
   Für alle anderen Konten gibt es die Seite nicht.
 
@@ -350,7 +350,7 @@ Drehzahl, offener und geschlossener Stromkreis).
 
 Eine dritte Seite: `public/story.php`, erreichbar unter `/story.php`. Genau **zwei
 Konten** schreiben dort abwechselnd an einer Geschichte. Nach jedem Beitrag hat der
-Verfasser **zwei Stunden** Zeit, ihn noch zu ändern; danach ist er endgültig und der Zug
+Verfasser **30 Minuten** Zeit, ihn noch zu ändern; danach ist er endgültig und der Zug
 wechselt zur anderen Person.
 
 **Wer mitschreiben darf**, steht an genau einer Stelle: `STORY_WRITERS` in
@@ -365,31 +365,36 @@ falsch. Die Namen im Text („Xenia") stehen nicht hier, sondern in
 der Browser blendet nur aus, er entscheidet nichts.
 
 1. Schreiben dürfen nur die beiden Konten.
-2. Ein Beitrag je Zug. Nach dem Veröffentlichen bleiben **`STORY_EDIT_HOURS` (zwei)
-   Stunden Bearbeitungszeit**: solange darf nur der Verfasser selbst noch ändern, die
+2. Ein Beitrag je Zug. Nach dem Veröffentlichen bleiben **`STORY_EDIT_MINUTES` (30)
+   Minuten Bearbeitungszeit**: solange darf nur der Verfasser selbst noch ändern, die
    andere Person wartet.
 3. **Danach wechselt der Zug** zur anderen Person – gerechnet wird ab dem Zeitpunkt der
-   Veröffentlichung, nicht mit dem Kalendertag. Wer um 23 Uhr schreibt, gibt um 1 Uhr
-   nachts ab.
+   Veröffentlichung, nicht mit dem Kalendertag. Wer um 23:50 Uhr schreibt, gibt um 0:20
+   Uhr nachts ab.
 4. Den ersten Beitrag darf schreiben, wer zuerst kommt – er ist damit der Erst-Autor, und
    die andere Person ist danach an der Reihe.
 5. Wer nicht schreibt, **verliert seinen Zug nicht**: er bleibt stehen, bis jemand
    schreibt. Schreibt dieselbe Person deshalb mehrere Beiträge hintereinander, ist das in
    Ordnung – eine Prüfung „nicht zweimal derselbe Autor in Folge" gibt es nicht.
 6. Geändert werden darf nur der eigene, **zuletzt veröffentlichte** Beitrag, und nur
-   innerhalb der zwei Stunden. Danach ist er endgültig. Gelöscht wird nie.
+   innerhalb der 30 Minuten. Danach ist er endgültig. Gelöscht wird nie.
 
 **Wer dran ist, rechnet `story_state()` aus dem letzten Beitrag:**
 
 ```
-letzter Beitrag + 2 Stunden   -> noch der Verfasser (er darf nur noch ändern)
-danach                        -> die andere Person ist an der Reihe
+letzter Beitrag + 30 Minuten   -> noch der Verfasser (er darf nur noch ändern)
+danach                         -> die andere Person ist an der Reihe
 ```
 
-In den zwei Stunden steht also niemandem das Schreiben zu: der Editor der wartenden
+In diesen 30 Minuten steht also niemandem das Schreiben zu: der Editor der wartenden
 Person ist gesperrt, und der Verfasser sieht an seiner Stelle den Satz „Du kannst deinen
 Beitrag noch bis … ändern" (Übersetzungsschlüssel `story.turn.editWindow`) – ohne ihn wäre
-nicht zu sehen, warum der eigene Editor noch zu ist. Die Frist hängt am Zeitpunkt der
+nicht zu sehen, warum der eigene Editor noch zu ist. Die **wartende** Person bekommt ihren
+eigenen Satz („Noch einen Moment – ab 14:16 Uhr ist Xenia dran.", `story.turn.waiting`):
+sie ist eben noch nicht dran, sondern gleich dran, und ohne diesen Unterschied würde sie
+lostippen, während die andere noch am Text ist. Erst nach Ablauf steht dort „Xenia ist an
+der Reihe, die Geschichte fortzusetzen." (`story.turn.other`, dieselbe Zeile wie auf der
+Kachel der Startseite). Die Frist hängt am Zeitpunkt der
 **Veröffentlichung** (`created_at`) und nicht am letzten Ändern: sonst könnte man sie durch
 Ändern beliebig strecken, und die andere Person käme nie an die Reihe.
 
@@ -427,22 +432,17 @@ dann die **Zahlen**, dann die **Schreibaufgabe**, dann die **Geschichte**, ganz 
 **Editor**. Man liest also von oben nach unten und schreibt direkt unter dem Gelesenen
 weiter; die Zahlen oben sagen, was einen erwartet, ohne dass man dafür scrollen muss.
 
-**Diese Seite steht still, ihre Inhaltsspalte scrollt.** Auf allen anderen Seiten scrollt
-die Seite als Ganzes – dort wandert die Seitenleiste beim Scrollen mit und verschwindet
-oben aus dem Bild (nachgemessen: auf `index.php?category=2` steht sie nach dem Scrollen
-bei `top: -704px`). Hier standen vier Blöcke übereinander, die Seite wurde damit länger als
-jedes Fenster, und auf einem flachen Fenster brach die Leiste an der Unterkante ab. Deshalb
-bekommt das Gerüst über `.page--story` die Höhe des Fensters (`100dvh`), und nur `.detail`
-scrollt: die Leiste ist ihre **Schwester im Raster** und liegt außerhalb dieses
-Scrollbereichs, sie kann also gar nicht mitwandern – links bleibt sie stehen, auf schmalen
-Fenstern bleibt die Reihe darüber stehen. Der innere Scroll der Geschichte
-(`.story-scroll`) bleibt davon unberührt; die beiden Scrollbereiche wissen nichts
-voneinander.
-
-Damit die Spalte überhaupt scrollen kann, braucht die Kette vom Fensterrand bis zu ihr
-`min-height: 0` – ein Flex-Kind darf sonst nicht kleiner werden als sein Inhalt, und dann
-gäbe es keine Kante, an der gescrollt wird. Der Preis: das Scrollband sitzt am rechten Rand
-der Inhaltsspalte statt am Fensterrand.
+**Die Seite scrollt normal, der Lesebereich nur, wenn er lang wird.** Eine eigene
+Fensterhöhe für die Seite gab es hier einmal (`.page--story` mit `100dvh` und
+`overflow: hidden`), damit die Seitenleiste beim Scrollen nicht aus dem Bild wandert. Der
+Preis war zu hoch: `overflow: hidden` schnitt die Themenliste an der Unterkante ab, sobald
+sie länger war als das Fenster, und der Lesebereich bekam durch sein eigenes `max-height`
+schon bei einem einzigen Beitrag einen Balken. Jetzt ist die Leiste eine ganz normale
+Spalte – sie kann nicht abgeschnitten werden, weil man zu ihr scrollen kann – und die
+Seite scrollt wie jede andere. `min-height: 100dvh` bleibt, damit eine kurze Seite das
+Fenster trotzdem füllt. Ein doppelter Scroll entsteht dabei nicht: der Lesebereich nimmt
+den Scroll erst, wenn sein Inhalt höher wäre als das Fenster (siehe unten), sonst wächst
+er mit dem Text.
 
 **Was die Seite zeigt.** Der Kopf mit Zeichnung, Label und Titel. Darunter die Zahlen als
 **eine Zeile** – kein eigener Abschnitt, keine Überschrift, rund 19 Pixel hoch: erst die
@@ -474,12 +474,22 @@ die Geschichte und der Editor sind **gleich breit** (`--story-column`, 44rem, al
 700 Pixel – die Breite, bei der ein längerer englischer Text angenehm zu lesen ist) und
 liegen auf derselben Flucht wie der Kopf darüber, der die volle Spalte einnimmt.
 
-**Die Geschichte scrollt in sich selbst.** Der Lesebereich hat eine feste Höhe
-(`clamp(320px, 56vh, 640px)`) und ein eigenes `overflow-y`. Damit wird die Seite nicht
-endlos lang: oben steht immer der ganze Text, darunter immer der Editor, egal wie viel
-schon geschrieben wurde. Beim Öffnen steht der Bereich bei seinem **neuesten Beitrag** –
-geschrieben wird ja auch von unten. Eine Vorschau mit „Weiterlesen" gab es hier einmal;
-sie ist weg, seit der Bereich selbst scrollt.
+**Der Lesebereich scrollt nur, wenn er lang wird.** `.story-scroll` hat **keine feste
+Höhe**, sondern `max-height: 80dvh` und ein eigenes `overflow-y`: bei einem oder zwei
+Beiträgen gibt es deshalb gar keinen Balken, und die Seite wächst mit dem Text wie eine
+Artikelseite. Erst wenn die Geschichte höher würde als das Fenster, bleibt der Bereich
+stehen und scrollt in sich selbst – der Kopf und der Editor bleiben dabei im Bild. Beim
+Öffnen steht der Bereich bei seinem **neuesten Beitrag** (geschrieben wird ja auch von
+unten), und `overscroll-behavior: contain` sorgt dafür, dass am Ende des Textes Schluss ist
+statt die Seite weiterzurollen. Eine Vorschau mit „Weiterlesen" gab es hier einmal; sie ist
+weg, seit der Bereich selbst scrollt.
+
+Sein **Balken** ist absichtlich leiser als die Balken aus `app.css`: schmal (10 Pixel, mit
+unsichtbarem Rand und `background-clip: content-box` wirkt der Daumen noch dünner), ohne
+Kasten und in der gedämpften Textfarbe (`--story-scrollbar`, aus `--text` gemischt – damit
+stimmt er hell und dunkel, ohne eine zweite Farbe). Für Firefox stehen `scrollbar-width:
+thin` und `scrollbar-color` daneben; Chrome, Edge und Safari nehmen die
+`::-webkit-scrollbar`-Regeln.
 
 Der **Fade** an den Rändern ist eine Maske und kein Farbverlauf: eine Maske kennt keine
 Hintergrundfarbe und funktioniert deshalb hell und dunkel gleich. Er erscheint nur dort,
@@ -592,7 +602,7 @@ die Zeile leer – ein kurzer leerer Platz ist besser als ein Satz, der nicht me
 
 **Was bewusst fehlt.** Kein Löschen und kein Zurücknehmen eines Beitrags; kein Titel
 ändern. Geändert werden kann nur der eigene, zuletzt veröffentlichte Beitrag, und nur
-innerhalb der zwei Stunden – danach ist er endgültig.
+innerhalb der 30 Minuten – danach ist er endgültig.
 
 **Gespeichert wird ohne Zwischenschritt.** Ein Klick auf „Beitrag veröffentlichen" oder
 „Änderung speichern" schickt den Text direkt an die API. Den Vorschau-Dialog („Ein letzter
@@ -603,8 +613,8 @@ Zug, Bearbeitungszeit, Länge, CSRF-Token und die Erlaubnis, genau diesen Beitra
 
 ### Einen Beitrag nachträglich ändern
 
-Der eigene, **zuletzt veröffentlichte** Beitrag lässt sich ändern, solange die zwei
-Stunden Bearbeitungszeit laufen. Danach ist er gesperrt: die andere Person ist an der
+Der eigene, **zuletzt veröffentlichte** Beitrag lässt sich ändern, solange die 30
+Minuten Bearbeitungszeit laufen. Danach ist er gesperrt: die andere Person ist an der
 Reihe, und ein Eingriff würde das, was danach kommt, auf eine Aussage beziehen, die es
 nicht mehr gibt.
 
@@ -634,10 +644,11 @@ ist reiner Text: er wird nie als HTML gelesen, deshalb braucht es hier kein
 
 ### Die Benachrichtigung „du bist dran"
 
-Zwei Stunden nach dem Veröffentlichen wechselt der Zug – und die Person, die jetzt dran ist,
+30 Minuten nach dem Veröffentlichen wechselt der Zug – und die Person, die jetzt dran ist,
 erfährt es per E-Mail. Wann sie rausgeht, ist damit keine eigene Entscheidung: sie geht
 genau dann raus, wenn die Bearbeitungszeit abgelaufen ist. Eine Mail direkt nach dem
-Schreiben wäre falsch, denn zwei Stunden lang darf der Text noch geändert werden.
+Schreiben wäre falsch, denn 30 Minuten lang darf der Text noch geändert werden. Der Cron
+läuft jede Minute, die Mail ist also spätestens eine Minute nach Ablauf da.
 
 **Wer sie bekommt**, entscheidet der letzte Beitrag: die andere Person als die Verfasserin.
 Die Adresse kommt aus `users.email` und nicht aus einer zweiten Liste im Quelltext –
@@ -656,8 +667,22 @@ dem Postfach (EHLO, STARTTLS, AUTH LOGIN, DATA) – ohne fremde Bibliothek. Die 
 stehen ausschließlich in `.env` (`MAIL_HOST`, `MAIL_PORT`, `MAIL_SECURE`, `MAIL_USER`,
 `MAIL_PASS`, `MAIL_FROM`, `MAIL_FROM_NAME`, `APP_BASE_URL`); die Vorlage steht in
 `.env.example`. Die Sätze der Mail kommen aus `src/helpers/translations.php`
-(`story.mail.subject`, `story.mail.body`); verschickt wird die deutsche Fassung, weil die
-beiden Schreiberinnen deutsch schreiben (`STORY_MAIL_LANGUAGE`).
+(`story.mail.subject`, `story.mail.body`) und sind reiner Text – kein HTML, damit nichts in
+der Mail stehen kann, was wie Markup aussieht. Gefüllt werden zwei Platzhalter: `{name}`
+(Empfängerin) und `{url}` (`APP_BASE_URL` + `/story.php`). Der Text ist seit dem 13.10.2026
+kurz: Anrede, der eine Satz („Die Geschichte wartet darauf, von dir weitergeschrieben zu
+werden.") und der Link. Wer geschrieben hat und wie lange man noch ändern darf, stand
+einmal darin – beides braucht die Mail nicht, und der Name der Verfasserin steht ohnehin
+in der Geschichte. Die Platzhalter `{author}` und `{title}` werden deshalb nicht mehr
+gefüllt; der `JOIN` auf `stories.title` in `story_notification_last_row()` läuft weiter und
+kostet nichts.
+
+**Warum die Mail auf Deutsch geht, obwohl die Oberfläche zweisprachig ist.** Beide Fassungen
+liegen in den Übersetzungen bereit – welche gilt, entscheidet `STORY_MAIL_LANGUAGE`. Der
+Server kann die Sprachwahl der Empfängerin nicht kennen: sie steht im `localStorage` des
+Browsers, und für ein Konto wird sie nirgends gespeichert (eine Spalte dafür gibt es in
+`users` nicht, und ohne sie weiß auch der Cron nichts davon). Also Deutsch als Vorgabe; die
+englische Fassung wird mit einer Zeile in `story_notification_service.php` aktiv.
 
 **Ausgelöst wird das per Cron**, jede Minute:
 
@@ -667,9 +692,11 @@ beiden Schreiberinnen deutsch schreiben (`STORY_MAIL_LANGUAGE`).
 
 `bin/story_notify.php` ist ein Kommandozeilen-Werkzeug wie die Importe: `--dry-run` zeigt
 nur, was ansteht, `--execute` verschickt und setzt den Merker. Es gibt 0 zurück, wenn alles
-in Ordnung ist (auch wenn nichts zu tun war), und 1 bei einem echten Problem – dann meldet
-sich Cron von selbst. Läuft der Cron nicht, kommt keine Mail; die Seite selbst funktioniert
-weiter. Der Merker braucht die Spalte `turn_notified_at`, die mit
+in Ordnung ist (auch wenn nichts zu tun war), und 1 bei einem echten Problem. Der
+Cron-Aufruf oben wirft die Ausgabe weg und `MAILTO=""` unterdrückt die Cron-eigenen Mails
+(es gibt ja keinen lokalen Mailserver); wer wissen will, was los ist, ruft das Werkzeug von
+Hand mit `--dry-run` auf. Läuft der Cron nicht, kommt keine Mail; die Seite selbst
+funktioniert weiter. Der Merker braucht die Spalte `turn_notified_at`, die mit
 `database/story_turn.sql` dazukommt; fehlt sie, sagt das Werkzeug das und tut nichts.
 
 ### Die Grammar Challenge
@@ -729,6 +756,29 @@ der Kachel der Startseite steht. Sie wird wie jedes andere Symbol der Anwendung 
 
 Nichts davon ist kaputt, und nichts davon wird ohne Rückfrage geändert. Es steht
 hier, damit sich niemand wundert.
+
+**Eine Akzentfarbe für beide Themen**
+
+Bis zum 12.10.2026 war `--accent` im hellen Thema das gedeckte Grün `#2F6B4F`, im dunklen
+Thema ein helles Cyan (`#8FD3E6`). An der Akzentfarbe hängt fast jedes Bedienelement -
+jeder Primärknopf, jeder Fokusring, jeder Unterstrich, jeder Fortschrittsbalken - und weil
+die Flächen der App im dunklen Thema unverändert blieben, war die halbe Anwendung dort
+blau. Jetzt ist `--accent` in beiden Themen dieselbe Farbfamilie (`#2F6B4F` / `#8FC7A4`),
+das Cyan gibt es nirgends mehr. Mitgeändert wurden nur die zwei Stellen, die ihren Wert
+fest eintrugen: `--map-active` und `--map-active-line` (die hervorgehobene Fläche in einer
+Landkarte). Die Hintergründe des dunklen Themas (`--bg`, `--panel`, `--tile-bg`) sind
+absichtlich unverändert geblieben: sie sind blaugrau und tragen den Charakter dieses
+Themas. Ob sie wärmer werden sollen, ist eine eigene Frage.
+
+**Warum der Primärknopf im hellen Thema schwarz ist**
+
+`[data-theme="light"] .dialog__button--primary` ist `var(--text)`, also fast schwarz, und
+das ist Absicht: **Grün bedeutet in dieser Anwendung „hier stehen Karten an"**
+(`.row__learn.has-due`, `.learn-button`). Ein grüner „Speichern"-Knopf in einem Dialog, in
+dem es um Karten geht, würde dieselbe Farbe für zwei Bedeutungen benutzen. Im dunklen Thema
+trägt der Knopf die Akzentfarbe, weil `--text` dort hell ist. Wer die Knöpfe in beiden
+Themen grün will, ändert eine Regel - aber dann kollidiert das Grün mit dem Zeichen für
+fällige Karten.
 
 **Zwei Bäume namens „Energy"**
 
@@ -837,6 +887,299 @@ powershell.exe -NoProfile -Command "Get-WinEvent -FilterHashtable @{LogName='Sys
 # Was hat die Gegenstelle gesehen?
 grep -E "socket timeout event|is unresponsive|reconnect" ~/.vscode-server/data/logs/<zeitstempel>/window1/renderer.log
 ```
+
+## 13. Die Ansicht auf dem Handy
+
+Bis 480 beziehungsweise 639 Pixel Breite sieht die Anwendung anders aus – nicht, weil es
+ein zweites Blatt gäbe, sondern weil `app.css` und `story.css` dort umschalten. **Am
+Rechner ändert sich nichts:** dieselben Kacheln im Karussell, dieselbe offene Themenliste,
+dieselben Bearbeiten-Knöpfe, dieselbe Kennzeile in der Geschichte.
+
+**Die Startseite scrollt wieder.** Bis zum 12.10.2026 hatten die Kacheln hier eine feste
+Höhe (`clamp(260px, 34vh, 340px)`), und die Reihe darin schnitt alles darunter ab
+(`overflow-y: hidden`). Auf einem 375 Pixel breiten Fenster war die Seite damit genau so
+hoch wie das Fenster selbst: `window.scrollTo` tat nichts, und fünf von sieben
+Themengebieten waren unerreichbar. Jetzt gibt `.tiles` dort seine Höhe ab (`height: auto`),
+die Kacheln stehen als Liste untereinander, und die Seite wächst und scrollt wie jede
+andere.
+
+**Eine Kachel ist eine Zeile.** 72 Pixel hoch: Symbol links (44 statt 72 Pixel), Name und
+eine Zeile Zahlen rechts. Das Menü an der Kachel (`…`) erscheint dort nicht – auf dem Handy
+wird gelesen und gelernt. Der Seitenrand ist 16 statt 24 Pixel.
+
+**Das Zeichen über der Begrüßung ist das Browser-Symbol.** Die Karte „Deine Karten warten
+auf dich" trägt das Favicon der Seite (`assets/icons/browser_icon.svg` — dieselbe Datei, die
+im `<head>` als `rel="icon"` steht): **44 Pixel** am Rechner, **40** auf dem Handy,
+zentriert, 18 Pixel über der Überschrift. Davor stand dort ein gezeichneter Stapel aus zwei
+Karten — am Rechner und auf dem Handy zwei verschiedene Zeichen; jetzt ist es überall
+dasselbe. Die Datei steht in `public/index.php`, ihre Größe in `app.css`
+(`.notice__icon`), und das Bild ist für Vorlesehilfen versteckt (leeres `alt`, es sagt nur,
+was die Überschrift darunter sagt).
+
+**Die Kacheln sitzen enger unter der Überschrift.** `.tiles` hatte `margin-top: auto` und
+schob damit den **ganzen freien Platz** der Ansicht zwischen Überschrift und Kacheln: in
+einem 900 Pixel hohen Fenster gemessen 211 Pixel zwischen Kopf und Kachelband — der Titel
+hing oben allein, die Kacheln klebten unten. Jetzt sammelt `.tiles-nav` den Platz ein
+(`margin-top: auto`): die Kacheln folgen der Überschrift im Abstand der Ansicht (gemessen
+**12 statt 211 Pixel**), und die Leiste bleibt trotzdem die feine Linie über der Fußzeile
+(36 Pixel darüber, unverändert). Am Handy dasselbe Bild; dort ist die Leiste ausgeblendet,
+der freie Platz rutscht also ans Ende der Ansicht. Die Abstände *innerhalb* des
+Kachelbandes (`.area-grid`, `--tile-gap`) und nach oben zur Kopfzeile sind nicht angefasst.
+
+**Die Kacheln füllen den Platz bis zur Fußleiste.** Der Leerraum lag damit zwischen Kacheln
+und Leiste statt zwischen Titel und Kacheln - kleiner war er aber nicht, und er wuchs mit dem
+Fenster: bei 1280×900 gemessen **124 Pixel** zwischen Kachel-Unterkante und Trennlinie, bei
+1280×1400 **545**. Die Ursache stand in `.tiles`: `flex: 0 0 auto` mit fester Höhe nahm seinen
+Anteil und ließ den Rest liegen. Ab **901 Pixel** wächst die Reihe jetzt in diesen Platz
+hinein (`flex: 1 0 auto`), die Kacheln werden höher und gewinnen die Luft in der Mitte, weil
+die Kachel ihren Inhalt mit `justify-content: space-between` verteilt (Zeichnung oben, Name
+und Zahl unten). Gemessen bei 1280×900: Kachel 276 → **356 Pixel** hoch, Abstand zur Linie
+124 → **44**, Luft in der Kachel 102 → **182**; bei 800 Pixel Fensterhöhe 69 → 44, bei
+1024×900 163 → 44. Die **Höchstgrenze von 440 Pixeln** verhindert schmale Türme auf hohen
+Fenstern: bei 1100 und 1400 Pixel Fensterhöhe stoppt die Reihe dort, der Rest bleibt als
+ruhiger Abstand über der Leiste (169 beziehungsweise 445 Pixel). Die Fußzeile bleibt dabei am
+unteren Rand verankert - der `+`-Knopf sitzt in jeder geprüften Größe 51 Pixel über dem Rand,
+wie auf der Detailseite. Der Abstand Überschrift → Kacheln bleibt bei 24 Pixeln, und bei 620
+Pixel Fensterhöhe ändert sich gar nichts (dort war schon kein freier Platz).
+
+Unter 901 Pixeln gilt das absichtlich nicht: dort steht die Reihe als zweispaltiges Raster
+(bis 900 Pixel) oder als Liste (bis 480 Pixel), und in beiden Fällen bestimmt der Inhalt die
+Höhe der einzelnen Kachel. Eine gedehnte Reihe ließe dort unter der letzten Kachel nur leeren
+Raum stehen - bei 768×900 nachgemessen 132 Pixel, deshalb steht die Grenze im Stylesheet und
+nicht am Wunsch "möglichst viel Platz".
+
+**Im dunklen Thema wird das Symbol umgedreht.** Die Datei ist einfarbig grau (`#333333` und
+`#8c8c8c`), und ausgerechnet der dunkle Ton verschwindet auf der dunklen Fläche: übrig
+blieb ein halbes Zeichen (im Browser gesehen, bevor es die Regel gab).
+`[data-theme="dark"] .notice__icon { filter: invert(1) }` dreht beide Grautöne um —
+die Form bleibt, der Abstand zwischen den beiden Tönen auch (0,31 → 0,69).
+
+**Die Themenliste ist ein Klappmenü.** `sidebar__fold` ist ein `details`-Element, das der
+Browser von sich aus auf- und zuklappen kann – dafür braucht es kein Skript. Am Rechner
+steht es offen und ist nicht anklickbar (`pointer-events: none`), das Zeichen rechts ist
+dort ausgeblendet; bis 639 Pixel klappt `initSidebarFold()` in `app.js` (und
+`foldSidebar()` in `story.js`) es beim Laden zu. Vorher war die Liste hier eine waagerecht
+scrollbare Leiste, in der der letzte Eintrag abgeschnitten aussah.
+
+**Der offene Menüeintrag ist eine Tönung, kein Balken.** Vorher lagen dort drei Dinge
+übereinander: die graue Fläche `--surface-soft`, ein 2 Pixel breiter Streifen links
+(`box-shadow: inset 2px 0 0 …`) und der farbige Punkt. Jetzt ist die Fläche eine Tönung von
+5 % (hell) beziehungsweise 7 % (dunkel) der Textfarbe, der Streifen ist weg, und der Punkt
+davor sagt, welcher Eintrag offen ist (`opacity: .55` in Ruhe, `1` beim offenen Eintrag).
+Die Zeilen sind 44 Pixel hoch und haben 4 Pixel Abstand - Punkte und Namen stehen damit in
+einem gleichmäßigen Rhythmus.
+
+**Der Pfeil am Klappmenü ist als Schalter zu erkennen.** Auf dem Handy sitzt das Zeichen in
+einem weichen Kreis (26 Pixel, `--tile-bg`, ohne Rahmen) und dreht sich beim Aufklappen.
+Vorher war es ein nackter Pfeil, der aussehen konnte wie ein zufälliges Zeichen neben der
+Beschriftung.
+
+**Der Kopf einer Ansicht ist kompakter.** `.detail__head` hat 14/18 statt 20/24 Pixel
+Innenabstand und eine Zeichnung von 44 statt 54 Pixeln.
+
+**Der Titel der Startseite hat mehr Luft unter der Kopfzeile** (`#view-home > .start-header`,
+`margin-top: clamp(16px, 3vh, 32px)`). Der Abstand kam bis dahin allein aus dem Abstand der
+Seite (36 Pixel bei 900 Pixel Fensterhöhe); weil die 60 Pixel große Überschrift aber
+`line-height: 1` hat, trug sie kaum Fleisch über den Buchstaben, und gemessen blieben nur
+**29 Pixel** zwischen der Unterkante der Kopfzeile und der Oberkante von „Wähle ein". Jetzt
+sind es **56**. Der Zusatz sitzt am Titelkopf und nicht am Abstand der Seite, weil sonst die
+Fußzeile und die Detailansicht denselben Zuschlag bekommen hätten; die Kopfzeile bleibt, wo
+sie ist, denn sie ist Bedienung. Der freie Platz darunter ist unberührt: zwischen Titel und
+Kacheln bleiben es in jeder geprüften Fenstergröße **24 Pixel**, weil die Blätterleiste ihn
+mit `margin-top: auto` weiterhin an sich zieht. Geprüft in hell und dunkel bei 1280×900
+(29 → 56), 1280×620 (18 → 36), 768×800 (28 → 52) und 375×667 (24 → 44); kein waagerechter
+Überlauf. Nur ein sehr flaches Fenster (1280×620) scrollt dadurch etwas weiter, dort scrollt
+die Seite aber ohnehin schon.
+
+**Die Überblickszeile unter dem Kopf ist eine Zeile, kein Kastenviertel.** Sie zeigt die
+Zahlen **einer** Unterkategorie: „15 Karten · 0 gewusst · 0 unsicher" — 11 Pixel, `--muted`,
+die Ziffern in `--text`, mit feinen Punkten dazwischen. Vorher standen dort vier große
+Kacheln (fällig, sitzt schon, unsicher, in Folge gelernt) und, nach einem Zwischenschritt,
+gar nichts: erst zählte die Zeile die Karten des ganzen Themengebiets, also eines Zweigs, den
+die offene Seite nicht zeigt. Jetzt füllen zwei kleine Funktionen sie - `renderCardFigures`
+für die erste Zahl (nur dort sind Filter und Suche bekannt, deshalb steht dort bei einer
+gefilterten Liste „12 von 40 Karten") und `renderCardSummary` für die beiden anderen. Auf der
+Ebene eines Lernbereichs bleibt sie versteckt. Der Zähl-Anlauf auf der ersten Zahl
+(`animateCount`) ist geblieben.
+
+**Die vier Kacheln sind aus** (`#detail-dashboard { display: none }`). Sie waren
+Lernstatistik und beherrschten hier den Kopf; die Zahlen stehen jetzt in der Zeile darüber.
+Markup und Skript bleiben stehen - eine Zeile entfernen holt sie zurück, und keine Zahl geht
+verloren. Drei Funktionen sind dabei ganz verschwunden, weil sie zu dieser Zeile gehörten und
+sonst niemand sie rief: `renderFigures`, `renderDeckFigures` und `overallProgressForArea`
+(samt ihren Übersetzungsschlüsseln `detail.cardsThisDeck.*`, `detail.cardsWholeDeck.*` und
+`dash.overallKnown`).
+
+**Die Zahl an den Lernen-Knöpfen bleibt** (`.row__learn-badge`, 26 Pixel): sie sagt, wie
+viele Karten dieser Zeile gerade fällig sind - gefüllt in der Akzentfarbe, wenn es welche
+gibt, sonst ein leiser Umriss mit der Null.
+
+**Die Kartenliste ist ein Stapel, keine Tabelle.** Jede Karte liegt in einer eigenen Fläche:
+1 Pixel `--line`, 12 Pixel Rundung, `--surface` als Grund, 13/15 Pixel Innenabstand und
+8 Pixel Abstand zur nächsten Karte (`gap` am `.rows`-Stapel). Vorher war jede Karte eine
+Zeile zwischen zwei gepunkteten Linien. Die gepunktete Linie über der Liste und der
+Einrück-Effekt beim Zeigen sind weg: die Zeile bleibt stehen, nur Rahmen und Fläche werden
+eine Spur deutlicher. Alles davon hängt an `.rows:has(.row--card)`, damit die Liste der
+Unterkategorien (`.row--category`) ihre Tabelle behält.
+
+**In der Zeile gilt eine klare Reihenfolge.** Die Frage steht als Titel (15 Pixel, 600,
+`--text`), die Antwort darunter in 13 Pixeln und `--muted` und wird mit `…` abgeschnitten,
+wenn sie zu lang ist. Das `…`-Menü saß vorher **links** (`order: -1`) in einer eigenen
+Spalte: der Fragetext begann erst danach und rückte je nach Zeile unterschiedlich weit ein.
+Jetzt ist es das letzte Element der Zeile (gemessen 16 Pixel vom rechten Rand) und im
+Ruhezustand auf 40 % Deckkraft gedämpft - beim Zeigen und im Tastaturfokus wird es voll
+sichtbar. Der Status ist kleiner geworden (10 Pixel Schrift, 6 Pixel Punkt) und hat seine
+reservierte Breite von 84 Pixeln verloren, die jede Zeile auseinanderzog.
+
+**Auf dem Handy bekommt der Text die ganze Breite.** Merker und Status stehen rechts und
+nahmen ihren Platz unabhängig von der Fensterbreite: bei 375 Pixeln blieben Frage und Antwort
+91 Pixel, eine lange Antwort lief in fünf Zeilen. Jetzt rutscht die Spalte unter den Text
+(`flex-wrap` am `.row__link`), und die Antwort wird nach zwei Zeilen abgeschnitten
+(`-webkit-line-clamp: 2`).
+
+**Die Werkzeugleiste trägt dieselbe Rundung wie die Karten.** Die Filter-Chips waren Pillen
+(999px), was neben Flächen mit 12 Pixeln Rundung wie ein anderes Bauteil aussah; sie sind
+jetzt 13 Pixel groß und 5/12 Pixel gepolstert, die Leiste hat 16 Pixel Abstand nach oben, und
+zwischen Leiste und Liste liegen 24 Pixel. Der ganze senkrechte Rhythmus dieser Seite ist
+damit 12 (Kopf → Zeile), 14 (Zeile → Aktionen), 16 (Aktionen → Werkzeugleiste), 24
+(Werkzeugleiste → Liste) - jede Stufe größer als die vorige.
+
+**Am Rechner gibt es hier keinen Lernen-Knopf.** Die Seite ist die Verwaltung (anlegen,
+importieren, öffnen); gelernt wird im Lernmodus, und dorthin führt der Lernen-Knopf in der
+Zeile des Lernbereichs darüber. Bis 639 Pixel bleibt er stehen - dort sind die
+Verwaltungsknöpfe aus, und eine Seite ganz ohne Handlung wäre eine Sackgasse.
+
+**Auf einer Deck-Ansicht wird nur gelernt.** Bis 480 Pixel ausgeblendet: `#detail-actions`
+(Karte anlegen, Importieren, Vokabeln bearbeiten), das Menü `#detail-menu`, die Menüs an
+den Karten (`.row__menu`) und die Kacheln der Übersicht (`#detail-dashboard`). Das
+`!important` ist Absicht: `app.js` blendet einzelne Blöcke selbst ein und aus, und diese
+Regel muss stärker sein als ein spät gesetztes `hidden`. Lernen, Durchsehen und Suchen
+bleiben.
+
+**Die Kopfzeile ist kürzer, aber überall gleich.** Bis 639 Pixel entfällt der Pfad
+(`START — STORY TOGETHER`, `.crumb { display: none }`) — auf einem schmalen Fenster ist er
+die halbe Kopfzeile für nichts. Links steht nur das **Konto** (Name und „Abmelden"), eine
+Spur kleiner als am Rechner; rechts bleiben Sonne/Mond und `EN | DE`, an derselben Stelle
+wie auf der Startseite — die Kopfzeile kommt aus `src/helpers/site_header.php` und wird
+von allen Seiten benutzt, es gibt also keine zweite Fassung, die auseinanderlaufen
+könnte. Beide Seiten stehen auf derselben Höhe (gemessen: Mitte 37 zu 37).
+
+**Rechts oben ist es eine Gruppe, kein Nebeneinander.** Sonne/Mond, ein feiner Strich
+(`.site-header__divider`, 1 × 16 Pixel) und `EN | DE` stehen mit 8 Pixeln Abstand
+beieinander - dieselbe Zahl auf allen Seiten und in beiden Größen. Vorher lagen zwischen
+dem Schalter und der Sprache 20 Pixel: das sah aus wie zwei Bedienelemente, die zufällig
+nebeneinander stehen. Der **Themenwechsler trägt keinen Kreis mehr**: mit 32 Pixeln
+Durchmesser und Rahmen war die Sonne das größte Element der ganzen Kopfzeile, obwohl sie
+nur umstellt, wie die Seite aussieht. Jetzt ist es ein Zeichen von 15 Pixeln (auf dem Handy
+12) in derselben gedämpften Farbe wie das inaktive Sprachkürzel; den Kreis gibt es nur
+beim Zeigen und im Tastaturfokus (`.theme-toggle:hover`). Der Sprachumschalter ist eine
+Textzeile von 24 Pixeln Höhe (`min-height`), die Kürzel stehen 6 Pixel auseinander.
+
+**Der Unterstrich hängt an der Textmitte, nicht am Kastenboden.**
+`.lang-switch__underline` sitzt auf `bottom: calc(50% - 10px)` und nicht auf `bottom: 0`:
+gemessen liegt er damit 2,5 Pixel unter den Buchstaben - und zwar auch dann, wenn die
+Kästchen auf einem Fingergerät 44 Pixel hoch werden (`@media (hover: none), (pointer:
+coarse)`). Mit `bottom: 0` wären es dort 17 Pixel gewesen und der Strich hätte wie eine
+eigene Linie gewirkt.
+
+**Auf einer Themengebiet-Seite wird auf dem Handy nur gelernt.** Bis 639 Pixel
+ausgeblendet: `#detail-actions` (Unterkategorie anlegen, Auswählen), das Menü der Seite
+(`#detail-menu`), das Menü an jeder Zeile (`.row__menu`), das Auswahlkästchen
+(`.row__check`) und die Kacheln der Übersicht (`#detail-dashboard`). Die Liste bleibt
+stehen, und **ihre Namen führen nicht mehr auf die Unterseite**: `.row:has(.row__learn)
+.row__link { pointer-events: none }`. Der Zusatz `:has(.row__learn)` ist wichtig, weil
+`.row__link` auch die Zeile einer **Karte** in einer Unterkategorie trägt — und die soll
+man weiterhin ansehen können. Nur die Zeilen **mit** Lernen-Knopf sind Unterkategorien;
+bei ihnen wirkt der Anker nicht mehr, der Lernen-Knopf daneben aber schon (gemessen:
+Kartenzeile `auto`, Unterkategorie `none`, Knopf `auto`). Das `!important` bei den
+ausgeblendeten Blöcken ist Absicht: `render()` in `app.js` blendet einzelne Blöcke selbst
+ein und aus, und diese Regeln müssen stärker sein als ein spät gesetztes `hidden`.
+
+**Die Schreibaufgabe bleibt eine Zeile.** Bis 640 Pixel darf die Leiste nicht mehr
+umbrechen (`flex-wrap: nowrap`): die Beschriftung links schrumpft und bekommt ein
+Auslassungszeichen, wenn kein Platz ist, während die Zeitform rechts nie umbricht
+(`white-space: nowrap`) und ihren Platz behält. Schrift und Abstände sind eine Spur
+kleiner. Gemessen bei 375 Pixel: Leiste 37 Pixel hoch, „Schreibaufgabe für heute" und
+„Present Simple" auf derselben Höhe.
+
+**Überschriften bleiben einzeilig.** Bis 639 Pixel sind sie kleiner — 26 Pixel statt 32
+bis 40 auf der Startseite, 24 in einer Detailansicht — und die beiden Zeilen aus
+`home.heading` laufen nebeneinander statt untereinander (`.heading__mask` und
+`.heading__line` werden `inline`, `max-width: 18ch` fällt weg: das wären bei 26 Pixel nur
+rund 230 Pixel und damit wieder zwei Zeilen). Das **trennende Leerzeichen** setzt
+`setHeading()` in `app.js` zwischen die beiden Elemente: am Rechner sieht man es nicht,
+im Text der Überschrift heißt sie damit „Wähle ein Themengebiet\" und nicht „Wähle
+einThemengebiet\" — und auf dem Handy ist es genau der Abstand zwischen den Wörtern.
+Gemessen bei 375 Pixel: Überschrift 335 × 31 Pixel, also eine Zeile. Ein
+`white-space: nowrap` gibt es bewusst nicht — bei einem sehr langen Namen ist ein Umbruch
+immer noch besser als ein Überlauf.
+
+**Der Dialog „Wie viele neue Karten?"** ist zentriert und passt auf jeden Bildschirm:
+`.count-dialog` hat `max-height: calc(100dvh - 32px)` und `overflow: hidden`, das Panel
+darunter sein eigenes `max-height` mit eigenem Scroll — vorher stand der Dialog über den
+Rand hinaus, und weil der Browser ihn mittig setzt, war er oben **und** unten
+abgeschnitten. Der Innenabstand steckt in den Kindern (Titel, Schnellwahl, Aktionen),
+**nicht** im Panel: ein Padding am Panel würde sich zu ihren Abständen addieren. Zwei
+Balken nebeneinander gibt es nicht: am Fenster ist der Überlauf verborgen, gescrollt wird
+nur im Panel.
+
+Fläche, Rundung (16 Pixel) und Schatten teilt der Dialog mit dem Kontodialog — diese Regeln
+stehen weiter oben gemeinsam für beide. Was ihn unterscheidet, steht in einem eigenen
+Abschnitt **am Ende** von `app.css`, und das ist Absicht: dort gewinnen die Regeln gegen
+die älteren `.count-dialog`-Regeln weiter oben, die der Überschrift zum Beispiel noch 24
+Pixel geben. Im Einzelnen:
+
+* **Die vier Vorschläge (5 / 10 / 20 / Alle) sind die Bedienung.** Sie sind 46 Pixel hoch
+  (auf dem Handy mit dem Daumen zu treffen), 16 Pixel groß, alle gleich breit
+  (`flex: 1 1 0`) statt je nach Textlänge unterschiedlich, und die gewählte Zahl ist
+  **gefüllt** in der Akzentfarbe (`[aria-pressed="true"]`). Beim Zeigen bleibt die Fläche,
+  sie wird nur eine Spur dunkler.
+* **Es gibt kein Zahlenfeld mehr.** Bis zum 12.10.2026 stand darunter noch eine Zeile mit
+einem schmalen Feld für eine eigene Zahl. Die vier Vorschläge decken das ab, was man
+wirklich braucht, und ein zweites Bedienelement daneben ließ sie wie eine Abkürzung für
+dasselbe aussehen - zwei Wege für eine Frage. Mit dem Markup sind auch die Regeln
+verschwunden (`__field`, `__label`, `__input`) und die Übersetzungsschlüssel
+`learn.newCardsField` und `learn.newCardsError`. In `app.js` hält `newCardsChoice` die
+gewählte Zahl, es gibt also nichts mehr zu prüfen und keine Fehlerzeile. Der Fokus geht
+beim Öffnen auf die gewählte Zahl; **Enter an der Reihe bestätigt die Wahl** (der Zuhörer
+sitzt an `.count-dialog__quick`, damit Enter auf „Abbrechen" weiterhin abbricht).
+* **„Starten" ist der einzige Knopf mit Fläche**, „Abbrechen" ist ein Textlink, der nur die
+Farbe wechselt; beide sind 48 Pixel hoch (am Rechner wie auf dem Handy, damit auch der
+Textlink mit dem Daumen zu treffen ist). Beide tragen die Akzentfarbe der App
+(`--accent`): im hellen Thema `#2F6B4F`, im dunklen `#8FC7A4`. Der Kontrast der Schrift
+darauf ist 6,3 : 1 im hellen und 8,2 : 1 im dunklen Thema. Ein eigener Ton fürs Zeigen
+(`--count-hover`) wird eine Spur dunkler beziehungsweise heller.
+* **Die Überschrift ist 20 Pixel** statt 24. Der Selektor heißt `.count-dialog
+  .count-dialog__title`, weil der gemeinsame Dialogstil weiter oben allen Dialogen 24 Pixel
+  gibt.
+
+Gemessen bei 375 × 667 Pixel: 343 × 247 Pixel groß, 16 Pixel Rand links und rechts, 210
+Pixel Abstand oben und unten, nichts abgeschnitten. Bei 375 × 340 Pixel rutscht der Inhalt
+in den Scroll des Panels, Titel und Aktionszeile bleiben dabei stehen.
+
+**Alle Dialoge stehen mittig, auch auf dem Handy.** Bis 639 Pixel kam `.dialog` (der
+Anmeldedialog, der Kartendialog, das Löschen) von unten herein: volle Breite, nur oben
+abgerundet, `inset: auto 0 0 0` mit `transform: translateY(100%)`. Auf einem hohen
+Bildschirm ist das eine Leiste am unteren Rand statt eines Fensters - und der Dialog für
+die Anzahl neuer Karten stand daneben schon immer mittig. Jetzt gilt für alle dasselbe:
+`inset: 0` mit `margin: auto` (genau das, was der Browser für einen Dialog von sich aus
+tut), `width: calc(100vw - 32px)`, `max-height: calc(100dvh - 32px)`, Rundung 16 Pixel.
+Gemessen bei 375 × 667: der Anmeldedialog ist 343 × 370 Pixel groß und steht 16 Pixel vom
+Seitenrand und 148 Pixel von oben und unten entfernt - vorher war der untere Abstand 0.
+
+**Der Fokus in den Feldern ist die Akzentfarbe, nicht Cyan.** In beiden Themen trägt
+`input:focus` den Rand und den Ring aus `--accent`; die Regel
+`.count-dialog__input[type="number"]` gibt es nicht mehr, weil es das Feld nicht mehr gibt.
+
+**Die Lernansicht** hat auf schmalen Fenstern ein ruhiges 2×2-Raster für die vier
+Bewertungen (`grid-template-columns: repeat(2, minmax(0, 1fr))`, 12 Pixel Abstand, 58 Pixel
+hohe Felder mit 16 Pixel Radius) und eine Karte mit gleichmäßigem Innenabstand
+(24/22/30 Pixel, Frage zentriert). Am Rechner bleibt es bei vier Feldern in einer Reihe.
+
+**Die Kennzeile der Geschichte wird kürzer.** Bis 640 Pixel bleiben „30 Wörter · 1 Beitrag"
+und der Balken; die Zahl der Tage, die Legende mit den Prozenten und „seit …" fallen weg –
+vier Angaben brachen sonst in drei Zeilen um. Dafür bekommen die Figuren im Skript eine
+eigene Klasse (`story-line__figure--days`), damit das Blatt sie einzeln ansprechen kann.
 
 `uptime -s`, `free -h` und `df -h` zeigen, ob stattdessen die WSL-Distro neu
 gestartet ist oder der Speicher voll war – beides war hier nie der Fall.

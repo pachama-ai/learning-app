@@ -45,6 +45,14 @@
         Überschrift, Knöpfe, Zahlen). Kleiner als --story-gap: das gehört ja zusammen.
     */
     --story-inner: clamp(20px, 2.4vw, 24px);
+    /*
+        Der eigene Bildlaufbalken des Lesebereichs (siehe .story-scroll). Die Anwendung
+        hat in app.css schon dezente Balken; dieser sitzt mitten im Text und soll noch
+        unaufälliger sein: schmal und in der gedämpften Textfarbe. Beide Werte bauen auf
+        --text auf und passen damit im hellen wie im dunklen Modus, ohne eine zweite Farbe.
+    */
+    --story-scrollbar: color-mix(in srgb, var(--text) 18%, transparent);
+    --story-scrollbar-hover: color-mix(in srgb, var(--text) 34%, transparent);
 }
 
 [data-theme="dark"] {
@@ -89,27 +97,24 @@
 }
 
 /*
-    Die Seite steht still, die Inhaltsspalte scrollt.
+    Die Seite scrollt normal, wie jede andere auch.
 
-    Auf allen anderen Seiten scrollt die Seite als Ganzes. Hier standen aber vier Blöcke
-    übereinander (Zahlen, Aufgabe, Geschichte, Editor); die Seite wurde damit länger als
-    jedes Fenster, und beim Scrollen wanderte die Seitenleiste oben aus dem Bild - auf
-    einem hohen Fenster fiel das nicht auf, auf einem flachen wurde sie an der Unterkante
-    abgeschnitten.
+    Vorher stand die Seite hier still und nur die Inhaltsspalte scrollte. Das hatte einen
+    Grund - die Seitenleiste wanderte beim Scrollen oben aus dem Bild -, aber es bezahlte
+    ihn teuer: eine feste Fensterhöhe mit `overflow: hidden` schnitt die Themenliste an der
+    Unterkante ab, sobald sie länger war als das Fenster, und der Lesebereich bekam durch
+    sein eigenes `max-height` schon bei einem einzigen Beitrag einen Balken.
 
-    Deshalb bekommt das Gerüst hier die Höhe des Fensters, und nur die Inhaltsspalte
-    scrollt. Die Seitenleiste ist ihre Schwester im Raster und liegt AUSSERHALB dieses
-    Scrollbereichs - sie kann also gar nicht mitwandern: links steht sie, auf schmalen
-    Fenstern bleibt die Reihe darüber stehen. Der innere Scroll der Geschichte
-    (.story-scroll) bleibt davon unberührt; er hat mit der Seitenleiste nichts zu tun.
-
-    `min-height: 0` in der Kette ist der eigentliche Kniff: ein Flex-Kind darf sonst nicht
-    kleiner werden als sein Inhalt, und dann gäbe es keine Kante, an der gescrollt wird.
+    Jetzt ist die Seitenleiste eine ganz normale Spalte: sie kann nicht abgeschnitten
+    werden, weil man zu ihr scrollen kann. Gescrollt wird genau dort, wo es lang wird - in
+    der Geschichte (siehe .story-scroll) und, wenn Kopf oder Editor mehr Platz brauchen, in
+    der Seite selbst.
 */
 .page--story {
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
+    /* Keine feste Höhe: eine kurze Seite füllt trotzdem das Fenster, eine lange darf
+       wachsen, und der Balken der Seite entsteht von allein. */
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .page--story .main,
@@ -119,26 +124,17 @@
 
 #story-view {
     /* Eine Zeile: Leiste und Inhaltsspalte nebeneinander. `minmax(0, 1fr)` und nicht
-       `auto` - sonst würde die Zeile so hoch wie ihr Inhalt und liefe aus dem Fenster. */
+       `auto` - sonst würde die Zeile so hoch wie ihr Inhalt. */
     grid-template-rows: minmax(0, 1fr);
-    /* Statt `start` (app.css): die Zelle der Inhaltsspalte nimmt die volle Höhe an, erst
-       dadurch hat ihr Scrollbereich eine Kante. */
+    /* Statt `start` (app.css): die Zelle der Inhaltsspalte nimmt die Höhe ihres Inhalts an. */
     align-items: stretch;
     flex: 1 1 auto;
-    overflow: hidden;
-}
-
-#story-view .detail {
-    overflow-y: auto;
-    /* Das Ende der Spalte ist das Ende: kein Weiterrollen der Seite dahinter. */
-    overscroll-behavior: contain;
 }
 
 @media (max-width: 860px) {
     /*
         Auf einem schmalen Fenster steht die Leiste als Reihe ÜBER der Spalte (siehe
-        app.css). Sie bekommt ihre natürliche Höhe, die Spalte darunter den Rest - auch
-        hier bleibt die Leiste außerhalb des Scrollbereichs.
+        app.css). Sie bekommt ihre natürliche Höhe, die Spalte darunter den Rest.
     */
     #story-view {
         grid-template-rows: auto minmax(0, 1fr);
@@ -175,14 +171,20 @@
 /*
     Die Geschichte als Lesebereich.
 
-    Sie hat eine feste Höhe und scrollt in sich selbst, damit die Seite nicht endlos lang
-    wird: oben steht immer der ganze Text, darunter immer der Editor, egal wie viel schon
-    geschrieben wurde. Gelesen wird beim neuesten Beitrag begonnen - beim Öffnen scrollt
-    das Skript dorthin.
+    Der Bereich ist NICHT auf eine feste Höhe gelegt (`max-height` statt `height`): er
+    wächst mit der Geschichte und bekommt erst dann einen eigenen Balken, wenn er höher
+    würde als das Fenster. Bei einem oder zwei Beiträgen gibt es deshalb gar keinen Balken,
+    und die Seite wächst einfach mit - wie eine Artikelseite.
+
+    Wird die Geschichte lang, bleibt der Bereich im Bild und scrollt in sich selbst: gelesen
+    wird beim neuesten Beitrag begonnen, dorthin scrollt das Skript beim Öffnen. Die Seite
+    darüber steht dann still; am Ende des Textes ist Schluss (overscroll-behavior), statt
+    dass die Seite weiterrollt.
 
     Der Fade an den Rändern ist eine Maske und kein Farbverlauf: eine Maske kennt keine
     Hintergrundfarbe und funktioniert deshalb hell und dunkel gleich. Er erscheint nur
-    dort, wo wirklich noch etwas kommt - die beiden Zustandsklassen setzt das Skript.
+    dort, wo wirklich noch etwas kommt - die beiden Zustandsklassen setzt das Skript, und
+    zwar nur, wenn es überhaupt etwas zu scrollen gibt.
 
     `mask-origin` und `mask-clip` halten die Maske aus dem Balken heraus: sonst wäre der
     Balken selbst halb durchsichtig.
@@ -190,8 +192,17 @@
 .story-scroll {
     --fade-top: 0px;
     --fade-bottom: 0px;
-    max-height: clamp(320px, 56vh, 640px);
+    /* 80 Prozent des Fensters: der Kopf und der Editor bleiben beim Lesen im Blick, und
+       der Balken beginnt erst, wenn die Geschichte länger ist als der Bildschirm. */
+    max-height: 80vh;
+    max-height: 80dvh;
     overflow-y: auto;
+    /* Das Ende des Bereichs ist das Ende: kein Weiterrollen der Seite dahinter. */
+    overscroll-behavior: contain;
+    /* Firefox: schmal, mit durchsichtigem Kasten. Chrome, Edge und Safari bekommen
+       dasselbe weiter unten über ::-webkit-scrollbar. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--story-scrollbar) transparent;
     padding-block-end: 6px;
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
     mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
@@ -199,6 +210,31 @@
     mask-origin: content-box;
     -webkit-mask-clip: content-box;
     mask-clip: content-box;
+}
+
+/*
+    Der eigene Balken: schmal, ohne Kasten und in der gedämpften Textfarbe. `--text` statt
+    einer festen Farbe, damit er im hellen und im dunklen Modus stimmt; stärker wird er erst
+    beim Überfahren. Der unsichtbare Rand mit `background-clip` macht den Daumen schmal,
+    ohne dass am Bereich selbst gezogen wird.
+*/
+.story-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.story-scroll::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+.story-scroll::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-color: var(--story-scrollbar);
+    background-clip: content-box;
+}
+
+.story-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--story-scrollbar-hover);
 }
 
 .story-scroll.is-fade-top {
@@ -783,10 +819,64 @@
         font-size: 2.6em;
     }
 
-    /* In der Kennzeile rutscht "seit ..." in eine eigene Zeile. Dort steht es links: ein
-       Hinweis, der allein am rechten Rand hängt, wäre nicht mehr zuzuordnen. */
+    /*
+        Die Schreibaufgabe bleibt EINE Zeile.
+
+        Vorher durfte die Leiste umbrechen (`flex-wrap: wrap`), und auf einem 375 Pixel
+        breiten Fenster rutschte „PRESENT SIMPLE · B1" in die zweite Zeile: die Beschriftung
+        links war zu lang dafür. Jetzt darf nur noch die Beschriftung schrumpfen - sie bekommt
+        ein Auslassungszeichen, wenn kein Platz ist -, waehrend die Zeitform rechts nie
+        umbricht (`white-space: nowrap`) und ihren Platz behält. Schrift und Abstände sind
+        eine Spur kleiner, damit beides nebeneinander passt.
+    */
+    .challenge {
+        flex-wrap: nowrap;
+        gap: 6px 8px;
+        padding: 10px 12px;
+    }
+
+    .challenge__mark {
+        width: 15px;
+        height: 15px;
+    }
+
+    .challenge__label {
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 9px;
+        letter-spacing: 0.06em;
+    }
+
+    .challenge__topic,
+    .challenge__level {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        font-size: 9.5px;
+        letter-spacing: 0.06em;
+    }
+
+    .challenge__dot {
+        margin-inline-end: 4px;
+    }
+
+    /*
+        Die Kennzeile wird kürzer.
+
+        Auf einem schmalen Fenster standen hier vier Angaben und ein Balken; das brach in
+        drei Zeilen um und las sich wie ein Kleingedrucktes. Übrig bleiben die beiden
+        Zahlen, die man beim Schreiben ohnehin im Kopf hat - Wörter und Beiträge - und der
+        schmale Balken, der weiterhin auf einen Blick zeigt, wer wie viel geschrieben hat.
+        Die Zahl der Tage, die Legende mit den Prozenten und „seit ..." fallen weg: sie
+        sind am Rechner schön und hier nur Ballast. Dieselbe Auswahl an einer Stelle, damit
+        niemand sie an zwei Orten pflegen muss.
+    */
+    .story-line__figure--days,
+    .story-line__dot--days,
+    .story-line__legend,
     .story-line__since {
-        margin-inline-start: 0;
+        display: none;
     }
 }
 

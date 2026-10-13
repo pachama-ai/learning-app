@@ -12,9 +12,9 @@ declare(strict_types=1);
  * Die Regeln
  * ----------
  *   1. Schreiben dürfen nur die beiden Konten aus src/helpers/story_writers.php.
- *   2. Nach dem Veröffentlichen bleiben STORY_EDIT_HOURS Stunden Bearbeitungszeit. Solange
- *      darf nur der Verfasser selbst seinen Text noch ändern, und die andere Person
- *      wartet.
+ *   2. Nach dem Veröffentlichen bleiben STORY_EDIT_MINUTES Minuten Bearbeitungszeit.
+ *      Solange darf nur der Verfasser selbst seinen Text noch ändern, und die andere
+ *      Person wartet.
  *   3. Danach ist der Beitrag endgültig, und der Zug wechselt zur anderen Person. Es wird
  *      abwechselnd geschrieben; wer zuletzt geschrieben hat, ist als Nächster nicht mehr
  *      dran.
@@ -42,7 +42,7 @@ declare(strict_types=1);
  * ----------
  * `created_at` liegt in UTC in der Datenbank (`UTC_TIMESTAMP()`), damit ein Umzug des
  * Servers nichts verschiebt. Die Bearbeitungszeit rechnet deshalb in Zeitpunkten: 
- * `created_at` plus zwei Stunden. Der Kalendertag eines Beitrags (`contribution_date`) ist
+ * `created_at` plus 30 Minuten. Der Kalendertag eines Beitrags (`contribution_date`) ist
  * dagegen der Tag in Europe/Berlin - er entscheidet jetzt nur noch darüber, unter welchem
  * Datum ein Beitrag in der Anzeige steht. Nach außen gehen beide Angaben mit: der Tag als
  * 'YYYY-MM-DD' und der Zeitpunkt als ISO-Zeichenkette mit Versatz (für die Anzeige).
@@ -76,8 +76,15 @@ const STORY_MAX_CONTENT_LENGTH = 5000;
  * Ändern: sonst könnte man sie durch Ändern beliebig verlängern, und die andere Person
  * würde nie an die Reihe kommen. Erst wenn die Frist abgelaufen ist, ist der Beitrag
  * endgültig und der Zug wechselt.
+ *
+ * An dieser einen Zahl hängt auch die Benachrichtigung: `story_notification_status()`
+ * fragt `story_edit_window_open()`, und das rechnet mit dieser Frist. Der Cron
+ * (bin/story_notify.php) läuft jede Minute, die Mail geht also kurz nach der halben
+ * Stunde raus - nicht erst nach zwei Stunden.
+ *
+ * Bis zum 13.10.2026 waren es zwei Stunden.
  */
-const STORY_EDIT_HOURS = 2;
+const STORY_EDIT_MINUTES = 30;
 
 /**
  * Nach so vielen Kalendertagen wechselt die Grammar Challenge zur nächsten Zeitform.
@@ -269,7 +276,7 @@ function story_edit_deadline(array $contribution): ?DateTimeImmutable
         return null;
     }
 
-    return $published->add(new DateInterval('PT' . STORY_EDIT_HOURS . 'H'));
+    return $published->add(new DateInterval('PT' . STORY_EDIT_MINUTES . 'M'));
 }
 
 /**
@@ -331,16 +338,16 @@ function story_load_or_create(PDO $pdo): array
  *
  * DER ZUG HÄNGT AM LETZTEN BEITRAG
  * --------------------------------
- * Nach dem Veröffentlichen bleiben STORY_EDIT_HOURS Stunden Bearbeitungszeit. Solange liegt
- * der Zug beim Verfasser: er darf seinen Text noch ändern, und die andere Person wartet.
- * Ist die Zeit um, ist der Beitrag endgültig und der Zug geht zur anderen Person.
+ * Nach dem Veröffentlichen bleiben STORY_EDIT_MINUTES Minuten Bearbeitungszeit. Solange
+ * liegt der Zug beim Verfasser: er darf seinen Text noch ändern, und die andere Person
+ * wartet. Ist die Zeit um, ist der Beitrag endgültig und der Zug geht zur anderen Person.
  *
- *     letzter Beitrag + 2 Stunden   -> noch der Verfasser (er darf nur noch ändern)
- *     danach                        -> die andere Person ist an der Reihe
+ *     letzter Beitrag + 30 Minuten   -> noch der Verfasser (er darf nur noch ändern)
+ *     danach                         -> die andere Person ist an der Reihe
  *
  * Gerechnet wird in Zeitpunkten, nicht in Kalendertagen: wer um 9 Uhr schreibt, gibt um
- * 11 Uhr ab; wer um 23 Uhr schreibt, gibt um 1 Uhr nachts ab. Ein Kalendertag hätte für
- * den einen nichts und für den anderen alles bedeutet.
+ * 9:30 Uhr ab; wer um 23:50 Uhr schreibt, gibt um 0:20 Uhr nachts ab. Ein Kalendertag
+ * hätte für den einen nichts und für den anderen alles bedeutet.
  *
  * Wer nicht schreibt, verliert seinen Zug nicht: der Zug bleibt stehen, bis jemand
  * schreibt. Dieselbe Person kann deshalb mehrere Beiträge hintereinander schreiben, wenn
@@ -351,7 +358,7 @@ function story_load_or_create(PDO $pdo): array
  *
  * Diese Funktion rechnet und schreibt nicht: sie bekommt die Beiträge und den Zeitpunkt und
  * sagt, was daraus folgt. Dadurch lässt sie sich mit jedem beliebigen Zeitpunkt aufrufen -
- * der Ablauf der Bearbeitungszeit ist damit prüfbar, ohne zwei Stunden zu warten.
+ * der Ablauf der Bearbeitungszeit ist damit prüfbar, ohne 30 Minuten zu warten.
  *
  * @param list<array<string, mixed>> $contributions
  * @param DateTimeImmutable|null $now nur für Tests

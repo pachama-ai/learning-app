@@ -44,15 +44,17 @@ function learning_app_translations(): array
             'tile.cards.one' => 'card',
             'tile.cards.other' => 'cards',
             /*
-             * Die Zahlenzeile einer offenen Kartenliste. Zwei Zahlen darin zählen Karten:
-             * die eine die Liste dieser Seite, die andere das ganze Themengebiet, zu dem sie
-             * gehört. Beide heißen ohne Zusatz "cards" ("316 cards · 685 cards"), und
-             * niemand weiß dann, welche welche ist. Darum die beiden Zusätze.
+             * Die Überblickszeile einer Unterkategorie, die Ansicht zum Bearbeiten:
+             * "15 cards · 0 known · 0 unsure".
+             *
+             * Sie ersetzt die vier Kacheln, die hier einmal standen (fällig, sitzt schon,
+             * unsicher, in Folge gelernt). Das Wort steht hier und nicht im HTML-Teil, weil
+             * es sich nach der Zahl richtet.
              */
-            'detail.cardsThisDeck.one' => 'card in this deck',
-            'detail.cardsThisDeck.other' => 'cards in this deck',
-            'detail.cardsWholeDeck.one' => 'card in the whole learning area',
-            'detail.cardsWholeDeck.other' => 'cards in the whole learning area',
+            'detail.line.cards.one' => 'card',
+            'detail.line.cards.other' => 'cards',
+            'detail.line.known' => 'known',
+            'detail.line.unsure' => 'unsure',
             /* Steht in einer Kachel, solange noch nichts in der Kategorie liegt. */
             'tile.subcategories.none' => 'No subcategories yet',
 
@@ -65,7 +67,6 @@ function learning_app_translations(): array
                über sich selbst sagt. */
             'dash.due' => 'Ready to repeat',
             'dash.known' => 'Already sits',
-            'dash.overallKnown' => 'known',
             'dash.unsure' => 'Still unsure',
             'dash.streak' => 'Learned in a row (days)',
             'dash.streakNone' => 'Nothing counted yet',
@@ -187,7 +188,7 @@ function learning_app_translations(): array
             'home.empty.title' => 'No learning areas yet',
             'home.empty.hint' => 'Create the first learning area to get started.',
             /* Die leere Startseite von jemandem, der nicht angemeldet ist. */
-            'home.welcome.title' => 'Your card box is waiting for you',
+            'home.welcome.title' => 'Your cards are waiting for you',
             'home.welcome.hint' => 'Create your own learning areas and cards, and learn them with repetition.',
             'feedback.deleted' => '{name} was deleted.',
             'feedback.deletedMany' => '{count} subcategories were deleted.',
@@ -266,10 +267,8 @@ function learning_app_translations(): array
             'learn.newCardsTitle' => 'How many new cards?',
             'learn.newCardsHintOne' => '{count} new card available',
             'learn.newCardsHintOther' => '{count} new cards available',
-            'learn.newCardsField' => 'New cards in this session',
             'learn.newCardsAll' => 'All',
             'learn.newCardsStart' => 'Start',
-            'learn.newCardsError' => 'Enter a whole number between 0 and {max}.',
             'cards.search' => 'Search cards',
             'cards.searchPlaceholder' => 'Search in front and back',
             'cards.searchEmpty' => 'No card matches this search.',
@@ -709,20 +708,32 @@ function learning_app_translations(): array
             'story.turn.yours' => 'Your turn to write!',
             'story.turn.other' => 'It’s {name}’s turn to continue the story.',
             /*
-             * Während der Bearbeitungszeit (zwei Stunden nach dem Veröffentlichen) ist
+             * Während der Bearbeitungszeit (30 Minuten nach dem Veröffentlichen) ist
              * niemand am Schreiben - der Verfasser darf nur noch ändern. Deshalb braucht
              * diese Zeile ihren eigenen Satz und nicht den von `other`: „Xenia ist dran"
-             * wäre in diesen zwei Stunden schlicht falsch.
+             * wäre in diesen 30 Minuten schlicht falsch.
              */
             'story.turn.editWindow' => 'You can still change your contribution until {time}.',
+            /*
+             * Solange diese 30 Minuten laufen, ist die andere Person fast dran - und
+             * nicht schon dran. Deshalb ein eigener Satz mit der Uhrzeit, ab der es so
+             * weit ist; ohne Uhrzeit bleibt die kürzere Fassung daneben.
+             */
+            'story.turn.waiting' => 'Just a moment – {name} takes over at {time}.',
+            'story.turn.waitingSoon' => 'Just a moment – it’s {name}’s turn next.',
 
             /*
              * Die Benachrichtigung per E-Mail, wenn der Zug gewechselt hat. Sie ist reiner
              * Text (kein HTML) und wird nur verschickt, wenn die Adresse in der Tabelle
-             * `users` steht und der Versand in .env eingerichtet ist.
+             * `users` steht und der Versand in .env eingerichtet ist. {name} ist die
+             * Empfängerin, {url} der Link zur Seite.
+             *
+             * Der Text ist kurz: ein Gruß, der eine Satz, der Link. Wer geschrieben hat und
+             * wie lange man noch Zeit hat, stand hier einmal - beides braucht die Mail
+             * nicht, und der Verfasser steht ohnehin in der Geschichte.
              */
-            'story.mail.subject' => 'Story Together: it’s your turn',
-            'story.mail.body' => "Hello {name},\n\n{author} has added a new contribution ({day}). Now it is your turn to continue the story.\n\n{url}\n",
+            'story.mail.subject' => 'Your turn ✨',
+            'story.mail.body' => "Hey {name},\n\nThe story is waiting for you to continue writing it.\n\n→ Keep writing: {url}\n",
 
             /*
              * Die Zahlen unter dem Kopf: eine Zeile, in der die drei Kennzahlen und der
@@ -761,15 +772,17 @@ function learning_app_translations(): array
             'tile.cards.one' => 'Karte',
             'tile.cards.other' => 'Karten',
             /*
-             * Die Zahlenzeile einer offenen Kartenliste. Zwei Zahlen darin zählen Karten:
-             * die eine die Liste dieser Seite, die andere das ganze Themengebiet, zu dem sie
-             * gehört. Beide heißen ohne Zusatz "Karten" ("316 Karten · 685 Karten"), und
-             * niemand weiß dann, welche welche ist. Darum die beiden Zusätze.
+             * Die Überblickszeile einer Unterkategorie, die Ansicht zum Bearbeiten:
+             * "15 Karten · 0 gewusst · 0 unsicher".
+             *
+             * Sie ersetzt die vier Kacheln, die hier einmal standen (fällig, sitzt schon,
+             * unsicher, in Folge gelernt). Das Wort steht hier und nicht im HTML-Teil, weil
+             * es sich nach der Zahl richtet.
              */
-            'detail.cardsThisDeck.one' => 'Karte in diesem Deck',
-            'detail.cardsThisDeck.other' => 'Karten in diesem Deck',
-            'detail.cardsWholeDeck.one' => 'Karte im ganzen Themengebiet',
-            'detail.cardsWholeDeck.other' => 'Karten im ganzen Themengebiet',
+            'detail.line.cards.one' => 'Karte',
+            'detail.line.cards.other' => 'Karten',
+            'detail.line.known' => 'gewusst',
+            'detail.line.unsure' => 'unsicher',
 /* Steht in einer Kachel, solange noch nichts in der Kategorie
                        liegt. */
             'tile.subcategories.none' => 'Noch keine Unterkategorien',
@@ -783,7 +796,6 @@ function learning_app_translations(): array
                wird, über sich selbst sagt. */
             'dash.due' => 'Bereit zum Wiederholen',
             'dash.known' => 'Sitzt schon',
-            'dash.overallKnown' => 'gewusst',
             'dash.unsure' => 'Unsicher',
             'dash.streak' => 'In Folge gelernt (Tage)',
             'dash.streakNone' => 'Noch nichts gezählt',
@@ -897,7 +909,7 @@ function learning_app_translations(): array
             'home.empty.title' => 'Noch keine Themengebiete',
             'home.empty.hint' => 'Lege das erste Themengebiet an, um zu starten.',
             /* Der leere Startbildschirm von jemandem, der nicht angemeldet ist. */
-            'home.welcome.title' => 'Deine Lernkartei wartet auf dich',
+            'home.welcome.title' => 'Deine Karten warten auf dich',
             'home.welcome.hint' => 'Lege eigene Themengebiete und Karten an und lerne sie mit Wiederholung.',
             'feedback.deleted' => '„{name}“ wurde gelöscht.',
             'feedback.deletedMany' => '{count} Unterkategorien wurden gelöscht.',
@@ -977,10 +989,8 @@ function learning_app_translations(): array
             'learn.newCardsTitle' => 'Wie viele neue Karten?',
             'learn.newCardsHintOne' => '{count} neue Karte verfügbar',
             'learn.newCardsHintOther' => '{count} neue Karten verfügbar',
-            'learn.newCardsField' => 'Neue Karten in dieser Sitzung',
             'learn.newCardsAll' => 'Alle',
             'learn.newCardsStart' => 'Starten',
-            'learn.newCardsError' => 'Bitte eine ganze Zahl zwischen 0 und {max} eingeben.',
             'cards.search' => 'Karten suchen',
             'cards.searchPlaceholder' => 'In Vorder- und Rückseite suchen',
             'cards.searchEmpty' => 'Zu dieser Suche passt keine Karte.',
@@ -1396,14 +1406,18 @@ function learning_app_translations(): array
             // Wer an der Reihe ist
             'story.turn.yours' => 'Du bist an der Reihe!',
             'story.turn.other' => '{name} ist an der Reihe, die Geschichte fortzusetzen.',
-            /* Siehe die englische Fassung: zwei Stunden lang ist niemand am Schreiben,
+            /* Siehe die englische Fassung: 30 Minuten lang ist niemand am Schreiben,
                der Verfasser darf nur noch ändern. */
             'story.turn.editWindow' => 'Du kannst deinen Beitrag noch bis {time} Uhr ändern.',
+            /* Siehe die englische Fassung: in diesen 30 Minuten ist die andere Person
+               fast dran - mit der Uhrzeit, ab der es so weit ist. */
+            'story.turn.waiting' => 'Noch einen Moment – ab {time} Uhr ist {name} dran.',
+            'story.turn.waitingSoon' => 'Noch einen Moment – in Kürze ist {name} dran.',
 
-            /* Die Benachrichtigung per E-Mail - siehe die englische Fassung. Sie ist reiner
-               Text, und {day} ist der Tag des Beitrags in der Schreibweise der Sprache. */
-            'story.mail.subject' => 'Story Together: Du bist dran',
-            'story.mail.body' => "Hallo {name},\n\n{author} hat einen neuen Beitrag geschrieben ({day}). Jetzt bist du dran, die Geschichte fortzusetzen.\n\n{url}\n",
+            /* Die Benachrichtigung per E-Mail - siehe die englische Fassung. {name} ist die
+               Empfängerin, {url} der Link zur Seite. */
+            'story.mail.subject' => 'Du bist dran ✨',
+            'story.mail.body' => "Hey {name},\n\ndie Geschichte wartet darauf, von dir weitergeschrieben zu werden.\n\n→ Weiterschreiben: {url}\n",
 
             // Die Zahlen - siehe die englische Fassung.
             'story.stats.contributions.one' => '1 Beitrag',

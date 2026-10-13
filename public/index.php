@@ -499,18 +499,21 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
                 <div class="notice" id="empty-state" hidden>
                     <!--
-                        Das Zeichen über dem Satz: ein Stapel aus zwei Karten, direkt
-                        gezeichnet wie jede andere Zeichnung der Anwendung, mit derselben
-                        dünnen Linie (1.5) und in der Akzentfarbe des Themas. Es zeigt nur,
-                        was die Überschrift darunter sagt, deshalb ist es für Vorlesehilfen
-                        versteckt.
+                        Das Zeichen über dem Satz: das Symbol des Browserreiters - dieselbe
+                        Datei, die oben im <head> als Favicon verlinkt steht. Auf dem Handy
+                        ist die erste Berührung mit der Anwendung der Reiter; dasselbe
+                        Zeichen hier zu wiederholen ist ehrlicher als eine zweite, eigene
+                        Zeichnung.
+
+                        Vorher stand hier ein gezeichneter Stapel aus zwei Karten (dünne
+                        Linie, Akzentfarbe) - am Rechner war das Bild ausgeblendet und der
+                        Stapel zu sehen. Jetzt ist es überall dasselbe Zeichen.
+
+                        Es zeigt nur, was die Überschrift darunter sagt, und ist deshalb
+                        für Vorlesehilfen versteckt (leeres `alt`).
                     -->
-                    <svg class="notice__icon" viewBox="0 0 24 24" width="30" height="30" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                         stroke-linejoin="round" focusable="false" aria-hidden="true">
-                        <rect x="3.5" y="7.5" width="12.5" height="13" rx="3"/>
-                        <path d="M8.5 4.5h8a3 3 0 0 1 3 3v9.5"/>
-                    </svg>
+                    <img class="notice__icon" src="assets/icons/browser_icon.svg"
+                         alt="" width="44" height="44" decoding="async">
                     <h2 class="notice__title" id="empty-title"></h2>
                     <p class="notice__hint" id="empty-hint"></p>
                     <!--
@@ -552,9 +555,27 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
 
             <!-- Kategorie-Ansicht: ein Lernbereich oder eine seiner Unterkategorien -->
             <section class="view view--detail" id="view-detail" hidden>
+                <!--
+                    Die Themenliste.
+
+                    Auf dem Rechner steht die Beschriftung einfach da. Auf dem Handy ist
+                    sie eine Zeile zum Auf- und Zuklappen - ein `details`-Element, das der
+                    Browser von sich aus kann, ohne Skript. app.js klappt sie dort beim
+                    Laden zu, und das Zeichen rechts erscheint nur auf dem Handy
+                    (siehe app.css).
+                -->
                 <aside class="sidebar">
-                    <p class="eyebrow" data-i18n="sidebar.label"><?= $text('sidebar.label') ?></p>
-                    <nav class="sidebar__nav" id="sidebar-nav"></nav>
+                    <details class="sidebar__fold" id="sidebar-fold" open>
+                        <summary class="sidebar__summary">
+                            <span class="eyebrow" data-i18n="sidebar.label"><?= $text('sidebar.label') ?></span>
+                            <svg class="sidebar__chevron" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                 stroke-linejoin="round" focusable="false" aria-hidden="true">
+                                <path d="M6 9.5 12 15.5 18 9.5"/>
+                            </svg>
+                        </summary>
+                        <nav class="sidebar__nav" id="sidebar-nav"></nav>
+                    </details>
                 </aside>
 
                 <div class="detail">
@@ -626,16 +647,28 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                     </section>
 
                     <!--
-                        Was der Eintrag enthält, in einer leisen Zeile: die Zahl der
-                        Unterkategorien und die Zahl der Karteikarten. Beides zählt die
-                        Schnittstelle, und die Formulierung folgt der Zahl.
+                        Die Überblickszeile einer Unterkategorie: Karten, gewusste, unsichere -
+                        also "15 Karten · 0 gewusst · 0 unsicher".
+
+                        Sie ersetzt die vier großen Kacheln, die hier einmal standen (siehe
+                        #detail-dashboard darüber, das aus ist). Klein, gedämpft, eine Zeile:
+                        diese Seite ist zum Durchsehen und Bearbeiten da, die Zahlen sollen den
+                        Kopf nicht beherrschen.
+
+                        Gefüllt wird sie von app.js. Die erste Zahl kommt aus der Liste und folgt
+                        damit Filter und Suche (renderCardFigures), die beiden anderen aus der
+                        Zusammenfassung, die die Schnittstelle für jede Kategorie mitschickt
+                        (renderCardSummary).
+
+                        Auf der Ebene eines Lernbereichs bleibt die Zeile versteckt: dort
+                        stünden die Karten eines Zweigs, den diese Seite gar nicht zeigt.
                     -->
                     <p class="detail__figures" id="detail-stats" hidden>
-                        <span class="detail__figure" id="detail-figure-count"><span id="detail-count" aria-live="polite">0</span> <span id="detail-stat-label"></span></span>
-                        <span class="detail__figure-separator" id="detail-separator-cards" aria-hidden="true" hidden>&#183;</span>
-                        <span class="detail__figure" id="detail-figure-cards" hidden><span id="detail-card-count">0</span> <span id="detail-card-label"></span></span>
+                        <span class="detail__figure" id="detail-figure-cards"><span id="detail-card-count" aria-live="polite">0</span> <span id="detail-card-label"></span></span>
                         <span class="detail__figure-separator" id="detail-separator-known" aria-hidden="true" hidden>&#183;</span>
                         <span class="detail__figure" id="detail-figure-known" hidden><span id="detail-known-count">0</span> <span id="detail-known-label"></span></span>
+                        <span class="detail__figure-separator" id="detail-separator-unsure" aria-hidden="true" hidden>&#183;</span>
+                        <span class="detail__figure" id="detail-figure-unsure" hidden><span id="detail-unsure-count">0</span> <span id="detail-unsure-label"></span></span>
                     </p>
 
                     <!--
@@ -982,10 +1015,15 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
     <!--
         Die eine Frage vor dem Start einer Sitzung: wie viele neue Karten sie
         einführen soll. Ein eigenes Fenster und nicht der Formulardialog, weil es
-        kein Formular ist - es ist eine Zahl, vier Schnellwahlen und zwei Wege
+        kein Formular ist - es sind vier Vorschläge und zwei Wege.
 
-        Der Hinweis und die Schnellwahlen schreibt app.js: wie viele neue Karten
-        wirklich da sind, weiß man erst, wenn die Sitzung nach ihrer Warteschlange
+        Der Hinweis und die Vorschläge schreibt app.js: wie viele neue Karten wirklich
+        da sind, weiß man erst, wenn die Warteschlange der Sitzung gebaut ist.
+
+        Nur die Vorschläge, kein Zahlenfeld: 5, 10, 20 und "alle" sind die Antworten, die
+        man wirklich braucht, und ein zweites Bedienelement daneben sah aus, als wären die
+        Vorschläge nur eine Abkürzung für dasselbe. Wer eine Zahl dazwischen braucht,
+        nimmt die nächste Stufe - die Zahl der Karten ist keine Punktzahl.
     -->
     <dialog class="count-dialog" id="new-cards-dialog" aria-labelledby="new-cards-dialog-title">
         <div class="count-dialog__panel">
@@ -999,15 +1037,6 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
             <p class="count-dialog__hint" id="new-cards-dialog-hint"></p>
 
             <div class="count-dialog__quick" id="new-cards-dialog-quick"></div>
-
-            <div class="count-dialog__field">
-                <label class="count-dialog__label" for="new-cards-dialog-input"
-                       data-i18n="learn.newCardsField"><?= $text('learn.newCardsField') ?></label>
-                <input class="count-dialog__input" id="new-cards-dialog-input" name="new-cards-count"
-                       type="number" min="0" step="1" inputmode="numeric" autocomplete="off">
-            </div>
-
-            <p class="count-dialog__error" id="new-cards-dialog-error" role="alert" hidden></p>
 
             <div class="count-dialog__actions">
                 <button type="button" class="count-dialog__button" id="new-cards-dialog-cancel"

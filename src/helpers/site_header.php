@@ -82,6 +82,14 @@ function render_site_header(string $locale): void
                 </svg>
             </button>
 
+            <!--
+                Ein feiner Strich zwischen dem Themenwechsler und der Sprache. Er ist das,
+                was aus drei Bedienelementen eine Gruppe macht: Sonne/Mond und der
+                Sprachumschalter gehören zusammen, sind aber nicht dasselbe. Reine Zierde,
+                deshalb für Vorlesehilfen versteckt.
+            -->
+            <span class="site-header__divider" aria-hidden="true"></span>
+
             <!-- Ein reiner Textumschalter mit Unterstrich, kein gerahmtes Bedienelement. -->
             <div class="lang-switch" role="group" aria-label="<?= $text('language.label') ?>" data-i18n-label="language.label">
                 <button type="button" class="lang-switch__option" data-locale="en" data-i18n="language.en"><?= $text('language.en') ?></button>

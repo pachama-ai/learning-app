@@ -492,9 +492,11 @@
     /* ----------------------------------------------------------------------
        Der Lesebereich
 
-       Die Geschichte steht in einem Bereich mit eigener Höhe und eigenem Scroll. Zwei
-       kleine Helfer halten ihn in Ordnung: einer sagt, ob er unten steht, der andere
-       blendet den Fade an den Rändern ein und aus.
+       Die Geschichte bekommt erst dann einen eigenen Scroll, wenn sie länger ist als der
+       Bildschirm (siehe .story-scroll in story.css) - bei einem kurzen Text wächst der
+       Bereich mit ihm und die Seite scrollt normal. Zwei kleine Helfer halten das in
+       Ordnung: einer sagt, ob der Bereich unten steht, der andere blendet den Fade an den
+       Rändern ein und aus - und nur dort, wo es wirklich etwas zu scrollen gibt.
        ---------------------------------------------------------------------- */
 
     /*
@@ -742,6 +744,20 @@
             return deadline === '' ? '' : t('story.turn.editWindow', { time: deadline });
         }
 
+        /*
+         * Die andere Seite, solange die 30 Minuten laufen: sie ist NICHT schon dran,
+         * sie ist gleich dran. Ohne diese Unterscheidung stünde hier derselbe Satz wie
+         * nach Ablauf der Frist, und man würde anfangen zu schreiben, während noch jemand
+         * am Text ist.
+         */
+        if (current.edit_window_open === true) {
+            var until = formatTime(current.edit_deadline);
+
+            return until === ''
+                ? t('story.turn.waitingSoon', { name: authorName(current.turn_writer) })
+                : t('story.turn.waiting', { name: authorName(current.turn_writer), time: until });
+        }
+
         return t('story.turn.other', { name: authorName(current.turn_writer) });
     }
 
@@ -833,20 +849,29 @@
          * ausspricht: "408 Wörter · 1 Beitrag · 1 Tag". Die Punktzeichen baut das Skript
          * als eigene Elemente und blendet sie für Vorleseprogramme aus: sie sind
          * Trennzeichen, keine Wörter, und haben in keiner Sprache etwas zu suchen.
+         *
+         * Jede Zahl bekommt ihre eigene Klasse mit: auf einem schmalen Fenster bleibt nur
+         * die Zahl der Tage weg (siehe story.css), und dafür muss das Blatt sie einzeln
+         * ansprechen können.
          */
-        [
-            plural('story.meta.words', words),
-            plural('story.stats.contributions', contributions.length),
-            plural('story.stats.days', writtenDays)
-        ].forEach(function (label, index) {
+        ['words', 'contributions', 'days'].forEach(function (name, index) {
+            var labels = {
+                words: plural('story.meta.words', words),
+                contributions: plural('story.stats.contributions', contributions.length),
+                days: plural('story.stats.days', writtenDays)
+            };
+
             if (index > 0) {
                 var dot = el('span', 'story-line__dot', '\u00b7');
 
                 dot.setAttribute('aria-hidden', 'true');
+                dot.classList.add('story-line__dot--' + name);
                 nodes.figures.appendChild(dot);
             }
 
-            nodes.figures.appendChild(el('span', 'story-line__figure', label));
+            nodes.figures.appendChild(
+                el('span', 'story-line__figure story-line__figure--' + name, labels[name])
+            );
         });
 
         renderShare(perAuthor, words);
@@ -1415,6 +1440,7 @@
         wire();
         loadAccount();
         renderCrumb();
+        foldSidebar();
 
         if (config.viewer === null || config.viewer.key === null || nodes.body === null) {
             applyLocale(storedLocale(), false);
@@ -1431,9 +1457,29 @@
         load();
     }
 
+    /*
+     * Die Themenliste startet auf einem schmalen Fenster zugeklappt.
+     *
+     * Sie steht über dem Inhalt und nimmt aufgeklappt den halben Bildschirm ein, bevor
+     * überhaupt etwas zu lesen ist. Am Rechner bleibt sie offen. Dieselben Zeilen stehen
+     * in app.js: die beiden Seiten laden getrennte Skripte, und eine gemeinsame Datei nur
+     * für diese wenigen Zeilen wäre mehr Aufwand als Nutzen. Das Auf- und Zuklappen selbst
+     * macht das `details`-Element im Markup, hier wird nur der Start entschieden.
+     */
+    function foldSidebar() {
+        var fold = document.getElementById('sidebar-fold');
+
+        if (fold === null) {
+            return;
+        }
+
+        if (window.matchMedia('(max-width: 639px)').matches) {
+            fold.open = false;
+        }
+    }
+
     function storedLocale() {
         var saved = null;
-
         try {
             saved = window.localStorage.getItem(config.storageKeys.language);
         } catch (error) {
