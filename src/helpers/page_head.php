@@ -22,13 +22,19 @@ require_once __DIR__ . '/html.php';
  * beginnt und nicht sichtbar umspringt. Der Pfad ist relativ zu der Seite in public/,
  * und crossorigin ist nötig, weil Schriften immer als eigene Herkunft geholt werden.
  *
+ * `viewport-fit=cover` gehört ins Ansichtsfenster, seit es die Ränder des iPhones gibt
+ * (Notch, Home-Indikator): ohne diese Angabe hält Safari den Inhalt von sich aus aus
+ * diesen Streifen heraus, und die `env(safe-area-inset-*)`-Werte in app.css sind
+ * überall 0 - die Regeln dagegen wären wirkungslos. Mit `cover` läuft die Seite bis in
+ * die Ecken, und die Ränder gleicht CSS aus (siehe den Abschnitt am Ende von app.css).
+ *
  * @return void
  */
 function render_head_basics(): void
 {
     ?>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <!-- Das Symbol im Browserreiter. Das ist die Symboldatei des Browsers, kein Kategoriesymbol. -->
     <link rel="icon" href="assets/icons/browser_icon.svg" type="image/svg+xml">
     <link rel="preload" href="assets/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>

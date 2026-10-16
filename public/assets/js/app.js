@@ -4891,14 +4891,21 @@
         openDeleteDialog(kind, target, node === undefined ? null : node);
     }
 
-    /* Was passiert, nachdem die Frage mit "Löschen" beantwortet wurde. */
+    /*
+     * Was passiert, nachdem die Frage mit "Löschen" beantwortet wurde.
+     *
+     * Die Antwort ist damit gegeben, und beide Wege schicken sie mit: der Server verlangt sie,
+     * sobald Unterkategorien oder Karten an der Kategorie hängen. Ohne sie käme das Löschen als
+     * "confirm_required" zurück, und die Frage würde von vorne beginnen - genau so sah der
+     * Fehler aus, dass sich nichts löschen ließ.
+     */
     function confirmDelete(kind, target, node) {
         var isCategory = kind === 'category';
         var openEntry = isCategory && currentEntry !== null && currentEntry.id === target.id;
 
         if (openEntry) {
             /* Die Seite selbst geht weg, es gibt also keine Zeile zum Zurücknehmen. */
-            sendDelete(kind, target, false, false);
+            sendDelete(kind, target, true, false);
             return;
         }
 
@@ -4917,6 +4924,9 @@
      * Anfrage folgt, wenn die Frist zum Zurücknehmen verstrichen ist. Ein Zurücknehmen stellt
      * den Eintrag dadurch genau so wieder her, wie er war - samt jeder Karte und jedem Stück
      * Lernfortschritt, weil nichts davon je angefasst wurde.
+     *
+     * Die Zustimmung geht trotzdem mit: die Frage ist schon beantwortet, gewartet wird nur auf
+     * das Zurücknehmen. Ohne sie würde der Server das Löschen einer vollen Kategorie verweigern.
      */
     function queueDelete(kind, target, node) {
         var label = displayName(target);
@@ -4933,7 +4943,7 @@
             timer: window.setTimeout(function () {
                 var entry = pendingDelete;
                 pendingDelete = null;
-                sendDelete(entry.kind, entry.target, false, true);
+                sendDelete(entry.kind, entry.target, true, true);
             }, UNDO_WINDOW_MS)
         };
 
@@ -4967,7 +4977,8 @@
         window.clearTimeout(entry.timer);
         pendingDelete = null;
 
-        sendDelete(entry.kind, entry.target, false, true);
+        /* Es ist dasselbe Löschen, das schon bestätigt wurde - die Zustimmung gilt weiter. */
+        sendDelete(entry.kind, entry.target, true, true);
     }
 
     /*
@@ -4991,7 +5002,12 @@
 
         window.fetch(entry.url, {
             method: 'DELETE',
-            headers: { Accept: 'application/json' },
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            },
+            /* Dieselbe Zustimmung wie im Normalweg: der rote Knopf wurde schon gedrückt. */
+            body: JSON.stringify({ confirm: true }),
             keepalive: true
         }).catch(function () {
             /* Die Seite geht gerade weg, es gibt nichts mehr zu zeigen. */
@@ -5012,7 +5028,14 @@
         var label = isCategory ? displayName(target) : target.front;
         var wasOpen = isCategory && currentEntry !== null && currentEntry.id === target.id;
 
-        return apiRequest(url, 'DELETE', confirm === true ? { confirm: true } : undefined)
+        /*
+         * Nur eine Kategorie bekommt die Zustimmung mit: der Server fragt danach, wenn
+         * Unterkategorien oder Karten daran hängen. Eine Karte wird allein über ihre Kennung
+         * gelöscht, ein Inhalt wäre bei ihr nur ein Wort zu viel.
+         */
+        var payload = isCategory && confirm === true ? { confirm: true } : undefined;
+
+        return apiRequest(url, 'DELETE', payload)
             .then(function (result) {
                 if (!result.ok) {
                     /*
@@ -5780,7 +5803,6 @@
             return;
         }
 
-        var isDelete = dialogKind === 'delete';
         var isCard = dialogKind === 'card';
 
         /*
@@ -5788,7 +5810,7 @@
          * die Anfrage folgt, wenn die Frist zum Zurücknehmen verstrichen ist. Das Fenster
          * schließt zuerst, der Fokus geht also dorthin zurück, wo er herkam.
          */
-        if (isDelete) {
+        if (dialogKind === 'delete') {
             var question = dialogEntry;
             closeDialog();
             confirmDelete(question.kind, question.target, question.node);
@@ -5806,23 +5828,7 @@
         var method = 'POST';
         var successMessage = '';
 
-        if (isDelete) {
-            var target = dialogEntry.target;
-            var isCategory = dialogEntry.kind === 'category';
-
-            /*
-             * Dieser Weg wird nur für einen Eintrag benutzt, in dem noch etwas liegt - ein leerer
-             * wird sofort gelöscht, siehe requestDelete - der Server bekommt also das eine, wonach
-             * er fragt: eine schlichte Bestätigung. Es wird nichts getippt, und für eine Karte
-             * geht überhaupt kein Inhalt mit, weil die Kennung in der Adresse schon sagt, was
-             * gemeint ist.
-             */
-            payload = isCategory ? { confirm: true } : undefined;
-
-            url = (isCategory ? config.endpoints.category : config.endpoints.card)
-                + '?id=' + encodeURIComponent(target.id);
-            method = 'DELETE';
-        } else if (isCard) {
+        if (isCard) {
             payload = validateCardForm();
 
             if (payload === null) {
@@ -5871,20 +5877,6 @@
             setBusy(false);
 
             if (!result.ok) {
-                /*
-                 * Ein Löschen, das 404 antwortet, ist kein Fehlschlag der Anfrage: die Zeile ist
-                 * wirklich weg (jemand anders hat sie gelöscht, oder sie war schon entfernt).
-                 * Die Liste wird neu geladen, damit die Seite die Wahrheit zeigt statt einer
-                 * Kachel, die nie gelöscht werden kann.
-                 */
-                if (isDelete && result.status === 404) {
-                    closeDialog();
-                    bootstrapDropAll();
-                    render();
-                    showFeedback(t('dialog.errorAlreadyGone'));
-                    return;
-                }
-
                 handleSubmitFailure(result);
                 return;
             }
@@ -5896,30 +5888,6 @@
             /* Die Karten der gezeigten Kategorie und die Zaehlungen am Baum. */
             bootstrapDropCards(config.categoryId);
             bootstrapDropCategories();
-
-            if (isDelete) {
-                var removedTarget = dialogEntry.target;
-                var removedLabel = dialogEntry.kind === 'category'
-                    ? displayName(removedTarget)
-                    : removedTarget.front;
-                var removedOpenEntry = dialogEntry.kind === 'category'
-                    && currentEntry !== null
-                    && currentEntry.id === removedTarget.id;
-
-                closeDialog();
-                showFeedback(t('feedback.deleted', { name: removedLabel }));
-
-                if (removedOpenEntry) {
-                    /* Die Seite selbst ist weg, der Browser geht also eine Ebene höher. */
-                    window.location.href = removedTarget.parent_id === null
-                        ? 'index.php'
-                        : 'index.php?category=' + encodeURIComponent(removedTarget.parent_id);
-                    return;
-                }
-
-                render();
-                return;
-            }
 
             var createdName = dialogEntry === null && result.data && typeof result.data.name === 'string'
                 ? (locale === 'de' && typeof result.data.name_de === 'string' && result.data.name_de !== ''
@@ -6188,6 +6156,61 @@
         return typeof translations[saved] === 'object' ? saved : locale;
     }
 
+    /*
+     * Wie viel die untere Browser-Leiste verdeckt.
+     *
+     * Auf dem iPhone sitzt ein `position: fixed`-Element mit `bottom: 0` nicht am
+     * sichtbaren Rand, sondern am unteren Rand der Layout-Fläche - und die ist um die
+     * Browser-Leiste höher. Das Zähl-Blatt und die Fußzeile der Seite rutschten dadurch
+     * hinter die Leiste.
+     *
+     * Keine CSS-Einheit kennt diese Leiste: `env(safe-area-inset-bottom)` ist der Streifen
+     * des Home-Indikators, und `dvh`/`svh`/`lvh` haben es auf dem Gerät nicht getroffen.
+     * Also wird gemessen statt gerechnet. Eine unsichtbare Hilfe mit `top: 0; bottom: 0`
+     * hat genau die Höhe der Layout-Fläche - also das, worauf sich `bottom: 0` bezieht -,
+     * und `visualViewport` sagt, wie viel davon wirklich zu sehen ist. Die Differenz ist
+     * der verdeckte Streifen; sie steht als `--browser-bottom` im Stylesheet.
+     *
+     * Ohne `visualViewport` (älterer Browser) bleibt der Wert 0 und es gilt das CSS ohne
+     * ihn - also das Verhalten von vorher.
+     */
+    function watchBrowserBottom() {
+        var viewport = window.visualViewport;
+
+        if (viewport === undefined || viewport === null) {
+            return;
+        }
+
+        var probe = document.createElement('div');
+        probe.className = 'layout-probe';
+        probe.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(probe);
+
+        function update() {
+            /* Beim Zoomen meldet `height` nicht mehr die Fensterhöhe, sondern den
+               sichtbaren Ausschnitt - dann lieber nichts setzen. */
+            if (viewport.scale > 1.01) {
+                return;
+            }
+
+            var hidden = probe.getBoundingClientRect().height
+                - (viewport.height + viewport.offsetTop);
+
+            document.documentElement.style.setProperty(
+                '--browser-bottom',
+                Math.max(0, Math.round(hidden)) + 'px'
+            );
+        }
+
+        update();
+
+        /* Beim Fahren der Leiste und beim Ein- und Ausklappen der Tastatur ändert sich
+           der Wert - beides meldet `visualViewport`. */
+        viewport.addEventListener('resize', update);
+        viewport.addEventListener('scroll', update);
+        window.addEventListener('orientationchange', update);
+    }
+
     function init() {
         /* Das Startskript im Kopf hat das Erscheinungsbild schon gesetzt. */
         theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -6201,6 +6224,7 @@
         wireAccountDialog();
         wireNewCardsDialog();
         initSidebarFold();
+        watchBrowserBottom();
 
         applyLocale(locale, false);
 
@@ -6774,8 +6798,15 @@
        Die Frage vor dem Start einer Einheit
        ---------------------------------------------------------------------- */
 
-    /* Die Größen, die als ein Tipp angeboten werden. */
-    var NEW_CARDS_CHOICES = [5, 10, 20];
+    /*
+     * Die Größen, die als ein Tipp angeboten werden: „heute nichts Neues", fünf, zehn.
+     *
+     * Die Null steht vorn, weil „nichts" eine echte Antwort ist - wer nur wiederholen
+     * will, was ohnehin fällig ist, soll das sagen können. Größer als zehn gibt es
+     * bewusst nichts: was in einer Einheit an Neuem dazukommt, entscheidet die lernende
+     * Person, und mehr als zehn neue Karten an einem Tag sind kaum zu behalten.
+     */
+    var NEW_CARDS_CHOICES = [0, 5, 10];
 
     /* Was das Fenster tut, wenn es beantwortet wird und welche Zahl gerade gewählt ist. */
     var newCardsHandler = null;
@@ -6801,14 +6832,22 @@
             { count: available }
         );
 
-        buildNewCardsQuick(available);
+        buildNewCardsQuick();
 
         /*
-         * Was zuerst gewählt ist: die üblichen zehn, oder alles, wenn es weniger gibt.
-         * Eine der angebotenen Zahlen ist es immer - die Vorschläge kommen aus derselben
-         * Liste, und "alle" ist immer dabei.
+         * Was zuerst gewählt ist: die größte angebotene Zahl, die es wirklich gibt - bei
+         * weniger als fünf neuen Karten also die Null. Eine der angebotenen Zahlen ist es
+         * immer, weil die Null immer dabei ist.
          */
-        markNewCardsQuick(Math.min(10, available));
+        var preselected = 0;
+
+        NEW_CARDS_CHOICES.forEach(function (count) {
+            if (count <= available) {
+                preselected = count;
+            }
+        });
+
+        markNewCardsQuick(preselected);
 
         if (typeof dialog.showModal === 'function') {
             dialog.showModal();
@@ -6851,19 +6890,21 @@
         }, prefersReducedMotion() ? 0 : 200);
     }
 
-    /* Die Vorschläge: die drei üblichen Größen und "alle" - und nur, was es wirklich gibt. */
-    function buildNewCardsQuick(available) {
+    /*
+     * Die drei Vorschläge - immer dieselben drei.
+     *
+     * Die Null heißt „heute nichts Neues": die Einheit wiederholt dann nur, was ohnehin
+     * fällig ist, und wenn nichts fällig ist, sagt sie das statt zu starten (siehe
+     * beginLearnSession). Mehr als es gibt, lässt sich nicht wählen: die Aufgabenliste
+     * bringt gar nicht mehr neue Karten mit, `limitNewCards` schneidet also von selbst
+     * ab. Wie viele es wirklich gibt, steht im Hinweis über den Vorschlägen.
+     */
+    function buildNewCardsQuick() {
         elements.newCardsQuick.textContent = '';
 
         NEW_CARDS_CHOICES.forEach(function (count) {
-            if (count >= available) {
-                return;
-            }
-
             elements.newCardsQuick.appendChild(buildNewCardsChoice(String(count), count));
         });
-
-        elements.newCardsQuick.appendChild(buildNewCardsChoice(t('learn.newCardsAll'), available));
     }
 
     function buildNewCardsChoice(label, count) {
@@ -6892,9 +6933,10 @@
     /*
      * Die Antwort: die gewählte Zahl.
      *
-     * Etwas Ungültiges kann hier nicht stehen: die vier Vorschläge sind die ganze Bedienung,
-     * und jeder von ihnen ist eine Zahl, die es wirklich gibt. Deshalb gibt es auch keine
-     * Fehlerzeile mehr - das Feld, in das man eine falsche Zahl tippen konnte, ist weg.
+     * Etwas Ungültiges kann hier nicht stehen: die drei Vorschläge sind die ganze
+     * Bedienung, und jeder von ihnen ist eine Zahl, die es auch geben kann. Deshalb gibt
+     * es auch keine Fehlerzeile mehr - das Feld, in das man eine falsche Zahl tippen
+     * konnte, ist weg. Die Null ist eine gültige Antwort und keine leere Eingabe.
      */
     function confirmNewCards() {
         var handler = newCardsHandler;
@@ -6935,6 +6977,20 @@
                 newCardsHandler = null;
                 closeNewCardsDialog();
             });
+        });
+
+        /*
+         * Ein Klick, der auf dem Fensterelement selbst landet - nicht auf dem Inhalt -, ist
+         * ein Klick auf den Hintergrund. Er verlässt die Frage wie "Abbrechen": die Einheit
+         * startet nicht. Auf dem Handy ist das der Griff, mit dem man ein Blatt wegtippt.
+         */
+        dialog.addEventListener('click', function (event) {
+            if (event.target !== dialog) {
+                return;
+            }
+
+            newCardsHandler = null;
+            closeNewCardsDialog();
         });
 
         /* Escape schließt es wie das X - und startet nichts. */

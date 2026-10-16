@@ -1020,7 +1020,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
         Der Hinweis und die Vorschläge schreibt app.js: wie viele neue Karten wirklich
         da sind, weiß man erst, wenn die Warteschlange der Sitzung gebaut ist.
 
-        Nur die Vorschläge, kein Zahlenfeld: 5, 10, 20 und "alle" sind die Antworten, die
+        Nur die Vorschläge, kein Zahlenfeld: 0, 5 und 10 sind die Antworten, die
         man wirklich braucht, und ein zweites Bedienelement daneben sah aus, als wären die
         Vorschläge nur eine Abkürzung für dasselbe. Wer eine Zahl dazwischen braucht,
         nimmt die nächste Stufe - die Zahl der Karten ist keine Punktzahl.

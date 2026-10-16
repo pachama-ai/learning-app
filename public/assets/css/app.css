@@ -730,7 +730,19 @@ img {
     transition: transform 200ms var(--ease), box-shadow 200ms var(--ease),
         background-color 200ms var(--ease);
 }
-.area-card[data-area-id="193"] {
+/*
+    Zurückgesetzte Kacheln.
+
+    Zwei Kacheln stehen blass - beide bleiben anklickbar und lernbar.
+
+    id 193 ist die ältere Kopie des Bereichs „Energy", in der nie gelernt wurde. id 3 ist
+    der Bereich, mit dem bisher gearbeitet wurde: er soll seit dem 16.10.2026 nicht mehr
+    wie der Hauptweg aussehen, weil daneben ein neuer Bereich entsteht. Gelöscht wird
+    nichts, und der Lernfortschritt bleibt an den Karten hängen - es ist wirklich nur die
+    Kachel, die zurücktritt.
+*/
+.area-card[data-area-id="193"],
+.area-card[data-area-id="3"] {
     opacity: 0.38;
     filter: grayscale(1);
 }
@@ -4880,38 +4892,25 @@ body.is-learning {
 }
 /* Knopf */
 .count-dialog__quick button {
-    /* Die vier Vorschläge teilen sich die Breite, statt je nach Textlänge
-       unterschiedlich groß zu sein: „5" und „Alle" sind gleich viel wert. */
+    /* Die drei Vorschläge teilen sich die Breite, statt je nach Textlänge
+       unterschiedlich groß zu sein: die Null ist so viel wert wie die Zehn. */
     flex: 1 1 0;
     min-width: 0;
     padding: 8px 6px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background-color: transparent;
+    /* Kein Kasten: die Zahl ist Text, die Wahl wird nur durch Farbe und einen Strich
+       darunter markiert (siehe den Abschnitt am Ende des Blattes). */
+    border: 0;
+    background: none;
     color: var(--muted);
     font-family: var(--font-sans);
     font-size: 0.9rem;
     text-align: center;
     cursor: pointer;
-    transition: color 200ms var(--ease), border-color 200ms var(--ease),
-        background-color 200ms var(--ease);
+    transition: color 200ms var(--ease);
 }
-/* Knopf · bei Zeigerkontakt · und Varianten */
-.count-dialog__quick button:hover,
-.count-dialog__quick button:focus-visible {
-    border-color: var(--text);
+/* Knopf · bei Zeigerkontakt */
+.count-dialog__quick button:hover {
     color: var(--text);
-}
-/* Knopf · im Tastaturfokus */
-.count-dialog__quick button:focus-visible {
-    outline: 2px solid var(--line-strong);
-    outline-offset: 2px;
-}
-/* gedrückt · Knopf */
-.count-dialog__quick button[aria-pressed="true"] {
-    border-color: var(--text);
-    background-color: var(--text);
-    color: var(--panel);
 }
 /*
     Feld, Beschriftung, Zahleneingabe und Fehlerzeile gibt es hier nicht mehr.
@@ -6108,11 +6107,16 @@ select.count-dialog__input {
 }
 
 /*
-    Die vier Vorschläge: die eigentliche Bedienung des Fensters.
+    Die Vorschläge: die eigentliche Bedienung des Fensters.
 
-    Vorher waren sie so groß wie Fließtext und wirkten neben dem Zahlenfeld wie eine
-    Nebensache. Jetzt sind sie der erste Weg, und die Wahl ist nicht nur am Rahmen,
-    sondern an der gefüllten Fläche zu erkennen.
+    Sie sind keine Pillen mehr. Bis zum 16.10.2026 trug jeder Vorschlag einen Rahmen und
+    die gewählte Zahl zusätzlich einen Fokusring; Safari zeichnet einen `outline` aber
+    nicht entlang der Rundung, sondern als Rechteck, und der gerade Strich über den
+    runden Ecken ließ die gewählte Zahl abgeschnitten aussehen.
+
+    Jetzt wird die Wahl IM Text markiert: Akzentfarbe und ein ruhiger Strich darunter.
+    Text kann nicht beschnitten werden, und die drei Zahlen stehen immer auf derselben
+    Grundlinie - der Abstand zwischen ihnen bleibt allein die Lücke des Flex-Rasters.
 */
 .count-dialog__quick {
     gap: 10px;
@@ -6120,50 +6124,70 @@ select.count-dialog__input {
 }
 
 .count-dialog__quick button {
-    /* Alle vier gleich breit: „5" ist so viel wert wie „Alle". */
+    /* Alle drei gleich breit - die Null zählt so viel wie die Zehn. */
     flex: 1 1 0;
     min-width: 0;
-    /* 46 Pixel hoch: auf dem Handy mit dem Daumen zu treffen. */
+    /* 46 Pixel hoch: der Daumen trifft auch die blanke Zahl, nicht nur den Text darin. */
     min-height: 46px;
     padding: 0 8px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background-color: transparent;
-    color: var(--text);
+    border: 0;
+    background: none;
+    color: var(--muted);
     font-family: var(--font-sans);
     font-size: 16px;
     /* Gleiche Ziffernbreite: die Zahlen springen beim Wechseln nicht. */
     font-variant-numeric: tabular-nums;
     cursor: pointer;
-    transition: color 200ms var(--ease), border-color 200ms var(--ease),
-        background-color 200ms var(--ease);
+    transition: color 200ms var(--ease);
 }
 
-/* beim Zeigen und im Tastaturfokus: ein kräftigerer Rahmen, keine Fläche */
-.count-dialog__quick button:hover,
-.count-dialog__quick button:focus-visible {
-    border-color: var(--line-strong);
+/* Beim Zeigen wird die blanke Zahl zur Textfarbe. */
+.count-dialog__quick button:hover {
     color: var(--text);
 }
 
-.count-dialog__quick button:focus-visible {
-    outline: 2px solid var(--text);
-    outline-offset: 2px;
-}
+/*
+    Die gewählte Zahl: Akzentfarbe und ein ruhiger Strich darunter.
 
-/* Die gewählte Zahl: gefüllt in der Akzentfarbe */
+    Der Strich liegt im Text, nicht um ihn herum - er kann deshalb nicht aus der Zeile
+    ragen und von keinem Behälter abgeschnitten werden. Dieselbe Regel trägt beide
+    Themen, weil `--accent` in beiden die Akzentfarbe der App ist.
+*/
 .count-dialog__quick button[aria-pressed="true"] {
-    border-color: var(--accent);
-    background-color: var(--accent);
-    color: var(--accent-ink);
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    /* Etwas Luft zur Zahl: der Strich gehört zur Zahl, klebt aber nicht an ihr. */
+    text-underline-offset: 6px;
 }
 
-/* Auch beim Zeigen bleibt die Wahl eine Fläche, nur eine Spur dunkler. */
-.count-dialog__quick button[aria-pressed="true"]:hover,
-.count-dialog__quick button[aria-pressed="true"]:focus-visible {
-    border-color: var(--count-hover);
-    background-color: var(--count-hover);
-    color: var(--accent-ink);
+/* Auch beim Zeigen bleibt die Wahl eine Wahl, nur eine Spur kräftiger. */
+.count-dialog__quick button[aria-pressed="true"]:hover {
+    color: var(--count-hover);
+    text-decoration-color: var(--count-hover);
+}
+
+/*
+    Der Tastaturfokus ist ein dünner, gepunkteter Strich - kein Rahmen, kein `outline`
+    und kein Schatten. Er liegt ebenfalls im Text, kann also nicht abgeschnitten werden,
+    und er ist vom durchgezogenen Strich der Wahl deutlich zu unterscheiden.
+
+    Die Regeln für den Fokus stehen NACH der Wahl: nur so ist auch an der gewählten Zahl
+    zu sehen, dass der Fokus gerade auf ihr steht.
+*/
+.count-dialog__quick button:focus-visible {
+    outline: none;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--text);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 6px;
+}
+
+/* Im Fokus wird die blanke Zahl zur Textfarbe. Die gewählte behält die Akzentfarbe. */
+.count-dialog__quick button:focus-visible:not([aria-pressed="true"]) {
+    color: var(--text);
 }
 
 /*
@@ -6346,9 +6370,16 @@ select.count-dialog__input {
         justify-content: flex-start;
     }
 
-    /* Das Menue an der Kachel braucht es hier nicht: auf dem Handy wird gelesen und
-       gelernt. Umbenennen und Loeschen passiert am Rechner. */
-    .area-card .tile-menu {
+    /* Das Menü an der Kachel braucht es hier nicht: auf dem Handy wird gelesen und
+       gelernt. Umbenennen und Löschen passiert am Rechner. Die Kachel selbst bleibt
+       antippbar, es verschwindet nur der Knopf daneben.
+
+       Das Menü hängt an `.area-card-slot`, nicht an der Kachel: es ist ein eigener Knopf
+       NEBEN dem Verweis, weil ein Knopf in einem Verweis kein gültiges Markup ist (siehe
+       buildAreaTile in app.js). Der frühere Selektor `.area-card .tile-menu` traf deshalb
+       nichts - und weil ein grober Zeiger (Finger) das Menü ohnehin dauerhaft einblendet,
+       standen die drei Punkte auf dem Handy auf jeder Kachel. */
+    .area-card-slot .tile-menu {
         display: none;
     }
 
@@ -6971,4 +7002,208 @@ select.count-dialog__input {
 */
 #view-home > .start-header {
     margin-top: clamp(16px, 3vh, 32px);
+}
+
+/* ----------------------------------------------------------------------
+   Die Ränder des iPhones: Notch und Home-Indikator
+
+   `viewport-fit=cover` im Ansichtsfenster (siehe src/helpers/page_head.php) lässt die
+   Seite bis in die Ecken laufen. Das ist gewollt - Hintergrund und Flächen sollen den
+   ganzen Bildschirm füllen -, hat aber eine Folge: was ganz am Rand steht, kann unter der
+   Notch oder hinter dem Home-Indikator liegen. `env(safe-area-inset-*)` sagt, wie viel
+   Platz dort reserviert ist. Ohne `viewport-fit=cover` wäre jeder dieser vier Werte 0 und
+   alles hier wirkungslos.
+
+   Die vier Werte stehen einmal hier und werden weiter unten nur noch benutzt. Überall
+   `max(...)` statt eines festen Zuschlags: der sichere Rand kommt zu dem Abstand DAZU, den
+   die Stelle ohnehin hat - auf einem Gerät ohne Notch (env = 0) bleibt also alles wie
+   vorher, und am Rechner ändert sich gar nichts.
+
+   `env(safe-area-inset-bottom)` allein reicht unten nicht: es ist der Streifen des
+   Home-Indikators, und der liegt auf dem iPhone HINTER der Browser-Leiste. Ein Element
+   mit `bottom: 0` sitzt dort nicht am sichtbaren Rand, sondern am unteren Rand der
+   Layout-Fläche - also um die Höhe der Leiste zu tief. Diese Höhe kennt keine CSS-Einheit
+   (`dvh`, `svh` und `lvh` haben es auf dem Gerät nicht getroffen); sie wird in `app.js`
+   gemessen (`watchBrowserBottom`) und steht als `--browser-bottom` hier. `--bottom-safe`
+   ist das Größere von beidem - die beiden Streifen liegen übereinander, sie addieren sich
+   also nicht.
+   ---------------------------------------------------------------------- */
+:root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    /* Ohne JavaScript bleibt 0 - dann gilt das Verhalten von vorher. */
+    --browser-bottom: 0px;
+    --bottom-safe: max(var(--safe-bottom), var(--browser-bottom));
+}
+
+/*
+    Die Messhilfe für die Layout-Fläche.
+
+    Sie hängt unsichtbar im Dokument und hat mit `top: 0; bottom: 0` genau die Höhe, auf
+    die sich ein `bottom: 0` bezieht. `watchBrowserBottom` in app.js liest sie und vergleicht
+    sie mit dem, was `visualViewport` als sichtbar meldet. Sie ist reine Messtechnik und
+    darf nichts sehen oder fangen.
+*/
+.layout-probe {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/*
+    Die Seite: oben und unten der bisherige Abstand, mindestens aber der sichere Rand.
+
+    Die Werte sind genau die aus `.page` weiter oben (`clamp(24px, 3vw, 40px)` oben,
+    `clamp(32px, 4vw, 56px)` unten). Die Kopfzeile ist das erste Kind der Seite (Nutzer,
+    Abmelden, Sonne/Mond, EN/DE), die Fußzeile mit dem Plus-Knopf das letzte - beide
+    rücken damit von selbst von der Uhr und vom Home-Indikator weg. Das gilt auch für die
+    beiden Nachbarseiten, weil beide dieselbe `.page` benutzen.
+*/
+.page {
+    padding-block-start: max(clamp(24px, 3vw, 40px), var(--safe-top));
+    padding-block-end: max(clamp(32px, 4vw, 56px), var(--bottom-safe));
+    /*
+        Seitlich ZUSÄTZLICH zum Seitenrand. Als Padding und nicht als größerer Rand: die
+        Seite hat eine feste Breite und wird mittig gestellt (`margin-inline: auto`), ein
+        größerer Rand würde sie nur schmaler machen als nötig. Im Hochformat sind beide
+        Werte 0; sie greifen nur im Querformat auf Geräten mit Notch.
+    */
+    padding-inline: var(--safe-left) var(--safe-right);
+}
+
+/*
+    Die Lernansicht füllt den Bildschirm (`inset: 0`) - sie bekommt die Ränder oben und
+    unten: der Schließen-Knopf soll nicht unter der Uhr sitzen und die vier Bewertungen
+    nicht hinter dem Home-Indikator. Der Hintergrund füllt weiterhin die ganze Fläche,
+    weil die Ränder innen liegen.
+*/
+.learn {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--bottom-safe);
+}
+
+/*
+    Die Karte der Lernansicht rechnet mit dem KLEINEN Fenster (`svh`) statt mit der
+    Layout-Fläche (`vh`). `vh` zählt die Streifen mit, die die Browser-Leiste verdeckt,
+    die Karte wäre also um deren Höhe zu groß und drückte die vier Bewertungen nach unten.
+    `svh` ist immer die kleinste Höhe, die das Fenster annehmen kann - damit liegt die
+    Karte in jedem Zustand der Leiste innerhalb dessen, was man sieht.
+*/
+@media (max-width: 640px) {
+    .learn__card {
+        max-height: 58svh;
+    }
+}
+
+/*
+    Der Fragekasten der Lernansicht und die beiden kurzen Hinweise unten sind eigene
+    Ebenen (`position: fixed`) und hängen deshalb NICHT an `.learn` - sie brauchen
+    dieselben Ränder selbst.
+*/
+.learn__ask {
+    padding: max(24px, var(--safe-top)) max(24px, var(--safe-right))
+        max(24px, var(--bottom-safe)) max(24px, var(--safe-left));
+}
+
+.feedback {
+    bottom: calc(28px + var(--bottom-safe));
+}
+
+.learn__notice {
+    bottom: calc(26px + var(--bottom-safe));
+}
+
+/* ----------------------------------------------------------------------
+   Die Dialoge auf dem Handy: ein Blatt von unten
+
+   Am Rechner (ab 640 Pixel) bleibt alles wie es war - dort zentriert der Browser den
+   Dialog, und dort gibt es keine Browser-Leiste, die etwas verdecken könnte.
+
+   Bis 639 Pixel kommen die drei Dialoge stattdessen von unten: am unteren Rand verankert,
+   über die volle Breite, nur oben abgerundet. Das ist nicht nur eine andere Optik, sondern
+   der robustere Aufbau: ein unten verankertes Blatt kann nicht „zu tief in die Mitte"
+   rutschen, wie es der zentrierte Dialog auf dem iPhone tat. Die ganze Rechnerei mit
+   `dvh`, `svh`, `lvh`, `translate` und `margin: auto` - zwei Anläufe, beide auf dem
+   echten Gerät abgeschnitten - fällt damit weg. Es bleiben drei Werte, die man leicht
+   nachprüfen kann:
+
+     `bottom: 0`          das Blatt sitzt am unteren Rand
+     `max-height: 85svh`  es wird nie höher als das Fenster im kleinsten Zustand (`svh` =
+                          mit sichtbarer Browser-Leiste); wird der Inhalt länger, scrollt
+                          er innen
+     `padding-bottom`     `max(16px, var(--bottom-safe))` hält Home-Indikator UND
+                          Browser-Leiste frei (siehe `--browser-bottom` oben)
+
+   Die Knopfzeile („Abbrechen" / „Starten") ist in allen drei Fenstern
+   `position: sticky; bottom: 0` und bleibt damit beim Scrollen unten stehen - auch wenn
+   der Inhalt einmal länger wird.
+
+   Überlagert wird weiterhin über `::backdrop` (halbtransparent mit Weichzeichner), und
+   Escape, das X und ein Tippen aufs Überlagerte schließen (siehe app.js).
+   ---------------------------------------------------------------------- */
+@media (max-width: 639px) {
+    .dialog,
+    .account-dialog,
+    .count-dialog {
+        position: fixed;
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        /* `margin: 0` ist die halbe Miete: der Browser setzt für einen Dialog `margin: auto`
+           und zentriert ihn damit - hier soll er unten kleben. */
+        margin: 0;
+        width: 100%;
+        /* Sonst kappt die Voreinstellung des Browsers die Breite auf `100% - 6px - 2em`. */
+        max-width: none;
+        max-height: 85svh;
+        /* Das Blatt ist eine Spalte: der Inhalt füllt es, die Knopfzeile bleibt unten. */
+        display: flex;
+        flex-direction: column;
+        /* Nur oben gerundet - unten läuft das Blatt in den Bildrand hinein. */
+        border: 0;
+        border-radius: 20px 20px 0 0;
+        /* Der Schatten fällt nach oben, weil das Blatt unten sitzt. */
+        box-shadow: 0 -18px 44px rgba(43, 38, 34, 0.22);
+        /* Der Streifen des Home-Indikators und die Browser-Leiste gehören zum Blatt,
+           bleiben aber leer. */
+        padding-bottom: max(16px, var(--bottom-safe));
+        /* Zu, aber schon im Dokument: das Blatt steht unten außerhalb des Bildes. */
+        transform: translateY(100%);
+        transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+    }
+
+    .dialog[open].is-open,
+    .account-dialog[open].is-open,
+    .count-dialog[open].is-open {
+        transform: translateY(0);
+    }
+
+    /*
+        Der Inhalt füllt das Blatt und scrollt darin. `min-height: 0` ist nötig: ohne die
+        Zeile weigert sich ein Flex-Kind, kleiner zu werden als sein Inhalt, und die
+        Knopfzeile würde aus dem Blatt herausgeschoben.
+    */
+    .dialog__form,
+    .account-dialog__panel,
+    .count-dialog__panel {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+    }
+}
+
+/* Ohne Bewegung: das Blatt steht sofort da, statt hochzufahren. */
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+    .dialog,
+    .account-dialog,
+    .count-dialog {
+        transition: none;
+    }
 }
