@@ -14,8 +14,12 @@ declare(strict_types=1);
  * in der Datenbank).
  *
  * Die Datei ist UTF-8 und mit Semikolon getrennt. Drei Kopfzeilen werden angenommen:
- * die beiden mit parent_category und die Master-Form ohne diese Spalte, deren Ziel mit
- * --area-id ausgewählt wird. Den nötigen Spalten dürfen zwei freiwillige folgen:
+ * die beiden mit parent_category und die Master-Form ohne diese Spalte. Bei einer
+ * Master-Form wählt --area-id den Zielbereich aus. Bei einer Datei MIT parent_category
+ * schlägt --area-id diese Spalte: die Datei darf also weiterhin "Energie" nennen und
+ * trotzdem woanders hin, wenn derselbe Inhalt unter einer neuen Kategorie gebraucht
+ * wird. Ohne --area-id entscheidet wie bisher der Name in der Datei. Den nötigen
+ * Spalten dürfen zwei freiwillige folgen:
  *
  *   ...;is_bidirectional[;map_region][;exercise]
  *
@@ -50,6 +54,8 @@ declare(strict_types=1);
  *
  * Den Lernbereich, den die Datei nennt oder dessen Id über --area-id kommt, muss es schon
  * geben: dieses Werkzeug legt keinen an. Es legt die Unterkategorien der Datei darunter an.
+ * Eine neue Hauptkategorie entsteht also zuerst in der Anwendung (oder über
+ * POST /api/categories.php) und wird danach hier mit --area-id benutzt.
  *
  * Was dieses Skript tut
  *
@@ -179,8 +185,13 @@ function import_main(array $argv, string $projectRoot): int
         return 1;
     }
 
-    if (($csv['areas'] === []) !== ($options['areaId'] !== null)) {
-        echo "FILE ERROR: use --area-id only with a file that has no parent_category column.\n";
+    /*
+     * Eine Datei ohne parent_category braucht --area-id, sonst hätte der Lauf kein Ziel.
+     * Eine Datei mit parent_category darf --area-id mitbringen - dann gewinnt die Id und
+     * der Name in der Datei wird nicht mehr gelesen.
+     */
+    if ($csv['areas'] === [] && $options['areaId'] === null) {
+        echo "FILE ERROR: this file has no parent_category column, so --area-id is needed.\n";
 
         return 1;
     }
@@ -233,9 +244,12 @@ function import_main(array $argv, string $projectRoot): int
         return 1;
     }
 
-    /* Genau ein Bereich muss zu dem Namen in der Datei passen. */
+    /* Genau ein Bereich muss zum Ziel passen - zum Namen in der Datei oder zur Id aus
+       --area-id, die den Namen schlägt. */
     $matches = $state['area_matches'];
-    $wantedArea = $csv['areas'] === [] ? 'id ' . $options['areaId'] : $csv['areas'][0];
+    $wantedArea = $options['areaId'] !== null
+        ? 'id ' . $options['areaId']
+        : $csv['areas'][0];
 
     if (count($matches) !== 1) {
         echo "STOP: the learning area \"$wantedArea\" from the file is "
@@ -263,7 +277,7 @@ function import_main(array $argv, string $projectRoot): int
     }
 
     import_print_step_a($state, $subcategories, $area);
-    import_print_step_b($area, $csv, $subcategories, $state);
+    import_print_step_b($area, $csv, $subcategories, $state, $options['areaId'] !== null);
 
     /* Der Schutz gegen einen zweiten Import. */
     $alreadyThere = array_values(array_intersect(array_keys($subcategories), $state['area_subcategory_names']));
@@ -515,7 +529,7 @@ function import_print_usage(): void
     echo "\n";
     echo "  --file=...              the CSV file, required (there is no default file)\n";
     echo "  --owner=<id>            the user the new subcategories belong to, required\n";
-    echo "  --area-id=<id>          select the root category by id for files without parent_category\n";
+    echo "  --area-id=<id>          the root category by id; needed without parent_category, wins over it otherwise\n";
     echo "  --dry-run               read and report, write nothing (default)\n";
     echo "  --execute               really import, all of it or none of it\n";
     echo "  --wipe-subcategories    delete the subcategories of the area in the file first\n";
@@ -1067,11 +1081,14 @@ function import_print_step_a(array $state, array $subcategories, array $area): v
  * @param array<string, mixed> $csv
  * @param array<string, int> $subcategories der Datei
  * @param array<string, mixed> $state
+ * @param bool $byId ob der Zielbereich per --area-id gewählt wurde
  */
-function import_print_step_b(array $area, array $csv, array $subcategories, array $state): void
+function import_print_step_b(array $area, array $csv, array $subcategories, array $state, bool $byId = false): void
 {
     echo "STEP B - import the file\n";
-    $selection = $csv['areas'] === [] ? 'selected by --area-id' : 'found through name in file';
+    $selection = $byId
+        ? ($csv['areas'] === [] ? 'selected by --area-id' : 'selected by --area-id, the file names ' . $csv['areas'][0])
+        : 'found through name in file';
     echo '  target area : "' . $area['name'] . '" (id ' . $area['id'] . ', ' . $selection . ')' . "\n";
     echo '  cards in file: ' . count($csv['rows']) . "\n\n";
 

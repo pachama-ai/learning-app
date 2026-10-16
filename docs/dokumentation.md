@@ -93,19 +93,23 @@ Neun Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 | Tabelle | Zeilen | Inhalt |
 | --- | ---: | --- |
 | `users` | 2 | die Konten |
-| `categories` | 89 | 8 Lernbereiche und 81 Unterkategorien, alle mit Besitzer |
-| `cards` | 7920 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
+| `categories` | 92 | 8 Lernbereiche und 84 Unterkategorien, alle mit Besitzer |
+| `cards` | 7765 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
 | `card_variants` | 1500 | die Satzbeispiele einer Karte, 0 bis n je Karte |
-| `user_card_progress` | 219 | eine Zeile je Nutzer und Karte – der Lernstand |
-| `study_sessions` | 40 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
+| `user_card_progress` | 259 | eine Zeile je Nutzer und Karte – der Lernstand |
+| `study_sessions` | 46 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
 | `card_exercises` | 39 | die Übungsaufgabe einer Karte, höchstens eine pro Karte |
 | `stories` | 1 | die gemeinsame Geschichte („Story Together"), genau eine Zeile |
-| `story_contributions` | 1 | ein Beitrag je Zug und Geschichte, einer der beiden Konten |
+| `story_contributions` | 4 | ein Beitrag je Zug und Geschichte, einer der beiden Konten |
 
-(Stand: 11.10.2026, nach dem Import der 107 Energiekarten in
-„Energiegrundlagen & Energiewende" und der 69 Karten, die aus älteren Energie-Listen
-noch gefehlt haben. Die beiden letzten Tabellen entstanden am 11.10.2026
-mit `database/story_together.sql`; am 11.10.2026 steht dort der erste echte Beitrag.)
+(Stand: 16.10.2026. Gegenüber dem 11.10.2026 sind die Zahlen an drei Stellen
+gewachsen – `user_card_progress` von 219 auf 259, `study_sessions` von 40 auf 46,
+`story_contributions` von 1 auf 4. Geschrumpft ist eine Stelle: der alte doppelte
+Lernbereich „Energy" (id 193) wurde mit seinen 15 Unterkategorien und 436 Karten
+gelöscht. Gewachsen ist dafür eine andere: der neue Lernbereich **PRIO** entstand mit
+achtzehn Unterkategorien und 281 Karten (siehe §7). Deshalb stehen in `categories`
+92 statt 89 Zeilen – die 89 waren 8 Lernbereiche und 81 Unterkategorien, jetzt sind
+es 8 und 84 – und in `cards` 7765 statt 7920. Genaueres dazu in §7 und §10.)
 
 Ein paar Eigenheiten, die man wissen sollte:
 
@@ -254,6 +258,98 @@ Pfad.
 | 9.10. | Grund- und Aufbauwortschatz durch Wörterbuch-Karten ersetzt (statt „Was bedeutet …?“) | 353 ersetzt | `English` (Konto 6) |
 | 11.10. | Energy basics & energy transition (Grundlagen und Energiewende) | 107 | `Energiegrundlagen & Energiewende` (Energie, id 3), einseitig |
 | 11.10. | Ältere Energie-Listen erneut durchgesehen: nur die Karten, die wirklich fehlten | 69 | 26 in `Energiegrundlagen & Energiewende` und 43 in `Stromnetz & Systembetrieb` (Energie, id 3), einseitig |
+| 16.10. | Acht Energie-Listen als neuer Lernbereich PRIO | 146 | neue Unterkategorien in `PRIO` (id 224, Konto 6), einseitig |
+| 16.10. | Zweite PRIO-Runde: Stromnetz, Strommarkt, Strompreise, Netzentgelte, Felder & Blindleistung, Energiegesetze (vier Unterkategorien) | 117 | neun neue Unterkategorien in `PRIO`, einseitig |
+| 16.10. | „Netzbetrieb & Systemstabilität" durch die aktualisierte Fassung ersetzt | 26 (22 ersetzt) | `PRIO`, Unterkategorie id 232 |
+| 16.10. | Achte Datei der PRIO-Runde nachgezogen (lag zuerst nicht vor) | 14 | neue Unterkategorie `Energiedaten, Strommix & Energiewende` in `PRIO` |
+
+**Der neue Lernbereich „PRIO" (16.10.2026).** Der Bereich entstand über die
+Anwendung selbst (`POST /api/categories.php`, Name/name_de/name_en = `PRIO`), damit
+die vorhandene Prüfung greift – eine zweite Anfrage mit demselben Namen antwortet
+mit `category_exists` (409). Seine acht Unterkategorien und 146 Karten kamen danach
+über `bin/import_energy_cards.php`, Datei für Datei, jede in ihrer eigenen
+Transaktion. Die acht Dateien nannten in `parent_category` noch „Energie"; das
+Werkzeug nimmt `--area-id` seit diesem Tag auch bei einer Datei MIT dieser Spalte an
+und lässt die Id gewinnen. So landet derselbe Inhalt unter einer neuen Kategorie,
+ohne die Dateien umzuschreiben – und ohne dass ein Lauf versehentlich den
+bestehenden Bereich `Energy` anfasst. Der bestehende Bereich blieb unberührt:
+847 Karten und 118 Fortschrittszeilen vorher wie nachher, in `PRIO` steht keine
+einzige Fortschrittszeile (in PRIO wurde noch nicht gelernt).
+
+Die englischen Namen der acht Unterkategorien stehen nicht in den Dateien: deren
+Spalte `subcategory` ist deutsch, und der Importeur schreibt `name` = `name_de` =
+diesen Wert und lässt `name_en` leer (dieselbe Regel wie bei jedem anderen Import,
+siehe §5). Gesetzt wurden sie mit `database/prio_area_setup.sql` – einer Datei, die nur
+das tut. Ein zweiter Lauf ist harmlos, weil Namen nur gesetzt werden, wo sie leer sind.
+
+**Die zweite PRIO-Runde (16.10.2026, nachmittags).** Sechs neue Dateien kamen über
+`bin/import_energy_cards.php --area-id=224` dazu: 117 Karten in neun Unterkategorien
+(die Datei zu den Energiegesetzen enthält vier: Gesetze & Energiepolitik, EU &
+International, Behörden & Institutionen, Energieunternehmen). Die englischen Namen
+dieser neun stehen ebenfalls in `database/prio_area_setup.sql`.
+
+Die aktualisierte Fassung von „Netzbetrieb & Systemstabilität" (26 statt 22 Karten,
+vier neue Fragen zur Regelenergie) wurde **ersetzt, nicht ergänzt**. Dafür gibt es
+schon `bin/import_cards_csv.php --replace`: geleert und neu gefüllt wird genau die
+Unterkategorie, die die Datei nennt – die anderen sechzehn von PRIO blieben unberührt.
+Der Lernfortschritt wandert dabei über die deutsche Vorderseite auf die neue Karte
+(hier war keiner zu übertragen: PRIO hatte 0 Fortschrittszeilen). Die Datei dafür
+liegt als Arbeitskopie in `database/import/prio_netzbetrieb_systemstabilitaet_de_en.csv`
+– im Format dieses Werkzeugs (`category;front;back;front_de;…`), weil die
+Originaldatei die Spalte `subcategory` trägt.
+
+**Die achte Datei kam später.** `prio_energiedaten_strommix_energiewende_de_en.csv`
+lag beim ersten Lauf noch nicht im Projekt (danach gesucht wurde im Projektstamm, in
+`database/import`, im Benutzerverzeichnis und in der Git-Historie). Sie erschien um
+15:04 und wurde noch am selben Tag nachgezogen: 14 Karten, Unterkategorie
+„Energiedaten, Strommix & Energiewende" (id 242, englisch „Energy data, power mix &
+energy transition"). PRIO steht damit bei achtzehn Unterkategorien und 281 Karten.
+
+**Nachgeprüft am 16.10.2026.** Der Inhalt wurde Karte für Karte mit der jeweiligen
+Datei verglichen – dieselben Texte in beiden Sprachen, dieselbe Reihenfolge, keine
+fehlende, keine zusätzliche und keine doppelte Karte:
+
+| Unterkategorie | Datei | Karten in Datei und Datenbank |
+| --- | --- | ---: |
+| Netzbetrieb & Systemstabilität | `energie_netzbetrieb_systemstabilitaet_de_en (1).csv` | 26 = 26 |
+| Sektorkopplung & Wärmewende | `energie_sektorkopplung_waermewende_aktualisiert_de_en.csv` | 15 = 15 |
+| Energiedaten, Strommix & Energiewende | `prio_energiedaten_strommix_energiewende_de_en.csv` | 14 = 14 |
+
+Bei „Netzbetrieb & Systemstabilität" liegt die **26-Karten-Fassung in der Datei mit
+`(1)` im Namen**; die gleichnamige Datei ohne `(1)` enthält noch die älteren 22 Karten.
+Einen älteren Sektorkopplung-Stand mit 10 Karten gibt es im Projekt nicht mehr (auch
+nicht in der Git-Historie), in der Datenbank steht ausschließlich die 15-Karten-Fassung.
+
+**Die Reihenfolge der Startseite.** Sie steckt in `categories.sort_order`: kleinere
+Zahl = weiter vorne, 1000 ist der Standardwert (dann entscheidet die id). Gelesen wird
+sie in `category_order_sql()` und gilt für die Kacheln UND für die Leiste
+„Themengebiete" links, weil beide dieselbe Liste benutzen. Alle Zahlen stehen an einer
+Stelle, in `database/start_page_order.sql`:
+
+| Platz | Bereich | `sort_order` |
+| ---: | --- | ---: |
+| 1 | `PRIO` | 10 |
+| 2 | `English` | 20 |
+| 3 | `Mathematics` | 30 |
+| 4 | `Geography` | 40 |
+| 5 | `Informatik` | 50 |
+| 6 | `Energy` (der alte Bereich) | 2000 |
+
+Die Zehnerabstände lassen Platz, um später etwas dazwischen zu schieben; die 2000 hält
+`Energy` hinter jedem Bereich, der den Standardwert 1000 bekommt. Die Bereiche des
+anderen Kontos (id 167 und 183) haben ihre eigene Startseite und bleiben unberührt.
+
+**PRIO trägt dasselbe Symbol wie der Bereich `Energy`.** Kopiert wurde es über
+`PATCH /api/category.php?id=224` mit dem gespeicherten `icon_svg` von id 3 – also
+durch dieselbe Prüfung wie ein Symbol, das jemand selbst hochlädt. Beide Zeichnungen
+sind zeichengleich (30693 Zeichen, `icon_scale` 1.00), und beide Bereiche liefern
+`api/category_icon.php` mit demselben Inhalt aus. Ein Symbol ist nur für sein Konto
+abrufbar: ohne angemeldete Sitzung antwortet der Endpunkt mit 404.
+
+Die Quell-CSVs liegen noch im Projektstamm (frühere Importe haben ihre Dateien
+danach gelöscht, siehe oben) – einundzwanzig an der Zahl. Ihr Inhalt
+steht vollständig in der Datenbank; ein zweiter Import derselben Datei würde von den
+Unterkategorien abgewiesen, die es unter PRIO schon gibt.
 Nicht alles ist zweisprachig: 11 der 89 Kategorien haben kein `name_en`, und 284
 Karten haben keinen englischen Text. Die App fällt dann auf den deutschen Text
 zurück (`NULL` heißt „nimm `name`") und markiert solche Karten mit „nur Deutsch".
@@ -780,13 +876,53 @@ trägt der Knopf die Akzentfarbe, weil `--text` dort hell ist. Wer die Knöpfe i
 Themen grün will, ändert eine Regel - aber dann kollidiert das Grün mit dem Zeichen für
 fällige Karten.
 
-**Zwei Bäume namens „Energy"**
+**Zwei Bäume namens „Energy" – einer davon ist inzwischen weg**
 
-Nutzer 6 hat zwei Lernbereiche „Energy": den aktiven (id 3, fünf Unterkategorien) und
-eine ältere Kopie (id 193, 15 Unterkategorien, 436 Karten). Die Kachel der Kopie ist
-über `.area-card[data-area-id="193"]` in `app.css` ausgegraut (`opacity: 0.38`,
-`filter: grayscale(1)`). Die Kopie wurde bewusst behalten und nicht gelöscht – in ihr
-wird nicht gelernt.
+Nutzer 6 hatte zwei Lernbereiche „Energy": den aktiven (id 3) und eine ältere Kopie
+(id 193, 15 Unterkategorien, 436 Karten). Der Selektor
+`.area-card[data-area-id="193"]` in `app.css` graute die Kachel der Kopie aus
+(`opacity: 0.38`, `filter: grayscale(1)`).
+
+**Die Kopie ist am 16.10.2026 gelöscht worden.** Sie trug keinen einzigen Fortschritt
+(`user_card_progress`: 0 Zeilen für ihren ganzen Teilbaum), und weil daneben ein neuer
+Bereich entsteht, sollte der alte nicht bleiben. Die Antwort des Servers nennt die
+Zahlen: `deleted_categories` 16 (die Kopie selbst und ihre 15 Unterkategorien),
+`deleted_cards` 436, `deleted_progress` 0 – alles in einer Transaktion, ein halb
+gelöschter Baum kann also nicht zurückbleiben. Der aktive Bereich blieb unberührt:
+7 Unterkategorien, 847 Karten, 118 Fortschrittszeilen (nachgezählt). Vor dem Löschen
+liegt eine vollständige Sicherung in `storage/backups/`
+(`study_20261016_141459_vor_loeschen_energie_193.sql`). Der Ausgrauungs-Selektor nennt
+`[data-area-id="193"]` noch, obwohl es die Kachel nicht mehr gibt; er schadet nicht,
+und die zweite Zeile (`[data-area-id="3"]`) gilt weiter.
+
+**Ein Löschknopf, der nichts tat (gefunden und behoben am 16.10.2026)**
+
+Eine ganze Kategorie ließ sich nicht löschen: der Dialog fragte, der rote Knopf wurde
+gedrückt – und danach stellte sich dieselbe Frage noch einmal, gelöscht wurde nichts.
+Die Ursache lag allein in `public/assets/js/app.js`. Der Server verlangt bei einer
+Kategorie mit Unterkategorien oder Karten ein `{"confirm": true}` und antwortet ohne
+Zustimmung mit dem Code `confirm_required`; die Seite schickte diese Zustimmung nie mit.
+Ein früherer Umbau hatte das Löschen in die Kette `requestDelete` → `confirmDelete` →
+`queueDelete` → `sendDelete` zerlegt und dabei die Zeile verloren, die die Zustimmung
+baute. Sie stand danach als **toter Code** unter einem vorzeitigen `return` – also
+genau an der Stelle, die beim Nachlesen den Fehler verdeckt. Jetzt geben alle drei
+Aufrufe von `sendDelete` die Zustimmung mit (sie ist ja schon gegeben: der rote Knopf
+ist die Antwort), auch der Weg, der beim Verlassen der Seite mit `keepalive`
+abgeschickt wird. Der tote Code ist entfernt. Nachgeprüft mit einem echten Aufruf:
+ohne Zustimmung `HTTP 400 confirm_required`, mit Zustimmung `HTTP 200` und den Zahlen
+oben.
+
+**Seit dem 16.10.2026 steht die Kachel von id 3 blass und ganz hinten** (derselbe
+Selektor um `[data-area-id="3"]` erweitert, und `sort_order` 2000 in der Datenbank).
+Gelernt wurde bis dahin in id 3 bzw. in seiner Unterkategorie id 213 „Energiegrundlagen
+& Energiewende" (gemessen am 16.10.: 118 Fortschrittszeilen, 449 Wiederholungen, letzte
+Einheit 15.10.2026 14:50 — die einzige Unterkategorie unter „Energy" mit Fortschritt).
+Weil daneben ein neuer Bereich entstanden ist, soll der alte nicht mehr wie der Hauptweg
+aussehen. **Gelöscht ist nichts:** die Kachel bleibt anklickbar und lernbar, und der
+Fortschritt hängt an den Karten, nicht an der Kategorie — er wandert also nicht
+automatisch in eine neue Kategorie mit neuen Karten. Wer beides zurücknehmen will,
+entfernt in `app.css` die zweite Zeile des Selektors und setzt in
+`database/start_page_order.sql` alle sechs Zahlen wieder auf 1000.
 
 **Irreführende Ausgabe im Energie-Import**
 
@@ -905,7 +1041,15 @@ andere.
 
 **Eine Kachel ist eine Zeile.** 72 Pixel hoch: Symbol links (44 statt 72 Pixel), Name und
 eine Zeile Zahlen rechts. Das Menü an der Kachel (`…`) erscheint dort nicht – auf dem Handy
-wird gelesen und gelernt. Der Seitenrand ist 16 statt 24 Pixel.
+wird gelesen und gelernt; die Kachel selbst bleibt antippbar und führt weiter zum Lernen.
+Der Seitenrand ist 16 statt 24 Pixel.
+
+Das `…`-Menü hängt an `.area-card-slot` und **nicht** an der Kachel: es ist ein eigener
+Knopf neben dem Verweis, weil ein Knopf in einem Verweis kein gültiges Markup wäre (siehe
+`buildAreaTile` in `app.js`). Ausblenden lässt es sich deshalb nur mit
+`.area-card-slot .tile-menu`. Der frühere Selektor `.area-card .tile-menu` traf nichts, und
+weil ein grober Zeiger (Finger) das Menü ohnehin dauerhaft einblendet, standen die drei
+Punkte auf dem Handy auf jeder Kachel (korrigiert am 15.10.2026).
 
 **Das Zeichen über der Begrüßung ist das Browser-Symbol.** Die Karte „Deine Karten warten
 auf dich" trägt das Favicon der Seite (`assets/icons/browser_icon.svg` — dieselbe Datei, die
@@ -1115,13 +1259,112 @@ Gemessen bei 375 Pixel: Überschrift 335 × 31 Pixel, also eine Zeile. Ein
 immer noch besser als ein Überlauf.
 
 **Der Dialog „Wie viele neue Karten?"** ist zentriert und passt auf jeden Bildschirm:
-`.count-dialog` hat `max-height: calc(100dvh - 32px)` und `overflow: hidden`, das Panel
-darunter sein eigenes `max-height` mit eigenem Scroll — vorher stand der Dialog über den
+`.count-dialog` hat `max-height: calc(100svh - 32px - var(--safe-bottom))` und
+`overflow: hidden`, das Panel darunter sein eigenes `max-height` mit eigenem Scroll —
+vorher stand der Dialog über den
 Rand hinaus, und weil der Browser ihn mittig setzt, war er oben **und** unten
 abgeschnitten. Der Innenabstand steckt in den Kindern (Titel, Schnellwahl, Aktionen),
 **nicht** im Panel: ein Padding am Panel würde sich zu ihren Abständen addieren. Zwei
 Balken nebeneinander gibt es nicht: am Fenster ist der Überlauf verborgen, gescrollt wird
 nur im Panel.
+
+**Bis 639 Pixel kommt er als Blatt von unten** (16.10.2026). Davor stand hier ein
+zentrierter Dialog, und der war auf dem iPhone zweimal hintereinander unten
+abgeschnitten: zuerst überließ er das Zentrieren dem Browser (`inset: 0` mit
+`margin: auto`, das rechnet mit der Layout-Fläche statt mit dem Sichtbaren), dann über
+`top: 50dvh` und `translate: 0 -50%`, schließlich über `margin: auto` in einem Rahmen aus
+`svh`/`lvh`. Alles drei saß im mobilen Fenster am Rechner sauber und auf dem Gerät nicht.
+
+Jetzt ist der Aufbau ein anderer statt nur eine andere Rechnung: das Fenster hängt am
+unteren Rand und kann deshalb nicht mehr „zu tief in die Mitte rutschen“, egal wie die
+Browser-Leiste steht. Es bleiben drei Werte, die man am Gerät nachprüfen kann:
+
+* `position: fixed; bottom: 0; left: 0; right: 0; width: 100%; margin: 0` — das Blatt
+  klebt unten und läuft über die volle Breite. `margin: 0` ist dabei die halbe Miete: der
+  Browser setzt für einen Dialog `margin: auto` und zentriert ihn damit.
+* `max-height: 85svh` — `svh` ist das Fenster im kleinsten Zustand (mit sichtbarer
+  Leiste). Wird der Inhalt länger, scrollt er innen; die Knopfzeile ist
+  `position: sticky; bottom: 0` und bleibt dabei stehen.
+* `padding-bottom: max(16px, var(--bottom-safe))` — der Streifen des Home-Indikators UND
+  der der Browser-Leiste gehören zum Blatt, bleiben aber leer (siehe unten:
+  `--browser-bottom`).
+
+**Der entscheidende Rest war die Browser-Leiste selbst** (16.10.2026). Auf dem iPhone
+sitzt ein `position: fixed`-Element mit `bottom: 0` nicht am sichtbaren Rand, sondern am
+unteren Rand der Layout-Fläche — um die Höhe der Leiste zu tief. `env(safe-area-inset-bottom)`
+(= 34 px) ist der Home-Indikator, und der liegt hinter der Leiste; die 34 px reichten
+also nicht, die Knopfzeile saß weiter unter der Leiste.
+
+Keine CSS-Einheit kennt diese Leiste (`dvh`, `svh` und `lvh` haben es auf dem Gerät nicht
+getroffen), also wird sie **gemessen**: `watchBrowserBottom` in `app.js` hängt eine
+unsichtbare Hilfe mit `top: 0; bottom: 0` ins Dokument — die hat genau die Höhe der
+Layout-Fläche, also das, worauf sich `bottom: 0` bezieht — und vergleicht sie mit dem, was
+`visualViewport` als sichtbar meldet. Die Differenz steht als `--browser-bottom` in `:root`
+und wird bei `resize`/`scroll`/`orientationchange` neu gesetzt. `--bottom-safe` ist das
+Größere von `--safe-bottom` und `--browser-bottom` (die beiden Streifen liegen übereinander,
+sie addieren sich also nicht) und wird an allen unteren Rändern benutzt: dem Blatt, dem
+`padding-block-end` der Seite (Fußzeile mit Plus-Knopf), der Lernansicht, `.learn__ask`,
+`.feedback` und `.learn__notice`. Ohne `visualViewport` bleibt der Wert 0, dann gilt das
+Verhalten von vorher — am Rechner ändert sich nichts.
+
+Dazu die Form: nur oben abgerundet (`border-radius: 20px 20px 0 0`), Schatten nach oben
+statt nach unten, und beim Öffnen fährt das Blatt mit `transform: translateY(100%)` nach
+`translateY(0)` hoch (200 ms, dieselbe Zeit, nach der `app.js` beim Schließen wirklich
+schließt). Das Überlagerte bleibt das `::backdrop` (halbtransparent mit Weichzeichner;
+Escape, das X, „Abbrechen“ und ein Tippen aufs Überlagerte schließen — letzteres im
+Zähl-Dialog über den neuen Klick-Hörer in `wireNewCardsDialog`).
+
+Gemessen im mobilen Fenster (390 × 844, Chromium): Blatt 557 … 844, also volle Breite und
+bündig mit dem unteren Rand, Höhe 287, `max-height` 717 (= 85 %), Ecken `20px 20px 0 0`,
+Knöpfe 756 … 804. Mit nachgestelltem Home-Indikator (34 px): `padding-bottom` 34 px,
+Knöpfe enden 58 px über dem Rand. Mit nachgestellter Browser-Leiste (50 px) und Indikator:
+`padding-bottom` bleibt 50 px (nichts addiert sich), Knöpfe 722 … 770, also 24 px Luft bis
+zur Leiste; das `padding-block-end` der Seite geht auf 50 px, `.feedback` auf 78 px. Mit
+sehr langem Inhalt: Höhe exakt auf 85 % gedeckelt, das Panel scrollt, die Knopfzeile
+bleibt stehen. Ab 640 Pixel ist nichts angefasst — dort zentriert der Browser weiterhin
+(gemessen bei 1280 × 900: Dialog 358 … 543, Mitte 450 = Fenstermitte, `transform: none`,
+Rundung 16 Pixel).
+
+**Dasselbe Blatt gilt für alle drei Dialoge** (16.10.2026): `.dialog` (Anmelden,
+Kartendialog), `.account-dialog` (Konto) und `.count-dialog` (Anzahl neuer Karten). Alle
+drei setzten sich auf die Voreinstellung des Browsers und hatten damit dieselbe Schwäche —
+`.dialog` hatte `inset: 0; margin: auto` selbst im 639-Pixel-Block stehen, die beiden
+anderen verließen sich ganz auf den Browser. Gemessen bei 390 × 844: Zähl-Dialog
+557 … 844 (Höhe 287), Konto-Fenster 556 … 844 (288), Anmeldeformular 475 … 844 (369) —
+alle drei bündig unten und über die volle Breite. Ab 640 Pixel ist nichts angefasst.
+
+**Eine Einschränkung, die noch auf dem Gerät zu prüfen ist:** Das Anmeldeformular ist
+ein Eingabe-Dialog. Öffnet sich dort die Tastatur, kann sie ein unten verankertes Blatt
+verdecken. Am Rechner lässt sich das nicht nachstellen. Wenn es auf dem iPhone stört,
+gehört dieser eine Dialog nach oben statt nach unten — `.dialog` ist dafür die einzige
+Stelle, die geändert werden müsste.
+
+**`viewport-fit=cover` und die Ränder des iPhones** (16.10.2026). Das Ansichtsfenster in
+`src/helpers/page_head.php` trägt jetzt `viewport-fit=cover` — ohne diese Angabe wären
+alle `env(safe-area-inset-*)`-Werte 0 und jede Regel dagegen wirkungslos. Die Folge: die
+Seite läuft bis in die Ecken, und was am Rand steht, muss selbst Abstand halten. Am Ende
+von `app.css` stehen dafür einmal `--safe-top/right/bottom/left` (überall sonst nur noch
+benutzt) und die betroffenen Stellen:
+
+* `.page` — `padding-block-start/end` auf `max(<bisheriger Wert>, var(--safe-*))`. Das
+  erwischt die Kopfzeile (Nutzer, Abmelden, Sonne/Mond, EN/DE) und die Fußzeile (Pfeile,
+  Plus-Knopf) auf allen drei Seiten, weil alle dieselbe `.page` benutzen. Seitlich kommt
+  `padding-inline: var(--safe-left) var(--safe-right)` dazu; das wirkt nur im Querformat,
+  im Hochformat sind beide Werte 0.
+* `.learn` — die Lernansicht füllt den Bildschirm (`inset: 0`): der Schließen-Knopf soll
+  nicht unter der Uhr sitzen, die vier Bewertungen nicht hinter dem Home-Indikator. Dazu
+  rechnet die Karte bis 640 Pixel mit `58svh` statt `58vh` — `vh` zählt die von der
+  Browser-Leiste verdeckten Streifen mit, die Karte wäre sonst um deren Höhe zu groß und
+  drückte die Bewertungen wieder nach unten; `svh` ist die kleinste Höhe, die das Fenster
+  annehmen kann.
+* `.learn__ask`, `.feedback` und `.learn__notice` sind eigene `position: fixed`-Ebenen und
+  hängen deshalb nicht an `.learn`; sie bekommen die Ränder selbst.
+* Gemessen mit simulierten Rändern (die DevTools-Mobilansicht liefert `env()` = 0, deshalb
+  wurden die vier Werte direkt gesetzt): `.page` oben 24 → 47, unten 32 → 34, seitlich
+  0 → 44/44; die Kopfzeile beginnt bei 47 Pixel; `.learn` oben 47, unten 34; die vier
+  Bewertungen enden 32 Pixel über dem Home-Indikator; `.feedback` unten 62 statt 28,
+  `.learn__notice` 60 statt 26. Ohne Ränder (Rechner) sind alle Werte unverändert — dort
+  ändert `cover` nichts.
 
 Fläche, Rundung (16 Pixel) und Schatten teilt der Dialog mit dem Kontodialog — diese Regeln
 stehen weiter oben gemeinsam für beide. Was ihn unterscheidet, steht in einem eigenen
@@ -1129,11 +1372,41 @@ Abschnitt **am Ende** von `app.css`, und das ist Absicht: dort gewinnen die Rege
 die älteren `.count-dialog`-Regeln weiter oben, die der Überschrift zum Beispiel noch 24
 Pixel geben. Im Einzelnen:
 
-* **Die vier Vorschläge (5 / 10 / 20 / Alle) sind die Bedienung.** Sie sind 46 Pixel hoch
-  (auf dem Handy mit dem Daumen zu treffen), 16 Pixel groß, alle gleich breit
-  (`flex: 1 1 0`) statt je nach Textlänge unterschiedlich, und die gewählte Zahl ist
-  **gefüllt** in der Akzentfarbe (`[aria-pressed="true"]`). Beim Zeigen bleibt die Fläche,
-  sie wird nur eine Spur dunkler.
+* **Die Vorschläge (0 / 5 / 10) sind die Bedienung — als Text, nicht als Pillen**
+  (16.10.2026). Sie sind 46 Pixel hoch (der Daumen trifft auch die blanke Zahl), 16 Pixel
+  groß und alle gleich breit (`flex: 1 1 0`) statt je nach Textlänge unterschiedlich.
+  `NEW_CARDS_CHOICES` in `app.js` hält genau diese drei Zahlen; vorher waren es 5, 10, 20
+  und „Alle“ (den Übersetzungsschlüssel `learn.newCardsAll` gibt es deshalb nicht mehr).
+  **Die Null heißt „heute nichts Neues“:** die Einheit wiederholt dann nur, was ohnehin
+  fällig ist. Ist nichts fällig, läuft sie gar nicht erst los, sondern sagt „hier gibt es
+  noch nichts zu lernen“ (`beginLearnSession` prüft die leere Schlange schon lange).
+  **Mehr als es gibt, lässt sich nicht wählen:** die Aufgabenliste bringt gar nicht mehr
+  neue Karten mit, `limitNewCards` schneidet also von selbst ab — die Vorschläge werden
+  deshalb nicht mehr nach der verfügbaren Zahl gefiltert. Der vorausgewählte Wert ist die
+  größte angebotene Zahl, die es wirklich gibt (bei 15 neuen Karten also 10, bei 3 die 0).
+  Bis zum 16.10.2026 trug jeder Vorschlag einen Rahmen und die gewählte Zahl zusätzlich
+  einen Fokusring.
+  **Geprüft** mit abgefangener Aufgabenliste (Kategorie 2, Fenster 390 × 844): bei 12 neuen
+  Karten stehen genau `0 / 5 / 10` da und die 10 ist vorausgewählt; bei 3 neuen Karten die
+  0; ein Tipp auf „0“ verschiebt die Markierung; „Starten“ mit „0“ und ohne fällige Karte
+  meldet „hier gibt es noch nichts zu lernen“; mit einer fälligen Karte startet die Einheit
+  mit genau dieser einen (`1 of 1`).
+* **Die Markierung steckt im Text** (16.10.2026). Die gewählte Zahl ist in der
+  Akzentfarbe und **unterstrichen** (2 Pixel, 6 Pixel Abstand zur Ziffer, beide Werte im
+  Text); die anderen bleiben in der gedämpften Textfarbe ohne Rahmen. Beim Zeigen wird
+  die blanke Zahl zur Textfarbe, die gewählte eine Spur kräftiger (`--count-hover`).
+  Der Grund für den Umbau: Safari zeichnet einen `outline` **nicht entlang der Rundung**,
+  sondern als Rechteck — über den runden Ecken der gewählten Pille lag ein gerader Strich,
+  und sie sah abgeschnitten aus. Ein Strich im Text kann dagegen nicht beschnitten werden,
+  und Text hat auch keine Kante, die clippen könnte.
+* **Der Tastaturfokus ist ein dünner, gepunkteter Strich** (1,5 Pixel, in der Textfarbe,
+  ebenfalls im Text, kein `outline` und kein Schatten). Er steht im Stylesheet NACH der
+  Wahl, damit auch an der gewählten Zahl zu sehen ist, wo der Fokus gerade steht: die
+  gewählte Zahl behält dabei die Akzentfarbe und bekommt nur den gepunkteten Strich.
+  Gemessen (390 × 844): alle drei Zahlen auf 680 … 726, also gleiche Höhe und Grundlinie;
+  ohne Fokus keine Rahmen, kein `border-radius`, kein `box-shadow`; im hellen Thema
+  `--muted` für die stillen und `#2F6B4F` für die gewählte, im dunklen `#8FC7A4` auf der
+  dunklen Fläche.
 * **Es gibt kein Zahlenfeld mehr.** Bis zum 12.10.2026 stand darunter noch eine Zeile mit
 einem schmalen Feld für eine eigene Zahl. Die vier Vorschläge decken das ab, was man
 wirklich braucht, und ein zweites Bedienelement daneben ließ sie wie eine Abkürzung für
@@ -1157,15 +1430,15 @@ Gemessen bei 375 × 667 Pixel: 343 × 247 Pixel groß, 16 Pixel Rand links und r
 Pixel Abstand oben und unten, nichts abgeschnitten. Bei 375 × 340 Pixel rutscht der Inhalt
 in den Scroll des Panels, Titel und Aktionszeile bleiben dabei stehen.
 
-**Alle Dialoge stehen mittig, auch auf dem Handy.** Bis 639 Pixel kam `.dialog` (der
-Anmeldedialog, der Kartendialog, das Löschen) von unten herein: volle Breite, nur oben
-abgerundet, `inset: auto 0 0 0` mit `transform: translateY(100%)`. Auf einem hohen
-Bildschirm ist das eine Leiste am unteren Rand statt eines Fensters - und der Dialog für
-die Anzahl neuer Karten stand daneben schon immer mittig. Jetzt gilt für alle dasselbe:
-`inset: 0` mit `margin: auto` (genau das, was der Browser für einen Dialog von sich aus
-tut), `width: calc(100vw - 32px)`, `max-height: calc(100dvh - 32px)`, Rundung 16 Pixel.
-Gemessen bei 375 × 667: der Anmeldedialog ist 343 × 370 Pixel groß und steht 16 Pixel vom
-Seitenrand und 148 Pixel von oben und unten entfernt - vorher war der untere Abstand 0.
+**Alle Dialoge sind auf dem Handy ein Blatt von unten.** Am Rechner stehen sie mittig
+(dort zentriert sie der Browser; gemessen bei 375 × 667 stand der Anmeldedialog 343 × 370
+Pixel groß mit 16 Pixeln Seitenrand und 148 Pixeln Abstand nach oben und unten). Bis 639
+Pixel kamen `.dialog` und das Löschen schon immer von unten herein — volle Breite, nur
+oben abgerundet —, nur die Anzahl neuer Karten stand daneben mittig. Seit 16.10.2026 gilt
+für alle drei dasselbe: `bottom: 0`, volle Breite, `border-radius: 20px 20px 0 0`,
+`max-height: 85svh`, `padding-bottom: max(16px, var(--bottom-safe))` und die Einfahrt über
+`transform: translateY(100%)`. Die Begründung steht weiter oben: ein unten verankertes
+Blatt kann nicht abgeschnitten werden, ein zentrierter Dialog auf dem iPhone schon.
 
 **Der Fokus in den Feldern ist die Akzentfarbe, nicht Cyan.** In beiden Themen trägt
 `input:focus` den Rand und den Ring aus `--accent`; die Regel
