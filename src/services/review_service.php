@@ -299,6 +299,12 @@ function review_cards_in_categories(PDO $pdo, array $categoryIds, ?int $userId, 
         $selected[] = 'k.map_region';
     }
 
+    /* Fotos sind ebenfalls freiwillig: database/card_images.sql legt sie an. */
+    if (card_image_columns_present($columns)) {
+        $selected[] = 'k.image_front';
+        $selected[] = 'k.image_back';
+    }
+
     /*
      * Die Aufgabe einer Karte, wenn es die Tabelle dafür gibt. Die zwei Werte werden hier
      * umbenannt, damit sie nicht für eine Spalte von `cards` gehalten werden - und
@@ -1021,6 +1027,13 @@ function review_directions_of(array $card, string $status, bool $isDue): array
             ? (string) $card['map_region']
             : null,
         /*
+         * Die Fotos der Seite. Sie hängen an der Seite der Karte, nicht an der
+         * Sprache: wer die Karte andersherum lernt, bekommt sie deshalb unten
+         * getauscht.
+         */
+        'image_front' => isset($card['image_front']) ? $card['image_front'] : null,
+        'image_back' => isset($card['image_back']) ? $card['image_back'] : null,
+        /*
          * Die Aufgabe der Karte, wenn sie eine ist. Ihre Aufgabe ist keine Spalte: sie
          * wird bei jedem Lesen der Karte neu ausgewürfelt, jede Einheit bekommt also neue
          * Zahlen. Ohne das bekäme die Einheit nur die Überschrift und eine leere Antwort,
@@ -1037,6 +1050,14 @@ function review_directions_of(array $card, string $status, bool $isDue): array
     $reverse['direction'] = 'reverse';
     $reverse['front'] = (string) $card['back'];
     $reverse['back'] = (string) $card['front'];
+
+    /*
+     * Andersherum tauschen auch die Fotos die Plätze: die Frage ist jetzt die
+     * alte Rückseite, also gehört ihr Foto auf die Vorderseite. Ohne diesen Tausch
+     * zeigte die umgedrehte Karte das Foto der Antwort schon in der Frage.
+     */
+    $reverse['image_front'] = $forward['image_back'];
+    $reverse['image_back'] = $forward['image_front'];
 
     /*
      * Andersherum tauschen Frage und Antwort die Plätze - in jeder Sprache, damit der
@@ -1084,6 +1105,11 @@ function review_cards_all_categories(PDO $pdo, ?int $userId, string $language = 
 
     if (card_column_available($columns, 'map_region')) {
         $selected[] = 'k.map_region';
+    }
+
+    if (card_image_columns_present($columns)) {
+        $selected[] = 'k.image_front';
+        $selected[] = 'k.image_back';
     }
 
     if (card_exercise_table_available($pdo) && card_exercise_params_available($pdo)) {

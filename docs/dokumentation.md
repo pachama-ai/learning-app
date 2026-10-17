@@ -94,7 +94,7 @@ Neun Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 | --- | ---: | --- |
 | `users` | 2 | die Konten |
 | `categories` | 92 | 8 Lernbereiche und 84 Unterkategorien, alle mit Besitzer |
-| `cards` | 7765 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
+| `cards` | 7777 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
 | `card_variants` | 1500 | die Satzbeispiele einer Karte, 0 bis n je Karte |
 | `user_card_progress` | 259 | eine Zeile je Nutzer und Karte – der Lernstand |
 | `study_sessions` | 46 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
@@ -109,7 +109,8 @@ Lernbereich „Energy" (id 193) wurde mit seinen 15 Unterkategorien und 436 Kart
 gelöscht. Gewachsen ist dafür eine andere: der neue Lernbereich **PRIO** entstand mit
 achtzehn Unterkategorien und 281 Karten (siehe §7). Deshalb stehen in `categories`
 92 statt 89 Zeilen – die 89 waren 8 Lernbereiche und 81 Unterkategorien, jetzt sind
-es 8 und 84 – und in `cards` 7765 statt 7920. Genaueres dazu in §7 und §10.)
+es 8 und 84 – und in `cards` 7777 statt 7920. Am Abend kamen zwölf weitere Karten in
+den Bereich `Energy` (siehe §7). Genaueres dazu in §7 und §10.)
 
 Ein paar Eigenheiten, die man wissen sollte:
 
@@ -122,6 +123,11 @@ Ein paar Eigenheiten, die man wissen sollte:
   `front_de`/`back_de`/`front_en`/`back_en`.
 - `categories.icon_svg` ist `MEDIUMTEXT` und nicht `TEXT` – eine hochgeladene
   Zeichnung darf bis 350 KB groß sein, in `TEXT` passten nur 64 KB.
+- `cards.image_front` und `cards.image_back` tragen **nur den Dateinamen** eines
+  Fotos, nicht den Pfad. Die Dateien liegen in `public/uploads/cards/`; der Name
+  wird beim Hochladen zufällig erzeugt. Fehlen die beiden Spalten, arbeitet die
+  Anwendung ohne Fotos weiter, und der Kartendialog meldet das beim Hochladen.
+  Angelegt werden sie mit `database/card_images.sql` (von Hand auszuführen).
 - `user_card_progress` hat `ON DELETE CASCADE` auf beiden Fremdschlüsseln. Wird ein
   Konto oder eine Karte gelöscht, geht der Lernstand mit – das ist gewollt.
 - `study_sessions.category_id` ist `ON DELETE SET NULL`: wird die Unterkategorie
@@ -262,6 +268,7 @@ Pfad.
 | 16.10. | Zweite PRIO-Runde: Stromnetz, Strommarkt, Strompreise, Netzentgelte, Felder & Blindleistung, Energiegesetze (vier Unterkategorien) | 117 | neun neue Unterkategorien in `PRIO`, einseitig |
 | 16.10. | „Netzbetrieb & Systemstabilität" durch die aktualisierte Fassung ersetzt | 26 (22 ersetzt) | `PRIO`, Unterkategorie id 232 |
 | 16.10. | Achte Datei der PRIO-Runde nachgezogen (lag zuerst nicht vor) | 14 | neue Unterkategorie `Energiedaten, Strommix & Energiewende` in `PRIO` |
+| 16.10. | Einheiten, Energieformen und Atomaufbau aus einer neuen Liste | 12 | 8 in `Energiegrundlagen & Energiewende` und 4 in `Atome, Teilchen & Elektrizität` (Energy, id 3), einseitig |
 
 **Der neue Lernbereich „PRIO" (16.10.2026).** Der Bereich entstand über die
 Anwendung selbst (`POST /api/categories.php`, Name/name_de/name_en = `PRIO`), damit
@@ -345,6 +352,24 @@ durch dieselbe Prüfung wie ein Symbol, das jemand selbst hochlädt. Beide Zeich
 sind zeichengleich (30693 Zeichen, `icon_scale` 1.00), und beide Bereiche liefern
 `api/category_icon.php` mit demselben Inhalt aus. Ein Symbol ist nur für sein Konto
 abrufbar: ohne angemeldete Sitzung antwortet der Endpunkt mit 404.
+
+**Einheiten, Energieformen und Atomaufbau (16.10.2026).** Eine neue Liste
+(`energie_grundlagen_einheiten_energieformen_atome_de_en (1).csv`, 15 Zeilen) kam in
+einem anderen Spaltenformat: `lesson;subcategory;question_en;answer_en;question_de;
+answer_de`. Ihre Spalte `lesson` nennt für alle Zeilen „Energy basics & energy
+transition" – den englischen Namen der bestehenden Unterkategorie `Energiegrundlagen &
+Energiewende` (id 213). Dorthin gingen acht Karten (Einheiten, Leistung, Energieformen);
+die vier Karten zu Atomaufbau und Elektrostatik kamen in die passendere bestehende
+Unterkategorie `Atome, Teilchen & Elektrizität` (id 219). Es wurde also **keine** neue
+Unterkategorie angelegt (weiterhin 92).
+
+**Drei Karten waren schon da und blieben draußen:** „Was ist chemische Energie?" gibt es
+wortgleich (id 18027), „Was ist kinetische Energie?" und „Was ist thermische Energie?"
+gibt es mit ausführlicherem Wortlaut („… (Bewegungsenergie)?" id 18025,
+„… (Wärmeenergie)?" id 18029) – dieselbe Frage, deshalb keine zweite Karte. Zwölf Karten
+wurden importiert (ids 18396–18407), alle einseitig und mit beiden Sprachen. Die
+umgewandelte Arbeitskopie liegt in
+`database/import/grundlagen_einheiten_formen_atome_umgewandelt.csv`.
 
 Die Quell-CSVs liegen noch im Projektstamm (frühere Importe haben ihre Dateien
 danach gelöscht, siehe oben) – einundzwanzig an der Zahl. Ihr Inhalt
@@ -876,6 +901,23 @@ trägt der Knopf die Akzentfarbe, weil `--text` dort hell ist. Wer die Knöpfe i
 Themen grün will, ändert eine Regel - aber dann kollidiert das Grün mit dem Zeichen für
 fällige Karten.
 
+**Fotos an einer Lernkarte**
+
+Seit dem 17.10.2026 kann jede Seite einer Karte ein Foto tragen. Hochgeladen wird
+im Kartenformular; die Datei geht erst mit dem Speichern an den Server, weil eine
+neue Karte vorher noch keine Id hat. Der Server liest jedes Bild selbst, dreht es
+nach den EXIF-Daten, verkleinert die längste Seite auf 1600 Pixel und schreibt es
+neu – dadurch verschwinden EXIF-Daten, und ein umbenanntes Skript kann nicht als
+Bild durchgehen. Angenommen werden JPG, PNG und WebP bis 2 MB; SVG ist absichtlich
+nicht dabei, weil es Skript enthalten kann. Gespeichert wird nur ein zufälliger
+Dateiname mit fester Endung. Hochladen und Entfernen verlangen den CSRF-Token der
+Sitzung: beim Upload reist er im Formular mit, beim Entfernen in einem eigenen
+Kopf.
+
+Auf der Lernkarte steht das Foto unter dem Text der jeweiligen Seite. Bei einer
+Karte, die in beide Richtungen geübt wird, tauschen die Fotos beim Umdrehen mit:
+Die Frage ist dann die alte Rückseite, also gehört deren Foto nach vorn.
+
 **Zwei Bäume namens „Energy" – einer davon ist inzwischen weg**
 
 Nutzer 6 hatte zwei Lernbereiche „Energy": den aktiven (id 3) und eine ältere Kopie
@@ -978,6 +1020,11 @@ ist in Ordnung, es ist nur eine protokollierte Absage.
   `browser_icon.svg` dort.
 
 ## 11. Sicherungskopien
+
+Die Kartenfotos in `public/uploads/cards/` sind **nicht** Teil eines
+`mysqldump`-Abzugs: In der Datenbank steht nur der Dateiname. Wer eine Sicherung
+zurückholt, muss den Ordner deshalb zusätzlich kopieren, sonst verweisen die
+Spalten `image_front` und `image_back` auf fehlende Dateien.
 
 Die Dumps liegen **außerhalb** des Repos unter `/home/user/backups/` und sind
 nicht eingecheckt. Die älteste und kleinste ist ein vollständiger Dump vom

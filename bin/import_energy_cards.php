@@ -1185,7 +1185,7 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
 {
     $pdo->beginTransaction();
 
-    $deleted = ['categories' => 0, 'cards' => 0, 'progress' => 0];
+    $deleted = ['categories' => 0, 'cards' => 0, 'progress' => 0, 'images' => []];
 
     /* ---- STEP A ---------------------------------------------------------- */
 
@@ -1321,6 +1321,10 @@ function import_execute(PDO $pdo, bool $wipe, bool $reuse, array $area, array $c
 
     $pdo->commit();
 
+    /* Erst nach dem Festschreiben: ein Rollback lässt die Bilder liegen. */
+    require_once __DIR__ . '/../src/services/card_image_service.php';
+    card_image_delete_files($deleted['images'] ?? []);
+
     return [
         'deleted_categories' => $deleted['categories'],
         'deleted_cards' => $deleted['cards'],
@@ -1422,6 +1426,11 @@ function import_delete_subcategories(PDO $pdo, int $areaId, int $ownerUserId): a
      * sie können nie eine Zeile eines anderen Kontos anfassen.
      */
     $progress = delete_progress_of_categories($pdo, $ids, $ownerUserId);
+
+    /* Die Fotos vor dem Löschen merken; weg dürfen sie erst nach dem commit(). */
+    require_once __DIR__ . '/../src/services/card_image_service.php';
+    $images = card_image_files_of_categories($pdo, $ids, $ownerUserId);
+
     $cards = delete_cards_of_categories($pdo, $ids, $ownerUserId);
 
     /* 3. die Kategorien selbst, wieder mit dem Konto als zweiter Absicherung. */
@@ -1435,5 +1444,5 @@ function import_delete_subcategories(PDO $pdo, int $areaId, int $ownerUserId): a
         $deleted += $statement->rowCount();
     }
 
-    return ['categories' => $deleted, 'cards' => $cards, 'progress' => $progress];
+    return ['categories' => $deleted, 'cards' => $cards, 'progress' => $progress, 'images' => $images];
 }

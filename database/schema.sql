@@ -17,6 +17,11 @@
 -- story_contributions) fuer "Story Together". Sie stehen hier am Ende und wurden
 -- mit database/story_together.sql angelegt; der Rest der Datei ist unveraendert.
 --
+-- NACHTRAG 17. Oktober 2026: `cards` traegt zwei freiwillige Spalten fuer Fotos,
+-- `image_front` und `image_back`. Sie stehen weiter unten in der Tabelle und
+-- werden mit database/card_images.sql nachgezogen. Wie bei map_region gilt:
+-- fehlen sie, arbeitet die Anwendung ohne Fotos weiter.
+--
 -- NUR DIE STRUKTUR, KEINE INHALTE
 --
 -- Diese Datei legt leere Tabellen an. Die Kategorien und die Karten kommen
@@ -157,6 +162,8 @@ CREATE TABLE IF NOT EXISTS `cards` (
   `front_en` text COLLATE utf8mb4_unicode_ci,
   `back_en` text COLLATE utf8mb4_unicode_ci,
   `map_region` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `image_front` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Dateiname in public/uploads/cards; NULL = kein Foto',
+  `image_back` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Dateiname in public/uploads/cards; NULL = kein Foto',
   `is_bidirectional` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`),

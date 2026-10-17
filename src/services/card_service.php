@@ -31,6 +31,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/exercise_service.php';
 require_once __DIR__ . '/category_service.php';
+require_once __DIR__ . '/../helpers/card_image.php';
 require_once __DIR__ . '/../helpers/request_input.php';
 require_once __DIR__ . '/../helpers/session_variant.php';
 
@@ -61,6 +62,14 @@ function normalize_card_row(array $row): array
         'map_region' => isset($row['map_region']) && card_map_region_is_valid((string) $row['map_region'])
             ? (string) $row['map_region']
             : null,
+        /*
+         * Die Fotos der beiden Seiten. In der Datenbank steht nur der Dateiname; die
+         * Adresse für den Browser entsteht hier. Eine Zeile ohne die Foto-Spalten
+         * (eine Installation vor database/card_images.sql) liefert zweimal null, die
+         * Lernkarte bleibt dort also einfach ohne Foto.
+         */
+        'image_front' => card_image_url(isset($row['image_front']) ? (string) $row['image_front'] : null),
+        'image_back' => card_image_url(isset($row['image_back']) ? (string) $row['image_back'] : null),
         /*
          * Eine Aufgabe oder gar nichts. Die Aufgabe selbst wird nirgends gespeichert:
          * sie entsteht hier aus der Art der Aufgabe und dem Bereich, ihre Zahlen sind
@@ -241,6 +250,17 @@ function update_card(PDO $pdo, int $cardId, array $changes, int $ownerUserId): ?
  */
 function delete_card(PDO $pdo, int $cardId, int $ownerUserId): bool
 {
+    /*
+     * Die Fotos werden vor dem Löschen gelesen und erst danach von der Platte
+     * genommen. Geht das Löschen schief, bleibt die Karte samt Bild also heil.
+     *
+     * card_image_service.php wird hier geladen und nicht oben: es lädt selbst diese
+     * Datei, ein require am Anfang wäre ein Kreis.
+     */
+    require_once __DIR__ . '/card_image_service.php';
+
+    $files = card_image_files($pdo, $cardId, $ownerUserId);
+
     $statement = $pdo->prepare(
         'DELETE FROM cards
           WHERE id = :id
@@ -250,7 +270,15 @@ function delete_card(PDO $pdo, int $cardId, int $ownerUserId): bool
     $statement->bindValue(':owner_user_id', $ownerUserId, PDO::PARAM_INT);
     $statement->execute();
 
-    return $statement->rowCount() > 0;
+    if ($statement->rowCount() === 0) {
+        return false;
+    }
+
+    if ($files !== null) {
+        card_image_delete_files(array_values(array_filter($files)));
+    }
+
+    return true;
 }
 
 /**
@@ -740,6 +768,16 @@ function card_read_columns(PDO $pdo): array
     /* Die Kartenregion reist nur mit, wenn die Tabelle die Spalte wirklich hat. */
     if (card_column_available(card_columns($pdo), 'map_region')) {
         $columns[] = 'map_region';
+    }
+
+    /*
+     * Die Fotos reisen genauso nur mit, wenn es die beiden Spalten gibt. Sie sind
+     * freiwillig: ohne database/card_images.sql liest die Anwendung weiterhin alle
+     * Karten, nur ohne Foto.
+     */
+    if (card_image_columns_present(card_columns($pdo))) {
+        $columns[] = 'image_front';
+        $columns[] = 'image_back';
     }
 
     /*

@@ -670,7 +670,7 @@ function category_delete_dependents(PDO $pdo, int $categoryId, int $ownerUserId)
  * nichts mehr finden. Dem Aufrufer kann also nie "gelöscht" gemeldet werden, während
  * die Zeile noch da ist.
  *
- * @return array{categories: int, cards: int, progress: int} Was wirklich gelöscht wurde.
+ * @return array{categories: int, cards: int, progress: int, images: list<string>} Was wirklich gelöscht wurde.
  * @throws RuntimeException wenn die ausgewählte Kategorie danach noch existiert.
  */
 function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): array
@@ -678,6 +678,7 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
     // Die Karten und ihr Fortschritt fliegen zuerst raus, und das macht der
     // Kartenservice - deshalb wird er hier geladen und nicht dem Aufrufer überlassen.
     require_once __DIR__ . '/card_service.php';
+    require_once __DIR__ . '/card_image_service.php';
 
     /*
      * Normalerweise gehört die Transaktion dieser Funktion. Wird sie aus einer
@@ -693,6 +694,10 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
 
     try {
         $ids = category_subtree_ids($pdo, $categoryId, $ownerUserId);
+
+        /* Die Fotos werden vor dem Löschen gemerkt und erst nach dem Festschreiben
+           von der Platte genommen. Ein Rollback lässt sie also liegen. */
+        $imageFiles = card_image_files_of_categories($pdo, $ids, $ownerUserId);
 
         // 1. der Lernfortschritt jeder Karte in diesem Teilbaum
         $deletedProgress = delete_progress_of_categories($pdo, $ids, $ownerUserId);
@@ -744,12 +749,16 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
 
         if ($ownsTransaction) {
             $pdo->commit();
+            card_image_delete_files($imageFiles);
         }
 
         return [
             'categories' => $deletedCategories,
             'cards' => $deletedCards,
             'progress' => $deletedProgress,
+            /* Nur für den Aufrufer, der die äußere Transaktion hält: erst nach
+               seinem commit() dürfen die Dateien weg. */
+            'images' => $imageFiles,
         ];
     } catch (Throwable $error) {
         // Ein Rollback setzt die Datenbank genau dorthin zurück, wo sie vor dem
@@ -788,6 +797,7 @@ function delete_category_tree(PDO $pdo, int $categoryId, int $ownerUserId): arra
 function delete_subcategories(PDO $pdo, int $parentId, array $categoryIds, int $ownerUserId): array
 {
     require_once __DIR__ . '/card_service.php';
+    require_once __DIR__ . '/card_image_service.php';
 
     /* Der Bereich muss existieren, diesem Konto gehören und ein Bereich sein. Eine
        Unterkategorie als "Bereich" würde sonst erlauben, ihre Kinder mitzunehmen. */
@@ -829,6 +839,7 @@ function delete_subcategories(PDO $pdo, int $parentId, array $categoryIds, int $
     }
 
     $totals = ['categories' => 0, 'cards' => 0, 'progress' => 0];
+    $imageFiles = [];
 
     $ownsTransaction = !$pdo->inTransaction();
 
@@ -843,10 +854,13 @@ function delete_subcategories(PDO $pdo, int $parentId, array $categoryIds, int $
             $totals['categories'] += $deleted['categories'];
             $totals['cards'] += $deleted['cards'];
             $totals['progress'] += $deleted['progress'];
+            $imageFiles = array_merge($imageFiles, $deleted['images'] ?? []);
         }
 
         if ($ownsTransaction) {
             $pdo->commit();
+            /* Erst jetzt, wo die Datenbank das Löschen bestätigt hat. */
+            card_image_delete_files(array_values(array_unique($imageFiles)));
         }
 
         return ['ok' => true, 'code' => null, 'data' => $totals];

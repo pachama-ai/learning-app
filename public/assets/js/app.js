@@ -592,9 +592,12 @@
         learnAskConfirm: document.getElementById('learn-ask-confirm'),
         learnClose: document.getElementById('learn-close'),
         learnNotice: document.getElementById('learn-notice'),
-        /* Die zwei Seiten der Lernkarte können ein Kartenbild tragen. */
+        /* Die zwei Seiten der Lernkarte können ein Landkartenbild tragen. */
         learnMapFront: document.getElementById('learn-map-front'),
         learnMapBack: document.getElementById('learn-map-back'),
+        /* Und ein Foto, das an der Karte gespeichert ist. */
+        learnImageFront: document.getElementById('learn-image-front'),
+        learnImageBack: document.getElementById('learn-image-back'),
         /* Der Sprachumschalter steht auf beiden Seiten der Lernkarte. */
         learnLangToggles: document.querySelectorAll('[data-card-language-toggle]'),
 
@@ -1007,10 +1010,47 @@
      *   { ok: true,  data: ... }
      *   { ok: false, code: 'category_exists' }
      */
-    function apiRequest(url, method, body) {
+    /*
+     * Die eine Antwortform der API, für jede Art von Anfrage.
+     *
+     * Ein Inhalt, der kein JSON ist (zum Beispiel eine HTML-Fehlerseite), darf die
+     * Seite nicht mit einem Fehler anhalten.
+     */
+    function apiResult(response) {
+        return response.json()
+            .catch(function () {
+                return null;
+            })
+            .then(function (payload) {
+                if (response.ok && payload && payload.success === true) {
+                    return { ok: true, status: response.status, data: payload.data };
+                }
+
+                return {
+                    ok: false,
+                    status: response.status,
+                    code: payload && payload.error ? String(payload.error.code) : 'request_failed'
+                };
+            });
+    }
+
+    /* Die Anfrage hat den Server nie erreicht. */
+    function apiUnreachable() {
+        return { ok: false, status: 0, code: 'network_error' };
+    }
+
+    function apiRequest(url, method, body, extraHeaders) {
+        var headers = { Accept: 'application/json' };
+
+        if (extraHeaders) {
+            Object.keys(extraHeaders).forEach(function (name) {
+                headers[name] = extraHeaders[name];
+            });
+        }
+
         var options = {
             method: method,
-            headers: { Accept: 'application/json' },
+            headers: headers,
             /*
              * Den Browser nie eine API-Antwort aus seinem eigenen Speicher beantworten lassen.
              *
@@ -1028,28 +1068,21 @@
             options.body = JSON.stringify(body);
         }
 
-        return window.fetch(url, options).then(function (response) {
-            return response.json()
-                .catch(function () {
-                    /* Ein Inhalt, der kein JSON ist (zum Beispiel eine HTML-Fehlerseite),
-                       darf die Seite nicht mit einem Fehler anhalten. */
-                    return null;
-                })
-                .then(function (payload) {
-                    if (response.ok && payload && payload.success === true) {
-                        return { ok: true, status: response.status, data: payload.data };
-                    }
+        return window.fetch(url, options).then(apiResult).catch(apiUnreachable);
+    }
 
-                    return {
-                        ok: false,
-                        status: response.status,
-                        code: payload && payload.error ? String(payload.error.code) : 'request_failed'
-                    };
-                });
-        }).catch(function () {
-            /* Die Anfrage hat den Server nie erreicht. */
-            return { ok: false, status: 0, code: 'network_error' };
-        });
+    /*
+     * Ein Datei-Upload. Der Unterschied zu apiRequest ist nur der Inhalt: FormData
+     * setzt seinen eigenen Content-Type (mit der Grenze zwischen den Teilen), deshalb
+     * darf hier kein JSON-Kopf gesetzt werden.
+     */
+    function apiUpload(url, formData) {
+        return window.fetch(url, {
+            method: 'POST',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+            body: formData
+        }).then(apiResult).catch(apiUnreachable);
     }
 
     /* ----------------------------------------------------------------------
@@ -1578,6 +1611,38 @@
 
         if (code === 'invalid_map_region') {
             return t('dialog.errorMapRegion');
+        }
+
+        /* Die Fotos einer Karte. Der Server prüft jedes Bild selbst; diese Sätze
+           erklären, was an der Datei nicht passt. */
+        if (code === 'card_images_unavailable') {
+            return t('dialog.card.photoUnavailable');
+        }
+
+        if (code === 'image_too_large') {
+            return t('dialog.card.photoTooLarge', {
+                max: Math.round(config.limits.imageBytes / 1024 / 1024)
+            });
+        }
+
+        if (code === 'image_too_small') {
+            return t('dialog.card.photoTooSmall');
+        }
+
+        if (code === 'image_dimensions') {
+            return t('dialog.card.photoDimensions');
+        }
+
+        if (code === 'image_type') {
+            return t('dialog.card.photoType');
+        }
+
+        if (code === 'image_empty' || code === 'image_missing' || code === 'image_invalid') {
+            return t('dialog.card.photoInvalid');
+        }
+
+        if (code === 'image_failed') {
+            return t('dialog.card.photoFailed');
         }
 
         if (code === 'invalid_back') {
@@ -3836,8 +3901,31 @@
     var dialogOpener = null;    // das Element, das geöffnet hat (dorthin geht der Fokus zurück)
     var dialogUsed = false;     // true, sobald ein Feld berührt wurde
     var dialogIcon = null;      // { svg, name, removed, storedUrl, preview }
+    var dialogCardImages = null; // { front: { file, objectUrl, removed, existing }, back: ... }
     var dialogFields = {};      // Name -> { control, error, wrap }
     var dialogRound = 0;        // welches Fenster das offene ist, siehe closeDialog()
+
+    /*
+     * Gibt die Vorschaubilder frei, die der Browser für gewählte Dateien angelegt hat.
+     *
+     * Ein objectURL hält die Datei im Speicher, bis jemand es zurückgibt; das passiert
+     * beim Schließen des Fensters und beim erneuten Öffnen. Die Adresse aus der
+     * Datenbank ist keine objectURL und wird hier nicht angefasst.
+     */
+    function releaseCardImageUrls() {
+        if (dialogCardImages === null) {
+            return;
+        }
+
+        ['front', 'back'].forEach(function (side) {
+            var state = dialogCardImages[side];
+
+            if (state && state.objectUrl !== null) {
+                window.URL.revokeObjectURL(state.objectUrl);
+                state.objectUrl = null;
+            }
+        });
+    }
 
     /*
      * Lässt ein Textfeld mit seinem Inhalt wachsen. Die Höhe wird nach jeder Änderung aus der
@@ -3925,6 +4013,8 @@
             dialogEntry = null;
             dialogParentId = null;
             dialogIcon = null;
+            releaseCardImageUrls();
+            dialogCardImages = null;
             dialogOpener = null;
             dialogUsed = false;
             dialogFields = {};
@@ -4599,6 +4689,21 @@
         dialogKind = 'card';
         dialogMapField = null;
         dialogExerciseField = null;
+        releaseCardImageUrls();
+        dialogCardImages = {
+            front: {
+                file: null,
+                objectUrl: null,
+                removed: false,
+                existing: card !== null && typeof card.image_front === 'string' ? card.image_front : ''
+            },
+            back: {
+                file: null,
+                objectUrl: null,
+                removed: false,
+                existing: card !== null && typeof card.image_back === 'string' ? card.image_back : ''
+            }
+        };
         dialogEntry = card;
         dialogParentId = categoryId;
         dialogIcon = null;
@@ -4677,6 +4782,10 @@
             counter: true,
             value: cardDraft[cardTab].back
         });
+
+        /* Je ein Foto für die beiden Seiten, freiwillig. */
+        addCardImageField('front');
+        addCardImageField('back');
 
         /* Die freiwillige Landkarte: Bereich, Region und die markierte Karte darunter. */
         addMapField(card !== null && typeof card.map_region === 'string' ? card.map_region : null);
@@ -5732,6 +5841,96 @@
             : (elements.dialogSubmit.dataset.idleLabel || t('dialog.save'));
     }
 
+    /* Ein einzelnes Foto hochladen. Die Karte muss dafür schon gespeichert sein. */
+    function uploadCardImage(cardId, side, file) {
+        var form = new window.FormData();
+        form.append('image', file);
+        form.append('csrf_token', authState.csrfToken);
+
+        var url = config.endpoints.cardImage
+            + '?card_id=' + encodeURIComponent(cardId)
+            + '&side=' + encodeURIComponent(side);
+
+        return apiUpload(url, form);
+    }
+
+    /*
+     * Schickt die Foto-Änderungen des offenen Kartenformulars hinterher.
+     *
+     * Die Texte sind zu diesem Zeitpunkt schon gespeichert. Das ist Absicht: erst die
+     * Karte anlegen (dann gibt es eine Id), dann das Foto daranhängen. Geht dabei etwas
+     * schief, bleibt das Fenster offen und nennt den Grund, die Karte selbst ist aber
+     * nicht verloren.
+     */
+    function saveCardImages(cardId) {
+        if (dialogCardImages === null) {
+            return Promise.resolve({ ok: true });
+        }
+
+        var jobs = [];
+
+        ['front', 'back'].forEach(function (side) {
+            var state = dialogCardImages[side];
+
+            if (state === null) {
+                return;
+            }
+
+            if (state.file !== null) {
+                jobs.push(uploadCardImage(cardId, side, state.file).then(function (result) {
+                    if (!result.ok) {
+                        return { ok: false, code: result.code, side: side };
+                    }
+
+                    state.file = null;
+
+                    if (state.objectUrl !== null) {
+                        window.URL.revokeObjectURL(state.objectUrl);
+                        state.objectUrl = null;
+                    }
+
+                    state.existing = result.data && typeof result.data['image_' + side] === 'string'
+                        ? result.data['image_' + side]
+                        : '';
+                    state.removed = false;
+
+                    return { ok: true };
+                }));
+
+                return;
+            }
+
+            if (state.removed && state.existing !== '') {
+                var url = config.endpoints.cardImage
+                    + '?card_id=' + encodeURIComponent(cardId)
+                    + '&side=' + encodeURIComponent(side);
+
+                jobs.push(apiRequest(url, 'DELETE', undefined, {
+                    'X-CSRF-Token': authState.csrfToken
+                }).then(function (result) {
+                    if (!result.ok) {
+                        return { ok: false, code: result.code, side: side };
+                    }
+
+                    state.existing = '';
+                    state.removed = false;
+
+                    return { ok: true };
+                }));
+            }
+        });
+
+        return Promise.all(jobs).then(function (results) {
+            for (var index = 0; index < results.length; index += 1) {
+                if (results[index].ok !== true) {
+                    return results[index];
+                }
+            }
+
+            return { ok: true };
+        });
+    }
+
     /*
      * Die eine Stelle, die für ein Fenster mit der API spricht.
      *
@@ -5869,17 +6068,57 @@
         }
 
         var removedName = null;
+        /* Ob diese Zeile neu war, bevor die Antwort sie zu dialogEntry macht. */
+        var wasCreate = dialogEntry === null;
 
         elements.dialogSubmit.dataset.idleLabel = elements.dialogSubmit.textContent;
         setBusy(true);
 
         apiRequest(url, method, payload).then(function (result) {
-            setBusy(false);
-
             if (!result.ok) {
+                setBusy(false);
                 handleSubmitFailure(result);
+                return null;
+            }
+
+            /*
+             * Die gespeicherte Zeile wird der offene Eintrag. Das ist wichtig, wenn ein
+             * Foto nicht hochgeladen werden konnte: ein zweiter Versuch ändert dann
+             * dieselbe Karte, statt eine zweite anzulegen.
+             */
+            if (result.data && typeof result.data.id === 'number') {
+                dialogEntry = result.data;
+            }
+
+            if (!isCard) {
+                return result;
+            }
+
+            var savedCardId = result.data && typeof result.data.id === 'number'
+                ? result.data.id
+                : null;
+
+            if (savedCardId === null) {
+                return result;
+            }
+
+            /* Erst wenn die Fotos auch angekommen sind, schließt sich das Fenster. */
+            return saveCardImages(savedCardId).then(function (imageResult) {
+                if (imageResult.ok === true) {
+                    return result;
+                }
+
+                setBusy(false);
+                setFieldError('image_' + imageResult.side, errorMessage(imageResult.code));
+
+                return null;
+            });
+        }).then(function (result) {
+            if (result === null) {
                 return;
             }
+
+            setBusy(false);
 
             /*
              * Alles, was die Seite zeigt, kommt wieder aus der API, eine gespeicherte Zeile ist
@@ -5889,13 +6128,13 @@
             bootstrapDropCards(config.categoryId);
             bootstrapDropCategories();
 
-            var createdName = dialogEntry === null && result.data && typeof result.data.name === 'string'
+            var createdName = wasCreate && result.data && typeof result.data.name === 'string'
                 ? (locale === 'de' && typeof result.data.name_de === 'string' && result.data.name_de !== ''
                     ? result.data.name_de
                     : result.data.name)
                 : null;
 
-            newAreaId = dialogEntry === null && !isCard && result.data && typeof result.data.id === 'number'
+            newAreaId = wasCreate && !isCard && result.data && typeof result.data.id === 'number'
                 ? result.data.id
                 : null;
 
@@ -7055,6 +7294,11 @@
 
         elements.learnFrontText.textContent = task === null ? texts.front : task.question;
         elements.learnBackText.textContent = task === null ? texts.back : task.answer;
+        /* Das Foto hängt an der Seite der Karte, nicht an der Sprache. Der Text der
+           Seite ist trotzdem ein brauchbarer Alternativtext: mehr weiß die Anwendung
+           über das Bild nicht. */
+        showLearnPhoto(elements.learnImageFront, entry.image_front, texts.front);
+        showLearnPhoto(elements.learnImageBack, entry.image_back, texts.back);
 
         /*
          * Beide Seiten der Karte tragen die Landkarte, nur die Markierung macht den Unterschied:
@@ -7091,6 +7335,29 @@
 
         updateLearnLanguageToggle(entry);
         buildLearnButtons(entry);
+    }
+
+    /*
+     * Setzt das Foto einer Kartenseite, oder nimmt es weg.
+     *
+     * Eine leere Adresse und ein fehlendes Foto sind dasselbe. Das <img> behält keine
+     * alte Quelle, damit beim nächsten Umdrehen nicht kurz das Foto der vorigen Karte
+     * aufblitzt.
+     */
+    function showLearnPhoto(image, url, alt) {
+        var source = typeof url === 'string' ? url : '';
+
+        image.hidden = source === '';
+
+        if (source === '') {
+            image.removeAttribute('src');
+            image.alt = '';
+
+            return;
+        }
+
+        image.src = source;
+        image.alt = typeof alt === 'string' ? alt : '';
     }
 
     /*
@@ -7159,6 +7426,8 @@
 
         elements.learnFrontText.textContent = task === null ? texts.front : task.question;
         elements.learnBackText.textContent = task === null ? texts.back : task.answer;
+        showLearnPhoto(elements.learnImageFront, entry.image_front, texts.front);
+        showLearnPhoto(elements.learnImageBack, entry.image_back, texts.back);
         elements.learnCard.setAttribute('aria-label', task === null
             ? (learnSession.flipped ? texts.back : texts.front)
             : (learnSession.flipped ? task.answer : task.question));
@@ -9404,6 +9673,144 @@
         preview.answer.textContent = '';
         preview.note.textContent = note === null || note === undefined ? '' : note;
     }
+    /*
+     * Das Foto-Feld einer Kartenseite.
+     *
+     * Die Datei wird erst beim Speichern der Karte hochgeladen. Eine neue Karte hat
+     * vorher noch keine Id, und ein abgebrochenes Fenster soll keine Datei im Ordner
+     * hinterlassen. Bis dahin zeigt die Vorschau die gewählte Datei direkt im Browser.
+     */
+    function addCardImageField(side) {
+        var state = dialogCardImages[side];
+        var fieldName = 'image_' + side;
+        var labelKey = side === 'front' ? 'dialog.card.photoFrontLabel' : 'dialog.card.photoBackLabel';
+        var wrap = el('div', 'dialog__field dialog__field--photo');
+        var label = el('p', 'dialog__label', t(labelKey));
+        label.setAttribute('data-i18n', labelKey);
+
+        var row = el('div', 'photo-picker');
+        var preview = el('div', 'photo-picker__preview');
+        var image = document.createElement('img');
+        image.alt = '';
+        preview.appendChild(image);
+
+        var choose = el('button', 'photo-picker__choose', t('dialog.card.photoChoose'));
+        choose.type = 'button';
+        choose.setAttribute('data-i18n', 'dialog.card.photoChoose');
+
+        var remove = el('button', 'photo-picker__remove', t('dialog.card.photoRemove'));
+        remove.type = 'button';
+        remove.setAttribute('data-i18n', 'dialog.card.photoRemove');
+
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/png,image/webp';
+        input.id = 'dialog-field-photo-' + side;
+        input.hidden = true;
+
+        var hint = el('p', 'dialog__hint', t('dialog.card.photoHint'));
+        hint.setAttribute('data-i18n', 'dialog.card.photoHint');
+
+        var error = el('p', 'dialog__field-error');
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+
+        row.appendChild(preview);
+        row.appendChild(choose);
+        row.appendChild(remove);
+        wrap.appendChild(label);
+        wrap.appendChild(row);
+        wrap.appendChild(input);
+        wrap.appendChild(hint);
+        wrap.appendChild(error);
+        elements.dialogFields.appendChild(wrap);
+
+        dialogFields[fieldName] = { control: input, error: error, wrap: wrap };
+
+        function refresh() {
+            var source = '';
+
+            if (state.file !== null) {
+                source = state.objectUrl || '';
+            } else if (!state.removed && state.existing !== '') {
+                source = state.existing;
+            }
+
+            preview.hidden = source === '';
+
+            if (source === '') {
+                image.removeAttribute('src');
+            } else {
+                image.src = source;
+            }
+
+            remove.hidden = state.file === null && (state.removed || state.existing === '');
+
+            var chooseKey = source === '' ? 'dialog.card.photoChoose' : 'dialog.card.photoReplace';
+            choose.textContent = t(chooseKey);
+            choose.setAttribute('data-i18n', chooseKey);
+        }
+
+        choose.addEventListener('click', function () {
+            input.click();
+        });
+
+        input.addEventListener('change', function () {
+            var file = input.files && input.files.length > 0 ? input.files[0] : null;
+
+            clearFieldError(fieldName);
+
+            if (file === null) {
+                return;
+            }
+
+            /* Die schnelle Prüfung im Browser; der Server liest die Datei selbst und
+               ist der, auf den es ankommt. */
+            var typeOk = ['image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) !== -1;
+            var nameOk = /\.(jpe?g|png|webp)$/i.test(file.name);
+
+            if (!typeOk && !nameOk) {
+                setFieldError(fieldName, t('dialog.card.photoType'));
+                input.value = '';
+                return;
+            }
+
+            if (file.size > config.limits.imageBytes) {
+                setFieldError(fieldName, t('dialog.card.photoTooLarge', {
+                    max: Math.round(config.limits.imageBytes / 1024 / 1024)
+                }));
+                input.value = '';
+                return;
+            }
+
+            if (state.objectUrl !== null) {
+                window.URL.revokeObjectURL(state.objectUrl);
+            }
+
+            state.file = file;
+            state.objectUrl = window.URL.createObjectURL(file);
+            state.removed = false;
+            dialogUsed = true;
+            refresh();
+        });
+
+        remove.addEventListener('click', function () {
+            if (state.objectUrl !== null) {
+                window.URL.revokeObjectURL(state.objectUrl);
+                state.objectUrl = null;
+            }
+
+            state.file = null;
+            state.removed = true;
+            input.value = '';
+            dialogUsed = true;
+            clearFieldError(fieldName);
+            refresh();
+        });
+
+        refresh();
+    }
+
     function addMapField(value) {
         var parsed = parseMapRegion(value);
         var wrap = el('div', 'dialog__field dialog__field--map');

@@ -61,6 +61,8 @@ $appConfig = [
         'category' => 'api/category.php',
         'cards' => 'api/cards.php',
         'card' => 'api/card.php',
+        /* Das Foto einer Kartenseite: POST lädt es hoch, DELETE nimmt es weg. */
+        'cardImage' => 'api/card_image.php',
         'review' => 'api/review.php',
         'importCards' => 'api/import_cards.php',
         'auth' => 'api/auth.php',
@@ -110,6 +112,8 @@ $appConfig = [
            src/services/card_import_service.php passen. */
         'importBytes' => 1048576,
         'importRows' => 1000,
+        /* Muss zu CARD_IMAGE_MAX_BYTES in src/helpers/card_image.php passen. */
+        'imageBytes' => 2097152,
     ],
     /*
      * Die drei Kartendateien und die sechzehn deutschen Länder. Die Länder tragen die
@@ -1104,6 +1108,12 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         </div>
                     </div>
                     <p class="learn__text" id="learn-front-text"></p>
+                    <!--
+                        Das Foto der Vorderseite. Es steht unter dem Text, damit die
+                        Frage zuerst gelesen wird. app.js setzt Quelle und Alternativtext
+                        und blendet es aus, wenn die Karte keines hat.
+                    -->
+                    <img class="learn__photo" id="learn-image-front" alt="" hidden>
                     <div class="card-map card-map--learn" id="learn-map-front" hidden></div>
                 </div>
 
@@ -1119,6 +1129,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         </div>
                     </div>
                     <p class="learn__text" id="learn-back-text"></p>
+                    <img class="learn__photo" id="learn-image-back" alt="" hidden>
                     <div class="card-map card-map--learn" id="learn-map-back" hidden></div>
                 </div>
 

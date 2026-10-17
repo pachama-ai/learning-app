@@ -848,6 +848,14 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
        nachher wiedererkannt. */
     $readOldCards = $pdo->prepare('SELECT id, front FROM cards WHERE category_id = :category_id ORDER BY id');
 
+    /* Die Fotos der alten Karten, falls es die beiden Spalten gibt. Sie werden vor dem
+       Löschen gelesen und erst nach dem commit() von der Platte genommen. */
+    $imageCheck = $pdo->query("SHOW COLUMNS FROM cards LIKE 'image_front'");
+    $readOldImages = $imageCheck !== false && $imageCheck->fetch() !== false
+        ? $pdo->prepare('SELECT image_front, image_back FROM cards WHERE category_id = :category_id')
+        : null;
+    $images = [];
+
     $readOldProgress = $pdo->prepare(
         'SELECT p.user_id, p.card_id, p.state, p.due_at, p.last_reviewed_at,
                 p.repetitions, p.lapses, p.stability, p.difficulty
@@ -946,6 +954,19 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
                 $savedProgress[] = ['front' => $frontOfCard[(int) $row['card_id']] ?? '', 'row' => $row];
             }
 
+            if ($readOldImages !== null) {
+                $readOldImages->bindValue(':category_id', $existingId, PDO::PARAM_INT);
+                $readOldImages->execute();
+
+                foreach ($readOldImages->fetchAll() as $row) {
+                    foreach (['image_front', 'image_back'] as $column) {
+                        if (is_string($row[$column]) && $row[$column] !== '') {
+                            $images[] = $row[$column];
+                        }
+                    }
+                }
+            }
+
             $clearCards->bindValue(':category_id', $existingId, PDO::PARAM_INT);
             $clearCards->execute();
 
@@ -1039,6 +1060,7 @@ function import_write(PDO $pdo, array $groups, int $areaId, int $ownerUserId, bo
         'carried' => $carried,
         'notCarried' => $notCarried,
         'variants' => $variantsWritten,
+        'images' => $images,
     ];
 }
 
@@ -1347,6 +1369,10 @@ function import_main(array $argv, string $projectRoot): int
         $inArea = (int) $countStatement->fetchColumn();
 
         $pdo->commit();
+
+        /* Erst nach dem Festschreiben: ein Rollback lässt die Bilder liegen. */
+        require_once $projectRoot . '/src/services/card_image_service.php';
+        card_image_delete_files($written['images'] ?? []);
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
