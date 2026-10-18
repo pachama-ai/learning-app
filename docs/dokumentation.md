@@ -94,7 +94,7 @@ Neun Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 | --- | ---: | --- |
 | `users` | 2 | die Konten |
 | `categories` | 92 | 8 Lernbereiche und 84 Unterkategorien, alle mit Besitzer |
-| `cards` | 7777 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
+| `cards` | 7807 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
 | `card_variants` | 1500 | die Satzbeispiele einer Karte, 0 bis n je Karte |
 | `user_card_progress` | 259 | eine Zeile je Nutzer und Karte – der Lernstand |
 | `study_sessions` | 46 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
@@ -102,7 +102,9 @@ Neun Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 | `stories` | 1 | die gemeinsame Geschichte („Story Together"), genau eine Zeile |
 | `story_contributions` | 4 | ein Beitrag je Zug und Geschichte, einer der beiden Konten |
 
-(Stand: 16.10.2026. Gegenüber dem 11.10.2026 sind die Zahlen an drei Stellen
+(Stand: 18.10.2026. Am 18.10.2026 kamen 30 Karten in zwei PRIO-Unterkategorien
+dazu, deshalb 7807 statt 7777. Gegenüber dem 11.10.2026
+sind die Zahlen an drei Stellen
 gewachsen – `user_card_progress` von 219 auf 259, `study_sessions` von 40 auf 46,
 `story_contributions` von 1 auf 4. Geschrumpft ist eine Stelle: der alte doppelte
 Lernbereich „Energy" (id 193) wurde mit seinen 15 Unterkategorien und 436 Karten
@@ -269,6 +271,12 @@ Pfad.
 | 16.10. | „Netzbetrieb & Systemstabilität" durch die aktualisierte Fassung ersetzt | 26 (22 ersetzt) | `PRIO`, Unterkategorie id 232 |
 | 16.10. | Achte Datei der PRIO-Runde nachgezogen (lag zuerst nicht vor) | 14 | neue Unterkategorie `Energiedaten, Strommix & Energiewende` in `PRIO` |
 | 16.10. | Einheiten, Energieformen und Atomaufbau aus einer neuen Liste | 12 | 8 in `Energiegrundlagen & Energiewende` und 4 in `Atome, Teilchen & Elektrizität` (Energy, id 3), einseitig |
+| 18.10. | Zwei Karten zu Elektronen und Ionen in Akkus | 2 | `Atome, Moleküle & chemische Grundlagen` (PRIO, id 225), einseitig |
+| 18.10. | Karte zu elektrischem Potenzial und Spannung | 1 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
+| 18.10. | Fünf Karten zu Coulomb/Joule, Energieumrechnung und Leistung vs. Energie | 5 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
+| 18.10. | Kohle-, Öl- und Benzin-Karte mit Umwandlungskette | 3 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
+| 18.10. | Gas, Biomasse, PV, Wind, Wasser, Geothermie, Solarthermie, KWK, Wärmepumpe, Kernkraft, Pumpspeicher, Batteriespeicher – je mit Umwandlungskette | 12 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
+| 18.10. | Warmwasser: Durchlauferhitzer, Gastherme, Solarthermie, Wärmepumpe, Fernwärme, Holz/Pellets, Vergleich | 7 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
 
 **Der neue Lernbereich „PRIO" (16.10.2026).** Der Bereich entstand über die
 Anwendung selbst (`POST /api/categories.php`, Name/name_de/name_en = `PRIO`), damit
