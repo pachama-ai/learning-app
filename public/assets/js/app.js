@@ -21,6 +21,10 @@
 
     var ARROW_SVG = '<svg class="arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
 
+    /* Das kleine Bild-Zeichen einer Kartenzeile: Rahmen, Sonne und zwei Hügel - die
+       übliche Zeichnung für "hier ist ein Foto". */
+    var PHOTO_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><rect x="3.2" y="5.2" width="17.6" height="13.6" rx="2.6"/><circle cx="9" cy="10.2" r="1.5"/><path d="M4.4 17.2l4.8-4.6 3.4 3.3 2.7-2.5 4.1 3.8"/></svg>';
+
     /*
      * Eine Platzhalterzeichnung gibt es nicht mehr. Eine Kategorie ohne eigene Zeichnung
      * zeigt den ersten Buchstaben des Namens, unter dem sie erscheint - in der Kachel
@@ -407,15 +411,13 @@
     var currentEntryCards = [];
 
     /*
-     * Was die Kartenliste der geöffneten Unterkategorie weiß: die Karten selbst, die
-     * Zählungen der API und den Text im Suchfeld. Die Liste wird im Browser gefiltert und
-     * für eine Suche nie neu geladen - der Filter sieht nur an, was schon da ist.
+     * Was die Kartenliste der geöffneten Unterkategorie weiß: die Karten selbst und die
+     * Zählungen der API. Die Liste wird im Browser gefiltert und dafür nie neu geladen -
+     * der Filter sieht nur an, was schon da ist.
      */
     var openCards = [];
     var openCardSummary = null;
     var openCardStreak = null;
-    var cardSearchQuery = '';
-    var cardSearchMin = 15;
 
     /* Merkt sich ein "Speichern und weiter", damit der Dialog danach wieder aufgehen kann. */
     var cardSaveAndNext = false;
@@ -556,12 +558,13 @@
         newCardsClose: document.getElementById('new-cards-dialog-close'),
         accountError: document.getElementById('account-error'),
 
-        /* Das Band über den Zeilen einer Unterkategorie: es trägt das Suchfeld. */
-        cardTools: document.getElementById('card-tools'),
+        /*
+           Die Filtergruppe der Kartenliste. Sie steht in derselben Zeile wie die Aktionen
+           (siehe index.php), ist aber ein eigenes Element: app.js blendet sie nur ein,
+           wenn es Karten gibt.
+        */
         cardFilter: document.getElementById('card-filter'),
-        cardSearchWrap: document.getElementById('card-tools-search'),
-        cardSearch: document.getElementById('card-search'),
-        cardSearchEmpty: document.getElementById('card-search-empty'),
+        cardFilterEmpty: document.getElementById('card-filter-empty'),
         learnButton: document.getElementById('learn-button'),
         importButton: document.getElementById('import-button'),
         learnLabel: document.getElementById('learn-button-label'),
@@ -2906,11 +2909,29 @@
      * Eine Lernkarten-Zeile. Eine Karte hat keine eigene Seite, hier gibt es also keinen
      * Verweis: die Zeile zeigt die Vorderseite, die Rückseite und, wenn die Karte in beide
      * Richtungen geübt werden soll, ein Abzeichen.
+     *
+     * Am Rechner ist diese Zeile eine flache Tabellenzeile: Frage, ein kleines Bild-Zeichen
+     * und das "..."-Menü. Antwort, Landkarte, Merker und Status stehen zwar weiter im
+     * Markup, das Stylesheet zeigt sie dort aber nicht (siehe app.css ab 640 Pixel) - auf
+     * dem Handy bleibt die Zeile damit genau die zweizeilige Karte, die sie vorher war.
+     *
+     * Eine Karte ohne eigenes Foto bekommt kein Zeichen: das Symbol soll eine Auskunft
+     * sein und keine Dekoration, die auf jeder Zeile steht.
      */
     function buildCardRow(card, index) {
         var item = document.createElement('li');
         item.className = 'row row--card reveal';
-        item.style.setProperty('--reveal-index', String(index));
+        /*
+         * Die Einblendung staffelt nur den ersten Bildschirm.
+         *
+         * `--reveal-index` ist die Verzögerung der Animation (60 ms je Stufe, siehe
+         * app.css). Bei einer Liste mit tausenden Karten stünde die letzte Zeile sonst
+         * minutenlang unsichtbar da - die Staffelung ist ein Effekt für das, was beim
+         * Öffnen zu sehen ist, kein Fortschrittsbalken.
+         */
+        item.style.setProperty('--reveal-index', String(Math.min(index, 12)));
+        /* Der Anker für die Scroll-Position nach dem Speichern. */
+        item.dataset.cardId = String(card.id);
 
         var meta = cardStatusMeta(card);
 
@@ -3062,12 +3083,65 @@
         menu.classList.add('row__menu--leading');
 
         body.appendChild(stack);
+
+        /* Das Foto-Zeichen sitzt hinter dem Text und vor den Merkern; ohne Foto fehlt es
+           ganz und nimmt auch keinen Platz weg. */
+        var photo = buildCardPhoto(card);
+
+        if (photo !== null) {
+            body.appendChild(photo);
+        }
+
         body.appendChild(metaColumn);
         body.appendChild(menu);
 
         item.appendChild(body);
 
+        /*
+         * Ein Klick auf die Zeile öffnet das Kartenfenster - der kurze Weg neben dem
+         * "..."-Menü. Ein Klick, der nur ein offenes Menü schließt, öffnet dagegen
+         * nichts: sonst würde dieselbe Bewegung zwei Dinge tun.
+         *
+         * Am Handy bleibt die Zeile stumm. Dort ist diese Seite die Lernseite, und ein
+         * Tippen soll nichts öffnen - dieselbe Grenze wie im Stylesheet (639 Pixel).
+         */
+        item.addEventListener('click', function (event) {
+            if (window.matchMedia('(max-width: 639px)').matches || openMenu !== null) {
+                return;
+            }
+
+            /* Die beiden Befehle im Menü gehören dem Menü, nicht der Zeile. */
+            if (event.target.closest('.row__menu') !== null) {
+                return;
+            }
+
+            openCardForm(card, card.category_id);
+        });
+
         return item;
+    }
+
+    /*
+     * Das Bild-Zeichen einer Kartenzeile, oder null ohne Foto.
+     *
+     * `image_front` und `image_back` sind fertige Adressen oder null (siehe
+     * normalize_card_row() in card_service.php). Ein leeres Feld zählt wie ein fehlendes:
+     * ein Foto, das niemand sieht, soll auch kein Zeichen bekommen.
+     */
+    function buildCardPhoto(card) {
+        var hasFront = typeof card.image_front === 'string' && card.image_front !== '';
+        var hasBack = typeof card.image_back === 'string' && card.image_back !== '';
+
+        if (!hasFront && !hasBack) {
+            return null;
+        }
+
+        var photo = el('span', 'row__photo');
+        /* Der Titel sagt das, was das Zeichen allein nicht sagen kann. */
+        photo.setAttribute('title', t('cards.hasPhoto'));
+        photo.innerHTML = PHOTO_SVG;
+
+        return photo;
     }
 
     /*
@@ -3234,7 +3308,7 @@
            neu aufgebaut wird, und startet darum immer aus. */
         resetSelection();
 
-        Promise.all([
+        return Promise.all([
             fetchCategories(''),
             fetchCategoryOne(categoryId),
             fetchCategories('?parent_id=' + encodeURIComponent(categoryId)),
@@ -3400,13 +3474,13 @@
                 renderDashboard(openCardSummary, openCardStreak);
                 /*
                  * Die Zahlenzeile "40 Karten" füllt renderCardList(): nur dort ist bekannt,
-                 * wie viele Karten nach Filter und Suche wirklich zu sehen sind.
+                 * wie viele Karten nach dem Filter wirklich zu sehen sind.
                  */
                 renderCardTools(openCardSummary);
                 showHeadActions('card', current.id, currentEntryCards.length, currentEntryCards.length > 0);
 
                 if (currentEntryCards.length === 0) {
-                    /* Nichts zu lernen, nichts zu suchen: der Kopf bleibt weg, und die Seite
+                    /* Nichts zu lernen, nichts zu filtern: der Kopf bleibt weg, und die Seite
                        bietet den einen sinnvollen Schritt an. */
                     elements.entryList.textContent = '';
                     openCards = [];
@@ -3416,11 +3490,9 @@
                     });
                 } else {
                     openCards = currentEntryCards;
-                    cardSearchQuery = '';
-                    elements.cardSearch.value = '';
                     /* Eine frisch geöffnete Liste zeigt immer alle Karten. */
                     setCardFilter('all');
-                    renderCardList(current.id);
+                    renderCardList();
 
                     /*
                      * Die Überblickszeile unter dem Kopf: Karten, gewusst, unsicher. Sie wird
@@ -3879,10 +3951,10 @@
 
         if (config.categoryId === null) {
             renderHome();
-            return;
+            return null;
         }
 
-        renderDetail(config.categoryId);
+        return renderDetail(config.categoryId);
     }
 
     /* ----------------------------------------------------------------------
@@ -3962,6 +4034,10 @@
            worauf sie auch immer noch wartet. */
         dialogRound++;
 
+        /* Das Kartenformular ist deutlich kürzer als die anderen Dialoge und
+           bekommt deshalb eine eigene Höchstgrenze (siehe app.css). */
+        elements.dialog.classList.toggle('dialog--card', dialogKind === 'card');
+
         if (typeof elements.dialog.showModal === 'function') {
             elements.dialog.showModal();
         } else {
@@ -4006,7 +4082,8 @@
             }
 
             if (target && typeof target.focus === 'function') {
-                target.focus();
+                /* Kein Sprung nach oben: der Fokus holt die Seite nicht mit. */
+                target.focus({ preventScroll: true });
             }
 
             dialogKind = null;
@@ -4746,23 +4823,12 @@
         }
 
         /*
-         * Die Kartenart kommt zuerst: sie entscheidet, wonach der Rest des Formulars fragt,
-         * und die beiden Arten sind dieselbe Karte in derselben Tabelle.
+         * Kartenart, Übungsdaten und Landkarte stehen bewusst nicht mehr in diesem
+         * Fenster: eine Karte ist hier eine Frage mit Antwort. Eine vorhandene
+         * Übungskarte behält ihre Aufgabe, weil das Formular exercise_type und
+         * exercise_params gar nicht erst mitschickt (siehe validateCardForm).
+         * Dasselbe gilt für eine vorhandene Kartenregion.
          */
-        addField('card_kind', 'select', {
-            labelKey: 'dialog.card.kindLabel',
-            options: [
-                { value: 'fixed', label: t('dialog.card.kindFixed') },
-                { value: 'exercise', label: t('dialog.card.kindExercise') }
-            ]
-        });
-
-        dialogFields.card_kind.control.id = 'dialog-field-card_kind';
-        dialogFields.card_kind.control.value = card !== null && card.exercise ? 'exercise' : 'fixed';
-        dialogFields.card_kind.control.addEventListener('change', function () {
-            setCardKind(dialogFields.card_kind.control.value);
-        });
-
         addField('front', 'textarea', {
             labelKey: 'dialog.card.frontLabel',
             placeholderKey: 'dialog.card.frontPlaceholder',
@@ -4771,8 +4837,6 @@
             counter: true,
             value: cardDraft[cardTab].front
         });
-
-        addExerciseFields(card !== null ? card.exercise : null);
 
         addField('back', 'textarea', {
             labelKey: 'dialog.card.backLabel',
@@ -4787,16 +4851,10 @@
         addCardImageField('front');
         addCardImageField('back');
 
-        /* Die freiwillige Landkarte: Bereich, Region und die markierte Karte darunter. */
-        addMapField(card !== null && typeof card.map_region === 'string' ? card.map_region : null);
-
         addField('is_bidirectional', 'checkbox', {
             labelKey: 'dialog.card.bidirectionalLabel',
             checked: card !== null && card.is_bidirectional === true
         });
-
-        /* Die lebende Vorschau: dieselbe Kartenform, die die Lerneinheit zeigt. */
-        elements.dialogFields.appendChild(buildCardPreview());
 
         /*
          * Eine neue Karte lässt sich eine nach der anderen tippen: der zweite Knopf speichert
@@ -4808,14 +4866,14 @@
         elements.dialogSaveNext.textContent = t('dialog.card.saveNext');
         elements.dialogSaveNext.disabled = false;
 
-        /* Welche Felder zu sehen sind, folgt aus der Art, die gerade gesetzt wurde. */
-        setCardKind(dialogFields.card_kind.control.value);
+        /* Eine vorhandene Übungskarte behält ihre Aufgabe und zeigt deshalb nur
+           den Titel; neue und feste Karten zeigen Frage und Antwort. */
+        setCardKind(card !== null && card.exercise ? 'exercise' : 'fixed');
 
         wireCardDialogShortcuts();
 
         openDialog();
         dialogFields.front.control.focus();
-        updateCardPreview();
     }
 
     function validateCardForm() {
@@ -4826,42 +4884,20 @@
         }
 
         var payload = {
-            is_bidirectional: dialogFields.is_bidirectional.control.checked,
-            /* null heißt "keine Landkarte": die Spalte ist dann leer. */
-            map_region: dialogMapValue()
+            is_bidirectional: dialogFields.is_bidirectional.control.checked
         };
 
         /*
-         * Eine Übungskarte schickt die Aufgabenart und die Zahlen, die ihre Aufgabe benutzen
-         * darf; ein leeres exercise_type ist die Art, wie das Fenster "das ist keine Übung"
-         * sagt, und genauso wird eine Übung auch wieder weggenommen.
+         * Kartenart, Übungsdaten und Landkarte sind aus diesem Fenster entfernt.
+         * Sie werden deshalb NICHT mitgeschickt: der Server lässt eine vorhandene
+         * Aufgabe und eine vorhandene Kartenregion dann unverändert (siehe
+         * public/api/card.php). Für eine neue Karte bleibt die Kartenart damit
+         * die Vorgabe "Frage und Antwort".
          */
-        var exercise = cardKindValue() === 'exercise';
+        var exercise = dialogEntry !== null
+            && dialogEntry.exercise !== null
+            && typeof dialogEntry.exercise === 'object';
 
-        payload.exercise_type = exercise ? dialogFields.exercise_type.control.value : '';
-
-        if (exercise) {
-            /*
-             * Die schnelle Prüfung im Browser, damit die Antwort nicht auf eine Anfrage warten
-             * muss. Der Server prüft dasselbe noch einmal und ist der, auf den es ankommt.
-             */
-            var read = readExerciseParams(payload.exercise_type);
-
-            if (read.error !== undefined) {
-                setFieldError(read.error.name, read.error.message);
-
-                var wrongField = dialogFields[read.error.name];
-
-                /* Eine Gruppe von Kästchen hat kein einzelnes Feld, das den Fokus bekommen könnte. */
-                if (wrongField !== undefined && wrongField.boxes === undefined) {
-                    wrongField.control.focus();
-                }
-
-                return null;
-            }
-
-            payload.exercise_params = read.params;
-        }
         var complete = 0;
         var half = [];
 
@@ -5978,6 +6014,68 @@
         dialogFields[field].control.focus();
     }
 
+    /*
+     * Die bearbeitete Karte als Anker für die Scroll-Position.
+     *
+     * `top` ist der Abstand der Zeile zum oberen Fensterrand, nicht ihre absolute
+     * Position: nur so bleibt die Karte nach dem Neuaufbau der Liste an derselben
+     * Stelle im Blick, auch wenn darüber Zeilen hinzukommen oder wegfallen.
+     */
+    function captureCardScroll(cardId) {
+        var row = document.querySelector(
+            '#entry-list .row--card[data-card-id="' + String(cardId) + '"]'
+        );
+
+        return {
+            cardId: String(cardId),
+            y: window.scrollY,
+            top: row === null ? null : row.getBoundingClientRect().top
+        };
+    }
+
+    /*
+     * Stellt die Scroll-Position her, sobald die Liste neu gezeichnet ist.
+     *
+     * Gefunden wird die Zeile über ihre Karten-Id. Ist sie nach dem Speichern
+     * nicht mehr sichtbar (etwa weil ein Filter oder die Suche sie ausblendet),
+     * bleibt wenigstens die vorherige Seitenposition erhalten.
+     */
+    function restoreCardScrollWhenReady(anchor, rendered) {
+        if (anchor === null) {
+            return;
+        }
+
+        function apply() {
+            var row = document.querySelector(
+                '#entry-list .row--card[data-card-id="' + anchor.cardId + '"]'
+            );
+
+            if (row !== null && anchor.top !== null) {
+                var delta = row.getBoundingClientRect().top - anchor.top;
+
+                if (Math.abs(delta) > 1) {
+                    window.scrollBy(0, delta);
+                }
+
+                return;
+            }
+
+            window.scrollTo(0, anchor.y);
+        }
+
+        if (rendered && typeof rendered.then === 'function') {
+            rendered.then(function () {
+                window.requestAnimationFrame(apply);
+            }).catch(function () {
+                window.requestAnimationFrame(apply);
+            });
+
+            return;
+        }
+
+        window.requestAnimationFrame(apply);
+    }
+
     function submitDialog() {
         clearDialogErrors();
 
@@ -6070,6 +6168,10 @@
         var removedName = null;
         /* Ob diese Zeile neu war, bevor die Antwort sie zu dialogEntry macht. */
         var wasCreate = dialogEntry === null;
+        /* Wo die bearbeitete Karte gerade steht, bevor die Liste neu entsteht. */
+        var cardScroll = isCard && dialogEntry !== null
+            ? captureCardScroll(dialogEntry.id)
+            : null;
 
         elements.dialogSubmit.dataset.idleLabel = elements.dialogSubmit.textContent;
         setBusy(true);
@@ -6153,7 +6255,8 @@
              */
             if (isCard && cardSaveAndNext) {
                 cardSaveAndNext = false;
-                render();
+                var renderedCards = render();
+                restoreCardScrollWhenReady(cardScroll, renderedCards);
 
                 window.setTimeout(function () {
                     openCardForm(null, cardSubmitCategoryId);
@@ -6162,7 +6265,8 @@
                 return;
             }
 
-            render();
+            var rendered = render();
+            restoreCardScrollWhenReady(cardScroll, rendered);
         });
     }
 
@@ -6564,10 +6668,12 @@
     }
 
     /*
-     * Der Kopf einer Kartenliste: wie viele Karten es gibt, wie viele davon warten, und der
-     * Streifen, der die drei Zustände als Anteile zeigt.
+     * Die Filtergruppe der Kartenliste: sie ist da, sobald es Karten gibt.
      *
-     * null heißt "diese Seite hat keine Kartenliste", dann geht der ganze Kopf weg.
+     * "Welche Karten sind noch unsicher?" ist auch bei fünf Karten eine sinnvolle Frage,
+     * und ein Chip ist ein Tipp. Das Ein- und Ausblenden bleibt hier, damit eine Seite ohne
+     * Karten keine leere Gruppe zeigt - gleicher Vertrag wie vorher: null heißt "diese
+     * Seite hat keine Kartenliste".
      */
     function renderCardTools(summary) {
         var usable = summary !== null
@@ -6575,60 +6681,37 @@
             && typeof summary.total === 'number'
             && summary.total > 0;
 
-        /*
-         * Der Streifen trägt zwei Dinge: den Filter und die Suche.
-         *
-         * Der Filter ist da, sobald es Karten gibt - "welche Karten sind noch unsicher?"
-         * ist auch bei fünf Karten eine sinnvolle Frage, und ein Chip ist ein Tipp. Die
-         * Suche erscheint erst ab etwa fünfzehn Karten: über drei Karten zu suchen ist mehr
-         * Arbeit, als sie anzusehen.
-         */
-        var withSearch = usable && summary.total >= cardSearchMin;
-
-        elements.cardTools.hidden = !usable;
         elements.cardFilter.hidden = !usable;
-        elements.cardSearchWrap.hidden = !withSearch;
-
-        if (!usable) {
-            return;
-        }
-
-        elements.cardSearch.setAttribute('placeholder', t('cards.searchPlaceholder'));
-        elements.cardSearch.setAttribute('aria-label', t('cards.search'));
     }
 
     /*
      * Baut die Zeilen, die gerade sichtbar sind.
      *
-     * Filter und Suche laufen beide über die Liste, die schon geladen ist, und fragen den
-     * Server nach nichts: eine Suche und ein Filter sind Ansichten derselben Daten, und aus
-     * dem Getippten wird keine Abfrage gebaut. Beide wirken zusammen.
+     * Der Filter läuft über die Liste, die schon geladen ist, und fragt den Server nach
+     * nichts: ein Filter ist eine Ansicht derselben Daten, aus ihm wird keine Abfrage
+     * gebaut.
      */
-    function renderCardList(categoryId) {
-        var query = cardSearchQuery.trim().toLowerCase();
-        var filtered = query !== '' || cardStatusFilter !== 'all';
+    function renderCardList() {
+        var filtered = cardStatusFilter !== 'all';
         var visible = [];
         var index;
 
         elements.entryList.textContent = '';
 
         for (index = 0; index < openCards.length; index++) {
-            var wanted = cardStatusFilter === 'all' || cardStatusOf(openCards[index]) === cardStatusFilter;
-
-            if (wanted && (query === '' || cardMatches(openCards[index], query))) {
+            if (!filtered || cardStatusOf(openCards[index]) === cardStatusFilter) {
                 visible.push({ card: openCards[index], index: index });
             }
         }
 
         /*
-         * Nichts zu sehen, weil nichts passt: das ist nicht "noch keine Karten". Die
-         * Meldung nennt die Suche, wenn eine eingetippt wurde, sonst den Status - bei beidem
-         * zusammen ist das Suchwort die genauere Auskunft.
+         * Nichts zu sehen, weil der Filter nichts durchlässt: das ist nicht "noch keine
+         * Karten", sondern eine Auskunft über den gewählten Filter.
          */
-        elements.cardSearchEmpty.textContent = visible.length > 0
-            ? ''
-            : (query !== '' ? t('cards.searchEmpty') : (filtered ? t('cards.filterEmpty') : ''));
-        elements.cardSearchEmpty.hidden = visible.length > 0 || !filtered;
+        elements.cardFilterEmpty.textContent = filtered && visible.length === 0
+            ? t('cards.filterEmpty')
+            : '';
+        elements.cardFilterEmpty.hidden = visible.length > 0 || !filtered;
 
         renderCardFigures(visible.length, openCards.length);
 
@@ -6648,10 +6731,10 @@
      * Die erste Zahl der Überblickszeile: wie viele Karten diese Liste zeigt.
      *
      * Sie wird hier gefüllt und nirgends sonst, weil nur diese Stelle weiß, wie viele Karten
-     * nach Filter und Suche wirklich zu sehen sind. Steht weniger da, als es gibt, nennt die
+     * nach dem Filter wirklich zu sehen sind. Steht weniger da, als es gibt, nennt die
      * Zeile zusätzlich die Gesamtzahl ("12 von 40 Karten"): eine kleiner gewordene Zahl
      * allein würde verschweigen, dass noch mehr da ist. Die beiden Zahlen daneben (gewusst,
-     * unsicher) sind von Filter und Suche unberührt - siehe renderCardSummary.
+     * unsicher) sind vom Filter unberührt - siehe renderCardSummary.
      */
     function renderCardFigures(shown, total) {
         elements.detailStats.hidden = false;
@@ -6661,13 +6744,6 @@
         elements.detailCardLabel.textContent = shown === total
             ? t(shown === 1 ? 'detail.line.cards.one' : 'detail.line.cards.other')
             : t(total === 1 ? 'cards.figureOfOne' : 'cards.figureOf', { total: total });
-    }
-
-    function cardMatches(card, query) {
-        var front = typeof card.front === 'string' ? card.front.toLowerCase() : '';
-        var back = typeof card.back === 'string' ? card.back.toLowerCase() : '';
-
-        return front.indexOf(query) !== -1 || back.indexOf(query) !== -1;
     }
 
     /*
@@ -6813,10 +6889,9 @@
     }
 
     /*
-     * Die beiden Tastenkürzel des Kartenfensters: Tippen in den Feldern aktualisiert die Vorschau,
-     * und Strg+Enter speichert, ohne zur Maus zu greifen. Die Tabulatortaste wird in Ruhe
-     * gelassen - sie geht von der Vorderseite zur Rückseite von selbst, weil das die Reihenfolge
-     * der Felder ist.
+     * Strg+Enter speichert, ohne zur Maus zu greifen. Die Tabulatortaste wird in
+     * Ruhe gelassen - sie geht von der Vorderseite zur Rückseite von selbst, weil
+     * das die Reihenfolge der Felder ist.
      */
     function wireCardDialogShortcuts() {
         ['front', 'back'].forEach(function (name) {
@@ -6833,7 +6908,6 @@
                     cardDraft[cardTab].back = dialogFields.back.control.value;
                 }
 
-                updateCardPreview();
                 updateCardLanguageTabs();
             });
 
@@ -7963,34 +8037,12 @@
     }
 
     /* ----------------------------------------------------------------------
-       Verdrahtung: der Lernknopf, die Suche, die Tasten der Einheit und das Wischen
+       Verdrahtung: der Lernknopf, der Kartenfilter, die Tasten der Einheit und das Wischen
        ---------------------------------------------------------------------- */
 
     function wireLearning() {
         elements.learnButton.addEventListener('click', function () {
             startLearning('all');
-        });
-
-        /*
-         * Das Suchfeld kommt schreibgeschützt an, nur so bleibt die Autovervollständigung des
-         * Browsers draußen - der Grund steht neben dem Feld in index.php. Ein schreibgeschütztes
-         * Feld nimmt trotzdem den Fokus und Klicks an, die erste Berührung ist also die Stelle,
-         * an der es an die Person übergeben wird. readOnly zweimal auf false zu setzen schadet
-         * nicht.
-         */
-        ['focus', 'mousedown', 'touchstart'].forEach(function (name) {
-            elements.cardSearch.addEventListener(name, function () {
-                elements.cardSearch.readOnly = false;
-            });
-        });
-
-        /* Die Suche filtert die geladene Liste; sie fragt nie den Server. */
-        elements.cardSearch.addEventListener('input', function () {
-            cardSearchQuery = elements.cardSearch.value;
-
-            if (currentEntry !== null) {
-                renderCardList(currentEntry.id);
-            }
         });
 
         elements.learnClose.addEventListener('click', askBeforeClosingLearn);
@@ -8141,10 +8193,9 @@
     /*
      * Die Filter-Chips der Kartenliste.
      *
-     * Sie filtern die Liste, die schon im Browser liegt - kein Aufruf an die API, und aus
-     * dem Getippten wird keine Abfrage gebaut. Die vier Chips sind die drei Zustände, die
-     * eine Karte wirklich hat (siehe cardStatusOf), plus "Alle"; welcher Zustand das ist,
-     * rechnet weiterhin allein der Server aus.
+     * Sie filtern die Liste, die schon im Browser liegt - kein Aufruf an die API. Die vier
+     * Chips sind die drei Zustände, die eine Karte wirklich hat (siehe cardStatusOf), plus
+     * "Alle"; welcher Zustand das ist, rechnet weiterhin allein der Server aus.
      */
     function wireCardFilter() {
         if (elements.cardFilter === null) {
@@ -8156,7 +8207,7 @@
                 setCardFilter(chip.getAttribute('data-status'));
 
                 if (currentEntry !== null) {
-                    renderCardList(currentEntry.id);
+                    renderCardList();
                 }
             });
         });
@@ -8263,14 +8314,6 @@
         dialogFields.back.control.value = cardDraft[code].back;
 
         updateCardLanguageTabs();
-        updateCardPreview();
-
-        var preview = document.querySelector('.card-preview');
-
-        if (preview !== null) {
-            preview.classList.remove('is-flipped');
-        }
-
         dialogFields.front.control.focus();
     }
 

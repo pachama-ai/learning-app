@@ -29,7 +29,7 @@ zwei Tabellen.
 - **Lernen mit Bewertung.** Frage, Umdrehen, dann „Nochmal", „Schwer", „Gut" oder
   „Leicht". Daraus ergibt sich, wann die Karte wieder dran ist.
 - **Lernstand ansehen.** Neu, unsicher, gewusst, fällig und die Serie an Tagen.
-- **Suchen und filtern.** In der Kartenliste nach Text und nach Status.
+- **Filtern.** In der Kartenliste nach Status (Alle, Neu, Unsicher, Gewusst).
 - **Hell und dunkel, Deutsch und Englisch.** Beides bleibt im Browser gespeichert.
 - **Satzbeispiele als Varianten.** Eine Karte kann mehrere Formulierungen derselben
   Regel tragen (Grammatik: fünf Beispielsätze). Beim Lernen wird zufällig eine
@@ -78,7 +78,7 @@ sonst gibt es einen Fehler.
 | `src/services/` | Die Fachlogik und **alle** SQL-Abfragen. |
 | `src/data/` | Die Inhalte, die keine Datenbank brauchen: die Wissensmodule der Nachschlageseite „Energie verstehen" und die Aufgaben der Grammar Challenge. Beschreibungen, keine Logik. |
 | `database/` | `schema.sql` – der Aufbau der Datenbank. Dazu Skripte, die von Hand ausgeführt werden: `card_variants.sql` (die Tabelle der Satzbeispiele), `story_together.sql` (die beiden Tabellen der gemeinsamen Geschichte) und Änderungen an Inhalten, etwa die englischen Kategorienamen. |
-| `bin/` | Drei Skripte fürs Terminal, die CSV-Dateien einlesen: `import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen), `import_energy_cards.php` (Karten unter einen Lernbereich), `import_english_csv.php` (der English-Baum). |
+| `bin/` | Skripte fürs Terminal, die CSV-Dateien einlesen: `import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen), `import_energy_cards.php` (Karten unter einen Lernbereich), `import_english_csv.php` (der English-Baum) und `import_dictionary_cards.php` (ein zweispaltiges Wörterbuch an eine vorhandene Vokabelkategorie anhängen). |
 | `docs/` | Diese Datei. |
 
 Nur `public/` ist über den Webserver erreichbar. `src/` liegt daneben, damit
@@ -94,25 +94,20 @@ Neun Tabellen. Der Aufbau steht vollständig in **`database/schema.sql`**.
 | --- | ---: | --- |
 | `users` | 2 | die Konten |
 | `categories` | 92 | 8 Lernbereiche und 84 Unterkategorien, alle mit Besitzer |
-| `cards` | 7807 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
+| `cards` | 11587 | die Karten; 100 mit Landkarte, 284 nur auf Deutsch |
 | `card_variants` | 1500 | die Satzbeispiele einer Karte, 0 bis n je Karte |
-| `user_card_progress` | 259 | eine Zeile je Nutzer und Karte – der Lernstand |
-| `study_sessions` | 46 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
+| `user_card_progress` | 274 | eine Zeile je Nutzer und Karte – der Lernstand |
+| `study_sessions` | 50 | eine Zeile je abgeschlossener Lernrunde, Grundlage der Serie |
 | `card_exercises` | 39 | die Übungsaufgabe einer Karte, höchstens eine pro Karte |
 | `stories` | 1 | die gemeinsame Geschichte („Story Together"), genau eine Zeile |
 | `story_contributions` | 4 | ein Beitrag je Zug und Geschichte, einer der beiden Konten |
 
-(Stand: 18.10.2026. Am 18.10.2026 kamen 30 Karten in zwei PRIO-Unterkategorien
-dazu, deshalb 7807 statt 7777. Gegenüber dem 11.10.2026
-sind die Zahlen an drei Stellen
-gewachsen – `user_card_progress` von 219 auf 259, `study_sessions` von 40 auf 46,
-`story_contributions` von 1 auf 4. Geschrumpft ist eine Stelle: der alte doppelte
-Lernbereich „Energy" (id 193) wurde mit seinen 15 Unterkategorien und 436 Karten
-gelöscht. Gewachsen ist dafür eine andere: der neue Lernbereich **PRIO** entstand mit
-achtzehn Unterkategorien und 281 Karten (siehe §7). Deshalb stehen in `categories`
-92 statt 89 Zeilen – die 89 waren 8 Lernbereiche und 81 Unterkategorien, jetzt sind
-es 8 und 84 – und in `cards` 7777 statt 7920. Am Abend kamen zwölf weitere Karten in
-den Bereich `Energy` (siehe §7). Genaueres dazu in §7 und §10.)
+(Stand: 20.10.2026. Gegenüber dem 18.10.2026 sind `cards` von 7807 auf 11587
+gewachsen. Der Grund ist der Wörterbuch-Import unter `Grund- und Aufbauwortschatz`
+(3780 neue Karten, siehe §7). Durch die normale Nutzung stehen
+`user_card_progress` bei 274 und `study_sessions` bei 50. Die Zahl der Kategorien
+bleibt bei 92 – 8 Lernbereiche und 84 Unterkategorien. Genaueres dazu in §7 und
+§10.)
 
 Ein paar Eigenheiten, die man wissen sollte:
 
@@ -125,11 +120,6 @@ Ein paar Eigenheiten, die man wissen sollte:
   `front_de`/`back_de`/`front_en`/`back_en`.
 - `categories.icon_svg` ist `MEDIUMTEXT` und nicht `TEXT` – eine hochgeladene
   Zeichnung darf bis 350 KB groß sein, in `TEXT` passten nur 64 KB.
-- `cards.image_front` und `cards.image_back` tragen **nur den Dateinamen** eines
-  Fotos, nicht den Pfad. Die Dateien liegen in `public/uploads/cards/`; der Name
-  wird beim Hochladen zufällig erzeugt. Fehlen die beiden Spalten, arbeitet die
-  Anwendung ohne Fotos weiter, und der Kartendialog meldet das beim Hochladen.
-  Angelegt werden sie mit `database/card_images.sql` (von Hand auszuführen).
 - `user_card_progress` hat `ON DELETE CASCADE` auf beiden Fremdschlüsseln. Wird ein
   Konto oder eine Karte gelöscht, geht der Lernstand mit – das ist gewollt.
 - `study_sessions.category_id` ist `ON DELETE SET NULL`: wird die Unterkategorie
@@ -270,13 +260,26 @@ Pfad.
 | 16.10. | Zweite PRIO-Runde: Stromnetz, Strommarkt, Strompreise, Netzentgelte, Felder & Blindleistung, Energiegesetze (vier Unterkategorien) | 117 | neun neue Unterkategorien in `PRIO`, einseitig |
 | 16.10. | „Netzbetrieb & Systemstabilität" durch die aktualisierte Fassung ersetzt | 26 (22 ersetzt) | `PRIO`, Unterkategorie id 232 |
 | 16.10. | Achte Datei der PRIO-Runde nachgezogen (lag zuerst nicht vor) | 14 | neue Unterkategorie `Energiedaten, Strommix & Energiewende` in `PRIO` |
-| 16.10. | Einheiten, Energieformen und Atomaufbau aus einer neuen Liste | 12 | 8 in `Energiegrundlagen & Energiewende` und 4 in `Atome, Teilchen & Elektrizität` (Energy, id 3), einseitig |
-| 18.10. | Zwei Karten zu Elektronen und Ionen in Akkus | 2 | `Atome, Moleküle & chemische Grundlagen` (PRIO, id 225), einseitig |
-| 18.10. | Karte zu elektrischem Potenzial und Spannung | 1 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
-| 18.10. | Fünf Karten zu Coulomb/Joule, Energieumrechnung und Leistung vs. Energie | 5 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
-| 18.10. | Kohle-, Öl- und Benzin-Karte mit Umwandlungskette | 3 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
-| 18.10. | Gas, Biomasse, PV, Wind, Wasser, Geothermie, Solarthermie, KWK, Wärmepumpe, Kernkraft, Pumpspeicher, Batteriespeicher – je mit Umwandlungskette | 12 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
-| 18.10. | Warmwasser: Durchlauferhitzer, Gastherme, Solarthermie, Wärmepumpe, Fernwärme, Holz/Pellets, Vergleich | 7 | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226), einseitig |
+| 19.10. | Wörterbuch `woerterbuch_englisch_deutsch.csv` angehängt | 3780 neu (3836 Zeilen, 24 Dubletten zusammengeführt, 32 schon vorhanden) | `Grund- und Aufbauwortschatz` (English, id 222, Konto 6), beidseitig |
+
+**Der Wörterbuch-Import (19.10.2026).** Die Datei hat nur zwei Spalten
+(`Englisch;Deutsch`) und wurde deshalb von `bin/import_dictionary_cards.php`
+gelesen, nicht von den beiden großen Importeuren. Das Werkzeug legt keine Kategorie
+an und leert keine: es vergleicht die englische Vorderseite mit den vorhandenen
+Karten, schreibt nur die fehlenden 3780 und lässt Karten-Ids und Lernfortschritt
+unangetastet. 24 englische Ausdrücke standen zweimal in der Datei; ihre deutschen
+Bedeutungen wurden zu einer Karte zusammengelegt. 32 Ausdrücke standen schon in der
+Unterkategorie und wurden nicht doppelt angelegt; ihre vorhandene deutsche Bedeutung
+bleibt unverändert, damit kein Lernfortschritt an einer neuen Karte hängt. Vom Aufbau
+her sind die neuen Karten wie die alten: `front`/`front_de`/`front_en` tragen das
+englische Wort, `back`/`back_de`/`back_en` die deutsche Bedeutung,
+`is_bidirectional = 1`.
+
+Die neuen Karten hängen nicht am Ende der Datei: `review_randomized_new_category_ids()`
+zählt `Grund- und Aufbauwortschatz` seit diesem Tag zu den Vokabellisten, deren neue
+Karten `review_build_queue()` bei jeder Lernrunde neu mischt. Die frisch importierten
+und die schon vorhandenen neuen Karten stehen dadurch gemischt; fällige und bereits
+gewusste Karten behalten wie bisher ihren Platz vorne.
 
 **Der neue Lernbereich „PRIO" (16.10.2026).** Der Bereich entstand über die
 Anwendung selbst (`POST /api/categories.php`, Name/name_de/name_en = `PRIO`), damit
@@ -360,24 +363,6 @@ durch dieselbe Prüfung wie ein Symbol, das jemand selbst hochlädt. Beide Zeich
 sind zeichengleich (30693 Zeichen, `icon_scale` 1.00), und beide Bereiche liefern
 `api/category_icon.php` mit demselben Inhalt aus. Ein Symbol ist nur für sein Konto
 abrufbar: ohne angemeldete Sitzung antwortet der Endpunkt mit 404.
-
-**Einheiten, Energieformen und Atomaufbau (16.10.2026).** Eine neue Liste
-(`energie_grundlagen_einheiten_energieformen_atome_de_en (1).csv`, 15 Zeilen) kam in
-einem anderen Spaltenformat: `lesson;subcategory;question_en;answer_en;question_de;
-answer_de`. Ihre Spalte `lesson` nennt für alle Zeilen „Energy basics & energy
-transition" – den englischen Namen der bestehenden Unterkategorie `Energiegrundlagen &
-Energiewende` (id 213). Dorthin gingen acht Karten (Einheiten, Leistung, Energieformen);
-die vier Karten zu Atomaufbau und Elektrostatik kamen in die passendere bestehende
-Unterkategorie `Atome, Teilchen & Elektrizität` (id 219). Es wurde also **keine** neue
-Unterkategorie angelegt (weiterhin 92).
-
-**Drei Karten waren schon da und blieben draußen:** „Was ist chemische Energie?" gibt es
-wortgleich (id 18027), „Was ist kinetische Energie?" und „Was ist thermische Energie?"
-gibt es mit ausführlicherem Wortlaut („… (Bewegungsenergie)?" id 18025,
-„… (Wärmeenergie)?" id 18029) – dieselbe Frage, deshalb keine zweite Karte. Zwölf Karten
-wurden importiert (ids 18396–18407), alle einseitig und mit beiden Sprachen. Die
-umgewandelte Arbeitskopie liegt in
-`database/import/grundlagen_einheiten_formen_atome_umgewandelt.csv`.
 
 Die Quell-CSVs liegen noch im Projektstamm (frühere Importe haben ihre Dateien
 danach gelöscht, siehe oben) – einundzwanzig an der Zahl. Ihr Inhalt
@@ -909,23 +894,6 @@ trägt der Knopf die Akzentfarbe, weil `--text` dort hell ist. Wer die Knöpfe i
 Themen grün will, ändert eine Regel - aber dann kollidiert das Grün mit dem Zeichen für
 fällige Karten.
 
-**Fotos an einer Lernkarte**
-
-Seit dem 17.10.2026 kann jede Seite einer Karte ein Foto tragen. Hochgeladen wird
-im Kartenformular; die Datei geht erst mit dem Speichern an den Server, weil eine
-neue Karte vorher noch keine Id hat. Der Server liest jedes Bild selbst, dreht es
-nach den EXIF-Daten, verkleinert die längste Seite auf 1600 Pixel und schreibt es
-neu – dadurch verschwinden EXIF-Daten, und ein umbenanntes Skript kann nicht als
-Bild durchgehen. Angenommen werden JPG, PNG und WebP bis 2 MB; SVG ist absichtlich
-nicht dabei, weil es Skript enthalten kann. Gespeichert wird nur ein zufälliger
-Dateiname mit fester Endung. Hochladen und Entfernen verlangen den CSRF-Token der
-Sitzung: beim Upload reist er im Formular mit, beim Entfernen in einem eigenen
-Kopf.
-
-Auf der Lernkarte steht das Foto unter dem Text der jeweiligen Seite. Bei einer
-Karte, die in beide Richtungen geübt wird, tauschen die Fotos beim Umdrehen mit:
-Die Frage ist dann die alte Rückseite, also gehört deren Foto nach vorn.
-
 **Zwei Bäume namens „Energy" – einer davon ist inzwischen weg**
 
 Nutzer 6 hatte zwei Lernbereiche „Energy": den aktiven (id 3) und eine ältere Kopie
@@ -1027,12 +995,72 @@ ist in Ordnung, es ist nur eine protokollierte Absage.
 - `public/assets/icons/informatik.svg` ist weg, es liegt nur noch
   `browser_icon.svg` dort.
 
-## 11. Sicherungskopien
+**Arbeitsdateien mit alten Ständen überschrieben (19.10.2026)**
 
-Die Kartenfotos in `public/uploads/cards/` sind **nicht** Teil eines
-`mysqldump`-Abzugs: In der Datenbank steht nur der Dateiname. Wer eine Sicherung
-zurückholt, muss den Ordner deshalb zusätzlich kopieren, sonst verweisen die
-Spalten `image_front` und `image_back` auf fehlende Dateien.
+Am 19.10.2026 wurden `public/index.php`, `public/assets/css/app.css`,
+`public/assets/js/app.js` und `src/helpers/translations.php` im Arbeitsverzeichnis
+zweimal durch alte lokale Stände ersetzt: um 16:52 durch den Stand von Commit
+`16a6132` (16.10.), um 18:29 durch den Stand von `f4c9637` (29.09.). Das war
+**kein Git-Reset**: `HEAD` und `origin/main` blieben auf `6e3fed1`, die Änderungen
+lagen nur im Arbeitsverzeichnis. Folge: Die Mobile-Regeln, der Chip-Dialog und die
+Oktober-Ansichten fehlten. Am 20.10. wurden die Oberflächen-Dateien aus `HEAD`
+wiederhergestellt; eine Sicherung des überschriebenen Stands lag unter
+`/tmp/backup_vor_restore/`. **Regel für die Zukunft:** Oberflächen-Dateien immer
+aus `HEAD`/Git holen, nie aus einem alten lokalen Snapshot oder einer alten Kopie
+zurückspielen.
+
+**Karten-Dialog reduziert und Scroll-Position (20.10.2026)**
+
+Das Kartenformular zeigt nur noch Sprache, Vorderseite, Rückseite, die beiden
+Fotos und „in beide Richtungen üben“. Kartenart, Landkarte und die Vorschau sind
+aus der Oberfläche entfernt. Beim Speichern werden `exercise_type`,
+`exercise_params` und `map_region` **nicht** mitgeschickt: Der Server lässt eine
+vorhandene Übungsaufgabe und eine vorhandene Kartenregion dadurch unverändert,
+und eine neue Karte bleibt die Vorgabe „Frage und Antwort“. Am Rechner ist der
+Dialog auf `min(680px, calc(100dvh - 48px))` begrenzt; die Felder scrollen darin.
+Nach dem Speichern merkt sich `captureCardScroll()` die Zeile über
+`data-card-id`, und `restoreCardScrollWhenReady()` stellt dieselbe Position nach
+dem Neuaufbau der Liste wieder her. Der Fokus beim Schließen nutzt
+`preventScroll`, damit er die Seite nicht nach oben zieht.
+
+**Kompakte Kartenübersicht am Rechner (20.10.2026)**
+
+Die Kartenliste einer Unterkategorie ist ab 640 Pixeln eine Tabelle mit flachen Zeilen
+statt eines Stapels aus Kartenflächen. Eine Zeile zeigt nur die Vorderseite (einzeilig,
+`text-overflow: ellipsis`), ein Bild-Zeichen, wenn die Karte ein Foto hat, und das
+`…`-Menü. Antwort, Landkarte, Merker und Status sind aus der Zeile genommen; der Status
+bleibt unsichtbar im Markup, damit Vorlesehilfen ihn weiter lesen. Ein Klick auf die Zeile
+öffnet das bestehende Kartenfenster. Der neue Übersetzungsschlüssel heißt `cards.hasPhoto`.
+Am Handy ist die Ansicht unverändert (zweizeilig, ohne Klick, ohne Bild-Zeichen); die
+Zählungen sind unberührt.
+
+**Gliederung der Unterkategorieseite (20.10.2026)**
+
+Kopf, Zahlenzeile, Aktionen und Werkzeugleiste waren durch zufällige Abstände (14, 14, 22,
+22) getrennt und standen alle im selben Flächenton. Jetzt gilt ein Takt aus drei Stufen
+(12 / 16 / 32, als `--detail-step-1…3` an `.detail`), und die Kartenliste liegt auf
+einer eigenen Fläche (`--surface`, 1 Pixel `--hairline`, 12 Pixel Rundung, 6/8 Pixel
+Innenabstand). Der Kopf-Banner bleibt das Vorbild. Nur Abstände und Flächen sind
+angetastet - Funktion, Markup und Daten sind unverändert. Alles gilt ab 640 Pixel; das
+Handy behält seine Abstände und seinen Stapel.
+
+**Kompakte Steuerzeile, kein Suchfeld (20.10.2026)**
+
+Das Suchfeld ist entfernt - nicht ausgeblendet, sondern gelöscht: Markup
+(`#card-tools`, `#card-search`), Skript (`cardSearchQuery`, `cardSearchMin`,
+`cardMatches()`, die Verdrahtung in `wireLearning`) und die drei Schlüssel `cards.search`,
+`cards.searchPlaceholder`, `cards.searchEmpty`. Geblieben ist `#card-filter-empty`: die
+Meldung „Keine Karte hat diesen Status.“ gehört weiter zum Filter.
+
+Die Filtergruppe steht jetzt rechts in derselben Zeile wie `+ Karte` und `Importieren`
+(beides in `.detail__learn`, `margin-left: auto` am Filter). Damit gibt es oben eine
+Steuerzeile statt zweier. Die Chips sind eine leise Segmentleiste: ein `--hairline`-Rahmen
+um die Gruppe, keine Rahmen an den Knöpfen, der aktive Filter nur mit `--tile-bg` getönt.
+Der Takt ist dadurch neu: 12 Kopf → Zahlen, 16 Zahlen → Steuerzeile, 32 Steuerzeile →
+Liste. Das Anheben der Filterleiste beim Scrollen entfällt damit - es gibt keine eigene
+Leiste mehr.
+
+## 11. Sicherungskopien
 
 Die Dumps liegen **außerhalb** des Repos unter `/home/user/backups/` und sind
 nicht eingecheckt. Die älteste und kleinste ist ein vollständiger Dump vom
@@ -1105,6 +1133,16 @@ Knopf neben dem Verweis, weil ein Knopf in einem Verweis kein gültiges Markup w
 `.area-card-slot .tile-menu`. Der frühere Selektor `.area-card .tile-menu` traf nichts, und
 weil ein grober Zeiger (Finger) das Menü ohnehin dauerhaft einblendet, standen die drei
 Punkte auf dem Handy auf jeder Kachel (korrigiert am 15.10.2026).
+
+**Eine Unterkategorie ist auf dem Handy nur zum Lernen da.** Der Block bis 639
+Pixel in `app.css` blendet `#detail-dashboard`, `#detail-actions`,
+`#add-entry-button`, `#bulk-start`, `#import-button`, die Zeilenmenüs und
+Auswahlkästchen, `#detail-menu` sowie `#card-filter` (Filtergruppe) und
+`#area-cards` (Kartenliste) aus. `.row:has(.row__learn) .row__link` hat
+`pointer-events: none`, damit der Name einer Unterkategorie nicht auf die
+Verwaltungsseite führt; gelernt wird über den Lernen-Knopf in derselben Zeile.
+Die Regeln nennen keine einzelne Kategorie-Id und gelten deshalb für jede
+vorhandene und jede später angelegte Unterkategorie.
 
 **Das Zeichen über der Begrüßung ist das Browser-Symbol.** Die Karte „Deine Karten warten
 auf dich" trägt das Favicon der Seite (`assets/icons/browser_icon.svg` — dieselbe Datei, die
@@ -1196,7 +1234,7 @@ die Ziffern in `--text`, mit feinen Punkten dazwischen. Vorher standen dort vier
 Kacheln (fällig, sitzt schon, unsicher, in Folge gelernt) und, nach einem Zwischenschritt,
 gar nichts: erst zählte die Zeile die Karten des ganzen Themengebiets, also eines Zweigs, den
 die offene Seite nicht zeigt. Jetzt füllen zwei kleine Funktionen sie - `renderCardFigures`
-für die erste Zahl (nur dort sind Filter und Suche bekannt, deshalb steht dort bei einer
+für die erste Zahl (nur dort ist der Filter bekannt, deshalb steht dort bei einer
 gefilterten Liste „12 von 40 Karten") und `renderCardSummary` für die beiden anderen. Auf der
 Ebene eines Lernbereichs bleibt sie versteckt. Der Zähl-Anlauf auf der ersten Zahl
 (`animateCount`) ist geblieben.
@@ -1213,35 +1251,70 @@ sonst niemand sie rief: `renderFigures`, `renderDeckFigures` und `overallProgres
 viele Karten dieser Zeile gerade fällig sind - gefüllt in der Akzentfarbe, wenn es welche
 gibt, sonst ein leiser Umriss mit der Null.
 
-**Die Kartenliste ist ein Stapel, keine Tabelle.** Jede Karte liegt in einer eigenen Fläche:
-1 Pixel `--line`, 12 Pixel Rundung, `--surface` als Grund, 13/15 Pixel Innenabstand und
-8 Pixel Abstand zur nächsten Karte (`gap` am `.rows`-Stapel). Vorher war jede Karte eine
-Zeile zwischen zwei gepunkteten Linien. Die gepunktete Linie über der Liste und der
-Einrück-Effekt beim Zeigen sind weg: die Zeile bleibt stehen, nur Rahmen und Fläche werden
-eine Spur deutlicher. Alles davon hängt an `.rows:has(.row--card)`, damit die Liste der
-Unterkategorien (`.row--category`) ihre Tabelle behält.
+**Die Kartenliste ist am Rechner eine flache Tabelle in einer eigenen Zone.**
+Ab 640 Pixeln ist jede Karte eine Zeile von rund 32 Pixeln Höhe: die Frage einzeilig und
+mit `…` abgeschnitten, dahinter ein kleines Bild-Zeichen, wenn die Karte ein Foto hat, und
+das `…`-Menü am rechten Rand. Die Antwort, die Landkarte, die Merker und der Status stehen
+nicht mehr in der Zeile. Sie bleiben im Markup, werden aber unsichtbar gestellt
+(`.row__meta` mit `clip-path: inset(50%)`), damit eine Vorlesehilfe den Status weiterhin
+liest. Die Trennung zwischen den Zeilen ist 1 Pixel `--hairline`; die letzte Zeile hat
+keine. Die ganze Liste liegt auf einer leisen Fläche: `--surface`, 1 Pixel `--hairline`,
+12 Pixel Rundung, 6/8 Pixel Innenabstand - wie der Kopf-Banner darüber, nur ruhiger. Der
+Innenabstand ist der Grund, warum die Zeilen kein eigenes Einrücken mehr brauchen: die
+Tönung beim Zeigen endet vor der Rundung. Kein `overflow: hidden`, sonst würde das
+`…`-Menü abgeschnitten. Alles davon hängt in `@media (min-width: 640px)` und an
+`.rows:has(.row--card)`, damit die Liste der Unterkategorien (`.row--category`) ihre
+Tabelle behält und das Handy unverändert bleibt.
 
-**In der Zeile gilt eine klare Reihenfolge.** Die Frage steht als Titel (15 Pixel, 600,
-`--text`), die Antwort darunter in 13 Pixeln und `--muted` und wird mit `…` abgeschnitten,
-wenn sie zu lang ist. Das `…`-Menü saß vorher **links** (`order: -1`) in einer eigenen
-Spalte: der Fragetext begann erst danach und rückte je nach Zeile unterschiedlich weit ein.
-Jetzt ist es das letzte Element der Zeile (gemessen 16 Pixel vom rechten Rand) und im
-Ruhezustand auf 40 % Deckkraft gedämpft - beim Zeigen und im Tastaturfokus wird es voll
-sichtbar. Der Status ist kleiner geworden (10 Pixel Schrift, 6 Pixel Punkt) und hat seine
-reservierte Breite von 84 Pixeln verloren, die jede Zeile auseinanderzog.
+**Ein Klick auf die Zeile öffnet das Kartenfenster.** `buildCardRow()` hängt dafür einen
+Klick an das `<li>`; das Fenster ist dasselbe „Karteikarte bearbeiten“ wie aus dem
+`…`-Menü. Der Klick tut nichts, wenn das Fenster schmaler als 640 Pixel ist, und auch
+dann nichts, wenn gerade ein `…`-Menü offen war - sonst würde die Bewegung, die das Menü
+schließt, gleich das Formular öffnen. Am Handy bleibt die Zeile stumm.
+
+**Das Bild-Zeichen erscheint nur bei einem Foto.** `buildCardPhoto()` prüft `image_front`
+und `image_back` aus der API (fertige Adresse oder `null`); ohne Foto wird gar kein
+Element angelegt, also auch kein leerer Platz. Der Titel des Zeichens kommt aus
+`cards.hasPhoto` („Hat ein Foto“ / „Has a photo“).
+
+**Die Steuerzeile trägt Aktionen und Filter.** Links stehen `+ Karte` und `Importieren`,
+rechts die Filtergruppe (Alle / Neu / Unsicher / Gewusst) - eine Zeile statt zwei. Der
+Filter sitzt über `margin-left: auto` am rechten Rand; wird es eng, bricht er durch
+`flex-wrap` in eine zweite Zeile (bei 700 Pixeln gemessen: noch eine Zeile, 34 Pixel hoch).
+Das Suchfeld ist entfallen: `#card-tools`, `#card-search`, `cardMatches()`,
+`cardSearchQuery` und die drei Übersetzungsschlüssel `cards.search*` sind gelöscht, nicht
+nur versteckt. Der Filter selbst arbeitet unverändert über `cardStatusOf()`.
+
+**Die Filtergruppe ist eine leise Segmentleiste.** Ein dünner Rahmen (`--hairline`,
+999 Pixel Rundung, 3 Pixel Innenabstand) fasst die vier Knöpfe zusammen; die Knöpfe selbst
+haben keinen Rahmen. Der aktive Filter trägt nur eine leichte Tönung (`--tile-bg`) und die
+Textfarbe der Seite - vorher war er eine gefüllte dunkle Pille und damit der lauteste
+Fleck dieser Seite.
+
+**Der senkrechte Takt hat drei Stufen**, jede größer als die vorige: **12** Kopf → Zahlen,
+**16** Zahlen → Steuerzeile, **32** Steuerzeile → Liste. Definiert als `--detail-step-1`
+bis `-3` an `.detail`, damit die Zahlen nicht wieder einzeln über das Blatt verstreut sind.
+Die letzte Stufe ist absichtlich doppelt so groß wie die erste: dort endet der
+Steuerungsbereich und die Liste beginnt, und dieser Schnitt ist ohne zusätzliche Linie zu
+sehen. Am Handy bleiben die alten Abstände (Liste 24 Pixel unter den Aktionen).
+
+**Die Einblendung staffelt nur den ersten Bildschirm.** `--reveal-index` war der
+Listenindex, und die Verzögerung ist 60 ms je Stufe: bei 4148 Karten (Kategorie „Grund-
+und Aufbauwortschatz“) wäre die letzte Zeile rechnerisch 249 Sekunden unsichtbar
+geblieben, weil `animation-fill-mode: backwards` schon vor dem Start die Anfangsdeckkraft
+setzt. `buildCardRow()` deckelt den Wert jetzt bei 12.
+
+**In der Handy-Zeile gilt weiter die alte Reihenfolge.** Die Frage steht als Titel
+(15 Pixel, 600, `--text`), die Antwort darunter in 13 Pixeln und `--muted`. Das `…`-Menü
+ist dort ohnehin ausgeblendet, der Status ist kleiner geworden (10 Pixel Schrift, 6 Pixel
+Punkt) und hat seine reservierte Breite von 84 Pixeln verloren, die jede Zeile
+auseinanderzog.
 
 **Auf dem Handy bekommt der Text die ganze Breite.** Merker und Status stehen rechts und
 nahmen ihren Platz unabhängig von der Fensterbreite: bei 375 Pixeln blieben Frage und Antwort
 91 Pixel, eine lange Antwort lief in fünf Zeilen. Jetzt rutscht die Spalte unter den Text
 (`flex-wrap` am `.row__link`), und die Antwort wird nach zwei Zeilen abgeschnitten
 (`-webkit-line-clamp: 2`).
-
-**Die Werkzeugleiste trägt dieselbe Rundung wie die Karten.** Die Filter-Chips waren Pillen
-(999px), was neben Flächen mit 12 Pixeln Rundung wie ein anderes Bauteil aussah; sie sind
-jetzt 13 Pixel groß und 5/12 Pixel gepolstert, die Leiste hat 16 Pixel Abstand nach oben, und
-zwischen Leiste und Liste liegen 24 Pixel. Der ganze senkrechte Rhythmus dieser Seite ist
-damit 12 (Kopf → Zeile), 14 (Zeile → Aktionen), 16 (Aktionen → Werkzeugleiste), 24
-(Werkzeugleiste → Liste) - jede Stufe größer als die vorige.
 
 **Am Rechner gibt es hier keinen Lernen-Knopf.** Die Seite ist die Verwaltung (anlegen,
 importieren, öffnen); gelernt wird im Lernmodus, und dorthin führt der Lernen-Knopf in der
@@ -1252,7 +1325,7 @@ Verwaltungsknöpfe aus, und eine Seite ganz ohne Handlung wäre eine Sackgasse.
 (Karte anlegen, Importieren, Vokabeln bearbeiten), das Menü `#detail-menu`, die Menüs an
 den Karten (`.row__menu`) und die Kacheln der Übersicht (`#detail-dashboard`). Das
 `!important` ist Absicht: `app.js` blendet einzelne Blöcke selbst ein und aus, und diese
-Regel muss stärker sein als ein spät gesetztes `hidden`. Lernen, Durchsehen und Suchen
+Regel muss stärker sein als ein spät gesetztes `hidden`. Lernen und Durchsehen
 bleiben.
 
 **Die Kopfzeile ist kürzer, aber überall gleich.** Bis 639 Pixel entfällt der Pfad

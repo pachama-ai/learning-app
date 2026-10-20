@@ -268,9 +268,6 @@ function learning_app_translations(): array
             'learn.newCardsHintOne' => '{count} new card available',
             'learn.newCardsHintOther' => '{count} new cards available',
             'learn.newCardsStart' => 'Start',
-            'cards.search' => 'Search cards',
-            'cards.searchPlaceholder' => 'Search in front and back',
-            'cards.searchEmpty' => 'No card matches this search.',
             'cards.filter.label' => 'Filter by status',
             'cards.filter.all' => 'All',
             'cards.filterEmpty' => 'No card has this status.',
@@ -288,6 +285,8 @@ function learning_app_translations(): array
             'cards.addFirst' => 'Create the first card',
             'cards.bidirectionalShort' => 'Both ways',
             'cards.exerciseBadge' => 'Exercise',
+            /* Tooltip des kleinen Bild-Zeichens in der Kartenübersicht. */
+            'cards.hasPhoto' => 'Has a photo',
             'cards.noUser' => 'Nobody is signed in, so answers cannot be saved yet.',
 
             // --- Der Kartendialog ---
@@ -1003,9 +1002,6 @@ function learning_app_translations(): array
             'learn.newCardsHintOne' => '{count} neue Karte verfügbar',
             'learn.newCardsHintOther' => '{count} neue Karten verfügbar',
             'learn.newCardsStart' => 'Starten',
-            'cards.search' => 'Karten suchen',
-            'cards.searchPlaceholder' => 'In Vorder- und Rückseite suchen',
-            'cards.searchEmpty' => 'Zu dieser Suche passt keine Karte.',
             'cards.filter.label' => 'Nach Status filtern',
             'cards.filter.all' => 'Alle',
             'cards.filterEmpty' => 'Keine Karte hat diesen Status.',
@@ -1023,6 +1019,8 @@ function learning_app_translations(): array
             'cards.addFirst' => 'Erste Karte anlegen',
             'cards.bidirectionalShort' => 'Beide Richtungen',
             'cards.exerciseBadge' => 'Übungsaufgabe',
+            /* Tooltip des kleinen Bild-Zeichens in der Kartenübersicht. */
+            'cards.hasPhoto' => 'Hat ein Foto',
             'cards.noUser' => 'Es ist niemand angemeldet, deshalb können Antworten noch nicht gespeichert werden.',
 
             // --- Der Kartendialog ---

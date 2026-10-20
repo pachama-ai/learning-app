@@ -2505,8 +2505,8 @@ html.is-theme-switching::view-transition-old(root),
     Sie war zwischenzeitlich ganz ausgeblendet: damals stand dort die Zahl der
     Unterkategorien, die Karten des ganzen Themengebiets und die davon gewussten - also
     Zahlen eines Zweigs, den die offene Seite gar nicht zeigt. Jetzt füllt `app.js` sie mit
-    drei Zahlen, die zu dieser Seite gehören (renderCardFigures für die erste, die Filter
-    und Suche kennt, renderCardSummary für die beiden anderen). Sichtbar ist sie nur auf
+    drei Zahlen, die zu dieser Seite gehören (renderCardFigures für die erste, die den
+    Filter kennt, renderCardSummary für die beiden anderen). Sichtbar ist sie nur auf
     einer Unterkategorieseite; ob sie da ist, entscheidet weiter das `hidden`-Merkmal.
 */
 .detail__figures .detail__figure {
@@ -2711,40 +2711,38 @@ html.is-theme-switching::view-transition-old(root),
     --status-unsure: #D3A26A;
     --status-known: #8FB08A;
 }
-/* Werkzeugleiste der Kartenliste */
-.card-tools {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin: 22px 0 0;
-}
-/* Kartenzeilen */
-#card-tools:not([hidden]) ~ .rows {
-    margin-top: 22px;
-}
-/* Werkzeugleiste der Kartenliste-Filter */
-.card-tools__filter {
+/*
+    Die Filtergruppe: eine leise Segmentleiste, keine Reihe von Pillen.
+
+    Sie steht rechts in derselben Zeile wie "+ Karte" und "Importieren" (siehe
+    `.detail__learn`), damit oben EINE Steuerzeile steht. Der dünne Rahmen fasst die vier
+    Knöpfe zu einer Gruppe zusammen; die Knöpfe selbst tragen keinen eigenen Rahmen mehr,
+    damit die Zeile nicht wie vier Schalter aussieht.
+*/
+.card-filter {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
 }
 /* Statusfilter-Filterknopf */
 .card-filter__chip {
-    padding: 5px 13px;
-    border: 1px solid var(--line);
+    padding: 5px 12px;
+    border: 0;
     border-radius: 999px;
     background-color: transparent;
     color: var(--muted);
     font-family: var(--font-sans);
-    font-size: 0.85rem;
+    font-size: 13px;
+    line-height: 1.2;
     cursor: pointer;
-    transition: color 200ms var(--ease), border-color 200ms var(--ease),
-        background-color 200ms var(--ease);
+    transition: background-color 180ms var(--ease), color 180ms var(--ease);
 }
 /* Statusfilter-Filterknopf · bei Zeigerkontakt · und Varianten */
 .card-filter__chip:hover,
 .card-filter__chip:focus-visible {
-    border-color: var(--text);
     color: var(--text);
 }
 /* Statusfilter-Filterknopf · im Tastaturfokus */
@@ -2752,27 +2750,16 @@ html.is-theme-switching::view-transition-old(root),
     outline: 2px solid var(--line-strong);
     outline-offset: 2px;
 }
-/* gedrückt · Statusfilter-Filterknopf */
+/*
+    Der gewählte Filter: eine leichte Tönung und die Textfarbe der Seite.
+
+    Vorher war er eine gefüllte dunkle Pille - in einer Zeile mit den Aktionen daneben war
+    das der lauteste Fleck der Seite, obwohl der Filter nur eine Ansicht umstellt.
+*/
 .card-filter__chip[aria-pressed="true"] {
-    border-color: var(--text);
-    background-color: var(--text);
-    color: var(--panel);
-}
-/* Werkzeugleiste der Kartenliste-Suchfeld */
-.card-tools__search-input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
-    border-radius: 12px;
-    background-color: var(--panel);
+    background-color: var(--tile-bg);
     color: var(--text);
-    font-family: var(--font-sans);
-    font-size: 15px;
-}
-/* Werkzeugleiste der Kartenliste-Suchfeld · im Tastaturfokus */
-.card-tools__search-input:focus-visible {
-    outline: 2px solid var(--line-strong);
-    outline-offset: 1px;
+    font-weight: 500;
 }
 /* Kartenzeile-Status */
 .row__status {
@@ -5410,8 +5397,7 @@ select:focus-visible,
     color: var(--text-muted);
     font-weight: 600;
 }
-/* Werkzeugleiste der Kartenliste-Suchfeld · und Varianten */
-.card-tools__search-input,
+/* Eingabefeld · und Varianten */
 input[type="search"],
 input[type="text"],
 input[type="number"],
@@ -5424,8 +5410,7 @@ select {
     font-family: var(--font-sans);
     font-size: 14px;
 }
-/* helles Thema · Werkzeugleiste der Kartenliste-Suchfeld · und Varianten */
-[data-theme="light"] .card-tools__search-input,
+/* helles Thema · Eingabefeld · und Varianten */
 [data-theme="light"] input[type="search"],
 [data-theme="light"] input[type="text"],
 [data-theme="light"] input[type="number"],
@@ -5442,8 +5427,7 @@ select {
 [data-theme="light"] textarea::placeholder {
     color: var(--text-faint);
 }
-/* helles Thema · Werkzeugleiste der Kartenliste-Suchfeld · im Fokus · und Varianten */
-[data-theme="light"] .card-tools__search-input:focus,
+/* helles Thema · Eingabefeld · im Fokus · und Varianten */
 [data-theme="light"] input:focus,
 [data-theme="light"] textarea:focus,
 [data-theme="light"] select:focus {
@@ -6409,7 +6393,7 @@ select.count-dialog__input {
 
         Weg sind deshalb die Knoepfe ueber der Liste (Karte anlegen, Importieren,
         Vokabeln bearbeiten), das Menue an jeder Karte und die Kacheln der Uebersicht
-        (Zahlen, Serie). Was bleibt: Lernen, Durchsehen und Suchen - dafuer ist das
+        (Zahlen, Serie). Was bleibt: Lernen und Durchsehen - dafür ist das
         Geraet da. `!important`, weil app.js einzelne Bloecke selbst ein- und ausblendet
         und die Regel hier staerker sein muss als ein spaeter gesetztes `hidden`.
     */
@@ -6706,9 +6690,12 @@ select.count-dialog__input {
         Weg sind deshalb die drei Knöpfe, die etwas anlegen oder auswählen -
         `#add-entry-button` („+ Unterkategorie\" bzw. „+ Karte\"), `#bulk-start`
         („Auswählen\") und `#import-button` („Importieren\") -, das Menü der Seite, das Menü
-        an jeder Zeile, die Auswahlkästchen und die Kacheln der Übersicht. Was bleibt: die
-        Liste mit ihren Namen und der Lernen-Knopf, der in derselben Reihe steht - deshalb
-        werden hier die Knöpfe einzeln genannt und nicht ihr Container ausgeblendet.
+        an jeder Zeile, die Auswahlkästchen und die Kacheln der Übersicht. Dazu kommen
+        die Filter-/Suchleiste und die Kartenliste: Auch ein direkter Aufruf von
+        `index.php?category=…` soll auf dem Handy keine Verwaltungsansicht zeigen.
+        Was bleibt: die Liste mit ihren Namen und der Lernen-Knopf, der in derselben
+        Reihe steht - deshalb werden hier die Blöcke einzeln genannt und nicht ihr
+        Container ausgeblendet.
 
         Das `!important` ist Absicht: `render()` in `app.js` blendet einzelne Blöcke selbst
         ein und aus, und diese Regeln müssen stärker sein als ein spät gesetztes `hidden`.
@@ -6722,7 +6709,9 @@ select.count-dialog__input {
     .row__menu,
     .row__check,
     #detail-menu,
-    #detail-dashboard {
+    #detail-dashboard,
+    #card-filter,
+    #area-cards {
         display: none !important;
     }
 
@@ -6812,10 +6801,10 @@ select.count-dialog__input {
     }
 }
 
-/* --- Kartenliste: jede Karte eine eigene, ruhige Fläche --- */
+/* --- Kartenliste: am Handy ein Stapel, am Rechner eine flache Tabelle --- */
 
 /*
-    Aus der Tabelle wird ein Stapel.
+    Am Handy bleibt jede Karte eine eigene, ruhige Fläche.
 
     Vorher war jede Karte eine Zeile zwischen zwei gepunkteten Linien. Jetzt ist jede Karte
     eine Fläche für sich: eigener Rahmen, weiche Rundung, Abstand zur nächsten. Die Liste
@@ -6823,6 +6812,10 @@ select.count-dialog__input {
 
     `:has(.row--card)` grenzt das auf die Kartenliste ein: die Liste der Unterkategorien
     (`.row--category`) behält ihre ruhige Tabelle, dort passt sie.
+
+    Diese Regeln tragen die Ansicht bis 639 Pixel. Am Rechner gilt der Block weiter unten
+    ("Kartenliste am Rechner"): dort ist dieselbe Liste eine Tabelle mit flachen Zeilen,
+    und die Antwort steht nicht mehr in der Zeile.
 */
 .rows:has(.row--card) {
     display: flex;
@@ -6830,11 +6823,6 @@ select.count-dialog__input {
     gap: 8px;
     /* Die gepunktete Linie über der Liste gehört zur Tabelle, nicht zum Stapel. */
     border-top: 0;
-}
-
-/* Mehr Luft zwischen Werkzeugleiste und Stapel als vorher (22 Pixel). */
-#card-tools:not([hidden]) ~ .rows:has(.row--card) {
-    margin-top: 24px;
 }
 
 .rows .row--card {
@@ -6917,28 +6905,191 @@ select.count-dialog__input {
     padding: 2px 7px;
 }
 
-/* --- Werkzeugleiste: Chips und Suche --- */
+/*
+    Das Bild-Zeichen einer Karte gibt es nur in der Übersicht am Rechner.
+
+    Ohne diese Zeile stünde es auch in der Handy-Zeile, und die soll unverändert bleiben.
+    Am Rechner wird es weiter unten wieder eingeblendet.
+*/
+.row--card .row__photo {
+    display: none;
+}
+
+/* --- Kartenliste am Rechner: eine flache Tabelle --- */
 
 /*
-    Dieselbe Rundung wie die Karten, etwas kompakter.
+    Jede Karte ist hier eine Zeile, keine Fläche.
 
-    Die Chips waren Pillen (999px); neben Flächen mit 12 Pixeln Rundung sahen sie wie ein
-    anderes Bauteil aus. Jetzt tragen sie die Rundung der Karten, die sie filtern.
+    Die Übersicht soll man auf einen Blick lesen: welche Frage steht auf der Karte, hat sie
+    schon ein Foto. Von der Karte bleibt deshalb nur die Vorderseite übrig, einzeilig und
+    mit "..." abgeschnitten; die Antwort erscheint erst im Kartenfenster, das ein Klick auf
+    die Zeile öffnet. Dünne Linien trennen die Zeilen, die Höhe liegt bei etwa 32 Pixeln
+    statt bei den gut 70 Pixeln einer Karte.
+
+    Alles, was hier ausgeblendet wird, bleibt im Markup stehen: das Handy zeigt es weiter.
+
+    Dazu kommt die Gliederung der Seite. Kopf, Zahlenzeile, Aktionen und Werkzeugleiste
+    waren vorher durch zufällige Abstände (14, 14, 22, 22) getrennt und standen alle im
+    selben Flächenton - die Seite las sich wie eine einzige Fläche. Jetzt gibt es einen
+    Takt aus drei Stufen, die jede größer ist als die vorige, und die Liste bekommt eine
+    eigene, leise Fläche. Der Kopf-Banner (`.detail__head`) ist das Vorbild: er liegt
+    sichtbar über dem Seitenhintergrund, und das tut die Liste jetzt auch.
 */
-.card-filter__chip {
-    padding: 5px 12px;
-    border-radius: var(--radius-tile);
-    font-size: 13px;
-}
+@media (min-width: 640px) {
+    /*
+        Der Takt dieser Seite, an einer Stelle definiert.
 
-.card-tools {
-    gap: 10px;
-    margin-top: 16px;
-}
+        12 Kopf → Zahlen, 16 Zahlen → Steuerzeile, 32 Steuerzeile → Liste. Die letzte
+        Stufe ist absichtlich doppelt so groß wie die erste: dort endet der
+        Steuerungsbereich und die Liste beginnt, und dieser Schnitt soll ohne Linie allein
+        durch Weißraum zu sehen sein.
+    */
+    .detail {
+        --detail-step-1: 12px;
+        --detail-step-2: 16px;
+        --detail-step-3: 32px;
+    }
 
-.card-tools__search-input {
-    padding: 9px 12px;
-    font-size: 14px;
+    /* Die Zahlenzeile gehört zum Kopf, nicht zu den Aktionen. */
+    .detail .detail__figures {
+        margin-top: var(--detail-step-1);
+    }
+
+    /*
+        Die Steuerzeile: links die Aktionen, rechts der Filter.
+
+        Beide stehen in `.detail__learn`. `margin-left: auto` schiebt den Filter an den
+        rechten Rand; wird die Zeile zu eng, bricht er durch `flex-wrap` von selbst in eine
+        zweite Zeile um, statt die Aktionen zusammenzudrücken.
+    */
+    .detail .detail__learn {
+        margin-top: var(--detail-step-2);
+    }
+
+    .detail__learn #card-filter {
+        margin-left: auto;
+    }
+
+    /*
+        Die Kartenliste ist eine eigene Zone: eine leise Fläche mit 1 Pixel Rahmen und
+        der Rundung der Kacheln, darin die Zeilen.
+
+        Der Innenabstand von 8 Pixeln seitlich und 6 Pixeln oben und unten ist der Grund,
+        warum die Zeilen ihr eigenes Einrücken nicht mehr brauchen: die Tönung beim Zeigen
+        endet damit vor der Rundung und läuft nicht in die Ecken. Ohne `overflow: hidden`
+        wohlgemerkt - das würde das "..."-Menü abschneiden, das aus der Zeile herausklappt.
+    */
+    .rows:has(.row--card) {
+        display: block;
+        margin-top: var(--detail-step-3);
+        padding: 6px 8px;
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-tile);
+        background-color: var(--surface);
+    }
+
+    .rows .row--card {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px;
+        /* Kein eigener Einzug: den gibt jetzt der Kasten um die Liste. */
+        --row-hover-inset: 0px;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid var(--hairline);
+        border-radius: 0;
+        background-color: transparent;
+    }
+
+    /* Die letzte Zeile schließt mit dem Innenabstand ab, nicht mit einer zweiten Linie. */
+    .rows > .row--card:last-child {
+        border-bottom: 0;
+    }
+
+    /* Beim Zeigen wandert nichts: nur die Zeile tönt sich. */
+    .rows .row--card:hover,
+    .rows .row--card:focus-within {
+        padding-inline: var(--row-hover-inset);
+        background-color: var(--tile-bg-hover);
+        border-color: var(--hairline);
+    }
+
+    .row--card .row__link {
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        /*
+            Die ganze Höhe der Zeile nimmt den Klick an.
+
+            `min-height: 0` hebt die 44 Pixel der Grundregel auf: die sind eine Daumenregel
+            für Finger, und hier ist die Zeile eine Tabelle am Rechner. Mit den 4 Pixeln
+            Innenabstand kommt sie auf gut 32 Pixel - eine Zeile zum Durchsehen, kein Knopf.
+        */
+        min-height: 0;
+        padding-block: 4px;
+        cursor: pointer;
+    }
+
+    /* Eine Zeile, ein Satz: was zu lang ist, endet mit "..." statt umzubrechen. */
+    .row--card .row__name {
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    /* Die Antwort und die Landkarte gehören nicht in die Übersicht. */
+    .row--card .row__back,
+    .row--card .card-map--row {
+        display: none;
+    }
+
+    /*
+        Status und Merker bleiben für Vorlesehilfen im Baum, auf dem Schirm aber nicht.
+
+        `display: none` würde sie auch aus dem Baum nehmen - und der Status ("neu",
+        "unsicher", "gewusst") ist beim Durchsehen eine echte Auskunft, auch wenn er hier
+        nicht als Schild stehen soll. Deshalb verschwindet nur die Fläche.
+    */
+    .row--card .row__meta {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* Das Bild-Zeichen: leise, und nur da, wo eine Karte ein Foto hat. */
+    .row--card .row__photo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        color: var(--muted);
+        opacity: 0.75;
+    }
+
+    .row--card:hover .row__photo,
+    .row--card:focus-within .row__photo {
+        opacity: 1;
+    }
+
+    /* Ein kleinerer Menüknopf, damit die Zeile flach bleibt. */
+    .row--card .row__menu .menu-button {
+        width: 24px;
+        height: 24px;
+    }
 }
 
 /*
@@ -7310,5 +7461,19 @@ select.count-dialog__input {
     .photo-picker__preview {
         width: 74px;
         height: 74px;
+    }
+}
+
+/*
+ * Das Kartenformular ist nach dem Entfernen von Kartenart, Landkarte und
+ * Vorschau deutlich kürzer. Am Rechner bekommt es deshalb eine eigene
+ * Höchstgrenze; die Felder scrollen darin, statt das Fenster fast bis an den
+ * Bildschirmrand zu ziehen. Auf dem Handy bleiben die bestehenden
+ * Bottom-Sheet-Regeln unverändert.
+ */
+@media (min-width: 640px) {
+    .dialog--card,
+    .dialog--card .dialog__form {
+        max-height: min(680px, calc(100dvh - 48px));
     }
 }

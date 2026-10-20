@@ -239,7 +239,13 @@ function review_branch_category_ids(PDO $pdo, int $categoryId, int $ownerUserId)
 }
 
 /**
- * Die B1- bis C2-Vokabellisten, deren neue Karten pro Sitzung gemischt werden.
+ * Die Vokabellisten, deren neue Karten pro Sitzung gemischt werden.
+ *
+ * Dazu gehören die B1- bis C2-Listen und der Grund- und Aufbauwortschatz. Bei ihnen
+ * ist die Reihenfolge der importierten Datei kein Lernplan: die neuen Karten sollen
+ * über die ganze Liste verteilt sein, und jede Runde würfelt neu. Der Schlüssel ist
+ * der sichtbare Name der Unterkategorie, weil es für diese Listen keine Kennzahl
+ * gibt, die ein späterer Import verändern würde.
  *
  * @param list<int> $categoryIds Kategorien im aktuellen Lernzweig
  * @return list<int>
@@ -261,7 +267,8 @@ function review_randomized_new_category_ids(PDO $pdo, array $categoryIds, int $o
            FROM categories
           WHERE owner_user_id = ?
             AND id IN ($placeholders)
-            AND name IN ('B1 Vokabelliste', 'B2 Vokabelliste', 'C1 Vokabelliste', 'C2 Vokabelliste')"
+            AND name IN ('B1 Vokabelliste', 'B2 Vokabelliste', 'C1 Vokabelliste', 'C2 Vokabelliste',
+                         'Grund- und Aufbauwortschatz')"
     );
     $statement->execute(array_merge([$ownerUserId], $ids));
 

@@ -62,7 +62,7 @@ aus einem Dump oder über den Import – siehe `docs/dokumentation.md`.
 | `src/config/` | die Datenbankverbindung (die Werte kommen aus `.env`) |
 | `src/helpers/` | kleine, zustandslose Funktionen |
 | `src/services/` | Fachlogik und alle SQL-Abfragen |
-| `bin/` | drei Skripte fürs Terminal, die die CSV-Dateien einmal eingelesen haben (die Dateien sind inzwischen gelöscht, ihr Inhalt steht in der Datenbank) |
+| `bin/` | Skripte fürs Terminal, die CSV-Dateien einlesen – darunter `import_dictionary_cards.php` für zweispaltige Wörterbücher |
 | `database/` | `schema.sql` – der Aufbau der Datenbank |
 | `docs/` | `dokumentation.md` – Aufbau, Datenbank, Lernlogik, offene Punkte |
 

@@ -713,19 +713,14 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                         </button>
 
                         <button type="button" class="add-entry-button import-button" id="import-button" hidden></button>
-                    </div>
 
-                    <!--
-                        Die Suche einer Kartenliste. Die Zahlen dieser Liste stehen jetzt
-                        in den Kacheln unter dem Kopf, hier bleibt also nur der Weg, eine
-                        Karte zu suchen. app.js zeigt die Leiste ab ungefähr fünfzehn
-                        Karten: drei Karten zu durchsuchen ist mehr Arbeit, als sie
-                        anzusehen, und eine leere Leiste über einer Liste würde nur Platz
-                        wegnehmen.
-                    -->
-                    <div class="card-tools" id="card-tools" hidden>
                         <!--
                             Der Filter der Kartenliste: Alle, Neu, Unsicher, Gewusst.
+
+                            Er steht rechts in derselben Zeile wie die Aktionen, damit oben
+                            EINE Steuerzeile steht statt zwei. `margin-left: auto` im
+                            Stylesheet schiebt ihn an den rechten Rand; wird die Zeile zu
+                            eng, bricht er von selbst in eine zweite um.
 
                             Das sind genau die drei Zustände, die eine Karte wirklich hat
                             (neu, unsicher, gewusst - siehe review_status_of() in
@@ -737,7 +732,7 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             neuer Aufruf an die API, und der Fortschritt selbst kommt weiter
                             allein vom Server.
                         -->
-                        <div class="card-tools__filter" id="card-filter" role="group"
+                        <div class="card-filter" id="card-filter" role="group"
                              data-i18n-label="cards.filter.label" hidden>
                             <button type="button" class="card-filter__chip" data-status="all"
                                     aria-pressed="true" data-i18n="cards.filter.all"></button>
@@ -748,31 +743,9 @@ $text = fn (string $key): string => escape_html(t($defaultLocale, $key));
                             <button type="button" class="card-filter__chip" data-status="known"
                                     aria-pressed="false" data-i18n="cards.status.known"></button>
                         </div>
-
-                        <div class="card-tools__search" id="card-tools-search" hidden>
-                            <!--
-                                Ein Suchfeld, kein Anmeldefeld - und eines, von dem der Browser
-                                die Finger lassen soll:
-
-                                  * kein <form> darum, und ein Name, der nicht mit einer Anmeldung
-                                    verwechselt werden kann ("card-search-term", nicht
-                                    "email" oder "user"),
-                                  * autocomplete="off" für die Browser, die sich daran halten,
-                                  * readonly, bis das Feld wirklich benutzt wird. Das ist der Teil,
-                                    der die Arbeit macht: Chrome überspringt schreibgeschützte
-                                    Felder, wenn es eine Seite ausfüllt, während "off" allein
-                                    ignoriert wird, sobald irgendwo im Dokument ein Anmeldeformular
-                                    steht - und eines steht dort, der Kontodialog. app.js nimmt
-                                    readonly beim ersten Fokus oder Klick wieder weg.
-                            -->
-                            <input type="search" class="card-tools__search-input" id="card-search"
-                                   name="card-search-term" autocomplete="off" autocorrect="off"
-                                   autocapitalize="off" spellcheck="false" readonly
-                                   data-i18n-placeholder="cards.searchPlaceholder">
-                        </div>
                     </div>
 
-                    <p class="state state--quiet" id="card-search-empty" hidden></p>
+                    <p class="state state--quiet" id="card-filter-empty" hidden></p>
 
                     <!--
                         Die Steuerzeile des Auswahlmodus. Sie steht direkt über der Liste und
