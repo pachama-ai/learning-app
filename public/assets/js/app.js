@@ -3115,24 +3115,51 @@
                 return;
             }
 
+            /* Das Fenster liegt über allem - eine offene Vorschau hätte dort keinen Platz. */
+            hideCardPhotoPreview();
             openCardForm(card, card.category_id);
         });
+
+        /*
+         * Die Bildvorschau beim Zeigen: nur an Zeilen, die wirklich ein Foto haben. Ohne
+         * Foto gibt es nichts zu zeigen, und es hängt auch kein Zuhörer an der Zeile.
+         */
+        if (photo !== null) {
+            item.addEventListener('mouseenter', function () {
+                showCardPhotoPreview(card, item);
+            });
+
+            item.addEventListener('mouseleave', hideCardPhotoPreview);
+        }
 
         return item;
     }
 
     /*
-     * Das Bild-Zeichen einer Kartenzeile, oder null ohne Foto.
+     * Die Adresse des Kartenfotos, oder null ohne Foto.
      *
      * `image_front` und `image_back` sind fertige Adressen oder null (siehe
      * normalize_card_row() in card_service.php). Ein leeres Feld zählt wie ein fehlendes:
-     * ein Foto, das niemand sieht, soll auch kein Zeichen bekommen.
+     * ein Foto, das niemand sieht, soll auch nicht als vorhanden gelten. Gezeigt wird das
+     * Foto der Vorderseite, sonst das der Rückseite - ein Bild, nicht zwei.
+     */
+    function cardPhotoUrl(card) {
+        if (typeof card.image_front === 'string' && card.image_front !== '') {
+            return card.image_front;
+        }
+
+        if (typeof card.image_back === 'string' && card.image_back !== '') {
+            return card.image_back;
+        }
+
+        return null;
+    }
+
+    /*
+     * Das Bild-Zeichen einer Kartenzeile, oder null ohne Foto.
      */
     function buildCardPhoto(card) {
-        var hasFront = typeof card.image_front === 'string' && card.image_front !== '';
-        var hasBack = typeof card.image_back === 'string' && card.image_back !== '';
-
-        if (!hasFront && !hasBack) {
+        if (cardPhotoUrl(card) === null) {
             return null;
         }
 
@@ -3142,6 +3169,118 @@
         photo.innerHTML = PHOTO_SVG;
 
         return photo;
+    }
+
+    /*
+     * Die kleine Bildvorschau neben der Zeile.
+     *
+     * Ein einziges Element für die ganze Liste, nicht eines je Zeile: bei tausenden
+     * Karten wären das tausende Bilder, die niemand ansieht. Es entsteht beim ersten
+     * Zeigen und wird danach nur noch umgehängt.
+     *
+     * Sie erscheint nach einer kurzen Verzögerung. Wer die Maus nur über die Liste zieht,
+     * soll nicht auf jeder Zeile ein Bild aufblitzen sehen - erst wenn der Zeiger stehen
+     * bleibt, ist das Zeigen eine Absicht.
+     */
+    var cardPhotoPreview = null;
+    var cardPhotoPreviewTimer = null;
+    var cardPhotoPreviewRow = null;
+
+    function showCardPhotoPreview(card, row) {
+        /* Ohne echten Zeiger (Telefon, Tablet) gibt es kein Zeigen. */
+        if (!window.matchMedia('(hover: hover)').matches) {
+            return;
+        }
+
+        var source = cardPhotoUrl(card);
+
+        if (source === null) {
+            return;
+        }
+
+        /*
+         * Eine andere Zeile heißt: die alte Vorschau gehört nicht mehr hierhin. Sie
+         * verschwindet sofort und kommt nach der Verzögerung an der neuen Zeile wieder -
+         * sonst bliebe sie einen Wimpernschlag über der vorigen Zeile stehen.
+         */
+        if (cardPhotoPreviewRow !== row) {
+            hideCardPhotoPreview();
+        }
+
+        window.clearTimeout(cardPhotoPreviewTimer);
+        cardPhotoPreviewRow = row;
+
+        cardPhotoPreviewTimer = window.setTimeout(function () {
+            if (cardPhotoPreview === null) {
+                cardPhotoPreview = el('div', 'card-photo-pop');
+                /* Nur eine Ansicht: was hier steht, steht auch im Kartenfenster. */
+                cardPhotoPreview.setAttribute('aria-hidden', 'true');
+
+                var previewImage = document.createElement('img');
+                previewImage.alt = '';
+                /* Ist das Bild geladen, ändert sich seine Höhe - dann neu setzen. */
+                previewImage.addEventListener('load', function () {
+                    if (cardPhotoPreview !== null && !cardPhotoPreview.hidden) {
+                        placeCardPhotoPreview();
+                    }
+                });
+
+                cardPhotoPreview.appendChild(previewImage);
+                document.body.appendChild(cardPhotoPreview);
+            }
+
+            var image = cardPhotoPreview.querySelector('img');
+
+            if (image.getAttribute('src') !== source) {
+                image.src = source;
+            }
+
+            cardPhotoPreview.hidden = false;
+            placeCardPhotoPreview();
+
+            /* Ein Bild aus dem Zwischenspeicher ist sofort da - dann sitzt der Kasten
+               schon im nächsten Bild und die Höhe stimmt ohne Warten. */
+            window.requestAnimationFrame(placeCardPhotoPreview);
+        }, 120);
+    }
+
+    /*
+     * Setzt die Vorschau an die Zeile: rechts in der Zeile, mittig zu ihrer Höhe.
+     *
+     * Gerechnet wird in Fensterkoordinaten (`position: fixed`), damit die Vorschau beim
+     * Scrollen nicht mitspringt; sie wird beim Scrollen ohnehin weggenommen. Der Abstand
+     * von 56 Pixeln lässt das "..."-Menü frei, und beide Ränder werden begrenzt, damit
+     * sie am Fensterrand nicht halb heraussteht.
+     */
+    function placeCardPhotoPreview() {
+        if (cardPhotoPreview === null || cardPhotoPreview.hidden || cardPhotoPreviewRow === null) {
+            return;
+        }
+
+        /* Erst auf 0 setzen, dann messen: sonst steht die Breite noch nicht fest. */
+        cardPhotoPreview.style.left = '0px';
+        cardPhotoPreview.style.top = '0px';
+
+        var box = cardPhotoPreview.getBoundingClientRect();
+        var row = cardPhotoPreviewRow.getBoundingClientRect();
+        var left = row.right - 56 - box.width;
+        var top = row.top + (row.height - box.height) / 2;
+
+        left = Math.max(12, Math.min(left, window.innerWidth - box.width - 12));
+        top = Math.max(12, Math.min(top, window.innerHeight - box.height - 12));
+
+        cardPhotoPreview.style.left = Math.round(left) + 'px';
+        cardPhotoPreview.style.top = Math.round(top) + 'px';
+    }
+
+    function hideCardPhotoPreview() {
+        window.clearTimeout(cardPhotoPreviewTimer);
+        cardPhotoPreviewTimer = null;
+        cardPhotoPreviewRow = null;
+
+        if (cardPhotoPreview !== null) {
+            cardPhotoPreview.hidden = true;
+        }
     }
 
     /*
@@ -4763,6 +4902,9 @@
     }
 
     function openCardForm(card, categoryId) {
+        /* Eine offene Bildvorschau gehört zur Liste, nicht zum Fenster darüber. */
+        hideCardPhotoPreview();
+
         dialogKind = 'card';
         dialogMapField = null;
         dialogExerciseField = null;
@@ -8214,6 +8356,15 @@
     }
 
     wireCardFilter();
+
+    /*
+     * Beim Scrollen verschwindet die Bildvorschau.
+     *
+     * Sie steht in Fensterkoordinaten neben der Zeile, die sie beschreibt. Scrollt die
+     * Seite, gehört sie zu keiner Zeile mehr - sie wegzunehmen ist ehrlicher, als sie an
+     * einer falschen Stelle stehen zu lassen.
+     */
+    window.addEventListener('scroll', hideCardPhotoPreview, { passive: true });
     /* ----------------------------------------------------------------------
        Die beiden Sprachen einer Karte
        ---------------------------------------------------------------------- */

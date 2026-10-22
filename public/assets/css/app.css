@@ -78,6 +78,14 @@
     --blob-b: transparent;
     --blob-c: transparent;
     --hairline: var(--line);
+    /*
+        Die Trennlinie der Kartenliste ist eine Spur wärmer als `--line`.
+
+        Ein reines Grau (#E4E1DA) liest sich neben dem warmen Papierweiß der Seite wie eine
+        technische Rasterlinie; ein Sandton (#E9E1D2) gehört zum selben Papier. Nur die
+        Zeilen benutzen sie - Formulare und Rahmen bleiben bei `--line`.
+    */
+    --hairline-warm: #E9E1D2;
     --active-surface: var(--surface);
     --font-sans: "Inter", "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
@@ -113,6 +121,8 @@
     --muted: rgba(255, 255, 255, 0.62);
     --line: rgba(255, 255, 255, 0.10);
     --line-strong: rgba(241, 242, 248, 0.32);
+    /* Dieselbe warme Spur wie im hellen Thema, nur als heller Hauch auf dem Nachtblau. */
+    --hairline-warm: rgba(255, 236, 214, 0.14);
     --tile-bg: #2E3449;
     --tile-bg-hover: #353B52;
     --icon-circle: #3A415A;
@@ -7476,4 +7486,251 @@ select.count-dialog__input {
     .dialog--card .dialog__form {
         max-height: min(680px, calc(100dvh - 48px));
     }
+}
+
+/* ----------------------------------------------------------------------
+   Redaktionelle Feinheiten: Kartenliste und Kartenfenster
+
+   Diese Seite soll sich wie ein gelesenes Blatt anfühlen und nicht wie ein
+   Verwaltungsformular. Die Regeln hier sind deshalb leise: eine warme
+   Trennlinie statt eines Rasters, eine Tönung beim Zeigen statt eines
+   Rahmens, Serifenschrift dort, wo ein Titel steht, und gedeckte Farben für
+   alles, was man drückt. Sie stehen absichtlich am Ende des Blattes und
+   überschreiben die älteren Regeln, ohne sie anzufassen.
+   ---------------------------------------------------------------------- */
+
+/*
+    Die Zeilen der Kartenliste.
+
+    Mehr Luft oben und unten (8 statt 4 Pixel), damit die Frage atmen kann, und
+    die warme Trennlinie aus `--hairline-warm`. Mit 22 Pixeln Menüknopf und
+    20 Pixeln Text kommt eine Zeile auf gut 38 Pixel - noch immer halb so hoch
+    wie eine Karte vor dem Umbau.
+*/
+.rows .row--card {
+    border-bottom-color: var(--hairline-warm);
+}
+
+/* Auch der Rahmen um die ganze Liste nimmt den wärmeren Ton an. */
+.rows:has(.row--card) {
+    border-color: var(--hairline-warm);
+}
+
+.rows .row--card .row__link {
+    padding-block: 8px;
+}
+
+/*
+    Beim Zeigen legt sich eine sehr leichte Tönung auf die Zeile - wie über einem
+    Artikel-Teaser: man sieht, dass hier etwas weitergeht, ohne dass die Seite
+    blinkt. 4 % der Textfarbe statt der 6 bis 10 % von `--tile-bg-hover`.
+*/
+.rows .row--card:hover,
+.rows .row--card:focus-within {
+    background-color: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+/*
+    Foto-Zeichen und Menü treten zurück.
+
+    Die Frage ist der Inhalt dieser Zeile; die beiden Zeichen sind Beiwerk. Sie
+    werden deshalb kleiner und leiser, statt mit ihr zu konkurrieren.
+*/
+.row--card .row__photo {
+    width: 16px;
+    height: 16px;
+    opacity: 0.55;
+}
+
+.row--card .row__photo svg {
+    width: 13px;
+    height: 13px;
+}
+
+.row--card .row__menu .menu-button {
+    width: 22px;
+    height: 22px;
+}
+
+.row--card .row__menu .menu-button svg {
+    width: 13px;
+    height: 13px;
+}
+
+.row--card:hover .row__photo,
+.row--card:focus-within .row__photo {
+    opacity: 0.9;
+}
+
+/* --- Das Kartenfenster --- */
+
+/*
+    Der Titel in der Serifenschrift.
+
+    Die Überschrift der Seite trägt sie schon; ein Fenster, das denselben Eintrag
+    bearbeitet, soll nicht in einer anderen Stimme sprechen. Etwas größer und mit
+    ruhiger Laufweite, weil Serife klein gesetzt schnell nach Formular aussieht.
+*/
+.dialog--card .dialog__title {
+    font-family: var(--font-serif);
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    line-height: 1.15;
+}
+
+/*
+    Die Sprachumschaltung: gedämpft statt schwarz.
+
+    Vorher war der aktive Reiter eine volle Fläche in der Textfarbe - der
+    dunkelste Fleck im ganzen Fenster, für einen Umschalter. Jetzt trägt er einen
+    Hauch der Akzentfarbe (20 %), die Schrift bleibt die Textfarbe. Die Gruppe
+    verliert ihre gefüllte Fläche und behält nur die warme Linie.
+*/
+.dialog--card .lang-tabs {
+    border-color: var(--hairline-warm);
+    background-color: transparent;
+}
+
+.dialog--card .lang-tab {
+    padding: 6px 14px;
+}
+
+.dialog--card .lang-tab.is-active {
+    background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--text);
+}
+
+.dialog--card .lang-tab.is-active:hover {
+    color: var(--text);
+}
+
+/*
+    Die Eingabefelder: ein warmer Rahmen, und im Fokus ein zarter Schleier.
+
+    Vorher war der Fokus ein 2-Pixel-Ring in der vollen Akzentfarbe - die stärkste
+    Farbe der App an der Stelle, an der man ohnehin schon schreibt. Jetzt färbt
+    sich der Rahmen zu einem gedämpften Ton und legt einen weichen Ring darum.
+*/
+.dialog--card .dialog__input,
+.dialog--card .dialog__field textarea {
+    border-color: var(--hairline-warm);
+    transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+
+.dialog--card .dialog__input:hover,
+.dialog--card .dialog__field textarea:hover {
+    border-color: color-mix(in srgb, var(--text) 22%, var(--hairline-warm));
+}
+
+.dialog--card .dialog__input:focus,
+.dialog--card .dialog__input:focus-visible,
+.dialog--card .dialog__field textarea:focus,
+.dialog--card .dialog__field textarea:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--hairline-warm));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Die Beschriftung eines Feldes behält ihren Platz, bekommt aber etwas Luft. */
+.dialog--card .dialog__label {
+    margin-bottom: 9px;
+}
+
+/*
+    Der Speichern-Knopf: ein gedecktes Grün statt Schwarz.
+
+    Im hellen Thema war er `--text`, also fast schwarz - richtig für einen Knopf,
+    der "Hier geht es weiter" sagt, aber kühl neben dem warmen Papier. Jetzt ist
+    er ein tiefes, gebrochenes Grün (Akzent mit einem Viertel Textfarbe), im
+    dunklen Thema entsprechend aufgehellt. Die Schrift bleibt weiß bzw. dunkel,
+    der Kontrast liegt in beiden Themen über 6 : 1.
+*/
+[data-theme="light"] .dialog--card .dialog__button--primary {
+    background-color: color-mix(in srgb, var(--accent) 78%, var(--text));
+    color: #FFFFFF;
+}
+
+[data-theme="light"] .dialog--card .dialog__button--primary:hover:not([disabled]) {
+    background-color: color-mix(in srgb, var(--accent) 68%, var(--text));
+}
+
+.dialog--card .dialog__button--primary {
+    background-color: color-mix(in srgb, var(--accent) 82%, var(--panel));
+    color: var(--accent-ink);
+}
+
+.dialog--card .dialog__button--primary:hover:not([disabled]) {
+    background-color: color-mix(in srgb, var(--accent) 70%, var(--panel));
+}
+
+/*
+    Gleichmäßigere Innenabstände im Fenster.
+
+    Alle vier Zonen - Titel, Felder, Aktionen - teilen sich denselben seitlichen
+    Abstand von 36 Pixeln; vorher waren es 32. Die Felder bekommen 24 Pixel
+    Abstand zueinander, damit die Gruppe als Block liest und nicht als Liste.
+    Nur am Rechner: auf dem Handy bleibt das Bottom-Sheet, wie es ist.
+*/
+@media (min-width: 640px) {
+    .dialog--card .dialog__title {
+        padding: 30px 36px 0;
+    }
+
+    .dialog--card .dialog__fields {
+        padding: 26px 36px 30px;
+    }
+
+    .dialog--card .dialog__field {
+        margin-bottom: 24px;
+    }
+
+    .dialog--card .dialog__field:last-child {
+        margin-bottom: 0;
+    }
+
+    .dialog--card .dialog__actions {
+        gap: 16px;
+        padding: 22px 36px 26px;
+    }
+}
+
+/*
+ * Die Bildvorschau neben einer Kartenzeile.
+ *
+ * Sie hängt am <body> und steht in Fensterkoordinaten über der Liste; `pointer-events:
+ * none` ist wichtig, denn sie liegt über den Zeilen: Ohne das würde sie das Zeigen
+ * beenden, sobald sie selbst unter dem Zeiger auftaucht, und flackerte an und aus.
+ *
+ * Die Größe ist begrenzt (`--photo-pop-size`), damit ein großes Foto die Seite nicht
+ * zudeckt, aber groß genug, dass man etwas erkennt: 460 Pixel, auf schmalen Fenstern
+ * entsprechend weniger. Der Schatten ist derselbe wie bei den Kacheln, der Rahmen der
+ * warme Ton der Zeilen.
+ */
+.card-photo-pop {
+    --photo-pop-size: min(460px, 44vw, 62vh);
+
+    position: fixed;
+    z-index: 60;
+    padding: 6px;
+    border: 1px solid var(--hairline-warm);
+    border-radius: 12px;
+    background-color: var(--panel);
+    box-shadow: var(--panel-shadow);
+    pointer-events: none;
+}
+
+.card-photo-pop[hidden] {
+    display: none;
+}
+
+.card-photo-pop img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: var(--photo-pop-size);
+    max-height: var(--photo-pop-size);
+    border-radius: 8px;
+    /* Sonst steht ein noch nicht geladenes Bild als leerer Kasten da. */
+    background-color: var(--surface-soft);
 }

@@ -78,7 +78,7 @@ sonst gibt es einen Fehler.
 | `src/services/` | Die Fachlogik und **alle** SQL-Abfragen. |
 | `src/data/` | Die Inhalte, die keine Datenbank brauchen: die Wissensmodule der Nachschlageseite „Energie verstehen" und die Aufgaben der Grammar Challenge. Beschreibungen, keine Logik. |
 | `database/` | `schema.sql` – der Aufbau der Datenbank. Dazu Skripte, die von Hand ausgeführt werden: `card_variants.sql` (die Tabelle der Satzbeispiele), `story_together.sql` (die beiden Tabellen der gemeinsamen Geschichte) und Änderungen an Inhalten, etwa die englischen Kategorienamen. |
-| `bin/` | Skripte fürs Terminal, die CSV-Dateien einlesen: `import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen), `import_energy_cards.php` (Karten unter einen Lernbereich), `import_english_csv.php` (der English-Baum) und `import_dictionary_cards.php` (ein zweispaltiges Wörterbuch an eine vorhandene Vokabelkategorie anhängen). |
+| `bin/` | Skripte fürs Terminal, die CSV-Dateien einlesen: `import_cards_csv.php` (Karten, wahlweise mit Satzbeispielen), `import_energy_cards.php` (Karten unter einen Lernbereich), `import_english_csv.php` (der English-Baum), `import_dictionary_cards.php` (ein zweispaltiges Wörterbuch an eine vorhandene Vokabelkategorie anhängen) und `import_cards_into_category.php` (Karten an eine **vorhandene** Unterkategorie anhängen, ohne Doppel und ohne etwas zu überschreiben). |
 | `docs/` | Diese Datei. |
 
 Nur `public/` ist über den Webserver erreichbar. `src/` liegt daneben, damit
@@ -261,6 +261,55 @@ Pfad.
 | 16.10. | „Netzbetrieb & Systemstabilität" durch die aktualisierte Fassung ersetzt | 26 (22 ersetzt) | `PRIO`, Unterkategorie id 232 |
 | 16.10. | Achte Datei der PRIO-Runde nachgezogen (lag zuerst nicht vor) | 14 | neue Unterkategorie `Energiedaten, Strommix & Energiewende` in `PRIO` |
 | 19.10. | Wörterbuch `woerterbuch_englisch_deutsch.csv` angehängt | 3780 neu (3836 Zeilen, 24 Dubletten zusammengeführt, 32 schon vorhanden) | `Grund- und Aufbauwortschatz` (English, id 222, Konto 6), beidseitig |
+| 22.10. | `lernkarten_co2_energietraeger_de_en.csv` angehängt | 3 neu (3 Zeilen, keine Dublette) | `Stromerzeugung & Energieträger` (PRIO, id 228, Konto 6) |
+| 22.10. | `lernapp_energie_6_karten_de_en.csv` angehängt | 6 neu (6 Zeilen, keine Dublette) | `Elektrizität, Magnetismus & Induktion` (PRIO, id 226, Konto 6) |
+
+**Zwei Karten-Dateien in bestehende Unterkategorien (22.10.2026).** Die beiden Dateien
+tragen die Kopfzeile `subcategory;front_de;back_de;front_en;back_en;is_bidirectional`.
+Ihre Unterkategorie gibt es schon, und sie durfte weder geleert noch neu angelegt werden –
+also nicht `import_energy_cards.php` (das legt Unterkategorien an) und nicht
+`import_cards_csv.php --replace` (das leert eine vorhandene Zeile). Dafür gibt es jetzt
+`bin/import_cards_into_category.php`:
+
+```bash
+php bin/import_cards_into_category.php --owner=6 --category-id=228 \
+    --file=lernkarten_co2_energietraeger_de_en.csv --expect=3 --execute
+```
+
+Das Werkzeug hängt Karten an eine **bestehende** Kategorie an (`--category-id`) und
+prüft vorher, ob die Spalte `subcategory` der Datei zu deren Namen passt – sonst bricht
+es ab. Es schreibt ausschließlich `INSERT` in `cards` (kein `UPDATE`, kein `DELETE`, keine
+Zeile in `user_card_progress`, keine Änderung an `categories`), alles in einer
+Transaktion. Gegen Doppel vergleicht es die deutsche Vorderseite (ersatzweise die
+englische) mit dem Bestand der Kategorie und mit den Zeilen davor in derselben Datei;
+ein zweiter Lauf meldet `New cards: 0`. `front`/`back` tragen wie bei allen Karten dieser
+Kategorien die deutsche Seite, die vier Sprachspalten denselben Text je Sprache,
+`is_bidirectional` kommt aus der Datei (hier überall 0).
+
+Ergebnis: Kategorie 228 von 16 auf 19 Karten, Kategorie 226 von 57 auf 63.
+
+**CSV-Dateien aus dem Projekt entfernt (22.10.2026).** Nach den Importen lagen 34
+CSV-Dateien mit Kartendaten im Projekt (im Stamm und in `database/import/`). Jede Zeile
+jeder Datei wurde gegen alle Vorderseiten der Datenbank geprüft (Kleinschreibung,
+zusammengefasste Leerzeichen) und nur Dateien mit **100 % Treffern** gelöscht – 28
+Dateien mit 4.943 Zeilen. Danach wurden auf Wunsch auch die sechs übrigen Daten-Dateien
+entfernt, nachdem ihre nicht in der Datenbank stehenden Zeilen gesichert waren.
+
+Was dabei **nicht** in der Datenbank stand und nur noch in der Sicherung liegt
+(`nicht_in_der_datenbank/fehlende_zeilen.csv`, 360 Zeilen):
+
+| Zeilen | Was |
+| ---: | --- |
+| 2 | „CO₂ und seine langfristige Klimawirkung?“ – die Karte wurde am 22.10. parallel in der Anwendung gelöscht |
+| 2 | „Wie sieht eine Energie-Umwandlungskette aus?“ |
+| 3 | „Was ist ein Lastprofil?“, „Was ist ein Kurzschluss?“, „Was ist Kernenergie?“ |
+| 353 | die alten „Was bedeutet „…“?“-Vokabelfragen (`englisch_vokabeln_gesamter_chat.csv`), die der Wörterbuch-Import ersetzt hat |
+
+Sicherung: **`/home/study/backups/csv_20261022/`** (35 Dateien, 988 KB, Pfade erhalten).
+18 der gelöschten Dateien waren versioniert und bleiben in der Git-Historie; die übrigen
+existieren nur in dieser Sicherung. Im Projekt bleibt genau eine CSV:
+`public/assets/samples/cards-import-sample.csv` – die Vorlage des Import-Dialogs, keine
+Daten.
 
 **Der Wörterbuch-Import (19.10.2026).** Die Datei hat nur zwei Spalten
 (`Englisch;Deutsch`) und wurde deshalb von `bin/import_dictionary_cards.php`
@@ -1059,6 +1108,47 @@ um die Gruppe, keine Rahmen an den Knöpfen, der aktive Filter nur mit `--tile-b
 Der Takt ist dadurch neu: 12 Kopf → Zahlen, 16 Zahlen → Steuerzeile, 32 Steuerzeile →
 Liste. Das Anheben der Filterleiste beim Scrollen entfällt damit - es gibt keine eigene
 Leiste mehr.
+
+**Redaktionelle Feinheiten (21.10.2026)**
+
+Kartenliste und Kartenfenster sind eine Spur wärmer und ruhiger geworden; Funktionsweise,
+Markup und Daten sind unverändert.
+
+- **Neue Variable `--hairline-warm`** in beiden Themen (`#E9E1D2` hell,
+  `rgba(255, 236, 214, 0.14)` dunkel). Die Kartenliste benutzt sie für die Zeilentrennung
+  und für ihren Rahmen; Formulare bleiben bei `--line`.
+- **Zeilen:** 8 statt 4 Pixel Innenabstand oben und unten (Zeile 39 statt 33 Pixel), Hover
+  mit 4 % Textfarbe statt `--tile-bg-hover`.
+- **Beiwerk kleiner:** Bild-Zeichen 16 px (Symbol 13 px, Deckkraft 0,55), Menüknopf 22 px
+  (Punkte 13 px).
+- **Kartenfenster:** Titel in `--font-serif` (25,6 px, Gewicht 400). Die Sprachreiter haben
+  keine eigene Fläche mehr; der aktive Reiter trägt 20 % `--accent` statt der vollen
+  Textfarbe. Eingabefelder haben einen warmen Rahmen und im Fokus einen 3-Pixel-Schleier
+  (`--accent` 12 %) statt des 2-Pixel-Rings in voller Akzentfarbe. Der Speichern-Knopf ist
+  im hellen Thema ein tiefes Grün (`--accent` 78 % mit Textfarbe) statt Schwarz, im dunklen
+  entsprechend gedämpft.
+- **Abstände im Fenster (ab 640 Pixel):** seitlich einheitlich 36 px (Titel, Felder,
+  Aktionen), 24 px zwischen den Feldern, 30 px unter dem letzten Feld. Auf dem Handy bleibt
+  das Bottom-Sheet bei seinen bisherigen 20 Pixeln.
+
+**Bildvorschau beim Zeigen (21.10.2026)**
+
+Fährt die Maus über eine Kartenzeile **mit Foto**, erscheint nach 120 ms eine Vorschau des
+Bildes, rechts in der Zeile und mittig zu ihrer Höhe. Sie verschwindet beim Verlassen der
+Zeile, beim Scrollen und sobald ein Fenster aufgeht. Die Größe ist
+`min(460px, 44vw, 62vh)` (`--photo-pop-size`), damit auch ein großes Foto lesbar bleibt,
+ohne die Seite zuzudecken.
+
+- Ein einziges Element (`div.card-photo-pop` am `<body>`) für die ganze Liste, nicht eines
+  je Zeile; es entsteht beim ersten Zeigen. Bei 4.148 Zeilen wären das sonst tausende
+  Bilder, die niemand ansieht.
+- Zuhörer hängen nur an Zeilen mit Foto (`mouseenter`/`mouseleave`), und ohne
+  `(hover: hover)` passiert gar nichts - auf dem Handy gibt es kein Zeigen.
+- Position in Fensterkoordinaten (`position: fixed`), berechnet aus der Zeile; 56 Pixel
+  Abstand lassen das `…`-Menü frei, `pointer-events: none` verhindert das Flackern, das
+  entstünde, wenn die Vorschau selbst unter dem Zeiger läge.
+- Gezeigt wird das Foto der Vorderseite, sonst das der Rückseite; die Adresse kommt aus
+  `cardPhotoUrl()` (dieselbe Prüfung wie beim Bild-Zeichen, siehe `buildCardPhoto()`).
 
 ## 11. Sicherungskopien
 
